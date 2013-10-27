@@ -1,7 +1,7 @@
 #include "movegen.h"
 
-#include <fstream>                  // для работы с файлами (ifstream, getline())
-#include <cstdlib>                  // для перевода строк в числа (atof())
+#include <fstream>                  // to work with files (ifstream, getline())
+#include <cstdlib>                  // to convert strings to floats (atof())
 #include <iostream>
 
 #define USELESS_HALFMOVES_TO_DRAW 100
@@ -10,8 +10,9 @@
 //#define CHECK_PREDICTED_VALUE
 
 //#define EVAL_KING_TROPISM
-//--------------------------------
-//extern SC pst[6][2][8][8];
+
+
+
 //--------------------------------
 enum PriceList
 {
