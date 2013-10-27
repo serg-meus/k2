@@ -2,7 +2,7 @@
 
 //--------------------------------
 char        stop_str[] = "";
-unsigned    stopPly   = 4;
+unsigned    stopPly   = 0;
 
 Timer       timer;
 double      time0;
@@ -19,30 +19,35 @@ int         halfMovCr, movsRemain;
 Move        doneMoves[USELESS_HALFMOVES_TO_DRAW];
 bool        spentExactTime;
 unsigned    resignCr;
+bool        timeCommandSent;
 
 #ifdef CHECK_PREDICTED_VALUE
     PredictedInfo prediction;
-#endif
+#endif // CHECK_PREDICTED_VALUE
+
 
 #ifdef TUNE_PARAMETERS
 
-std::vector <float> tuning_vec;
+    std::vector <float> tuning_vec;
 
 #endif // TUNE_PARAMETERS
 
 //--------------------------------
 short Search(int depth, short alpha, short beta)
 {
+    assert(alpha < beta);
+    assert(depth > -2);
     if(ply >= MAX_PLY - 1 || DrawDetect())
     {
         pv[ply][0] = 0;
         return 0;
     }
-    bool ic = Attack(men[wtm + 1], wtm ^ WHT);
-    if(ic)
+    bool in_check = Attack(men[wtm + 1], wtm ^ WHT);
+    if(in_check)
+
         depth++;
 #ifdef USE_FTL
-    if(depth <= 1 && depth >= 0 && !ic
+    if(depth <= 1 && depth >= 0 && !in_check
     && boardState[PREV_STATES + ply].capt == 0
     && boardState[PREV_STATES + ply - 1].to   != 0xFF
     && beta < K_VAL - MAX_PLY)
@@ -58,7 +63,7 @@ short Search(int depth, short alpha, short beta)
             return beta;
         }
     }
-#endif
+#endif // USE_FTL
     if(depth <= 0)
     {
         return Quiesce(alpha, beta);
@@ -68,11 +73,11 @@ short Search(int depth, short alpha, short beta)
         CheckForInterrupt();
 
 #ifdef USE_NMR
-    if(NullMove(depth, beta, ic))
+    if(NullMove(depth, beta, in_check))
         return beta;
-#endif
+#endif // USE_NMR
 
-//    short _alpha = alpha;
+
     Move moveList[MAX_MOVES];
 
     int i = 0, legals = 0, top = GenMoves(moveList, APPRICE_ALL);
@@ -85,17 +90,17 @@ short Search(int depth, short alpha, short beta)
 
     for(; i < top && !stop && alpha < K_VAL - MAX_PLY + 1; i++)
     {
-/*#ifndef NDEBUG
-        UC c[24 + 128 + 16 + 64 + 64 + 240];                //<< NB: wrong
-        memcpy(c, unused1, 24 + 128 + 16 + 64 + 64 + 240);  //<< NB: wrong
-#endif*/
+
+
+
+
         Next(moveList, i, top, &m);
         MkMove(m);
 #ifndef NDEBUG
         if((!stopPly || rootPly == stopPly) && strcmp(stop_str, cv) == 0)
             ply = ply;
-#endif
-        if(!Legal(m, ic))
+#endif // NDEBUG
+        if(!Legal(m, in_check))
         {
             UnMove(m);
             continue;
@@ -114,33 +119,34 @@ short Search(int depth, short alpha, short beta)
             x = -Search(depth - 1 /*- lmr*/, -beta, -alpha);
 #else
         x = -Search(depth - 1, -beta, -alpha);
-#endif
+#endif // USE_PVS
         followPV = false;
 
         legals++;
 
         if(x >= beta)
-            i += 999;
+            i += BETA_CUTOFF - 1;                                       // an ugly way to exit, but...
+
         else if(x > alpha)
         {
             alpha = x;
             StorePV(m);
         }
         UnMove(m);
-/*#ifndef NDEBUG
-        if(memcmp(unused1, c, 24 + 128 + 16 + 64 + 64 + 240) != 0)
-            ply = ply;
-#endif*/
+
+
+
+
     }// for i
 
     if(!legals && alpha < K_VAL - MAX_PLY + 1)
     {
         pv[ply][0] = 0;
-        return ic ? -K_VAL + ply : 0;
+        return in_check ? -K_VAL + ply : 0;
     }
     if(i > top + 1)
     {
-        UpdateStatistics(m, depth, i);
+        UpdateStatistics(m,/* depth,*/ i);
         return beta;
     }
     return alpha;
@@ -173,10 +179,10 @@ short Quiesce(short alpha, short beta)
 
     for(; i < top && !stop; i++)
     {
-/*#ifndef NDEBUG
-        UC c[24 + 128 + 16 + 64 + 64 + 240];
-        memcpy(c, unused1, 24 + 128 + 16 + 64 + 64 + 240);
-#endif*/
+
+
+
+
         Move m;
         Next(moveList, i, top, &m);
 
@@ -184,7 +190,7 @@ short Quiesce(short alpha, short beta)
 #ifndef NDEBUG
         if((!stopPly || rootPly == stopPly) && strcmp(stop_str, cv) == 0)
             ply = ply;
-#endif
+#endif // NDEBUG
         if((boardState[PREV_STATES + ply].capt & ~WHT) == _k)
         {
             UnMove(m);
@@ -196,24 +202,25 @@ short Quiesce(short alpha, short beta)
         x = -Quiesce(-beta, -alpha);
 
         if(x >= beta)
-            i += 999;
+            i += BETA_CUTOFF - 1;
+
         else if(x > alpha)
         {
             alpha   = x;
             StorePV(m);
         }
         UnMove(m);
-/*#ifndef NDEBUG
-        if(memcmp(unused1, c, 24 + 128 + 16 + 64 + 64 + 240) != 0)
-            ply = ply;
-#endif*/
+
+
+
+
     }// for(i
 
     if(i > top + 1)
     {
         qCutCr++;
-        if(i < 1000 + sizeof(qCutNumCr)/sizeof(*qCutNumCr))
-            qCutNumCr[i - 1000]++;
+        if(i < BETA_CUTOFF + sizeof(qCutNumCr)/sizeof(*qCutNumCr))
+            qCutNumCr[i - BETA_CUTOFF]++;
         return beta;
     }
     return alpha;
@@ -223,41 +230,41 @@ short Quiesce(short alpha, short beta)
 void Perft(int depth)
 {
     Move moveList[MAX_MOVES];
-    bool ic = Attack(men[wtm + 1], wtm ^ WHT);
+    bool in_check = Attack(men[wtm + 1], wtm ^ WHT);
     GenMoves(moveList, APPRICE_NONE);
     int top = moveCr;
     for(int i = 0; i < top; i++)
     {
-/*#ifndef NDEBUG
-        UC c[24 + 128 + 16 + 64 + 64 + 240];
-        memcpy(c, unused1, 24 + 128 + 16 + 64 + 64 + 240);
-#endif*/
-/*#ifndef NDEBUG
-        UQ tmpCr;
-        if(depth == PERFT_DEPTH)
-            tmpCr = nodes;
-#endif*/
+
+
+
+
+
+
+
+
+
         Move m = moveList[i];
         MkMove(m);
 #ifndef NDEBUG
         if(strcmp(stop_str, cv) == 0)
             ply = ply;
-#endif
+#endif // NDEBUG
 //        bool legal = !Attack(men[(wtm ^ WHT) + 1], wtm);
-        bool legal = Legal(m, ic);
+        bool legal = Legal(m, in_check);
         if(depth > 1 && legal)
             Perft(depth - 1);
         if(depth == 1 && legal)
             nodes++;
-/*#ifndef NDEBUG
-        if(depth == PERFT_DEPTH && legal)
-           std::cout << cv << nodes - tmpCr << std::endl;
-#endif*/
+
+
+
+
         UnMove(m);
-/*#ifndef NDEBUG
-        if(memcmp(unused1, c, 24 + 128 + 16 + 64 + 64 + 240) != 0)
-            ply = ply;
-#endif*/
+
+
+
+
     }
 }
 
@@ -271,11 +278,11 @@ void StorePV(Move m)
 }
 
 //-----------------------------
-void UpdateStatistics(Move m, int dpt, unsigned i)
+void UpdateStatistics(Move m,/* int dpt,*/ unsigned i)
 {
     cutCr++;
-    if(i < 1000 + sizeof(cutNumCr)/sizeof(*cutNumCr))
-        cutNumCr[i - 1000]++;
+    if(i < BETA_CUTOFF + sizeof(cutNumCr)/sizeof(*cutNumCr))
+        cutNumCr[i - BETA_CUTOFF]++;
     if(MOVEFLG(m))
         return;
     if(m != kil[ply][0] && m != kil[ply][1])
@@ -293,13 +300,13 @@ void UpdateStatistics(Move m, int dpt, unsigned i)
 void MainSearch()
 {
     busy = true;
-//    std::cout << "( busy = true ) " << std::endl;
+
     InitSearch();
 
     short sc = 0, _sc_;
-    rootPly = /*prevRootPly > 2 ? prevRootPly - 1 :*/ 1;
-//    if(rootPly > timeMaxPly)
-//        rootPly = 1;
+    rootPly = 1;
+
+
     rootTop = 0;
     for(; rootPly <= MAX_PLY && !stop; ++rootPly)
     {
@@ -349,8 +356,9 @@ void MainSearch()
             break;
 
     }// for(rootPly
-//    if(!analyze)
-//        prevRootPly = rootPly;
+
+
+
     if(sc < -RESIGN_VALUE)
         resignCr++;
     else
@@ -359,8 +367,8 @@ void MainSearch()
     if((!stop && !analyze && sc < -K_VAL + MAX_PLY)
     || (!analyze && sc < -RESIGN_VALUE && resignCr > RESIGN_MOVES))
     {
-  //      if(!pipe)
-  //          FlushConsoleInputBuffer(hnd);
+
+
         std::cout << "resign" << std::endl;// << "(mate found)" << std::endl;
         busy = false;
         timer.stop();
@@ -379,9 +387,9 @@ void MainSearch()
         if(rootPly > 1 && pv[0][0] > 1)
         {
             MkMove(pv[0][1]);
-            bool ic = Attack(men[wtm + 1], wtm ^ WHT);
+            bool in_check = Attack(men[wtm + 1], wtm ^ WHT);
             UnMove(pv[0][1]);
-            prediction.depth = ic ? rootPly + 1 : ic;
+            prediction.depth = in_check ? rootPly + 1 : in_check;
             if(stop)
                 prediction.depth--;
             prediction.oppMove = (pv[0][2] & EXCEPT_SCORE);
@@ -389,26 +397,28 @@ void MainSearch()
             prediction.state = 2;
         }
 #endif // CHECK_PREDICTED_VALUE
-        SearchResultOutput();
+        PrintSearchResult();
+
     }
-//    else
-//        prevRootPly = 0;
+
+
     if(_abort_)
         analyze = false;
 
     busy = false;
-//    std::cout << "( busy = false ) " << std::endl;
+
 }
 
 //--------------------------------
 short RootSearch(int depth, short alpha, short beta)
 {
-    bool ic = Attack(men[wtm + 1], wtm ^ WHT);
+    bool in_check = Attack(men[wtm + 1], wtm ^ WHT);
     boardState[PREV_STATES + ply].valOpn = valOpn;
     boardState[PREV_STATES + ply].valEnd = valEnd;
     if(!rootTop)
-        RootMoveGen(ic);
-//	short _alpha = alpha;
+        RootMoveGen(in_check);
+
+
     rootMoveCr = 0;
 
     Move m = 0x000100FF, probed = 0x000100FF;
@@ -420,14 +430,15 @@ short RootSearch(int depth, short alpha, short beta)
     for(; rootMoveCr < rootTop && alpha < K_VAL - 99 && !stop; rootMoveCr++)
     {
         m = rootMoveList[rootMoveCr];
-//        plyMoves[ply + 1] = m;
+
         if(m == probed)
             continue;
         MkMove(m);
+
 #ifndef NDEBUG
         if(strcmp(stop_str, cv) == 0 && (!stopPly || rootPly == stopPly))
             ply = ply;
-#endif
+#endif // NDEBUG
 
         FastEval(m);
         UQ _nodes = nodes;
@@ -457,7 +468,8 @@ short RootSearch(int depth, short alpha, short beta)
 
         if(x >= beta)
         {
-            rootMoveCr += 999;
+            rootMoveCr += BETA_CUTOFF - 1;
+
             UnMove(m);
         }
         else if(x > alpha)
@@ -490,7 +502,7 @@ short RootSearch(int depth, short alpha, short beta)
     if(!rootTop)
     {
         pv[0][0] = 0;
-        return ic ? -K_VAL + ply : 0;
+        return in_check ? -K_VAL + ply : 0;
     }
 /*    else if(rootMoveCr > rootTop + 1)
         StoreInTT(depth, tCUT, beta, m);
@@ -500,14 +512,14 @@ short RootSearch(int depth, short alpha, short beta)
         StoreInTT(depth, tALL, _alpha, probed);*/
     if(rootMoveCr > rootTop + 1)
     {
-        UpdateStatistics(m, depth, rootMoveCr);
+        UpdateStatistics(m,/* depth,*/ rootMoveCr);
         return beta;
     }
     return alpha;
 }
 
 //--------------------------------
-void RootMoveGen(bool ic)
+void RootMoveGen(bool in_check)
 {
     Move moveList[MAX_MOVES];
     rootTop = GenMoves(moveList, APPRICE_ALL);
@@ -518,7 +530,7 @@ void RootMoveGen(bool ic)
         Move m;
         Next(moveList, i, rootTop, &m);
         MkMove(m);
-        if(!Legal(m, ic))
+        if(!Legal(m, in_check))
         {
             memmove(&moveList[i], &moveList[i + 1],
                 sizeof(Move)*(rootTop - 1));
@@ -547,9 +559,9 @@ void RootMoveGen(bool ic)
     }*/
     pv[0][1] = rootMoveList[0];
 
-/*    randomize();
-    for(int i = 0; i < rootTop; i++)
-        rootMoveList[i].scr = (rand() >> 13) + (rand() >> 13) + (rand() >> 13);*/
+
+
+
 }
 
 //--------------------------------
@@ -560,6 +572,7 @@ void InitSearch()
     qnodes  = 0;
     cutCr   = 0;
     qCutCr  = 0;
+    futCr   = 0;
 
     unsigned i, j;
     for(i = 0; i < sizeof(cutNumCr)/sizeof(*cutNumCr); i++)
@@ -590,13 +603,15 @@ void InitSearch()
 }
 
 //--------------------------------
-void SearchResultOutput()
+void PrintSearchResult()
+
 {
     if(analyze)
         return;
     char mov[6];
     char proms[] = {'?', 'q', 'n', 'r', 'b'};
-//    UQ rd   = TTReduce();
+
+
     Move  p = pv[0][1];
     int  f  = men[MOVEPC(p)];
     mov[0]  = COL(f) + 'a';
@@ -609,8 +624,8 @@ void SearchResultOutput()
     if(!MakeLegalMove(mov))
     {
         std::cout << "tellusererror err01" << std::endl << "resign" << std::endl;
-//        if(!pipe)
-//            FlushConsoleInputBuffer(hnd);
+
+
     }
 //    sumNodes += nodes;
     std::cout << "( q/n = " << (int)(qnodes/(nodes/100 + 1)) << "%, ";
@@ -650,10 +665,12 @@ void PlyOutput(short sc)
 }
 
 //-----------------------------
-void InitTime()
+void InitTime()                                                         // too complex
+
 {
-    timeRemains -= timeSpent;
-    timeRemains = ABSI(timeRemains);
+    if(!timeCommandSent)
+        timeRemains -= timeSpent;
+    timeRemains = ABSI(timeRemains);                                    //<< NB: strange
     int movsAfterControl;
     if(movesPerSession == 0)
         movsAfterControl = halfMovCr/2;
@@ -677,11 +694,14 @@ void InitTime()
 
     if(movsAfterControl == 0 && halfMovCr/2 != 0)
     {
-        timeRemains += timeBase;
+        if(!timeCommandSent)
+            timeRemains += timeBase;
 //        std::cout << "telluser Switch to non-exact time spent mode OK" << std::endl;
-        spentExactTime = false;
+        if(movsRemain > 5)
+            spentExactTime = false;
     }
-    timeRemains += timeInc;
+    if(!timeCommandSent)
+        timeRemains += timeInc;
 //    if(movsRemain == 0)
 //        ply = ply;
     timeToThink = timeRemains / movsRemain;
@@ -689,6 +709,9 @@ void InitTime()
         timeToThink /= 3;                           // average branching factor
     else if(timeInc != 0 && timeBase != 0)
         timeToThink = timeInc;
+
+    timeCommandSent = false;
+//    std::cout << "telluser " << timeToThink << std::endl;
 }
 
 //-----------------------------
@@ -725,8 +748,8 @@ bool ShowPV(int _ply)
             std::cout << proms[(MOVEFLG(m) >> 16) & mPROM];
         std::cout << ' ';
         MkMove(m);
-        bool ic = Attack(men[wtm + 1], wtm ^ WHT);
-        if(!Legal(m, ic))
+        bool in_check = Attack(men[wtm + 1], wtm ^ WHT);
+        if(!Legal(m, in_check))
             ans = false;
     }
     for(; i > 0; i--)
@@ -789,8 +812,8 @@ bool MakeLegalMove(char *mov)
     int ln = strlen(mov);
     if(ln < 4 || ln > 5)
         return false;
-    bool ic = Attack(men[wtm + 1], wtm ^ WHT);
-    RootMoveGen(ic);
+    bool in_check = Attack(men[wtm + 1], wtm ^ WHT);
+    RootMoveGen(in_check);
 
     char rMov[6];
     char proms[] = {'?', 'q', 'n', 'r', 'b'};
@@ -852,12 +875,12 @@ void InitEngine()
 {
     InitEval();
 
-    timeMaxPly      = MAX_PLY;
-    timeRemains     = 300000000;
-    timeBase        = 300000000;
-    timeInc         = 0;
-    movesPerSession = 0;
-    timeMaxNodes    = 0;
+
+
+
+
+
+
 
     std::cin.rdbuf()->pubsetbuf(NULL, 0);
     std::cout.rdbuf()->pubsetbuf(NULL, 0);
@@ -876,6 +899,7 @@ void InitEngine()
     halfMovCr       = 0;
     resignCr        = 0;
     timeSpent       = 0;
+    futCr           = 0;
 }
 
 //--------------------------------
@@ -886,7 +910,11 @@ bool FenToBoardAndVal(char *fen)
     doneMoves[0] = -1;
 
     if(ans)
+    {
         EvalAllMaterialAndPST();
+        timeSpent   = 0;
+        timeRemains = timeBase;
+    }
 
     return ans;
 }
@@ -954,7 +982,7 @@ void MkMove(Move m)
     UC targ = MOVETO(m);
     boardState[PREV_STATES + ply].fr = fr;
     boardState[PREV_STATES + ply].to = targ;
-    boardState[PREV_STATES + ply].silent = reversibleMoves;
+    boardState[PREV_STATES + ply].reversibleCr = reversibleMoves;
     reversibleMoves++;
     if(MOVEFLG(m) & (mCAPT << 16))
     {
@@ -993,7 +1021,7 @@ void MkMove(Move m)
     }
 #ifndef NDEBUG
     ShowMove(fr, MOVETO(m));
-#endif
+#endif // NDEBUG
 
     men[MOVEPC(m)]   = MOVETO(m);
     b[MOVETO(m)]     = b[fr];
@@ -1033,7 +1061,7 @@ void UnMove(Move m)
     b[fr] = (MOVEFLG(m) & (mPROM << 16)) ? _P ^ wtm : b[MOVETO(m)];
     b[MOVETO(m)] = boardState[PREV_STATES + ply].capt;
 //    ttKey = boardState[PREV_STATES + ply].ttKey;
-    reversibleMoves = boardState[PREV_STATES + ply].silent;
+    reversibleMoves = boardState[PREV_STATES + ply].reversibleCr;
     wtm ^= WHT;
 
     if(MOVEFLG(m) & (mCAPT << 16))
@@ -1102,7 +1130,8 @@ void UnMove(Move m)
             if(min_b != pmin[col][0] || max_b != pmax[col][0])
                 ply = ply;
         }
-    #endif
+    #endif // NDEBUG
+
 #endif // USE_PAWN_STRUCT
 
     ply--;
@@ -1111,7 +1140,7 @@ void UnMove(Move m)
 
 #ifndef NDEBUG
     curVar[5*ply] = '\0';
-#endif
+#endif // NDEBUG
 }
 
 //--------------------------------
@@ -1142,12 +1171,12 @@ bool DrawByRepetitionInRoot(Move lastMove)
 //--------------------------------------
 void MakeNullMove()
 {
-    UC _to = boardState[PREV_STATES + ply].to;
+
 #ifndef NDEBUG
     strcpy(&curVar[5*ply], "NULL ");
     if((!stopPly || rootPly == stopPly) && strcmp(stop_str, cv) == 0)
         ply = ply;
-#endif
+#endif // NDEBUG
 
     boardState[PREV_STATES + ply + 1] = boardState[PREV_STATES + ply];
     boardState[PREV_STATES + ply].to = 0xFF;
@@ -1168,13 +1197,13 @@ void UnMakeNullMove()
 }
 
 //-----------------------------
-bool NullMove(int depth, short beta, bool ic)
+bool NullMove(int depth, short beta, bool in_check)
 {
-    if(ic || depth < 3 || material[wtm >> 5] - pieces[wtm >> 5] < 3)
+    if(in_check || depth < 3 || material[wtm >> 5] - pieces[wtm >> 5] < 3)
         return false;
 
     if(boardState[PREV_STATES + ply - 1].to == 0xFF
-//    && boardState[PREV_STATES + ply - 2].to == 0xFF
+    && boardState[PREV_STATES + ply - 2].to == 0xFF
       )
         return false;
 
@@ -1243,4 +1272,12 @@ r6r/pbpq1p2/1pnp1k1p/3Pp1p1/2P4P/2QBPPB1/P5P1/2R2RK1 b - - 0 8 search explosion 
 2kb1R2/8/2p2B2/1pP2P2/1P6/1K6/8/3r4 w - - 0 1 bm Be7; got it faster without null move
 8/1k4N1/8/8/2Q5/8/8/3K4 w - - 93 172 search explosion @ply 19
 1r6/8/8/8/8/8/k5K1/r7 b - - 96 191 search explosion @ply 13
+5k2/8/3KP3/8/8/8/6P1/8 w - - 0 65 search explosion @ply 10
+8/8/8/3K4/7p/8/7k/2R3q1 w - - 0 91 search explosion @ply 7
+6k1/5p2/3B1P2/3K1Pp1/8/6Qp/6q1/6b1 w - - 0 132 search explosion @ply 9
+8/8/8/P1k5/2P2K2/6Pp/8/8 w - - 0 47 search explosion @ply 10
+8/p1p4p/P4p1P/1P6/6P1/4k3/4p3/4K3 b - - 0 46 @ply 9
+r1bq1rk1/b2nnppB/p3p3/P3P3/2pP4/2P2N2/4QPPP/R1B2RK1 b - - 0 17 rotten position for black2
+8/p2r4/1n1R4/R3P1k1/P1p5/2P3p1/2P4p/7K b - - 4 47 wrong connected promos eval
+
 */
