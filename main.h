@@ -1,16 +1,22 @@
 #include "engine.h"
-#include <string>
-#include <cstdlib>
+//--------------------------------
+#define ENGINE_VERSION "034"
+
+
 
 //--------------------------------
 #ifdef NDEBUG
     #define USE_THREAD_FOR_INPUT
-#endif
+#endif // NDEBUG
 
 #ifdef USE_THREAD_FOR_INPUT
-    #include <thread>
-#endif
+    #include <thread>                                                   // for std::thread
+#endif // USE_THREAD_FOR_INPUT
 
+
+
+//--------------------------------
+#define UNUSED(x) (void)(x)
 //--------------------------------
 extern double timeRemains;
 extern double timeBase;
@@ -23,9 +29,10 @@ extern bool _abort_;
 extern bool busy;
 extern UQ totalNodes;
 extern double totalTimeSpent;
+extern bool timeCommandSent;
 
 #ifdef TUNE_PARAMETERS
-extern std::vector <float> tuning_vec;
+    extern std::vector <float> tuning_vec;
 #endif // TUNE_PARAMETERS
 
 
