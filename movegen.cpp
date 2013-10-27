@@ -432,7 +432,7 @@ void Next(Move *list, int cur, int top, Move *ans)
     *ans = list[imx];
     if(imx != cur)
     {
-        list[imx]           = list[cur];
-        list[cur]           = *ans;
+        list[imx] = list[cur];
+        list[cur] = *ans;
     }
 }
