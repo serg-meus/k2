@@ -1,9 +1,15 @@
 #include "main.h"
 //--------------------------------
+// k2, the chess engine
+// Author: Sergey Meus (serg_meus@mail.ru)
+// Krasnoyarsk Kray, Russia
+// Copyright 2012-2013
+//--------------------------------
 
 cmdStruct commands[]
 {
-//   Команда    Функция
+//   Command    Function
+
     {"new",     NewCommand},
     {"setboard",SetboardCommand},
     {"set",     SetboardCommand},
@@ -35,15 +41,17 @@ cmdStruct commands[]
 
     {"accepted",Unsupported},
     {".",       Unsupported},
-    {"",       Unsupported},
+    {"",        Unsupported},
 };
 
 bool force  = false;
 bool quit   = false;
 
 #ifdef USE_THREAD_FOR_INPUT
-std::thread t;
-#endif
+    std::thread t;                                                      // for compilers with C++11 support
+#endif // USE_THREAD_FOR_INPUT                                          // under Linux -pthread must be used for gcc linker
+
+
 
 //--------------------------------
 int main(int argc, char* argv[])
@@ -54,18 +62,31 @@ int main(int argc, char* argv[])
             tuning_vec.push_back(atof(argv[i]));
         else
             tuning_vec.push_back(0.);
+#else
+    UNUSED(argc);
+    UNUSED(argv);
 #endif // TUNE_PARAMETERS
-
 
     InitEngine();
 
-    char in[200];
+    timeMaxPly      = MAX_PLY;
+    timeRemains     = 300000000;
+    timeBase        = 300000000;
+    timeInc         = 0;
+    movesPerSession = 0;
+    timeMaxNodes    = 0;
+    timeCommandSent = false;
+
+
+    char in[256];
     while(!quit)
     {
-        std::cin.getline(in, 200);
+        if(!std::cin.getline(in, sizeof(in)), "\n")
+            std::cin.clear();
         if(CmdProcess((std::string)in))
         {
-            // НичегоНеДелаем
+            // NiCheGoNeDeLaYem!
+
         }
         else if(!busy && LooksLikeMove((std::string)in))
         {
@@ -96,6 +117,10 @@ bool CmdProcess(std::string in)
     std::string firstWord, remains;
 
     GetFirstArg(in, &firstWord, &remains);
+
+//    std::cout << firstWord << std::endl;
+//    std::cout << remains << std::endl;
+
     unsigned i;
     for(i = 0; i < sizeof(commands) / sizeof(cmdStruct); ++i)
     {
@@ -158,13 +183,14 @@ void StopEngine()
 //--------------------------------
 void NewCommand(std::string in)
 {
+    UNUSED(in);
     if(busy)
         StopEngine();
     force = false;
     std::cout << "( Total node count: " << totalNodes
-                << ", total time spent: " << totalTimeSpent / 100.0
+                << ", total time spent: " << totalTimeSpent / 1000000.0
                 << " )" << std::endl
-                << "( Mnps = " << totalNodes / (totalTimeSpent + 1) / 10000.0
+                << "( MNPS = " << totalNodes / (totalTimeSpent + 1e-5)
                 << " )" << std::endl;
     InitEngine();
 }
@@ -174,8 +200,10 @@ void SetboardCommand(std::string in)
 {
     if(busy)
         return;
+
     int firstSymbol = in.find_first_not_of(" \t");
     in.erase(0, firstSymbol);
+
     if(!FenToBoardAndVal((char *)in.c_str()))
         std::cout << "Illegal position" << std::endl;
 }
@@ -183,6 +211,7 @@ void SetboardCommand(std::string in)
 //--------------------------------
 void QuitCommand(std::string in)
 {
+    UNUSED(in);
 #ifdef USE_THREAD_FOR_INPUT
     if(busy || t.joinable())
         StopEngine();
@@ -214,6 +243,7 @@ void PerftCommand(std::string in)
 //--------------------------------
 void GoCommand(std::string in)
 {
+    UNUSED(in);
     if(busy)
         return;
     force = false;
@@ -241,7 +271,12 @@ void LevelCommand(std::string in)
     if(colon != -1)
     {
         arg2.at(colon) = '.';
+        int size_of_seconds = arg2.size() - colon - 1;
         base = atof(arg2.c_str());
+        if(base < 0)
+            base = -base;
+        if(size_of_seconds == 1)
+            base = 0.1*(base - (int)base) + (int)base;
         int floorBase = (int)base;
         base = (base - floorBase)*100/60 + floorBase;
 
@@ -262,6 +297,7 @@ void LevelCommand(std::string in)
 //--------------------------------
 void ForceCommand(std::string in)
 {
+    UNUSED(in);
     if(busy)
         StopEngine();
     force = true;
@@ -280,7 +316,7 @@ void SetNodesCommand(std::string in)
 }
 
 //--------------------------------
-void SetTimeCommand(std::string in)
+void SetTimeCommand(std::string in)             //<< NB: wrong
 {
     if(busy)
         return;
@@ -306,10 +342,12 @@ void SetDepthCommand(std::string in)
 //--------------------------------
 void ProtoverCommand(std::string in)
 {
+    UNUSED(in);
     if(busy)
         return;
     std::cout << "feature "
-            "myname=\"k2 v1.5\" "
+            "myname=\"k2 v." ENGINE_VERSION "\" "
+
             "setboard=1 "
             "analyze=0 "
             "san=0 "
@@ -324,6 +362,7 @@ void ProtoverCommand(std::string in)
 //--------------------------------
 void InterrogationCommand(std::string in)
 {
+    UNUSED(in);
 #ifdef USE_THREAD_FOR_INPUT
     if(busy)
     {
@@ -337,6 +376,7 @@ void InterrogationCommand(std::string in)
 //--------------------------------
 void ResultCommand(std::string in)
 {
+    UNUSED(in);
     if(busy)
         StopEngine();
 }
@@ -349,32 +389,37 @@ void TimeCommand(std::string in)
         std::cout << "telluser time command recieved while engine is busy" << std::endl;
         return;
     }
+//    std::cout << "telluser " << in << std::endl;
     double tb = atof(in.c_str()) * 10000;
-//    if(tb < timeRemains - 10000)
-        timeRemains = tb;
+    timeRemains = tb;
+    timeCommandSent = true;
+
 }
 
 //--------------------------------
 void EvalCommand(std::string in)
 {
+    UNUSED(in);
     if(busy)
         return;
     std::cout << "Fast eval: " << valOpn << " / "
         << valEnd << std::endl;
     short x = Eval();
     std::cout << "Eval: " << (wtm ? -x : x) << std::endl;
-//    std::cout << "(positive is white advantage)" << std::endl;
+    std::cout << "(positive is white advantage)" << std::endl;
 }
 
 //--------------------------------
 void TestCommand(std::string in)
 {
+    UNUSED(in);
 
 }
 
 //--------------------------------
 void Unsupported(std::string in)
 {
-    // ни-че-го-не-де-ла-ем!
+    UNUSED(in);
+
 }
 
