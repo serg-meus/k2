@@ -9,17 +9,20 @@
 #define RESIGN_VALUE    750
 #define RESIGN_MOVES    3
 
-#define TUNE_PARAMETERS
+#define BETA_CUTOFF 1000
+
+//#define TUNE_PARAMETERS
 #define USE_PVS
 #define USE_NMR
 #define USE_FTL
 
 #ifdef TUNE_PARAMETERS
-#include <vector>
-#endif
+    #include <vector>
+#endif // TUNE_PARAMETERS
+
 
 #ifdef CHECK_PREDICTED_VALUE
-//--------------------------------
+
 struct PredictedInfo
 {
     Move    oppMove;
@@ -35,12 +38,13 @@ void Perft(int depth);
 short Search(int depth, short alpha, short beta);
 short Quiesce(short alpha, short beta);
 void StorePV(Move m);
-void UpdateStatistics(Move m, int dpt, unsigned i);
+void UpdateStatistics(Move m,/* int dpt,*/ unsigned i);
 short RootSearch(int depth, short alpha, short beta);
 void RootMoveGen(bool ic);
 void MainSearch();
 void InitSearch();
-void SearchResultOutput();
+void PrintSearchResult();
+
 void PlyOutput(short sc);
 void InitTime();
 bool ShowPV(int _ply);
