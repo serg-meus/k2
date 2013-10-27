@@ -56,7 +56,7 @@ struct BrdState
     UC ncstl_r;         // number of castled rook, 6 bits
     UC ep;              // 0 = no_ep, else ep=COL(x) + 1, not null only if opponent pawn is near, 4 bits
     UC nprom;           // number of previous piece for promoted pawn, 6 bits
-    US silent;          // silent halfmove counter
+    US reversibleCr;    // reversible halfmove counter
     UC to;              // to point, 7 bits (for simple repetition draw detection)
     short valOpn;       // store material and PST value considered all material is on the board
     short valEnd;       // store material and PST value considered deep endgame (kings and pawns only)
