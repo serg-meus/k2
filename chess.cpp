@@ -1,15 +1,15 @@
 #include "chess.h"
 
 //--------------------------------
-UC  unused1[24],
-    b[128],
-    unused2[16],
-    men[64],
-    menNxt[64],
-    attacks[240],
-    get_delta[240];
-signed char get_shift[240];
-UC rays[]   = {0, 8, 8, 4, 4, 8};
+UC  unused1[24],                                                        // unused space for avoiding bounds check
+    b[128],                                                             // board array in "0x88" style
+    unused2[16],                                                        // unused space for avoiding bounds check
+    men[64],                                                            // piece list
+    menNxt[64],                                                         // pointer to next piece
+    attacks[240],                                                       // table for quick deteck possible attacks
+    get_delta[240];                                                     // I'm already forget what's this
+signed char get_shift[240];                                             // ... and this
+UC rays[]   = {0, 8, 8, 4, 4, 8, 0};
 SC shifts[6][8] = {{ 0,  0,  0,  0,  0,  0,  0,  0},
                     { 1, 17, 16, 15, -1,-17,-16,-15},
                     { 1, 17, 16, 15, -1,-17,-16,-15},
@@ -17,9 +17,9 @@ SC shifts[6][8] = {{ 0,  0,  0,  0,  0,  0,  0,  0},
                     {17, 15,-17,-15, 0,  0,  0,  0},
                     {18, 33, 31, 14,-18,-33,-31,-14}};
 UC  pc_streng[]   =  {0, 0, 12, 6, 4, 4, 1};
-UC  slider[] = {0, 0, 1, 1, 1, 0};
+UC  slider[] = {0, 0, 1, 1, 1, 0, 0};
 int material[2], pieces[2];
-char curVar[5*MAX_PLY];
+
 BrdState  boardState[PREV_STATES + MAX_PLY];
 unsigned wtm, ply;
 UQ nodes, tmpCr;
@@ -30,16 +30,18 @@ US reversibleMoves;
     int pmax_tmp[2], pmax[9][2], pmin_tmp[2], pmin[9][2];
 #endif
 
+char curVar[5*MAX_PLY];
+
 //--------------------------------
 void InitChess()
 {
     cv = curVar;
     InitBrd();
 
-    pmax[-1][0] = 0;
-    pmax[-1][1] = 0;
-    pmin[-1][0] = 7;
-    pmin[-1][1] = 7;
+    pmax[rays[0] - 1][0] = 0;       //<< NB: dirty hack used here to avoid compiler warnings
+    pmax[rays[0] - 1][1] = 0;
+    pmin[rays[0] - 1][0] = 7;
+    pmin[rays[0] - 1][1] = 7;
     pmax[8][0]  = 0;
     pmax[8][1]  = 0;
     pmin[8][0]  = 7;
@@ -312,9 +314,10 @@ bool MakeCastle(Move m, UC fr)
         rTo += 0x70;
     }
     unsigned i;
-    for(i = wtm + 1; i < wtm + 0x20; i++)   //<< NB wrong
+    for(i = wtm + 1; i < wtm + 0x20; i++)   //<< NB: wrong
         if(men[i] == rFr)
             break;
+    assert(men[i] == rFr);
 
     boardState[PREV_STATES + ply].ncstl_r = i;
     b[rTo] = b[rFr];
@@ -382,18 +385,22 @@ bool Attack(UC to, int xtm)
         menNum  = menNxt[menNum];
         fr      = men[menNum];
 
+        assert(fr < sizeof(b)/sizeof(*b));
         int pt  = b[fr] & 7;
         if(pt   == _p)
             break;
 
+        assert((unsigned)(120 + to - fr) < sizeof(attacks)/sizeof(*attacks));
         UC att = attacks[120 + to - fr] & (1 << pt);
         if(!att)
             continue;
+        assert((unsigned)pt < sizeof(slider)/sizeof(*slider));
         if(!slider[pt])
             return true;
         if(SliderAttack(to, fr))
              return true;
-    }
+
+    }// for (menCr
 
     return false;
 }
