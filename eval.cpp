@@ -61,6 +61,7 @@ short Eval(/*short alpha, short beta*/)
     }
 #endif
 
+
     int X, Y;
     X = material[0] + 1 + material[1] + 1 - pieces[0] - pieces[1];
     Y = ((valOpn - valEnd)*X + 80*valEnd)/80;
@@ -180,8 +181,10 @@ void FastEval(Move m)
             else
                 capt = boardState[PREV_STATES + ply].capt & ~WHT;
             deltaScoreOpn -= tropism[capt];
-        }
-    }
+        }// if(kdist_to
+    }// if(MOVEGLG(m) ...
+
+
 
 
 #endif // EVAL_KING_TROPISM
@@ -240,7 +243,7 @@ void EvalPawns(bool stm)
 {
     short ansO = 0, ansE = 0;
 	bool promo, prevPromo = false;
-//    int unstopCr = 0;
+
     bool oppHasOnlyPawns = material[!stm] == pieces[!stm] - 1;
     for(int i = 0; i < 8; i++)
     {
@@ -310,8 +313,8 @@ void EvalPawns(bool stm)
             prevPromo = false;
     }// for i
 
-//   ansO += UNSTOP_P*unstopCr;
-//    ansE += UNSTOP_P*unstopCr;
+
+
 
 /*    int connectedCr = 0;
     for(int i = 1; i < 8; i++)
@@ -506,7 +509,7 @@ short EvalAllKingDist(UC stm, UC king_coord)
     UC menNum   = stm;
     menNum      = menNxt[menNum];
     UC maxPc    = pieces[stm >> 5];
-//    UC k        = men[stm + 1];
+
     unsigned i  = 0;
     short ans   = 0;
 
