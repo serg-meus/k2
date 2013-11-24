@@ -54,7 +54,7 @@ short Eval(/*short alpha, short beta*/)
 #endif // USE_PAWN_STRUCT
 
 #ifndef CHECK_PREDICTED_VALUE
-    if(reversibleMoves > ply)
+   if(reversibleMoves > ply)
     {
         valOpn = (int)valOpn * (USELESS_HALFMOVES_TO_DRAW - reversibleMoves) / USELESS_HALFMOVES_TO_DRAW;
         valEnd = (int)valEnd * (USELESS_HALFMOVES_TO_DRAW - reversibleMoves) / USELESS_HALFMOVES_TO_DRAW;
@@ -64,6 +64,12 @@ short Eval(/*short alpha, short beta*/)
 
     int X, Y;
     X = material[0] + 1 + material[1] + 1 - pieces[0] - pieces[1];
+
+    if(X == 3
+    && (material[0] == 4 || material[1] == 4)
+    && (pieces[0] + pieces[1] == 3))                // KNk, KBk, Kkn, Kkb
+        return 0;
+
     Y = ((valOpn - valEnd)*X + 80*valEnd)/80;
 
     valOpn = boardState[PREV_STATES + ply].valOpn;
@@ -244,13 +250,13 @@ void EvalPawns(bool stm)
     {
         bool doubled = false, isolany = false;
 
-        int mx = pmax[i][stm];
+        int mx = pmax[i + 1][stm];
         if(mx == 0)
             continue;
 
-        if(pmin[i][stm] != mx)
+        if(pmin[i + 1][stm] != mx)
             doubled = true;
-        if(pmax[i - 1][stm] == 0 && pmax[i + 1][stm] == 0)
+        if(pmax[i - 0][stm] == 0 && pmax[i + 2][stm] == 0)
             isolany = true;
         if(doubled && isolany)
         {
@@ -269,16 +275,16 @@ void EvalPawns(bool stm)
         }
 
         promo = false;
-        if(mx >= 7 - pmin[  i  ][!stm]
-        && mx >= 7 - pmin[i - 1][!stm]
-        && mx >= 7 - pmin[i + 1][!stm])
+        if(mx >= 7 - pmin[i + 1][!stm]
+        && mx >= 7 - pmin[i - 0][!stm]
+        && mx >= 7 - pmin[i + 2][!stm])
             promo = true;
 
         if(promo)
         {
             if(i > 0 && prevPromo && mx >= 5
-            && pmax[i - 1][stm] >= 5)
-                ansE += DBL_PROMO_P*MAXI(mx, pmax[i - 1][stm]);
+            && pmax[i - 0][stm] >= 5)
+                ansE += DBL_PROMO_P*MAXI(mx, pmax[i - 0][stm]);
 
             prevPromo = true;
             short delta = 16*mx - 16;
@@ -290,12 +296,12 @@ void EvalPawns(bool stm)
                 UC k = men[stm << 4];
                 if(!stm)
                     k ^= 0x70;
-                if(TestUnstoppable(i, 7 - pmax[i][stm], stm << 5))
+                if(TestUnstoppable(i, 7 - pmax[i + 1][stm], stm << 5))
                 {
                     ansO += 120*mx + 350;
                     ansE += 120*mx + 350;
                 }
-                else if(pmax[i][stm] == 4 && ABSI(COL(k) - i) <= 1
+                else if(pmax[i + 1][stm] == 4 && ABSI(COL(k) - i) <= 1
                 && i != 0 && i != 7 && ROW(k) > 4 && ROW(k) < 7)
                 {
                     ansO += 120*mx + 350;
@@ -312,8 +318,8 @@ void EvalPawns(bool stm)
 /*    int connectedCr = 0;
     for(int i = 1; i < 8; i++)
     {
-        int mx  = pmax[i][stm];
-        int pmx = pmax[i - 1][stm];
+        int mx  = pmax[i + 1][stm];
+        int pmx = pmax[i - 0][stm];
         if(mx == 0 || ABSI(mx - pmx) > 1)
         {
             ansE += connectedCr*3/5;
@@ -335,47 +341,47 @@ void ClampedRook(UC stm)
 
     if(stm)
     {
-        if(k == 0x06 && b[0x07] == _R && pmax[7][1])
+        if(k == 0x06 && b[0x07] == _R && pmax[7 + 1][1])
             valOpn -= CLAMPED_R;
         else if(k == 0x05)
         {
-            if(pmax[7][1] && b[0x07] == _R)
+            if(pmax[7 + 1][1] && b[0x07] == _R)
                 valOpn -= CLAMPED_R;
             else
-            if(pmax[6][1] && b[0x06] == _R)
+            if(pmax[6 + 1][1] && b[0x06] == _R)
                 valOpn -= CLAMPED_R;
         }
-        else if(k == 0x01 && b[0x00] == _R && pmax[0][1])
+        else if(k == 0x01 && b[0x00] == _R && pmax[0 + 1][1])
             valOpn -= CLAMPED_R;
         else if(k == 0x02)
         {
-            if(pmax[0][1] && b[0x00] == _R)
+            if(pmax[0 + 1][1] && b[0x00] == _R)
                 valOpn -= CLAMPED_R;
             else
-            if(pmax[1][1] && b[0x01] == _R)
+            if(pmax[1 + 1][1] && b[0x01] == _R)
                 valOpn -= CLAMPED_R;
         }
      }
      else
      {
-        if(k == 0x76 && b[0x77] == _r && pmax[7][0])
+        if(k == 0x76 && b[0x77] == _r && pmax[7 + 1][0])
             valOpn += CLAMPED_R;
         else if(k == 0x75)
         {
-            if(pmax[7][0] && b[0x77] == _r)
+            if(pmax[7 + 1][0] && b[0x77] == _r)
                 valOpn += CLAMPED_R;
             else
-            if(pmax[6][0] && b[0x76] == _r)
+            if(pmax[6 + 1][0] && b[0x76] == _r)
                 valOpn += CLAMPED_R;
         }
-        else if(k == 0x71 && b[0x70] == _r && pmax[0][0])
+        else if(k == 0x71 && b[0x70] == _r && pmax[0 + 1][0])
             valOpn += CLAMPED_R;
         else if(k == 0x72)
         {
-            if(pmax[0][0] && b[0x70] == _r)
+            if(pmax[0 + 1][0] && b[0x70] == _r)
                 valOpn += CLAMPED_R;
             else
-            if(pmax[1][0] && b[0x71] == _r)
+            if(pmax[1 + 1][0] && b[0x71] == _r)
                 valOpn += CLAMPED_R;
         }
      }
