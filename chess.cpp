@@ -8,7 +8,7 @@ UC  unused1[24],                                                        // unuse
     menNxt[64],                                                         // pointer to next piece
     attacks[240],                                                       // table for quick deteck possible attacks
     get_delta[240];                                                     // I'm already forget what's this
-signed char get_shift[240];                                             // ... and this
+SC  get_shift[240];                                                     // ... and this
 UC rays[]   = {0, 8, 8, 4, 4, 8, 0};
 SC shifts[6][8] = {{ 0,  0,  0,  0,  0,  0,  0,  0},
                     { 1, 17, 16, 15, -1,-17,-16,-15},
@@ -26,9 +26,9 @@ char *cv;
 US reversibleMoves;
 
 #ifdef USE_PAWN_STRUCT
-    int pmax_tmp[2], pmax[9][2], pmin_tmp[2], pmin[9][2];
+    int pmax[10][2], pmin[10][2];
 #endif
-
+UQ hash_key;
 char curVar[5*MAX_PLY];
 
 //--------------------------------
@@ -37,14 +37,14 @@ void InitChess()
     cv = curVar;
     InitBrd();
 
-    pmax[rays[0] - 1][0] = 0;       //<< NB: dirty hack used here to avoid compiler warnings
-    pmax[rays[0] - 1][1] = 0;
-    pmin[rays[0] - 1][0] = 7;
-    pmin[rays[0] - 1][1] = 7;
-    pmax[8][0]  = 0;
-    pmax[8][1]  = 0;
-    pmin[8][0]  = 7;
-    pmin[8][1]  = 7;
+    pmax[1 - 1][0] = 0;
+    pmax[1 - 1][1] = 0;
+    pmin[1 - 1][0] = 7;
+    pmin[1 - 1][1] = 7;
+    pmax[8 + 1][0]  = 0;
+    pmax[8 + 1][1]  = 0;
+    pmin[8 + 1][0]  = 7;
+    pmin[8 + 1][1]  = 7;
 }
 
 //--------------------------------
@@ -86,7 +86,6 @@ void InitBrd()
     material[0]     = 48;
     material[1]     = 48;
 /*    ttKey           = TTSetKey();
-    InitPawnStruct();
 */
     reversibleMoves     = 0;
 #ifdef USE_PAWN_STRUCT
@@ -232,6 +231,20 @@ bool FenToBoard(char *p)
             case ' ' : break;
             default : return false;
         }
+
+    if((cstl & 0x01)
+    && (b[XY2SQ(4, 0)] != _K || b[XY2SQ(7, 0 )] != _R))
+        cstl &= ~0x01;
+    if((cstl & 0x02)
+    && (b[XY2SQ(4, 0)] != _K || b[XY2SQ(0, 0 )] != _R))
+        cstl &= ~0x02;
+    if((cstl & 0x04)
+    && (b[XY2SQ(4, 7)] != _k || b[XY2SQ(7, 7 )] != _r))
+        cstl &= ~0x04;
+    if((cstl & 0x08)
+    && (b[XY2SQ(4, 7)] != _k || b[XY2SQ(0, 7 )] != _r))
+        cstl &= ~0x08;
+
     boardState[PREV_STATES + 0].cstl = cstl;
 
     p++;
@@ -250,7 +263,7 @@ bool FenToBoard(char *p)
             reversibleMoves *= 10;
             reversibleMoves += (*p++ - '0');
         }
-/*    ttKey = TTSetKey();*/
+
 #ifdef USE_PAWN_STRUCT
     InitPawnStruct();
 #endif // USE_PAWN_STRUCT
@@ -447,24 +460,24 @@ void SetPawnStruct(int x)
         y = 1;
         while(b[XY2SQ(x, 7 - y)] != _p && y < 7)
             y++;
-        pmin[x][0] = y;
+        pmin[x + 1][0] = y;
 
         y = 6;
         while(b[XY2SQ(x, 7 - y)] != _p && y > 0)
             y--;
-        pmax[x][0] = y;
+        pmax[x + 1][0] = y;
     }
     else
     {
         y = 1;
         while(b[XY2SQ(x, y)] != _P && y < 7)
             y++;
-        pmin[x][1] = y;
+        pmin[x + 1][1] = y;
 
         y = 6;
         while(b[XY2SQ(x, y)] != _P && y > 0)
             y--;
-        pmax[x][1] = y;
+        pmax[x + 1][1] = y;
     }
 }
 
@@ -493,32 +506,32 @@ void InitPawnStruct()
     int x, y;
     for(x = 0; x < 8; x++)
     {
-        pmax[x][0] = 0;
-        pmax[x][1] = 0;
-        pmin[x][0] = 7;
-        pmin[x][1] = 7;
+        pmax[x + 1][0] = 0;
+        pmax[x + 1][1] = 0;
+        pmin[x + 1][0] = 7;
+        pmin[x + 1][1] = 7;
         for(y = 1; y < 7; y++)
             if(b[XY2SQ(x, y)] == _P)
             {
-                pmin[x][1] = y;
+                pmin[x + 1][1] = y;
                 break;
             }
         for(y = 6; y >= 1; y--)
             if(b[XY2SQ(x, y)] == _P)
             {
-                pmax[x][1] = y;
+                pmax[x + 1][1] = y;
                 break;
             }
         for(y = 6; y >= 1; y--)
             if(b[XY2SQ(x, y)] == _p)
             {
-                pmin[x][0] = 7 - y;
+                pmin[x + 1][0] = 7 - y;
                 break;
             }
          for(y = 1; y < 7; y++)
             if(b[XY2SQ(x, y)] == _p)
             {
-                pmax[x][0] = 7 - y;
+                pmax[x + 1][0] = 7 - y;
                 break;
             }
     }
