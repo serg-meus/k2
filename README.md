@@ -1,4 +1,5 @@
 k2
 ==
 
-Chess-playing program with support of XBoard/Winboard interface
+The chess playing program with support of XBoard/Winboard interface.
+Version 038.
