@@ -183,10 +183,6 @@ void FastEval(Move m)
             deltaScoreOpn -= tropism[capt];
         }// if(kdist_to
     }// if(MOVEGLG(m) ...
-
-
-
-
 #endif // EVAL_KING_TROPISM
 
     if(wtm)
@@ -243,7 +239,6 @@ void EvalPawns(bool stm)
 {
     short ansO = 0, ansE = 0;
 	bool promo, prevPromo = false;
-
     bool oppHasOnlyPawns = material[!stm] == pieces[!stm] - 1;
     for(int i = 0; i < 8; i++)
     {
@@ -312,8 +307,6 @@ void EvalPawns(bool stm)
         else
             prevPromo = false;
     }// for i
-
-
 
 
 /*    int connectedCr = 0;
@@ -509,7 +502,6 @@ short EvalAllKingDist(UC stm, UC king_coord)
     UC menNum   = stm;
     menNum      = menNxt[menNum];
     UC maxPc    = pieces[stm >> 5];
-
     unsigned i  = 0;
     short ans   = 0;
 
