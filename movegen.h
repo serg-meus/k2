@@ -30,4 +30,3 @@ void    AppriceMoves(Move *list);
 void    Next(Move *m, int cur, int top, Move *ans);
 void    AppriceQuiesceMoves(Move *list);
 //--------------------------------
-
