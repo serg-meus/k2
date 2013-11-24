@@ -6,12 +6,13 @@ int moveCr;
 Move pv[MAX_PLY][MAX_PLY + 1];          // first element in a row is length of PV at that depth
 Move kil[MAX_PLY][2];
 //unsigned history [2][6][128];
-bool followPV;
+bool genBestMove;
+Move bestMoveToGen;
 
 //--------------------------------
 void InitMoveGen()
 {
-    InitChess();
+    InitHashTable();
 }
 
 //--------------------------------
@@ -291,12 +292,11 @@ void AppriceMoves(Move *list)
         UC fr = b[men[MOVEPC(m)]] & (WHT - 1);
         UC pt = b[MOVETO(m)] & (WHT - 1);
 
-
-        if(pt == __ && !(MOVEFLG(m) & (mPROM << 16)))
+        if(genBestMove && m == (bestMoveToGen & EXCEPT_SCORE))
+            list[i] |= (PV_FOLLOW << MOVE_SCORE_SHIFT);
+        else if(pt == __ && !(MOVEFLG(m) & (mPROM << 16)))
         {
-            if(followPV && m == (pv[0][ply + 1] & EXCEPT_SCORE))
-                list[i] |= (PV_FOLLOW << MOVE_SCORE_SHIFT);
-            else if(m == (kil[ply][0] & EXCEPT_SCORE))
+            if(m == (kil[ply][0] & EXCEPT_SCORE))
                 list[i] |= (FIRST_KILLER << MOVE_SCORE_SHIFT);
             else if(m == (kil[ply][1] & EXCEPT_SCORE))
                 list[i] |= (SECOND_KILLER << MOVE_SCORE_SHIFT);
@@ -349,7 +349,10 @@ void AppriceMoves(Move *list)
             }
 */
             if(src > 120)
+            {
+                list[i] |= (EQUAL_CAPTURE << MOVE_SCORE_SHIFT);
                 continue;
+            }
             else if(dst > 120)
             {
                 list[i] |= (KING_CAPTURE << MOVE_SCORE_SHIFT);
