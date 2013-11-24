@@ -1,4 +1,4 @@
-#include "chess.h"
+#include "hash.h"
 #include "extern.h"
 //--------------------------------
 #define PUSH_MOVE(PC, TO, FLG)  {*(ml++) = (TO) | ((PC) << 8) | ((FLG) << 16); moveCr++;}
