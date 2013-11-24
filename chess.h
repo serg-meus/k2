@@ -1,3 +1,4 @@
+#include <iostream>
 #include <cstring>
 #include <stdint.h>
 #include <assert.h>
@@ -7,6 +8,7 @@
 #define UC uint8_t
 #define SC int8_t
 #define US uint16_t
+#define SS int16_t
 #define UI uint32_t
 #define UQ unsigned long long
 //--------------------------------
@@ -25,10 +27,13 @@
 #define MOVEFLG(X)      ((X) & 0x00FF0000)
 //--------------------------------
 #define MOVE_SCORE_SHIFT 24
+
+//--------------------------------
 enum {__ = 0,  _k, _q, _r, _b, _n, _p, _K = 0x21, _Q, _R, _B, _N, _P};
 enum {mCAPT = 0x10, mCS_K = 0x20, mCS_Q = 0x40, mCSTL = 0x60, mENPS = 0x80,
       mPR_Q = 0x01, mPR_N = 0x02, mPR_R = 0x03, mPR_B = 0x04, mPROM = 0x07};
 
+//--------------------------------
 typedef unsigned Move;  // beginning from LSB:
                         // 'to' - coords for piece to move to (8 bit);
                         // 'pc' - number of piece in 'men' array (8 bit);
@@ -43,7 +48,7 @@ typedef unsigned Move;  // beginning from LSB:
                         //      128 - 250 - good captures and/or promotions
                         //      255 - opp king capture or hash hit
 
-
+//--------------------------------
 struct BrdState
 {
     UC capt;            // taken piece, 6 bits
@@ -60,6 +65,17 @@ struct BrdState
     UC to;              // to point, 7 bits (for simple repetition draw detection)
     short valOpn;       // store material and PST value considered all material is on the board
     short valEnd;       // store material and PST value considered deep endgame (kings and pawns only)
+};
+
+//--------------------------------
+struct tt_entry
+{
+    UQ  key;
+    SS  scr;
+    SS  bMov;
+    SS  flags;
+    UC  depth;
+    UC  unused;
 };
 
 //--------------------------------
