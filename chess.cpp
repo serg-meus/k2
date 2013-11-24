@@ -19,7 +19,6 @@ SC shifts[6][8] = {{ 0,  0,  0,  0,  0,  0,  0,  0},
 UC  pc_streng[]   =  {0, 0, 12, 6, 4, 4, 1};
 UC  slider[] = {0, 0, 1, 1, 1, 0, 0};
 int material[2], pieces[2];
-
 BrdState  boardState[PREV_STATES + MAX_PLY];
 unsigned wtm, ply;
 UQ nodes, tmpCr;
@@ -399,7 +398,6 @@ bool Attack(UC to, int xtm)
             return true;
         if(SliderAttack(to, fr))
              return true;
-
     }// for (menCr
 
     return false;
