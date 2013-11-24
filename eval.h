@@ -11,8 +11,6 @@
 
 //#define EVAL_KING_TROPISM
 
-
-
 //--------------------------------
 enum PriceList
 {
