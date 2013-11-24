@@ -9,7 +9,6 @@
 cmdStruct commands[]
 {
 //   Command    Function
-
     {"new",     NewCommand},
     {"setboard",SetboardCommand},
     {"set",     SetboardCommand},
@@ -51,8 +50,6 @@ bool quit   = false;
     std::thread t;                                                      // for compilers with C++11 support
 #endif // USE_THREAD_FOR_INPUT                                          // under Linux -pthread must be used for gcc linker
 
-
-
 //--------------------------------
 int main(int argc, char* argv[])
 {
@@ -77,7 +74,6 @@ int main(int argc, char* argv[])
     timeMaxNodes    = 0;
     timeCommandSent = false;
 
-
     char in[256];
     while(!quit)
     {
@@ -86,7 +82,6 @@ int main(int argc, char* argv[])
         if(CmdProcess((std::string)in))
         {
             // NiCheGoNeDeLaYem!
-
         }
         else if(!busy && LooksLikeMove((std::string)in))
         {
@@ -347,7 +342,6 @@ void ProtoverCommand(std::string in)
         return;
     std::cout << "feature "
             "myname=\"k2 v." ENGINE_VERSION "\" "
-
             "setboard=1 "
             "analyze=0 "
             "san=0 "
@@ -393,7 +387,6 @@ void TimeCommand(std::string in)
     double tb = atof(in.c_str()) * 10000;
     timeRemains = tb;
     timeCommandSent = true;
-
 }
 
 //--------------------------------
@@ -413,13 +406,10 @@ void EvalCommand(std::string in)
 void TestCommand(std::string in)
 {
     UNUSED(in);
-
 }
 
 //--------------------------------
 void Unsupported(std::string in)
 {
     UNUSED(in);
-
 }
-
