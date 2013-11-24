@@ -1,9 +1,6 @@
 #include "engine.h"
 //--------------------------------
 #define ENGINE_VERSION "034"
-
-
-
 //--------------------------------
 #ifdef NDEBUG
     #define USE_THREAD_FOR_INPUT
@@ -12,8 +9,6 @@
 #ifdef USE_THREAD_FOR_INPUT
     #include <thread>                                                   // for std::thread
 #endif // USE_THREAD_FOR_INPUT
-
-
 
 //--------------------------------
 #define UNUSED(x) (void)(x)
