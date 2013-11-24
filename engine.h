@@ -20,9 +20,7 @@
     #include <vector>
 #endif // TUNE_PARAMETERS
 
-
 #ifdef CHECK_PREDICTED_VALUE
-
 struct PredictedInfo
 {
     Move    oppMove;
@@ -44,7 +42,6 @@ void RootMoveGen(bool ic);
 void MainSearch();
 void InitSearch();
 void PrintSearchResult();
-
 void PlyOutput(short sc);
 void InitTime();
 bool ShowPV(int _ply);
