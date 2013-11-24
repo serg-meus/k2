@@ -24,8 +24,10 @@ extern short    valEnd;
 extern UC       unused1[24];
 extern BrdState boardState[PREV_STATES + MAX_PLY];
 extern US       reversibleMoves;
-extern bool     followPV;
+extern bool     genBestMove;
 extern char     curVar[5*MAX_PLY];
-extern int      pmax[9][2];
-extern int      pmin[9][2];
+extern int      pmax[10][2];
+extern int      pmin[10][2];
+extern UQ       hash_key;
+extern Move     bestMoveToGen;
 #endif
