@@ -76,16 +76,17 @@ int main(int argc, char* argv[])
 
     char in[256];
     while(!quit)
-    {
-        if(!std::cin.getline(in, sizeof(in)), "\n")
+   {
+        if(!std::cin.getline(in, sizeof(in), '\n'))
             std::cin.clear();
+
         if(CmdProcess((std::string)in))
         {
             // NiCheGoNeDeLaYem!
         }
         else if(!busy && LooksLikeMove((std::string)in))
         {
-            if(!MakeLegalMove(in))
+            if(!MakeMoveFinaly(in))
                 std::cout << "Illegal move" << std::endl;
             else if(!force)
             {
@@ -316,8 +317,8 @@ void SetTimeCommand(std::string in)             //<< NB: wrong
     if(busy)
         return;
     timeBase     = 0;
-    movesPerSession      = 0;
-    timeInc      = atoi(in.c_str())*1000000.;
+    movesPerSession      = 1;
+    timeInc      = atoi(in.c_str())*1000000./60;
     timeMaxNodes = 0;
     timeMaxPly   = MAX_PLY;
 }
@@ -350,6 +351,8 @@ void ProtoverCommand(std::string in)
             "usermove=0 "
             "time=1 "
             "draw=0 "
+            "sigterm=0 "
+            "sigint=0 "
             "done=1 " << std::endl;
 }
 
