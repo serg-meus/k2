@@ -1,5 +1,5 @@
-k2
+K2
 ==
 
-The chess playing program with support of XBoard/Winboard interface.
-Version 038.
+Chess engine with UCI and Xboard interface support.
+Version 043f.
