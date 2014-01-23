@@ -1,12 +1,11 @@
 #include "chess.h"
 
 //--------------------------------
-UC  unused1[24],                                                        // unused space for avoiding bounds check
-    b[128],                                                             // board array in "0x88" style
-    unused2[16],                                                        // unused space for avoiding bounds check
+UC  b[137],                                                             // board array in "0x88" style
     men[64],                                                            // piece list
-    menNxt[64],                                                         // pointer to next piece
-    attacks[240],                                                       // table for quick deteck possible attacks
+    menNxt[64];                                                         // pointer to next piece
+
+UC  attacks[240],                                                       // table for quick deteck possible attacks
     get_delta[240];                                                     // I'm already forget what's this
 SC  get_shift[240];                                                     // ... and this
 UC rays[]   = {0, 8, 8, 4, 4, 8, 0};
@@ -52,9 +51,11 @@ void InitBrd()
 {
     UC pcs[] = {_R, _N, _B, _Q, _K, _B, _N, _R};
     UC nms[] = { 2,  6,  4,  1,  0,  5,  7,  3};
+
     memset(b, 0, sizeof(b));
     memset(men, 0, sizeof(men));
     memset(menNxt, 0, sizeof(menNxt));
+
     InitAttacks();
 
     int i;
@@ -62,7 +63,7 @@ void InitBrd()
     {
         b[XY2SQ(i, 1)]      = _P;
         men[i + 0x29 ]      = XY2SQ(i, 1);
-        b[XY2SQ(i, 6)]      = _p;
+        b[XY2SQ(i, 6)]     = _p;
         men[i + 0x09 ]      = XY2SQ(i, 6);
         b[XY2SQ(i, 0)]      = pcs[i];
         men[nms[i] + 0x21]  = XY2SQ(i, 0);
@@ -135,31 +136,28 @@ bool BoardToMen()
         if(!ONBRD(i) || b[i] == __)
             continue;
         if(b[i] < WHT)
-            men[wPieceCr++] = i;
+            men[1 + wPieceCr++] = i;
         else
-            men[WHT + bPieceCr++] = i;
+            men[1 + WHT + bPieceCr++] = i;
     }
 
     UC tmp;
     for(j = 0; j < wPieceCr; j++)
         for(i = 0; i < wPieceCr - 1; i++)
-            if(strng[b[men[i]]] < strng[b[men[i + 1]]])
+            if(strng[b[men[i + 1]]] < strng[b[men[i + 2]]])
             {
-                tmp         = men[i];
-                men[i]      = men[i + 1];
-                men[i + 1]  = tmp;
+                tmp         = men[i + 1];
+                men[i + 1]      = men[i + 2];
+                men[i + 2]  = tmp;
             }
     for(j = WHT; j < WHT + bPieceCr; j++)
         for(i = WHT; i < WHT + bPieceCr - 1; i++)
-            if(strng[(b[men[i]] & ~WHT)] < strng[(b[men[i + 1]] & ~WHT)])
+            if(strng[(b[men[i + 1]] & ~WHT)] < strng[(b[men[i + 2]] & ~WHT)])
             {
-                tmp         = men[i];
-                men[i]      = men[i + 1];
-                men[i + 1]  = tmp;
+                tmp         = men[i + 1];
+                men[i + 1]  = men[i + 2];
+                men[i + 2]  = tmp;
             }
-
-    memmove(&men[1], &men[0], sizeof(men) - 1);
-    men[0] = 0;
 
     for(i = 0; i < wPieceCr; i++)
         menNxt[i] = i + 1;
@@ -189,7 +187,8 @@ bool FenToBoard(char *p)
             int ip = *p - '0';
             if(ip >= 1 && ip <= 8)
             {
-                memset(&b[to], 0, ip*sizeof(*b));
+                for(int j = 0; j < ip; ++j)
+                    b[to + j] = 0;
                 col += *p++ - '1';
             }
             else if(*p == '/')
@@ -388,7 +387,9 @@ bool Attack(UC to, int xtm)
     UC fr;
 
     if((!xtm && (b[to+15] == _p || b[to+17] == _p))
-    ||  (xtm && (b[to-15] == _P || b[to-17] == _P)))
+    ||  (xtm && ((to >= 15 && b[to-15] == _P)
+        || (to >= 17 && b[to-17] == _P))))
+
         return true;
 
     UC menNum = xtm;
@@ -397,7 +398,6 @@ bool Attack(UC to, int xtm)
         menNum  = menNxt[menNum];
         fr      = men[menNum];
 
-        assert(fr < sizeof(b)/sizeof(*b));
         int pt  = b[fr] & 7;
         if(pt   == _p)
             break;
