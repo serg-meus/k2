@@ -8,43 +8,54 @@
 
 cmdStruct commands[]
 {
-//   Command    Function
-    {"new",     NewCommand},
-    {"setboard",SetboardCommand},
-    {"set",     SetboardCommand},
-    {"quit",    QuitCommand},
-    {"q",       QuitCommand},
-    {"perft",   PerftCommand},
-    {"go",      GoCommand},
-    {"level",   LevelCommand},
-    {"force",   ForceCommand},
-    {"sn",      SetNodesCommand},
-    {"st",      SetTimeCommand},
-    {"sd",      SetDepthCommand},
-    {"protover",ProtoverCommand},
-    {"?",       InterrogationCommand},
-    {"result",  ResultCommand},
-    {"time",    TimeCommand},
-    {"eval",    EvalCommand},
-    {"test",    TestCommand},
+//   Command        Function
+    {"new",         NewCommand},
+    {"setboard",    SetboardCommand},
+    {"set",         SetboardCommand},
+    {"quit",        QuitCommand},
+    {"q",           QuitCommand},
+    {"perft",       PerftCommand},
+    {"go",          GoCommand},
+    {"level",       LevelCommand},
+    {"force",       ForceCommand},
+    {"sn",          SetNodesCommand},
+    {"st",          SetTimeCommand},
+    {"sd",          SetDepthCommand},
+    {"protover",    ProtoverCommand},
+    {"?",           StopCommand},
+    {"result",      ResultCommand},
+    {"time",        TimeCommand},
+    {"eval",        EvalCommand},
+    {"test",        TestCommand},
+    {"fen",         FenCommand},
+    {"xboard",      XboardCommand},
 
-    {"xboard",  Unsupported},
-    {"analyze", Unsupported},
-    {"exit",    Unsupported},
-    {"undo",    Unsupported},
-    {"remove",  Unsupported},
-    {"computer",Unsupported},
-    {"easy",    Unsupported},
-    {"hard",    Unsupported},
-    {"otim",    Unsupported},
+    {"analyze",     Unsupported},
+    {"exit",        Unsupported},
+    {"undo",        Unsupported},
+    {"remove",      Unsupported},
+    {"computer",    Unsupported},
+    {"easy",        Unsupported},
+    {"hard",        Unsupported},
+    {"otim",        Unsupported},
 
-    {"accepted",Unsupported},
-    {".",       Unsupported},
-    {"",        Unsupported},
+    {"accepted",    Unsupported},
+    {".",           Unsupported},
+    {"",            Unsupported},
+
+    {"uci",         UciCommand},
+    {"setoption",   SetOptionCommand},
+    {"isready",     IsReadyCommand},
+    {"position",    PositionCommand},
+    {"ucinewgame",  NewCommand},
+    {"stop",        StopCommand},
+
 };
 
 bool force  = false;
 bool quit   = false;
+bool xboard = false;
+bool uci    = false;
 
 #ifdef USE_THREAD_FOR_INPUT
     std::thread t;                                                      // for compilers with C++11 support
@@ -54,11 +65,11 @@ bool quit   = false;
 int main(int argc, char* argv[])
 {
 #ifdef TUNE_PARAMETERS
-    for(int i = 1; i < argc; ++i)
+    for(int i = 1; i < 5; ++i)
         if(i < argc)
-            tuning_vec.push_back(atof(argv[i]));
+            param.push_back(atof(argv[i]));
         else
-            tuning_vec.push_back(0.);
+            param.push_back(0.);
 #else
     UNUSED(argc);
     UNUSED(argv);
@@ -74,7 +85,7 @@ int main(int argc, char* argv[])
     timeMaxNodes    = 0;
     timeCommandSent = false;
 
-    char in[256];
+    char in[0x4000];
     while(!quit)
    {
         if(!std::cin.getline(in, sizeof(in), '\n'))
@@ -183,11 +194,15 @@ void NewCommand(std::string in)
     if(busy)
         StopEngine();
     force = false;
-    std::cout << "( Total node count: " << totalNodes
+    if(!uci)
+    {
+        std::cout
+                << "( Total node count: " << totalNodes
                 << ", total time spent: " << totalTimeSpent / 1000000.0
                 << " )" << std::endl
                 << "( MNPS = " << totalNodes / (totalTimeSpent + 1e-5)
                 << " )" << std::endl;
+    }
     InitEngine();
 }
 
@@ -200,7 +215,7 @@ void SetboardCommand(std::string in)
     int firstSymbol = in.find_first_not_of(" \t");
     in.erase(0, firstSymbol);
 
-    if(!FenToBoardAndVal((char *)in.c_str()))
+    if(!FenStringToEngine((char *)in.c_str()))
         std::cout << "Illegal position" << std::endl;
 }
 
@@ -242,7 +257,11 @@ void GoCommand(std::string in)
     UNUSED(in);
     if(busy)
         return;
-    force = false;
+
+    if(uci)
+        UciGoCommand(in);
+    else
+        force = false;
 #ifdef USE_THREAD_FOR_INPUT
     if(t.joinable())
         t.join();
@@ -250,6 +269,7 @@ void GoCommand(std::string in)
 #else
     MainSearch();
 #endif // USE_THREAD_FOR_INPUT
+
 }
 
 //--------------------------------
@@ -318,9 +338,10 @@ void SetTimeCommand(std::string in)             //<< NB: wrong
         return;
     timeBase     = 0;
     movesPerSession      = 1;
-    timeInc      = atoi(in.c_str())*1000000./60;
+    timeInc      = atof(in.c_str())*1000000.;
     timeMaxNodes = 0;
     timeMaxPly   = MAX_PLY;
+    timeRemains  = 0;
 }
 
 //--------------------------------
@@ -328,10 +349,6 @@ void SetDepthCommand(std::string in)
 {
     if(busy)
         return;
-    timeBase     = 0;
-    movesPerSession      = 0;
-    timeInc      = 0;
-    timeMaxNodes = 0;
     timeMaxPly   = atoi(in.c_str());
 }
 
@@ -341,6 +358,9 @@ void ProtoverCommand(std::string in)
     UNUSED(in);
     if(busy)
         return;
+    xboard  = true;
+    uci     = false;
+
     std::cout << "feature "
             "myname=\"k2 v." ENGINE_VERSION "\" "
             "setboard=1 "
@@ -357,7 +377,7 @@ void ProtoverCommand(std::string in)
 }
 
 //--------------------------------
-void InterrogationCommand(std::string in)
+void StopCommand(std::string in)
 {
     UNUSED(in);
 #ifdef USE_THREAD_FOR_INPUT
@@ -403,6 +423,10 @@ void EvalCommand(std::string in)
     short x = Eval();
     std::cout << "Eval: " << (wtm ? -x : x) << std::endl;
     std::cout << "(positive is white advantage)" << std::endl;
+#ifdef USE_HASH_TABLE
+    std::cout << "hash key = 0x" << std::hex << hash_key << std::dec << std::endl;
+#endif // USE_HASH_TABLE
+
 }
 
 //--------------------------------
@@ -412,7 +436,193 @@ void TestCommand(std::string in)
 }
 
 //--------------------------------
+void FenCommand(std::string in)
+{
+    UNUSED(in);
+    ShowFen();
+}
+
+//--------------------------------
+void XboardCommand(std::string in)
+{
+    UNUSED(in);
+    xboard  = true;
+    uci     = false;
+}
+
+//--------------------------------
 void Unsupported(std::string in)
 {
     UNUSED(in);
+}
+
+//--------------------------------
+void UciCommand(std::string in)
+{
+    UNUSED(in);
+    uci = true;
+    std::cout << "id name k2 v." ENGINE_VERSION << std::endl;
+    std::cout << "id author Sergey Meus" << std::endl;
+    std::cout << "option name Hash type spin default 64 min 2 max 1024" << std::endl;
+    std::cout << "uciok" << std::endl;
+}
+
+//--------------------------------
+void SetOptionCommand(std::string in)
+{
+    std::string arg1, arg2;
+    GetFirstArg(in, &arg1, &arg2);
+    if(arg1 != "name")
+        return;
+    GetFirstArg(arg2, &arg1, &arg2);
+
+    if(arg1 == "Hash" || arg1 == "hash")
+    {
+        GetFirstArg(arg2, &arg1, &arg2);
+        if(arg1 != "value")
+            return;
+        GetFirstArg(arg2, &arg1, &arg2);
+        int size_MB = atoi(arg1.c_str());
+        ReHash(size_MB);
+    }
+}
+
+//--------------------------------
+void IsReadyCommand(std::string in)
+{
+    UNUSED(in);
+    while(busy)
+    {
+        // Do Nothing
+    }
+    std::cout << "readyok" << std::endl;
+}
+
+//--------------------------------
+void PositionCommand(std::string in)
+{
+
+    std::string arg1, arg2;
+    GetFirstArg(in, &arg1, &arg2);
+
+    if(arg1 == "fen")
+    {
+        std::string fenstring;
+        int beg = arg2.find_first_not_of(" \t");
+        fenstring = arg2.substr(beg, arg2.size());
+        if(!FenStringToEngine((char *)fenstring.c_str()))
+        {
+            std::cout << "Illegal position" << std::endl;
+            return;
+        }
+    }// if(arg1 == "fen"
+    else
+        InitEngine();
+
+    int moves = arg2.find("moves");
+    if(moves == -1)
+        return;
+
+    std::string mov_seq = arg2.substr(moves + 5, in.size());
+    int beg = mov_seq.find_first_not_of(" \t");
+    mov_seq = mov_seq.substr(beg, mov_seq.size());
+
+    ProcessMoveSequence(mov_seq);
+}
+
+//--------------------------------
+void ProcessMoveSequence(std::string in)
+{
+    std::string arg1, arg2;
+    arg1 = in;
+    while(true)
+    {
+        GetFirstArg(arg1, &arg1, &arg2);
+        if(arg1.empty())
+            break;
+//        std::cout << arg1 << std::endl;
+        if(!MakeMoveFinaly((char *)arg1.c_str()))
+            break;
+        arg1 = arg2;
+    }
+}
+
+//--------------------------------
+void UciGoCommand(std::string in)
+{
+    std::string arg1, arg2;
+    arg1 = in;
+    while(true)
+    {
+        GetFirstArg(arg1, &arg1, &arg2);
+//        std::cout << arg1 << std::endl;
+        if(arg1.empty())
+            break;
+        if(arg1 == "infinite")
+        {
+            analyze = true;
+            break;
+        }
+
+        else if(arg1 == "wtime" || arg1 == "btime")
+        {
+            char clr = arg1[0];
+            GetFirstArg(arg2, &arg1, &arg2);
+            if((clr== 'w' && wtm) || (clr == 'b' && !wtm))
+            {
+                timeBase        = 1000.*atof(arg1.c_str());
+                timeRemains     = timeBase;
+                timeMaxNodes    = 0;
+                timeMaxPly      = MAX_PLY;
+                timeCommandSent = true;                                 // crutch: engine must know that time changed by GUI
+            }
+            arg1 = arg2;
+        }
+        else if(arg1 == "winc" || arg1 == "binc")
+        {
+            char clr = arg1[0];
+            GetFirstArg(arg2, &arg1, &arg2);
+            if((clr == 'w' && wtm) || (clr == 'b' && !wtm))
+                timeInc         = 1000.*atof(arg1.c_str());
+            arg1 = arg2;
+        }
+        else if(arg1 == "movestogo")
+        {
+            GetFirstArg(arg2, &arg1, &arg2);
+            movesPerSession = atoi(arg1.c_str());
+            arg1 = arg2;
+        }
+        else if(arg1 == "movetime")
+        {
+            GetFirstArg(arg2, &arg1, &arg2);
+            timeBase     = 0;
+            movesPerSession      = 1;
+            timeInc      = atof(arg1.c_str())*1000;
+            timeMaxNodes = 0;
+            timeMaxPly   = MAX_PLY;
+
+            arg1 = arg2;
+        }
+        else if(arg1 == "depth")
+        {
+            GetFirstArg(arg2, &arg1, &arg2);
+            timeMaxPly = atoi(arg1.c_str());
+            timeBase        = INF;
+            timeRemains     = timeBase;
+            timeMaxNodes    = 0;
+
+            arg1 = arg2;
+        }
+        else if(arg1 == "nodes")
+        {
+            GetFirstArg(arg2, &arg1, &arg2);
+            timeBase        = INF;
+            timeRemains     = timeBase;
+            timeMaxNodes    = atoi(arg1.c_str());
+            timeMaxPly      = MAX_PLY;
+
+            arg1 = arg2;
+        }
+    }//while(true
+
 }
