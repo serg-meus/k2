@@ -1,8 +1,9 @@
 #if !defined(EXTERN)
 #define EXTERN
-extern UC       b[128];
-extern UC       men[64];
-extern UC       menNxt[64];
+//extern UC       b[128];
+extern UC b[137];
+extern UC men[64];
+extern UC menNxt[64];
 extern UC       slider[6];
 extern UC       rays[6];
 extern UC       attacks[240];
@@ -30,4 +31,6 @@ extern int      pmax[10][2];
 extern int      pmin[10][2];
 extern UQ       hash_key;
 extern Move     bestMoveToGen;
+extern bool     uci;
+extern bool     analyze;
 #endif
