@@ -1,6 +1,6 @@
 #include "engine.h"
 //--------------------------------
-#define ENGINE_VERSION "038"
+#define ENGINE_VERSION "043f"
 //--------------------------------
 #ifdef NDEBUG
     #define USE_THREAD_FOR_INPUT
@@ -26,7 +26,7 @@ extern double totalTimeSpent;
 extern bool timeCommandSent;
 
 #ifdef TUNE_PARAMETERS
-    extern std::vector <float> tuning_vec;
+    extern std::vector <float> param;
 #endif // TUNE_PARAMETERS
 
 
@@ -55,8 +55,16 @@ void Unsupported(std::string in);
 void GetFirstArg(std::string in, std::string *firstWord, std::string *remainingWords);
 void ProtoverCommand(std::string in);
 void StopEngine();
-void InterrogationCommand(std::string in);
+void StopCommand(std::string in);
 void ResultCommand(std::string in);
+void XboardCommand(std::string in);
 void TimeCommand(std::string in);
 void EvalCommand(std::string in);
 void TestCommand(std::string in);
+void FenCommand(std::string in);
+void UciCommand(std::string in);
+void SetOptionCommand(std::string in);
+void IsReadyCommand(std::string in);
+void PositionCommand(std::string in);
+void ProcessMoveSequence(std::string in);
+void UciGoCommand(std::string in);
