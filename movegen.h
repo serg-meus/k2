@@ -4,7 +4,6 @@
 #define PUSH_MOVE(PC, TO, FLG)  {*(ml++) = (TO) | ((PC) << 8) | ((FLG) << 16); moveCr++;}
 #define LIGHT(X, s2m)   ((X) && ((X) ^ (s2m)) < WHT)
 #define DARK(X, s2m)    (((X) ^ (s2m)) > WHT)
-#define ISLIGHT(X)      ((((X) & 7) + ((X) >> 4)) % 2)
 #define MOVESCR(X)      (((X) >> 24) & 0xFF)
 
 #define MOVE_FROM_PV    121
