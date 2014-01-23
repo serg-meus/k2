@@ -5,15 +5,12 @@ UQ  zorb[12][8][8],
     zorb_en_passant[9],
     zorb_castling[16];
 
-/*int MEN_TO_ZORB(UC X)
+
+/*int MEN_TO_ZORB(UC x)
 {
-    int ans = ((X) < WHT ? (X) : ((X) - WHT + 5));
-    if(ans < 0 || ans > 11)
-        ply = ply;
-    return ans;
+    return men2zorb[x];
 }
 */
-
 //--------------------------------
 bool InitHashTable()
 {
@@ -21,6 +18,7 @@ bool InitHashTable()
 
     std::uniform_int_distribution<UQ> zorb_distr(0, (UQ)-1);
     std::mt19937 rnd_gen;
+//    rnd_gen.seed(31);
 
     for(unsigned i = 0; i < 12; ++i)
         for(unsigned j = 0; j < 8; ++j)
