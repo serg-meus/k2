@@ -320,7 +320,7 @@ void AppriceMoves(Move *list)
 /*            else
             {
                 movScr[ply][i] = 0;
-                UC fr = men[m.pc];
+                UC fr = men[m.pc);
                 unsigned h = history[!wtm][(b[fr] & 0x0F) - 1][m.to];
                 if(h > maxHist)
                     maxHist = h;
