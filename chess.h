@@ -2,6 +2,9 @@
 #include <cstring>
 #include <stdint.h>
 #include <assert.h>
+
+#include <array>
+
 //--------------------------------
 #define USE_PAWN_STRUCT
 //--------------------------------
@@ -70,7 +73,6 @@ struct BrdState
 //--------------------------------
 struct tt_entry
 {
-    UQ  key;
     SS  scr;
     SS  bMov;
     SS  flags;
