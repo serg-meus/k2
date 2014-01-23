@@ -1,15 +1,20 @@
 #include "movegen.h"
-
 #include <fstream>                  // to work with files (ifstream, getline())
 #include <cstdlib>                  // to convert strings to floats (atof())
 #include <iostream>
 
-#define USELESS_HALFMOVES_TO_DRAW 100
+//--------------------------------
+#define FIFTY_MOVES 101       // because last 50th move can be a mate
 #define MAXI(X, Y)       ((X) > (Y) ? (X) : (Y))
 
+//--------------------------------
+#define TUNE_PARAMETERS
 //#define CHECK_PREDICTED_VALUE
-
 //#define EVAL_KING_TROPISM
+
+#ifdef TUNE_PARAMETERS
+    #include <vector>
+#endif // TUNE_PARAMETERS
 
 //--------------------------------
 enum PriceList
@@ -31,7 +36,6 @@ enum PriceList
 
     SHIELD_K    = 30,
     CLAMPED_R   = 250,
-//    OPP_NEAR_K  = 10,
     UNSTOP_P    = 650,
     DBL_PROMO_P = 65,
     OPP_NEAR_K  = 20,
@@ -51,5 +55,7 @@ void SimpleKingShield(UC stm);
 void ClampedRook(UC stm);
 void SimpleKingNearOpp(UC stm);
 bool TestUnstoppable(int x, int y, UC stm);
-void SimpleKingDist(UC stm);
+short SimpleKingDist(UC stm);
 short EvalAllKingDist(UC stm, UC king_coord);
+void KingSafety(UC stm);
+int KingAttacks(UC stm);
