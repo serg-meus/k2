@@ -9,4 +9,4 @@ Main features:
 - simple position evaluation function with middle-game and endgame terms such as material,
   piece-square table, some pawn terms, king safety, etc
 
-The aim of the project is not to create the strongest engine but to have fun with experiments
+K2 is the hobby project, the aim is to have some fun with experiments on chess algorithms.
