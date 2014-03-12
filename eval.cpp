@@ -578,9 +578,9 @@ void KingSafety(UC stm)
 
     short ans = 0;
 
-    UC k = men[stm + 1];                                                //
-    if(COL(k) == 3 || COL(k) == 4)
-        ans -= 100;
+//    UC k = men[stm + 1];                                                //
+//    if(COL(k) == 3 || COL(k) == 4)
+//        ans -= 100;
 
     if(boardState[PREV_STATES + ply].cstl & (0x0C >> (stm >> 4)))       // able to castle
     {
