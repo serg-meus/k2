@@ -4,21 +4,18 @@
 #include "short_list.h"
 
 //--------------------------------
-#define ENGINE_VERSION "049"
+#define ENGINE_VERSION "050x"
 
 //--------------------------------
-#define NOT_SHOW_STATISTICS
-//#define NOT_USE_PAWN_STRUCT
-//#define NOT_USE_PVS
-//#define NOT_USE_NULL_MOVE
-//#define NOT_USE_FUTILITY
-//#define NOT_USE_HASH_TABLE
-//#define NOT_USE_HASH_FOR_DRAW
-//#define NOT_USE_LMR
-#define NOT_USE_SEE_SORTING
-#define NOT_USE_SEE_CUTOFF
-#define NOT_USE_DELTA_PRUNING
-#define NOT_USE_HISTORY
+//#define DONT_SHOW_STATISTICS
+//#define DONT_USE_PAWN_STRUCT
+//#define DONT_USE_NULL_MOVE
+//#define DONT_USE_FUTILITY
+//#define DONT_USE_SEE_SORTING
+//#define DONT_USE_SEE_CUTOFF
+//#define DONT_USE_DELTA_PRUNING
+#define DONT_USE_HISTORY
+#define DONT_USE_LMR
 
 //--------------------------------
 #define UC uint8_t
