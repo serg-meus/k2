@@ -2,7 +2,7 @@
 #define EXTERN
 //extern UC       b[128];
 extern UC b[137];
-extern short_list<UC, lst_sz> pc_list[2];
+extern short_list<UC, lst_sz> coords[2];
 extern UC       slider[7];
 extern UC       rays[7];
 extern UC       attacks[240];
@@ -32,5 +32,5 @@ extern bool     xboard;
 extern bool     analyze;
 extern short    streng[7];
 extern UQ       tmpCr;
-extern short_list<UC, lst_sz>::reverse_iterator first_minor_piece[2];
+extern short_list<UC, lst_sz>::iterator king_coord[2];
 #endif
