@@ -1,6 +1,6 @@
 #include "engine.h"
 //--------------------------------
-#define ENGINE_VERSION "045"
+#define ENGINE_VERSION "046"
 //--------------------------------
 #ifdef NDEBUG
     #define USE_THREAD_FOR_INPUT
