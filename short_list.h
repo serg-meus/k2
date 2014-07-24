@@ -31,7 +31,7 @@
 
 */
 
-// Version: 2.0.1
+// Version: 2.0.2
 // Author: Sergey Meus (serg_meus@mail.ru),
 // Krasnoyarsk Kray, Russia
 // Copyright 2014
@@ -165,8 +165,8 @@ public:
         int max_size()  {return _max_size;}
         int size()      {return _size;}
 
-        T& operator[] (iterator it)          {return data[it.num];}
-        T& operator[] (reverse_iterator it)  {return data[it.num];}
+//        T& operator[] (iterator it)          {return data[it.num];}
+//        T& operator[] (reverse_iterator it)  {return data[it.num];}
 
         void move_element(iterator dst, iterator src);
         void rmove_element(reverse_iterator dst, reverse_iterator src);
