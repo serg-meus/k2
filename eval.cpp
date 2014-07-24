@@ -27,17 +27,9 @@ void InitEval()
 //-----------------------------
 short Eval(/*short alpha, short beta*/)
 {
-    int X, Y;
-    X = material[0] + 1 + material[1] + 1 - pieces[0] - pieces[1];
 
     boardState[prev_states + ply].valOpn = valOpn;
     boardState[prev_states + ply].valEnd = valEnd;
-
-    if(X == 3
-    && (material[0] == 4 || material[1] == 4)
-    && (pieces[0] + pieces[1] == 3))                // KNk, KBk, Kkn, Kkb
-        return 0;
-
 
 #ifndef NOT_USE_PAWN_STRUCT
     EvalPawns((bool)white);
@@ -46,32 +38,29 @@ short Eval(/*short alpha, short beta*/)
 
     KingSafety(white);
     KingSafety(black);
-/*
-  if((wtm && (valOpn < alpha - 120 && valEnd < alpha - 120))
-    || (!wtm && (-valOpn < alpha - 120 && -valEnd < alpha - 120)))
-    {
-        valOpn = boardState[prev_states + ply].valOpn;
-        valEnd = boardState[prev_states + ply].valEnd;
-        return -alpha;
-    }
-    if((wtm && (valOpn > beta + 120 && valEnd > beta + 120))
-    || (!wtm && (-valOpn > beta + 120 && -valEnd > beta + 120)))
-    {
-        valOpn = boardState[prev_states + ply].valOpn;
-        valEnd = boardState[prev_states + ply].valEnd;
-        return -beta;
-    }
-    CountKingAttacks(white);
-    CountKingAttacks(black);
-*/
-//    RookEval(white);
-//    RookEval(black);
 
+#ifndef NOT_USE_PAWN_STRUCT
+    ClampedRook(white);
+    ClampedRook(black);
+#endif // NOT_USE_PAWN_STRUCT
+
+
+#ifndef CHECK_PREDICTED_VALUE
    if(reversibleMoves > ply)
     {
         valOpn = (int)valOpn * (FIFTY_MOVES - reversibleMoves) / FIFTY_MOVES;
         valEnd = (int)valEnd * (FIFTY_MOVES - reversibleMoves) / FIFTY_MOVES;
     }
+#endif
+
+
+    int X, Y;
+    X = material[0] + 1 + material[1] + 1 - pieces[0] - pieces[1];
+
+    if(X == 3
+    && (material[0] == 4 || material[1] == 4)
+    && (pieces[0] + pieces[1] == 3))                // KNk, KBk, Kkn, Kkb
+        return 0;
 
     Y = ((valOpn - valEnd)*X + 80*valEnd)/80;
 
@@ -207,6 +196,7 @@ bool TestPromo(int col, UC stm)
 
 }
 
+//#ifdef USE_PAWN_STRUCT
 //--------------------------------
 void EvalPawns(bool stm)
 {
@@ -278,9 +268,64 @@ void EvalPawns(bool stm)
 }
 
 //-----------------------------
+void ClampedRook(UC stm)
+{
+    UC k = *pc_list[stm].begin();
+
+    if(stm)
+    {
+        if(k == 0x06 && b[0x07] == _R && pmax[7 + 1][1])
+            valOpn -= CLAMPED_R;
+        else if(k == 0x05)
+        {
+            if(pmax[7 + 1][1] && b[0x07] == _R)
+                valOpn -= CLAMPED_R;
+            else
+            if(pmax[6 + 1][1] && b[0x06] == _R)
+                valOpn -= CLAMPED_R;
+        }
+        else if(k == 0x01 && b[0x00] == _R && pmax[0 + 1][1])
+            valOpn -= CLAMPED_R;
+        else if(k == 0x02)
+        {
+            if(pmax[0 + 1][1] && b[0x00] == _R)
+                valOpn -= CLAMPED_R;
+            else
+            if(pmax[1 + 1][1] && b[0x01] == _R)
+                valOpn -= CLAMPED_R;
+        }
+     }
+     else
+     {
+        if(k == 0x76 && b[0x77] == _r && pmax[7 + 1][0])
+            valOpn += CLAMPED_R;
+        else if(k == 0x75)
+        {
+            if(pmax[7 + 1][0] && b[0x77] == _r)
+                valOpn += CLAMPED_R;
+            else
+            if(pmax[6 + 1][0] && b[0x76] == _r)
+                valOpn += CLAMPED_R;
+        }
+        else if(k == 0x71 && b[0x70] == _r && pmax[0 + 1][0])
+            valOpn += CLAMPED_R;
+        else if(k == 0x72)
+        {
+            if(pmax[0 + 1][0] && b[0x70] == _r)
+                valOpn += CLAMPED_R;
+            else
+            if(pmax[1 + 1][0] && b[0x71] == _r)
+                valOpn += CLAMPED_R;
+        }
+     }
+}
+//#endif // USE_PAWN_STRUCT
+
+//-----------------------------
 bool TestUnstoppable(int x, int y, UC stm)
 {
     UC k    = *pc_list[!stm].begin();
+
     if(y > 5)
         y = 5;
     int psq = XY2SQ(x, stm ? 7 : 0);
@@ -362,85 +407,18 @@ void KingSafety(UC stm)
 
     short ans = 0;
 
-//    UC k = *pc_list[stm].begin();
-//    if(COL(k) == 3 || COL(k) == 4)
-//        ans -= 100;
+    UC k = *pc_list[stm].begin();                                              //
+    if(COL(k) == 3 || COL(k) == 4)
+        ans -= 100;
 
-    if(boardState[prev_states + ply].cstl & 0x0C)       // able to castle
+    if(boardState[prev_states + ply].cstl & (0x0C >> 2*stm))       // able to castle
     {
         valOpn += stm ? ans : -ans;
         return;
     }
 
     int sh  = KingShieldFactor(stm);
-    ans +=  (1 - sh)*30;
+    ans +=  (1 - sh)*33;
 
     valOpn += stm ? ans : -ans;
 }
-
-//-----------------------------
-void CountKingAttacks(UC stm)
-{
-    SC shifts[] = {15, 16, 17, -1, 1, -15, -16, -17};
-    UC k = *pc_list[stm].begin();
-    unsigned ans = 0;
-
-    for(auto fr : pc_list[!stm])
-    {
-        UC pt = b[fr] & ~white;
-        if(pt == _p)
-            break;
-
-        for(unsigned i = 0; i < sizeof(shifts)/sizeof(*shifts); ++i)
-        {
-            UC to = k + shifts[i];
-            if(!ONBRD(to))
-                continue;
-            if(!(attacks[120 + fr - to] & (1 << pt/2)))
-                continue;
-            UC dist = kingDist[ABSI(k - fr)];
-            if(dist > 4)
-                continue;
-            dist = 5 - dist;
-            ans += dist;
-        }
-
-        if(ans > 120/6)
-        {
-            ans = 120/6;
-            break;
-        }
-    }
-//    if(wtm == white || wtm == black)
-//        ans = 0;
-    valOpn -= stm ? 6*ans : -6*ans;
-}
-
-/*
-//-----------------------------
-void RookEval(UC stm)
-{
-    short ans = 0;
-    UC pcs = pieces[stm];
-    if(material[stm] - pcs < 8)
-        return;
-    int i = 2;
-    while(i++ < pcs)
-    {
-        UC pt = b[men[stm + i]] & ~white;
-        if(pt > _r)
-            break;
-        if(pt < _r)
-            continue;
-
-        if(pmax[1 + COL(men[stm + 2 + i])][stm] == 0)
-        {
-            ans += param[0]/3;
-            if(pmax[1 + COL(men[stm + 2 + i])][!stm] == 0)
-                ans += param[0];
-        }
-    }
-
-    valOpn += stm ? -ans : ans;
-}
-*/
