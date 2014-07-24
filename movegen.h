@@ -1,7 +1,7 @@
 #include "hash.h"
 #include "extern.h"
 //--------------------------------
-#define PUSH_MOVE(PC, TO, FLG)  {*(ml++) = (TO) | ((PC) << 8) | ((FLG) << 16); moveCr++;}
+#define PUSH_MOVE(PC, TO, FLG)  {*(ml++) = (TO) | ((PC) << 8) | (FLG); moveCr++;}
 #define LIGHT(X, s2m)   ((X) && ((X) ^ (s2m)) < WHT)
 #define DARK(X, s2m)    (((X) ^ (s2m)) > WHT)
 #define MOVESCR(X)      (((X) >> 24) & 0xFF)
