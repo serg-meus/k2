@@ -4,8 +4,8 @@
 extern UC b[137];
 extern UC men[64];
 extern UC menNxt[64];
-extern UC       slider[6];
-extern UC       rays[6];
+extern UC       slider[7];
+extern UC       rays[7];
 extern UC       attacks[240];
 extern SC       shifts[6][8];
 extern UC       pc_streng[7];
@@ -33,4 +33,5 @@ extern UQ       hash_key;
 extern Move     bestMoveToGen;
 extern bool     uci;
 extern bool     analyze;
+extern short    streng[7];
 #endif
