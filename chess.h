@@ -58,9 +58,7 @@ struct BrdState
     UC ncapNxt;         // point to next piece, 6 bits
     UC fr;              // from point, 7 bits
     UC cstl;            // castling rights, bits 0..3: _K, _Q, _k, _q, 4 bits
-
-
-    UC ncstl_r;         // number of castled rook, 6 bits
+    std::list<UC>::iterator cstl_rook_it;   // iterator for castled rook
     UC ep;              // 0 = no_ep, else ep=COL(x) + 1, not null only if opponent pawn is near, 4 bits
     UC nprom;           // number of previous piece for promoted pawn, 6 bits
     US reversibleCr;    // reversible halfmove counter
