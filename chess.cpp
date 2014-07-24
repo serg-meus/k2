@@ -30,6 +30,8 @@ US reversibleMoves;
 UQ hash_key;
 char curVar[5*max_ply];
 
+short_list<UC, lst_sz>::reverse_iterator first_minor_piece[2];
+
 //--------------------------------
 void InitChess()
 {
@@ -88,6 +90,19 @@ void InitBrd()
 #ifndef NOT_USE_PAWN_STRUCT
     InitPawnStruct();
 #endif // NOT_USE_PAWN_STRUCT
+
+    auto rit = pc_list[white].rbegin();
+    for(; rit != pc_list[white].rend(); ++rit)
+        if(b[*rit] != _P)
+            break;
+    first_minor_piece[white] = rit;
+
+    rit = pc_list[black].rbegin();
+    for(; rit != pc_list[black].rend(); ++rit)
+        if(b[*rit] != _p)
+            break;
+    first_minor_piece[black] = rit;
+
 }
 
 //--------------------------------
