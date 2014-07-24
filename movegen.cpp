@@ -20,7 +20,7 @@ void PushMove(Move *list, int *movCr, short_list<UC, lst_sz>::iterator it, UC to
     m.to    = to;
     m.flg   = flg;
 #ifndef NDEBUG
-    if(to == 0x22)
+    if(to == 0x77)
         ply = ply;
 #endif
 
@@ -34,8 +34,9 @@ int GenMoves(Move *list, int apprice, Move *best_move)
     int moveCr = 0;
 
     GenCastles(list, &moveCr);
-    auto it = --pc_list[wtm].end();
-    for(; it != pc_list[wtm].end(); --it)
+
+    auto it = coords[wtm].begin();
+    for(;it != coords[wtm].end(); ++it)
     {
         UC fr = *it;
         UC at = b[fr]/2;
@@ -210,7 +211,7 @@ void GenCastles(Move *list, int *moveCr)
             check = Attack(0x04, black);
             if(!check && !Attack(0x05, black) && !Attack(0x06, black))
                 PushMove(list, moveCr,
-                         pc_list[white].begin(), 0x06, mCS_K);
+                         king_coord[white], 0x06, mCS_K);
         }
         if((cst & 2) && !b[0x03] && !b[0x02] && !b[0x01])
         {
@@ -218,7 +219,7 @@ void GenCastles(Move *list, int *moveCr)
                 check = Attack(0x04, black);
             if(!check && !Attack(0x03, black) && !Attack(0x02, black))
                 PushMove(list, moveCr,
-                         pc_list[white].begin(), 0x02, mCS_Q);
+                         king_coord[white], 0x02, mCS_Q);
         }
     }
     else
@@ -228,7 +229,7 @@ void GenCastles(Move *list, int *moveCr)
             check = Attack(0x74, white);
             if(!check && !Attack(0x75, white) && !Attack(0x76, white))
                 PushMove(list, moveCr,
-                         pc_list[black].begin(), 0x76, mCS_K);
+                         king_coord[black], 0x76, mCS_K);
         }
         if((cst & 8) && !b[0x73] && !b[0x72] && !b[0x71])
         {
@@ -236,7 +237,7 @@ void GenCastles(Move *list, int *moveCr)
                 check = Attack(0x74, white);
             if(!check && !Attack(0x73, white) && !Attack(0x72, white))
                 PushMove(list, moveCr,
-                         pc_list[black].begin(), 0x72, mCS_Q);
+                         king_coord[black], 0x72, mCS_Q);
         }
     }
 }
@@ -244,13 +245,12 @@ void GenCastles(Move *list, int *moveCr)
 //--------------------------------
 int GenCaptures(Move *list)
 {
-    int i, fr, to, ray;
+    int i, to, ray;
     int moveCr = 0;
-    auto it = --pc_list[wtm].end();
-    for(; it != pc_list[wtm].end(); --it)
+    auto it = coords[wtm].begin();
+    for(; it != coords[wtm].end(); ++it)
     {
-        fr      = *it;
-
+        UC fr = *it;
         UC at = b[fr]/2;
         if(at == _p/2)
         {
@@ -295,7 +295,7 @@ void AppriceMoves(Move *list, int moveCr, Move *bestMove)
 #ifndef DONT_USE_HISTORY
     maxHistory = 0;
 #endif
-    auto it = pc_list[wtm].begin();
+    auto it = coords[wtm].begin();
     Move bm = *list;
     if(bestMove == nullptr)
         bm.flg = 0xFF;
@@ -304,6 +304,11 @@ void AppriceMoves(Move *list, int moveCr, Move *bestMove)
     for(int i = 0; i < moveCr; i++)
     {
         Move m = list[i];
+
+#ifndef NDEBUG
+        if(m.to == 0x77)
+            ply = ply;
+#endif
 
         it = m.pc;
         UC fr_pc = b[*it];
@@ -356,17 +361,16 @@ void AppriceMoves(Move *list, int moveCr, Move *bestMove)
 #ifndef DONT_USE_SEE_SORTING
             if(dst && dst - src < -2)
             {
-                auto storeMen = pc_list[wtm].begin();
+                auto storeMen = coords[wtm].begin();
                 storeMen = m.pc;
                 UC storeBrd = b[*storeMen];
-                pc_list[wtm].erase(storeMen);
+                coords[wtm].erase(storeMen);
                 b[*storeMen] = __;
-                short tmp = -SEE(m.to, src, dst);
-//                if(tmp > 0)
-//                    tmp >>= 1;
+                short tmp = -SEE(m.to, src, dst, wtm);
+
                 dst = tmp;
                 src = 0;
-                pc_list[wtm].restore(storeMen);
+                coords[wtm].restore(storeMen);
                 b[*storeMen] = storeBrd;
             }
 #endif // DONT_USE_SEE_SORTING
@@ -378,8 +382,8 @@ void AppriceMoves(Move *list, int moveCr, Move *bestMove)
             }
             else if(dst > 120)
             {
-                list[i].scr = KING_CAPTURE;
-                return;
+                list[i].scr = 0;
+                continue;
             }
 
             ans = dst - src/16;
@@ -403,7 +407,7 @@ void AppriceMoves(Move *list, int moveCr, Move *bestMove)
 //--------------------------------
 void AppriceQuiesceMoves(Move *list, int moveCr)
 {
-    auto it = pc_list[wtm].begin();
+    auto it = coords[wtm].begin();
     for(int i = 0; i < moveCr; i++)
     {
         Move m = list[i];
@@ -425,17 +429,15 @@ void AppriceQuiesceMoves(Move *list, int moveCr)
 #ifndef DONT_USE_SEE_SORTING
         if(dst && dst - src < -2)
         {
-            auto storeMen = pc_list[wtm].begin();
+            auto storeMen = coords[wtm].begin();
             storeMen = m.pc;
             UC storeBrd = b[*storeMen];
-            pc_list[wtm].erase(storeMen);
+            coords[wtm].erase(storeMen);
             b[*storeMen] = __;
-            short tmp = -SEE(m.to, src, dst);
-//                if(tmp > 0)
-//                    tmp >>= 1;
+            short tmp = -SEE(m.to, src, dst, wtm);
             dst = tmp;
             src = 0;
-            pc_list[wtm].restore(storeMen);
+            coords[wtm].restore(storeMen);
             b[*storeMen] = storeBrd;
         }
         ans = dst - src/16;
@@ -481,61 +483,61 @@ void Next(Move *list, int cur, int top, Move *ans)
 }
 
 //-----------------------------
-short SEE(UC to, short frStreng, short val)
+short SEE(UC to, short frStreng, short val, bool stm)
 {
-    auto rit = SeeMinAttacker(to);
-    if (rit == pc_list[!wtm].rend())
+    auto it = SeeMinAttacker(to);
+    if(it == coords[!wtm].end())
         return -val;
-
-    auto storeMen = rit;
-    UC storeBrd = b[*storeMen];
-    pc_list[!wtm].rerase(rit);
-    b[*storeMen] = __;
-
+    if(frStreng == 15000)
+        return -15000;
 
     val -= frStreng;
-    if(frStreng != 15000)
-    {
-        short tmp1 = -val;
-        wtm = !wtm;
-        short tmp2 = -SEE(to, streng[storeBrd/2], -val);
-        wtm = !wtm;
-        val = std::min(tmp1, tmp2);
-    }
-    else
-        val = 15000;
+    short tmp1 = -val;
+    if(wtm != stm && tmp1 < -2)
+        return tmp1;
 
-    rit = storeMen;
-    pc_list[!wtm].rrestore(rit);
+    auto storeMen = it;
+    UC storeBrd = b[*storeMen];
+    coords[!wtm].erase(it);
+    b[*storeMen] = __;
+    wtm = !wtm;
+
+    short tmp2 = -SEE(to, streng[storeBrd/2], -val, stm);
+
+    wtm = !wtm;
+    val = std::min(tmp1, tmp2);
+
+    it = storeMen;
+    coords[!wtm].restore(it);
     b[*storeMen] = storeBrd;
     return val;
 }
 
 //-----------------------------
-short_list<UC, lst_sz>::reverse_iterator SeeMinAttacker(UC to)
+short_list<UC, lst_sz>::iterator SeeMinAttacker(UC to)
 {
     int shft_l[] = {15, -17};
     int shft_r[] = {17, -15};
     UC  pw[] = {_p, _P};
 
     if(b[to + shft_l[!wtm]] == pw[!wtm])
-        for(auto rit = pc_list[!wtm].rbegin();
-            rit != pc_list[!wtm].rend();
-            ++rit)
-            if(*rit == to + shft_l[!wtm])
-                return rit;
+        for(auto it = coords[!wtm].begin();
+            it != coords[!wtm].end();
+            ++it)
+            if(*it == to + shft_l[!wtm])
+                return it;
 
     if(b[to + shft_r[!wtm]] == pw[!wtm])
-        for(auto rit = pc_list[!wtm].rbegin();
-            rit != pc_list[!wtm].rend();
-            ++rit)
-            if(*rit == to + shft_r[!wtm])
-                return rit;
+        for(auto it = coords[!wtm].begin();
+            it != coords[!wtm].end();
+            ++it)
+            if(*it == to + shft_r[!wtm])
+                return it;
 
-    auto rit = pc_list[!wtm].rbegin();
-    for(; rit != pc_list[!wtm].rend(); ++rit)
+    auto it = coords[!wtm].begin();
+    for(; it != coords[!wtm].end(); ++it)
     {
-        UC fr = *rit;
+        UC fr = *it;
         int pt  = b[fr]/2;
         if(pt == _p/2)
             continue;
@@ -543,12 +545,12 @@ short_list<UC, lst_sz>::reverse_iterator SeeMinAttacker(UC to)
         if(!att)
             continue;
         if(!slider[pt])
-            return rit;
+            return it;
         if(SliderAttack(to, fr))
-             return rit;
+             return it;
     }// for (menCr
 
-    return rit;
+    return it;
 }
 
 //-----------------------------
@@ -556,7 +558,7 @@ void AppriceHistory(Move *list, int moveCr)
 {
     if(maxHistory == 0)
         maxHistory = 1;
-    auto it = pc_list[wtm].begin();
+    auto it = coords[wtm].begin();
     for(int i = 0; i < moveCr; ++i)
     {
         if(list[i].scr > 0)
