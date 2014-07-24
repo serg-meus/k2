@@ -1,11 +1,23 @@
 #include <iostream>
 #include <cstring>
 #include <stdint.h>
-#include <assert.h>
-#include <list>
+#include "short_list.h"
 
 //--------------------------------
-#define USE_PAWN_STRUCT
+//#define NOT_SHOW_STATISTICS
+//#define NOT_USE_PAWN_STRUCT
+//#define NOT_USE_PVS
+//#define NOT_USE_NULL_MOVE
+//#define NOT_USE_FUTILITY
+//#define NOT_USE_HASH_TABLE
+//#define NOT_USE_HASH_FOR_DRAW
+//#define NOT_USE_PVS_IN_ROOT
+//#define NOT_USE_SEE_SORTING
+//#define NOT_USE_SEE_CUTOFF
+//#define NOT_USE_DELTA_PRUNING
+//#define NOT_USE_LMR
+//#define NOT_USE_HISTORY
+
 //--------------------------------
 #define UC uint8_t
 #define SC int8_t
@@ -14,57 +26,67 @@
 #define UI uint32_t
 #define UQ unsigned long long
 //--------------------------------
-#define MAX_PLY         100
-#define PREV_STATES     4
-#define WHT             0x20
-#define BLK             0x00
 #define ONBRD(X)        (!((X) & 0x88))
 #define XY2SQ(X, Y)     (((Y) << 4) + (X))
 #define COL(SQ)         ((SQ) & 7)
 #define ROW(SQ)         ((SQ) >> 4)
 #define ABSI(X)         ((X) > 0 ? (X) : (-(X)))
-//--------------------------------
-#define MOVETO(X)       ((X) & 0xFF)
-#define MOVEPC(X)       (((X) >> 8) & 0xFF)
-#define MOVEFLG(X)      ((X) & 0x00FF0000)
-//--------------------------------
-#define MOVE_SCORE_SHIFT 24
+
+
+const int lst_sz        = 32;                                                 // size of piece list for one colour
+const unsigned max_ply  = 100;                                                // maximum search depth
+const int prev_states   = 4;
+const UC  white         = 1;
+const UC  black         = 0;
+
+
 
 //--------------------------------
-enum {__ = 0,  _k, _q, _r, _b, _n, _p, _K = 0x21, _Q, _R, _B, _N, _P};
-enum {mCAPT = 0x100000, mCS_K = 0x200000, mCS_Q = 0x400000, mCSTL = 0x600000, mENPS = 0x800000,
-      mPR_Q = 0x010000, mPR_N = 0x020000, mPR_R = 0x030000, mPR_B = 0x040000, mPROM = 0x070000};
+enum {__ = 0,  _k = 2, _q = 4, _r = 6, _b = 8, _n = 10, _p = 12,
+               _K = 3, _Q = 5, _R = 7, _B = 9, _N = 11, _P = 13};
+enum {mCAPT = 0x10, mCS_K = 0x20, mCS_Q = 0x40, mCSTL = 0x60, mENPS = 0x80,
+      mPR_Q = 0x01, mPR_N = 0x02, mPR_R = 0x03, mPR_B = 0x04, mPROM = 0x07};
 
 //--------------------------------
-typedef unsigned Move;  // beginning from LSB:
-                        // 'to' - coords for piece to move to (8 bit);
-                        // 'pc' - number of piece in 'men' array (8 bit);
-                        // 'flg' - flags (mCAPT, etc) - (8 bit)
-                        // 'scr' - unsigned score (priority) by move generator (8 bit)
-                        //      0-15 - bad captures
-                        //      16-115 - silent moves (history value)
-                        //      119 - equal capture
-                        //      121 - from pv
-                        //      123 - second killer
-                        //      125 - first killer
-                        //      128 - 250 - good captures and/or promotions
-                        //      255 - opp king capture or hash hit
+class Move
+{
+public:
+    UC to;
+    short_list<UC, lst_sz>::iterator_entity pc;
+    UC flg;
+    UC scr;
+
+    bool operator == (Move m)   {return to == m.to && pc == m.pc && flg == m.flg;}
+    bool operator != (Move m)   {return to != m.to || pc != m.pc || flg != m.flg;}
+};
+                                                                        // 'to' - coords for piece to move to (8 bit);
+                                                                        // 'pc' - number of piece in 'men' array (8 bit);
+                                                                        // 'flg' - flags (mCAPT, etc) - (8 bit)
+                                                                        // 'scr' - unsigned score (priority) by move generator (8 bit)
+                                                                        //      0-15 - bad captures
+                                                                        //      16-115 - silent moves (history value)
+                                                                        //      119 - equal capture
+                                                                        //      121 - from pv
+                                                                        //      123 - second killer
+                                                                        //      125 - first killer
+                                                                        //      128 - 250 - good captures and/or promotions
+                                                                        //      255 - opp king capture or hash hit
 
 //--------------------------------
 struct BrdState
 {
-    UC capt;            // taken piece, 6 bits
-    UC ncap;            // number of taken piece, 6 bits
-    UC ncapNxt;         // point to next piece, 6 bits
-    UC fr;              // from point, 7 bits
-    UC cstl;            // castling rights, bits 0..3: _K, _Q, _k, _q, 4 bits
-    std::list<UC>::iterator cstl_rook_it;   // iterator for castled rook
-    UC ep;              // 0 = no_ep, else ep=COL(x) + 1, not null only if opponent pawn is near, 4 bits
-    UC nprom;           // number of previous piece for promoted pawn, 6 bits
-    US reversibleCr;    // reversible halfmove counter
-    UC to;              // to point, 7 bits (for simple repetition draw detection)
-    short valOpn;       // store material and PST value considered all material is on the board
-    short valEnd;       // store material and PST value considered deep endgame (kings and pawns only)
+    UC capt;                                                            // taken piece, 6 bits
+    short_list<UC, lst_sz>::iterator_entity captured_it;                // iterator to captured piece
+    UC fr;                                                              // from point, 7 bits
+    UC cstl;                                                            // castling rights, bits 0..3: _K, _Q, _k, _q, 4 bits
+
+    short_list<UC, lst_sz>::iterator_entity castled_rook_it;            // iterator to castled rook, 8 bits
+    UC ep;                                                              // 0 = no_ep, else ep=COL(x) + 1, not null only if opponent pawn is near, 4 bits
+    short_list<UC, lst_sz>::iterator_entity nprom;                      // number of next piece for promoted pawn, 6 bits
+    US reversibleCr;                                                    // reversible halfmove counter
+    UC to;                                                              // to point, 7 bits (for simple repetition draw detection)
+    short valOpn;                                                       // store material and PST value considered all material is on the board
+    short valEnd;                                                       // store material and PST value considered deep endgame (kings and pawns only)
 };
 
 //--------------------------------
@@ -75,6 +97,37 @@ struct tt_entry
     SS  flags;
     UC  depth;
     UC  unused;
+};
+
+//--------------------------------
+#define PC_LIST_SIZE 64
+
+class piece_list
+{
+
+protected:
+
+    UC coord[PC_LIST_SIZE];
+    UC ptr_prev[PC_LIST_SIZE];
+    UC ptr_next[PC_LIST_SIZE];
+    UC id[PC_LIST_SIZE];
+
+    UC _size;
+    UC _first;
+    UC _last;
+
+public:
+
+    typedef UC iterator;
+    piece_list::iterator begin();
+    piece_list::iterator end();
+    piece_list::iterator rbegin();
+    piece_list::iterator rend();
+    bool push_front(UC, UC);
+    bool push_back(UC, UC);
+    bool erase(piece_list::iterator);
+    void clear();
+
 };
 
 //--------------------------------
