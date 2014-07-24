@@ -27,7 +27,7 @@ int     GenCaptures(Move *list);
 void    AppriceMoves(Move *list, int moveCr, Move *best_move);
 void    Next(Move *m, int cur, int top, Move *ans);
 void    AppriceQuiesceMoves(Move *list, int moveCr);
-short   SEE(UC to, short frStreng, short val);
-short_list<UC, lst_sz>::reverse_iterator SeeMinAttacker(UC to);
+short   SEE(UC to, short frStreng, short val, bool stm);
+short_list<UC, lst_sz>::iterator SeeMinAttacker(UC to);
 void    AppriceHistory(Move *list, int moveCr);
 //--------------------------------
