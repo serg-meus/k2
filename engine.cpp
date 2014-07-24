@@ -26,24 +26,29 @@ bool        timeCommandSent;
 #ifndef NOT_USE_HASH_TABLE
     unsigned long hashSize = 64*HASH_ENTRIES_PER_MB;
     std::unordered_map<UQ, hashEntryStruct> hash_table(hashSize);
-    UQ  doneHashKeys[FIFTY_MOVES + MAX_PLY];
+    UQ  doneHashKeys[FIFTY_MOVES + max_ply];
 #endif // NOT_USE_HASH_TABLE
 
 //--------------------------------
-short Search(int depth, short alpha, short beta)
+short Search(int depth, short alpha, short beta, int lmr_)
 {
-    if(ply >= MAX_PLY - 1 || DrawDetect())
+    if(ply >= max_ply - 1 || DrawDetect())
     {
-        pv[ply][0] = 0;
+        pv[ply][0].flg = 0;
         return 0;
     }
-    auto king = pcs[(wtm ^ WHT) >> 5].begin();
-    bool in_check = Attack(*king, wtm ^ WHT);
+    bool in_check = Attack(*pc_list[wtm].begin(), !wtm);
     if(in_check)
-        depth++;
+    {
+        if(lmr_)
+            depth += 2;
+        else
+            depth += 1;
+    }
+
 #ifndef NOT_USE_FUTILITY
     if(depth <= 1 && depth >= 0 && !in_check
-    && beta < K_VAL - MAX_PLY
+    && beta < (short)(K_VAL - max_ply)
     && Futility(depth, beta))
         return beta;
 #endif // NOT_USE_FUTILITY
@@ -63,20 +68,12 @@ short Search(int depth, short alpha, short beta)
             || ((hbnd == hLOWER || hbnd == hEXACT) && hval <= alpha)
             )
             {
-                pv[ply][0] = 0;
+                pv[ply][0].flg = 0;
                 return hval;
             }// if(bnd
         }// if(entry.depth
         else
         {
-/*            if(entry.only_move)
-            {
-                if(!(MOVEFLG(entry.best_move) & mCAPT))
-                    depth++;
-                else if(pc_streng[b[(MOVEPC(entry.best_move) >> 16)]  & ~WHT ] <=
-                        pc_streng[b[MOVETO(entry.best_move)] & ~WHT])
-                    depth++;
-            }*/
             if(entry.bound_type == hEXACT
             || entry.bound_type == hUPPER)
                 best_move_hashed = true;
@@ -84,13 +81,10 @@ short Search(int depth, short alpha, short beta)
     }
 #endif // NOT_USE_HASH_TABLE
     if(depth <= 0)
-    {
         return Quiesce(alpha, beta);
-    }
     nodes++;
     if((nodes & 511) == 511)
         CheckForInterrupt();
-
 
 #ifndef NOT_USE_NULL_MOVE
     if(NullMove(depth, beta, in_check))
@@ -116,10 +110,10 @@ short Search(int depth, short alpha, short beta)
     Move m;
     short x;
 
-    boardState[PREV_STATES + ply].valOpn = valOpn;
-    boardState[PREV_STATES + ply].valEnd = valEnd;
+    boardState[prev_states + ply].valOpn = valOpn;
+    boardState[prev_states + ply].valEnd = valEnd;
 
-    bool mateFound = alpha >= K_VAL - MAX_PLY + 1;
+    bool mateFound = alpha >= (short)(K_VAL - max_ply + 1);
 //    if(analyze)
 //        mateFound = false;
     for(; i < top && !stop && !mateFound; i++)
@@ -139,18 +133,33 @@ short Search(int depth, short alpha, short beta)
 
         FastEval(m);
 
+#ifndef NOT_USE_LMR
+        int lmr = 1;
+        if(depth < 3 || m.flg || in_check)
+            lmr = 0;
+        else if(legals < 4 || m.scr > 80)
+            lmr = 0;
+        else if((b[m.to] & ~white) == _p && TestPromo(COL(m.to), !wtm))
+            lmr = 0;
+#else
+        int lmr = 0;
+#endif  // NOT_USE_LMR
+
+
 #ifndef NOT_USE_PVS
         if(legals && depth > 1 && beta != alpha + 1
-        && ABSI(alpha) < K_VAL - MAX_PLY + 1)
+        && ABSI(alpha) < (short)(K_VAL - max_ply + 1))
         {
-            x = -Search(depth - 1 /*- lmr*/, -alpha - 1, -alpha);
+            x = -Search(depth - 1 - lmr, -alpha - 1, -alpha, lmr);
+//            if(lmr && x > alpha)
+//                x = -Search(depth - 1, -alpha - 1, -alpha, 0);
             if(x > alpha)
-                x = -Search(depth - 1, -beta, -alpha);
+                x = -Search(depth - 1, -beta, -alpha, 0);
         }
         else
-            x = -Search(depth - 1 /*- lmr*/, -beta, -alpha);
+            x = -Search(depth - 1, -beta, -alpha, 0);
 #else
-        x = -Search(depth - 1, -beta, -alpha);
+        x = -Search(depth - 1, -beta, -alpha, 0);
 #endif // NOT_USE_PVS
         genBestMove = false;
 
@@ -166,9 +175,9 @@ short Search(int depth, short alpha, short beta)
         UnMove(m);
     }// for i
 
-    if(!legals && alpha < K_VAL - MAX_PLY + 1)
+    if(!legals && alpha < (short)(K_VAL - max_ply + 1))
     {
-        pv[ply][0] = 0;
+        pv[ply][0].flg = 0;
         return in_check ? -K_VAL + ply : 0;
     }
 #ifndef NOT_USE_HASH_TABLE
@@ -197,7 +206,7 @@ short Search(int depth, short alpha, short beta)
                 hs.best_move    = m;
                 hash_table[hash_key] = hs;
             }
-            else if(alpha > _alpha && pv[ply][0] > 0)
+            else if(alpha > _alpha && pv[ply][0].flg > 0)
             {
                 hs.bound_type   = hEXACT;
                 hs.value        = -alpha;
@@ -226,19 +235,19 @@ short Search(int depth, short alpha, short beta)
 //-----------------------------
 short Quiesce(short alpha, short beta)
 {
-    if(ply >= MAX_PLY - 1)
+    if(ply >= max_ply - 1)
         return 0;
     nodes++;
     qnodes++;
     if((nodes & 511) == 511)
         CheckForInterrupt();
 
-    pv[ply][0] = 0;
+    pv[ply][0].flg = 0;
 
-    boardState[PREV_STATES + ply].valOpn = valOpn;
-    boardState[PREV_STATES + ply].valEnd = valEnd;
+    boardState[prev_states + ply].valOpn = valOpn;
+    boardState[prev_states + ply].valEnd = valEnd;
 
-    short x = Eval(alpha, beta);
+    short x = Eval(/*alpha, beta*/);
 
     if(-x >= beta)
         return beta;
@@ -254,12 +263,22 @@ short Quiesce(short alpha, short beta)
         Move m;
         Next(moveList, i, top, &m);
 
+#ifndef NOT_USE_SEE_CUTOFF
+        if(m.scr <= BAD_CAPTURES)
+            break;
+#endif
+#ifndef NOT_USE_DELTA_PRUNING
+        if(material[0] + material[1] > 24
+        && (wtm ? valOpn : -valOpn) + 100*pc_streng[b[m.to]/2] < alpha - 450)
+            continue;
+#endif
+
         MkMove(m);
 #ifndef NDEBUG
         if((!stopPly || rootPly == stopPly) && strcmp(stop_str, cv) == 0)
             ply = ply;
 #endif // NDEBUG
-        if((boardState[PREV_STATES + ply].capt & ~WHT) == _k)
+        if((boardState[prev_states + ply].capt & ~white) == _k)
         {
             UnMove(m);
             return K_VAL;
@@ -292,24 +311,30 @@ short Quiesce(short alpha, short beta)
 void Perft(int depth)
 {
     Move moveList[MAX_MOVES];
-    auto king = pcs[(wtm ^ WHT) >> 5].begin();
-    bool in_check = Attack(*king, wtm ^ WHT);
-    GenMoves(moveList, APPRICE_NONE);
-    int top = moveCr;
+    bool in_check = Attack(*pc_list[wtm].begin(), !wtm);
+    int top = GenMoves(moveList, APPRICE_NONE);
     for(int i = 0; i < top; i++)
     {
+#ifndef NDEBUG
+        if((unsigned)depth == timeMaxPly)
+            tmpCr = nodes;
+#endif
         Move m = moveList[i];
         MkMove(m);
 #ifndef NDEBUG
         if(strcmp(stop_str, cv) == 0)
             ply = ply;
 #endif // NDEBUG
-//        bool legal = !Attack(men[(wtm ^ WHT) + 1], wtm);
+//        bool legal = !Attack(men[(wtm ^ white) + 1], wtm);
         bool legal = Legal(m, in_check);
         if(depth > 1 && legal)
             Perft(depth - 1);
         if(depth == 1 && legal)
             nodes++;
+#ifndef NDEBUG
+        if((unsigned)depth == timeMaxPly && legal)
+            std::cout << cv << nodes - tmpCr << std::endl;
+#endif
         UnMove(m);
     }
 }
@@ -317,10 +342,10 @@ void Perft(int depth)
 //-----------------------------
 void StorePV(Move m)
 {
-    int nextLen = pv[ply][0];
-    pv[ply - 1][0] = nextLen + 1;
+    int nextLen = pv[ply][0].flg;
+    pv[ply - 1][0].flg = nextLen + 1;
     pv[ply - 1][1] = m;
-    memcpy(&pv[ply - 1][2], &pv[ply][1], nextLen << 2);
+    memcpy(&pv[ply - 1][2], &pv[ply][1], sizeof(Move)*(nextLen << 2));
 }
 
 //-----------------------------
@@ -332,10 +357,8 @@ void UpdateStatistics(Move m, int dpt, unsigned i)
 #ifndef NDEBUG
     else if(i > BETA_CUTOFF + 10 && dpt > 4)
         ply = ply;
-#else
-    UNUSED(dpt);
-#endif
-    if(MOVEFLG(m))
+#endif //NDEBUG
+    if(m.flg)
         return;
     if(m != kil[ply][0] && m != kil[ply][1])
     {
@@ -343,9 +366,15 @@ void UpdateStatistics(Move m, int dpt, unsigned i)
         kil[ply][0] = m;
     }
 
-/*    UC fr = men[m.pc];
-    unsigned &h = history[!wtm][(b[fr] & 0x0F) - 1][m.to];
-    h += dpt*dpt + 1;*/
+#ifndef NOT_USE_HISTORY
+    auto it = pc_list[wtm].begin();
+    it = m.pc;
+    UC fr = *it;
+    unsigned &h = history[wtm][(b[fr]/2) - 1][m.to];
+    h += dpt*dpt + 1;
+#else
+    UNUSED(dpt);
+#endif // NOT_USE_HISTORY
 }
 
 //--------------------------------
@@ -357,7 +386,7 @@ void MainSearch()
     short sc = 0, _sc_;
     rootPly = 1;
     rootTop = 0;
-    for(; rootPly <= MAX_PLY && !stop; ++rootPly)
+    for(; rootPly <= max_ply && !stop; ++rootPly)
     {
 #ifndef NDEBUG
         if(rootPly == 7)
@@ -380,7 +409,7 @@ void MainSearch()
         {
             if(timeSpent > timeToThink && !timeMaxNodes)
                 break;
-            if(ABSI(sc) > K_VAL - MAX_PLY && !stop)
+            if(ABSI(sc) > (short)(K_VAL - max_ply) && !stop)
                 break;
             if(rootTop == 1 && rootPly >= 8 )
                 break;
@@ -395,7 +424,7 @@ void MainSearch()
     else
         resignCr = 0;
 
-    if((!stop && !analyze && sc < -K_VAL + MAX_PLY)
+    if((!stop && !analyze && sc < short(-K_VAL + max_ply))
     || (!analyze && sc < -RESIGN_VALUE && resignCr > RESIGN_MOVES))
     {
         std::cout << "resign" << std::endl;
@@ -412,7 +441,7 @@ void MainSearch()
     if(_abort_)
         analyze = false;
 
-/*    if(sc < K_VAL - MAX_PLY)
+/*    if(sc < K_VAL - max_ply)
         std::cout << "( mate not found )" << std::endl;
     #warning
 */
@@ -422,26 +451,24 @@ void MainSearch()
 //--------------------------------
 short RootSearch(int depth, short alpha, short beta)
 {
-    auto king = pcs[(wtm ^ WHT) >> 5].begin();
-    bool in_check = Attack(*king, wtm ^ WHT);
-    boardState[PREV_STATES + ply].valOpn = valOpn;
-    boardState[PREV_STATES + ply].valEnd = valEnd;
+    bool in_check = Attack(*pc_list[wtm].begin(), !wtm);
+    boardState[prev_states + ply].valOpn = valOpn;
+    boardState[prev_states + ply].valEnd = valEnd;
     if(!rootTop)
         RootMoveGen(in_check);
 
     rootMoveCr = 0;
 
-    Move m = 0x000100FF, probed = 0x000100FF;
-
     UQ prevDeltaNodes = 0;
 
     short x;
+    Move  m;
 
     for(; rootMoveCr < rootTop && alpha < K_VAL - 99 && !stop; rootMoveCr++)
     {
         m = rootMoveList[rootMoveCr];
-        if(m == probed)
-            continue;
+//        if(m == probed)
+//            continue;
         MkMove(m);
 
 #ifndef NDEBUG
@@ -456,23 +483,23 @@ short RootSearch(int depth, short alpha, short beta)
         if(!DrawByRepetition())
         {
             if(rootMoveCr > 0)
-                x = -Search(depth - 1, -alpha - 1, - alpha);
+                x = -Search(depth - 1, -alpha - 1, - alpha, 0);
             if(rootMoveCr <= 0 || x > alpha)
-                x = -Search(depth - 1, -beta, -alpha);
+                x = -Search(depth - 1, -beta, -alpha, 0);
         }
 #else
-        if(!DrawByRepetitionInRoot(m))
+        if(true/*!DrawByRepetitionInRoot(m)*/)
         {
             if(rootMoveCr > 0)
-                x = -Search(depth - 1, -alpha - 1, -alpha);
+                x = -Search(depth - 1, -alpha - 1, -alpha, 0);
             if(rootMoveCr <= 0 || x > alpha)
-                x = -Search(depth - 1, -beta, -alpha);
+                x = -Search(depth - 1, -beta, -alpha), 0;
         }
 #endif // NOT_USE_HASH_FOR_DRAW
         else
         {
             x = 0;
-            pv[1][0] = 0;
+            pv[1][0].flg = 0;
         }
 
         genBestMove = false;
@@ -516,8 +543,8 @@ short RootSearch(int depth, short alpha, short beta)
         else
         {
             UnMove(m);
-            if(MOVEPC(probed) == 0xFF)
-                probed = m;
+//            if(MOVEPC(probed) == 0xFF)
+//                probed = m;
         }
     }
 
@@ -525,7 +552,7 @@ short RootSearch(int depth, short alpha, short beta)
         PlyOutput(alpha);
     if(!rootTop)
     {
-        pv[0][0] = 0;
+        pv[0][0].flg = 0;
         return in_check ? -K_VAL + ply : 0;
     }
     if(rootMoveCr > rootTop + 1)
@@ -541,8 +568,8 @@ void RootMoveGen(bool in_check)
 {
     Move moveList[MAX_MOVES];
     rootTop = GenMoves(moveList, APPRICE_ALL);
-    boardState[PREV_STATES + ply].valOpn = valOpn;
-    boardState[PREV_STATES + ply].valEnd = valEnd;
+    boardState[prev_states + ply].valOpn = valOpn;
+    boardState[prev_states + ply].valEnd = valEnd;
     for(unsigned i = 0; i < rootTop; i++)
     {
         Move m;
@@ -580,14 +607,19 @@ void InitSearch()
         cutNumCr[i] = 0;
     for(i = 0; i < sizeof(qCutNumCr)/sizeof(*qCutNumCr); i++)
         qCutNumCr[i] = 0;
-    for(i = 0; i < MAX_PLY; i ++)
-        for(j = 0; j < MAX_PLY + 1; j++)
-            pv[i][j] = (Move) 0;
-    for(i = 0; i < MAX_PLY; i++)
+    for(i = 0; i < max_ply; i ++)
+        for(j = 0; j < max_ply + 1; j++)
+        {
+            pv[i][j].to = 0;
+            pv[i][j].flg = 0;
+            pv[i][j].scr = 0;
+        }
+    for(i = 0; i < max_ply; i++)
     {
-        kil[i][0] = (Move) 0;
-        kil[i][1] = (Move) 0;
+        kil[i][0].to =  0;                                              //>> NB
+        kil[i][1].to =  0;
     }
+
     stop = false;
     _abort_ = false;
 
@@ -613,12 +645,14 @@ void PrintSearchResult()
     char proms[] = {'?', 'q', 'n', 'r', 'b'};
 
     Move  p = pv[0][1];
-    int  f  = men[MOVEPC(p)];
+    auto it = pc_list[wtm].begin();
+    it      = p.pc;
+    int  f  = *it;
     mov[0]  = COL(f) + 'a';
     mov[1]  = ROW(f) + '1';
-    mov[2]  = COL(MOVETO(p)) + 'a';
-    mov[3]  = ROW(MOVETO(p)) + '1';
-    mov[4]  = (MOVEFLG(p) & mPROM) ? proms[(MOVEFLG(p) & mPROM) >> 16] : '\0';
+    mov[2]  = COL(p.to) + 'a';
+    mov[3]  = ROW(p.to) + '1';
+    mov[4]  = (p.flg & mPROM) ? proms[p.flg & mPROM] : '\0';
     mov[5]  = '\0';
 
     if(!uci && !MakeMoveFinaly(mov))
@@ -626,9 +660,8 @@ void PrintSearchResult()
         std::cout << "tellusererror err01" << std::endl << "resign" << std::endl;
     }
 
-//    if(!uci)
-//    {
-/*        std::cout << "( q/n = " << (int)(qnodes/(nodes/100 + 1)) << "%, ";
+#ifndef NOT_SHOW_STATISTICS
+        std::cout << "( q/n = " << (int)(qnodes/(nodes/100 + 1)) << "%, ";
 
         std::cout << "cut = [";
         for(unsigned i = 0; i < sizeof(cutNumCr)/sizeof(*cutNumCr); i++)
@@ -639,12 +672,12 @@ void PrintSearchResult()
         for(unsigned i = 0; i < sizeof(qCutNumCr)/sizeof(*qCutNumCr); i++)
             std::cout  << (int)(qCutNumCr[i]/(qCutCr/100 + 1)) << " ";
         std::cout << "]% )" << std::endl;
-*/
+
         std::cout   << "( tSpent=" << timeSpent/1e6
                     << ", nodes=" << nodes
                     << ", futCr = " << futCr
                     << " )" << std::endl;
-//    }
+#endif
     if(!uci)
         std::cout << "move " << mov << std::endl;
     else
@@ -663,7 +696,7 @@ void PlyOutput(short sc)
         {
             cout << "info depth " << rootPly;
 
-            if(ABSI(sc) < K_VAL - MAX_PLY)
+            if(ABSI(sc) < (short)(K_VAL - max_ply))
                 cout << " score cp " << sc;
             else
             {
@@ -739,24 +772,26 @@ void InitTime()                                                         // too c
 //-----------------------------
 bool ShowPV(int _ply)
 {
-    char pc2chr[] = "?KQRBNP??????????????????????????KQRBNP";
+    char pc2chr[] = "??KKQQRRBBNNPP";
     bool ans = true;
-    int i = 0, stp = pv[ply][0];
+    int i = 0, stp = pv[ply][0].flg;
 
     if(uci)
     {
         for(; i < stp; i++)
         {
             Move m = pv[_ply][i + 1];
-            UC fr = men[MOVEPC(m)];
+            auto it = pc_list[wtm].begin();
+            it = m.pc;
+            UC fr = *it;
             std::cout  << (char)(COL(fr) + 'a') << (char)(ROW(fr) + '1')
-                << (char)(COL(MOVETO(m)) + 'a') << (char)(ROW(MOVETO(m)) + '1');
+                << (char)(COL(m.to) + 'a') << (char)(ROW(m.to) + '1');
             char proms[] = {'?', 'q', 'n', 'r', 'b'};
-            if(MOVEFLG(m) & mPROM)
-                std::cout << proms[(MOVEFLG(m) & mPROM) >> 16];
+            if(m.flg & mPROM)
+                std::cout << proms[m.flg & mPROM];
             std::cout << " ";
             MkMove(m);
-            bool in_check = Attack(men[wtm + 1], wtm ^ WHT);
+            bool in_check = Attack(*pc_list[wtm].begin(), !wtm);
             if(!Legal(m, in_check))
                 ans = false;
         }
@@ -765,31 +800,37 @@ bool ShowPV(int _ply)
         for(; i < stp; i++)
         {
             Move m = pv[_ply][i + 1];
-            char pc = pc2chr[b[men[MOVEPC(m)]]];
-            if(pc == 'K' && COL(men[MOVEPC(m)]) == 4 && COL(MOVETO(m)) == 6)
+            auto it = pc_list[wtm].begin();
+            it = m.pc;
+            char pc = pc2chr[b[*it]];
+            if(pc == 'K' && COL(*it) == 4 && COL(m.to) == 6)
                 std::cout << "OO";
-            else if(pc == 'K' && COL(men[MOVEPC(m)]) == 4 && COL(MOVETO(m)) == 2)
+            else if(pc == 'K' && COL(*it) == 4 && COL(m.to) == 2)
                 std::cout << "OOO";
             else if(pc != 'P')
             {
                 std::cout << pc;
                 Ambiguous(m);
-                if(MOVEFLG(m) & mCAPT)
+                if(m.flg & mCAPT)
                     std::cout << 'x';
-                std::cout << (char)(COL(MOVETO(m)) + 'a');
-                std::cout << (char)(ROW(MOVETO(m)) + '1');
+                std::cout << (char)(COL(m.to) + 'a');
+                std::cout << (char)(ROW(m.to) + '1');
             }
-            else if(MOVEFLG(m) & mCAPT)
-                std::cout << (char)(COL(men[MOVEPC(m)]) + 'a') << "x"
-                     << (char)(COL(MOVETO(m)) + 'a') << (char)(ROW(MOVETO(m)) + '1');
+            else if(m.flg & mCAPT)
+            {
+                auto it = pc_list[wtm].begin();
+                it = m.pc;
+                std::cout << (char)(COL(*it) + 'a') << "x"
+                     << (char)(COL(m.to) + 'a') << (char)(ROW(m.to) + '1');
+            }
             else
-                std::cout << (char)(COL(MOVETO(m)) + 'a') << (char)(ROW(MOVETO(m)) + '1');
+                std::cout << (char)(COL(m.to) + 'a') << (char)(ROW(m.to) + '1');
             char proms[] = "?QNRB";
-            if(pc == 'P' && (MOVEFLG(m) & mPROM))
-                std::cout << proms[(MOVEFLG(m)& mPROM) >> 16];
+            if(pc == 'P' && (m.flg & mPROM))
+                std::cout << proms[m.flg& mPROM];
             std::cout << ' ';
             MkMove(m);
-            bool in_check = Attack(men[wtm + 1], wtm ^ WHT);
+            bool in_check = Attack(*pc_list[wtm].begin(), !wtm);
             if(!Legal(m, in_check))
                 ans = false;
         }
@@ -803,29 +844,29 @@ void Ambiguous(Move m)
 {
     Move marr[8];
     unsigned ambCr = 0;
-    UC fr0 = men[MOVEPC(m)];
-    UC pt0 = b[fr0];
+    auto it = pc_list[wtm].begin();
+    it = m.pc;
+    UC fr0 = *it;
+    UC pt0 = b[fr0]/2;
 
-    UC menNum   = wtm;
-    unsigned pcCr = 0;
-    unsigned maxPc = pieces[wtm >> 5];
-    for(; pcCr < maxPc; pcCr++)
+    for(auto it = pc_list[wtm].begin();
+        it != pc_list[wtm].end();
+        ++it)
     {
-        menNum = menNxt[menNum];
-        if(menNum == MOVEPC(m))
+        if(it == m.pc)
             continue;
-        UC fr = men[menNum];
+        UC fr = *it;
 
-        UC pt = b[fr];
+        UC pt = b[fr]/2;
         if(pt != pt0)
             continue;
-        pt &= ~WHT;
-        if(!(attacks[120 + fr - MOVETO(m)] & (1 << pt)))
+//        pt &= ~white;
+        if(!(attacks[120 + fr - m.to] & (1 << pt)))
             continue;
-        if(slider[pt] && !SliderAttack(fr, MOVETO(m)))
+        if(slider[pt] && !SliderAttack(fr, m.to))
             continue;
         Move x = m;
-        x |= (fr << MOVE_SCORE_SHIFT);
+        x.scr = fr;
         marr[ambCr++]   = x;
     }
     if(!ambCr)
@@ -833,9 +874,9 @@ void Ambiguous(Move m)
     bool sameCols = false, sameRows = false;
     for(unsigned i = 0; i < ambCr; i++)
     {
-        if(COL(MOVESCR(marr[i])) == COL(fr0))
+        if(COL(marr[i].scr) == COL(fr0))
             sameCols = true;
-        if(ROW(MOVESCR(marr[i])) == (unsigned)ROW(fr0))
+        if(ROW(marr[i].scr) == ROW(fr0))
             sameRows = true;
     }
     if(sameCols && sameRows)
@@ -853,7 +894,7 @@ bool MakeMoveFinaly(char *mov)
     int ln = strlen(mov);
     if(ln < 4 || ln > 5)
         return false;
-    bool in_check = Attack(men[wtm + 1], wtm ^ WHT);
+    bool in_check = Attack(*pc_list[wtm].begin(), !wtm);
     RootMoveGen(in_check);
 
     char rMov[6];
@@ -861,17 +902,21 @@ bool MakeMoveFinaly(char *mov)
     for(unsigned i = 0; i < rootTop; ++i)
     {
         Move m  = rootMoveList[i];
-        rMov[0] = COL(men[MOVEPC(m)]) + 'a';
-        rMov[1] = ROW(men[MOVEPC(m)]) + '1';
-        rMov[2] = COL(MOVETO(m)) + 'a';
-        rMov[3] = ROW(MOVETO(m)) + '1';
-        rMov[4] = (MOVEFLG(m) & mPROM) ? proms[(MOVEFLG(m) & mPROM) >> 16] : '\0';
+        auto it = pc_list[wtm].begin();
+        it = m.pc;
+        rMov[0] = COL(*it) + 'a';
+        rMov[1] = ROW(*it) + '1';
+        rMov[2] = COL(m.to) + 'a';
+        rMov[3] = ROW(m.to) + '1';
+        rMov[4] = (m.flg & mPROM) ? proms[m.flg & mPROM] : '\0';
         rMov[5] = '\0';
 
         if(strcmp(mov, rMov) == 0)
         {
 #ifdef NOT_USE_HASH_FOR_DRAW
-            UC fr = men[MOVEPC(m)];
+            auto it = pc_list[wtm].begin();
+            it = m.pc;
+            UC fr = *it;
 #endif //NOT_USE_HASH_FOR_DRAW
             MkMove(m);
 
@@ -881,7 +926,7 @@ bool MakeMoveFinaly(char *mov)
             short _valEnd_ = valEnd;
 
             memmove(&boardState[0], &boardState[1],
-                    (PREV_STATES + 2)*sizeof(BrdState));
+                    (prev_states + 2)*sizeof(BrdState));
             ply--;
             EvalAllMaterialAndPST();
             if(valOpn != _valOpn_ || valEnd != _valEnd_)
@@ -898,7 +943,8 @@ bool MakeMoveFinaly(char *mov)
 #else
             memmove(&doneMoves[1], &doneMoves[0],
                     sizeof(doneMoves) - sizeof(Move));
-            Move m1 = (fr << MOVE_SCORE_SHIFT) | (m & EXCEPT_SCORE);
+            Move m1 = m;
+            m.scr = fr;
             doneMoves[0] = m1;
 #endif // NOT_USE_HASH_FOR_DRAW
 
@@ -983,10 +1029,10 @@ bool SimpleDrawByRepetition()
         return false;
     if(ply + finalyMadeMoves < 4)
         return false;
-    if(boardState[PREV_STATES + ply].to == boardState[PREV_STATES + ply - 2].fr
-    && boardState[PREV_STATES + ply].fr == boardState[PREV_STATES + ply - 2].to
-    && boardState[PREV_STATES + ply - 1].fr == boardState[PREV_STATES + ply - 3].to
-    && boardState[PREV_STATES + ply - 1].to == boardState[PREV_STATES + ply - 3].fr)
+    if(boardState[prev_states + ply].to == boardState[prev_states + ply - 2].fr
+    && boardState[prev_states + ply].fr == boardState[prev_states + ply - 2].to
+    && boardState[prev_states + ply - 1].fr == boardState[prev_states + ply - 3].to
+    && boardState[prev_states + ply - 1].to == boardState[prev_states + ply - 3].fr)
         return true;
 
     return false;
@@ -1003,13 +1049,13 @@ void CheckForInterrupt()
             << " nps " << (int)(1000000 * nodes / (t - time0 + 1));
 
         Move m = rootMoveList[rootMoveCr];
-        UC fr = boardState[PREV_STATES + 1].fr;
+        UC fr = boardState[prev_states + 1].fr;
         std::cout << " currmove "
             << (char)(COL(fr) + 'a') << (char)(ROW(fr) + '1')
-            << (char)(COL(MOVETO(m)) + 'a') << (char)(ROW(MOVETO(m)) + '1');
+            << (char)(COL(m.to) + 'a') << (char)(ROW(m.to) + '1');
         char proms[] = {'?', 'q', 'n', 'r', 'b'};
-        if(MOVEFLG(m) & mPROM)
-            std::cout << proms[(MOVEFLG(m) & mPROM) >> 16];
+        if(m.flg & mPROM)
+            std::cout << proms[m.flg & mPROM];
 
         std::cout << " currmovenumber " << rootMoveCr + 1;
         std::cout << " hashfull ";
@@ -1042,73 +1088,68 @@ void MkMove(Move m)
 {
     bool specialMove = false;
     ply++;
-    boardState[PREV_STATES + ply].cstl   = boardState[PREV_STATES + ply - 1].cstl;
-    boardState[PREV_STATES + ply].capt  = b[MOVETO(m)];
-    UC fr = men[MOVEPC(m)];
-    UC targ = MOVETO(m);
-    boardState[PREV_STATES + ply].fr = fr;
-    boardState[PREV_STATES + ply].to = targ;
-    boardState[PREV_STATES + ply].reversibleCr = reversibleMoves;
+    boardState[prev_states + ply].cstl   = boardState[prev_states + ply - 1].cstl;
+    boardState[prev_states + ply].capt  = b[m.to];
+    auto it = pc_list[wtm].begin();
+    it      = m.pc;
+    UC fr   = *it;
+    UC targ = m.to;
+    boardState[prev_states + ply].fr = fr;
+    boardState[prev_states + ply].to = targ;
+    boardState[prev_states + ply].reversibleCr = reversibleMoves;
     reversibleMoves++;
-    if(MOVEFLG(m) & mCAPT)
+    if(m.flg & mCAPT)
     {
-        if (MOVEFLG(m) & mENPS)
+        if (m.flg & mENPS)
         {
             targ += wtm ? -16 : 16;
             material[!wtm]--;
         }
-        UC menNum = (wtm ^ WHT);
-        UC prevMenNum = menNum;
-        UC maxMenCr = pieces[menNum >> 5];
-        for(int menCr = 0; menCr < maxMenCr; menCr++)
-        {
-            prevMenNum = menNum;
-            menNum = menNxt[menNum];
-            if(targ == men[menNum])
+        else
+            material[!wtm] -=
+                    pc_streng[boardState[prev_states + ply].capt/2 - 1];
+
+        auto it_cap = pc_list[!wtm].begin();
+        auto it_end = pc_list[!wtm].end();
+        for(; it_cap != it_end; ++it_cap)
+            if(*it_cap == targ)
                 break;
-        }
-        boardState[PREV_STATES + ply].ncap      = prevMenNum;
-        boardState[PREV_STATES + ply].ncapNxt   = menNum;
-        menNxt[prevMenNum]  = menNxt[menNum];
+        boardState[prev_states + ply].captured_it = it_cap;
+        pc_list[!wtm].erase(it_cap);
 
         pieces[!wtm]--;
-        material[!wtm] -= pc_streng[boardState[PREV_STATES + ply].capt & 0x0F];
         reversibleMoves = 0;
     }// if capture
 
-    if(!(b[fr] & 0xDC) || (MOVEFLG(m) & mCAPT))        // trick: fast exit if not K|Q|R moves, and no captures
+    if((b[fr] <= _R) || (m.flg & mCAPT))        // trick: fast exit if not K|Q|R moves, and no captures
         specialMove |= MakeCastle(m, fr);
 
-    boardState[PREV_STATES + ply].ep = 0;
+    boardState[prev_states + ply].ep = 0;
     if((b[fr] ^ wtm) == _p)
     {
         specialMove     |= MakeEP(m, fr);
         reversibleMoves = 0;
     }
 #ifndef NDEBUG
-    ShowMove(fr, MOVETO(m));
+    ShowMove(fr, m.to);
 #endif // NDEBUG
 
-    men[MOVEPC(m)]   = MOVETO(m);
-    b[MOVETO(m)]     = b[fr];
+    b[m.to]     = b[fr];
     b[fr]       = __;
 
-    int prIx = (MOVEFLG(m) & mPROM) >> 16;
+    int prIx = m.flg & mPROM;
     UC prPc[] = {0, _q, _n, _r, _b};
     if(prIx)
     {
-        b[MOVETO(m)] = prPc[prIx] ^ wtm;
-        material[wtm >> 5] += pc_streng[prPc[prIx]] - 1;
-        unsigned i = wtm + 1;
-        for(; i < wtm + 0x20; i++)                                      //<< NB: wrong
-            if(menNxt[i] == MOVEPC(m))
-                break;
-        boardState[PREV_STATES + ply].nprom = i;
-        menNxt[i] = menNxt[MOVEPC(m)];
-        menNxt[MOVEPC(m)] = menNxt[wtm];
-        menNxt[wtm] = MOVEPC(m);
+        b[m.to] = prPc[prIx] ^ wtm;
+        material[wtm] += pc_streng[prPc[prIx]/2 - 1] - 1;
+        boardState[prev_states + ply].nprom = ++it;
+        --it;
+        pc_list[wtm].move_element(++pc_list[wtm].begin(), it);
         reversibleMoves = 0;
     }
+    *it   = m.to;
+
 #ifndef NOT_USE_HASH_TABLE
     doneHashKeys[FIFTY_MOVES + ply - 1] = hash_key;
     MoveHashKey(m, fr, specialMove);
@@ -1120,69 +1161,76 @@ void MkMove(Move m)
 
 #endif // NOT_USE_HASH_TABLE
 
-#ifdef USE_PAWN_STRUCT
-    MovePawnStruct(b[MOVETO(m)], fr, m);
-#endif // USE_PAWN_STRUCT
-    wtm ^= WHT;
+#ifndef NOT_USE_PAWN_STRUCT
+    MovePawnStruct(b[m.to], fr, m);
+#endif // NOT_USE_PAWN_STRUCT
+    wtm ^= white;
 }
 
 //--------------------------------
 void UnMove(Move m)
 {
-    UC fr = boardState[PREV_STATES + ply].fr;
-    men[MOVEPC(m)] = fr;
-    b[fr] = (MOVEFLG(m) & mPROM) ? _P ^ wtm : b[MOVETO(m)];
-    b[MOVETO(m)] = boardState[PREV_STATES + ply].capt;
+    UC fr = boardState[prev_states + ply].fr;
+    auto it = pc_list[!wtm].begin();
+    it = m.pc;
+    *it = fr;
+    b[fr] = (m.flg & mPROM) ? _P ^ wtm : b[m.to];
+    b[m.to] = boardState[prev_states + ply].capt;
 
-    reversibleMoves = boardState[PREV_STATES + ply].reversibleCr;
+    reversibleMoves = boardState[prev_states + ply].reversibleCr;
 #ifndef NOT_USE_HASH_TABLE
     hash_key = doneHashKeys[FIFTY_MOVES + ply - 1];
 #endif // NOT_USE_HASH_TABLE
-    wtm ^= WHT;
+    wtm ^= white;
 
-    if(MOVEFLG(m) & mCAPT)
+    if(m.flg & mCAPT)
     {
-        if(MOVEFLG(m) & mENPS)
+        auto it_cap = pc_list[!wtm].begin();
+        it_cap = boardState[prev_states + ply].captured_it;
+
+        if(m.flg & mENPS)
         {
             material[!wtm]++;
             if(wtm)
             {
-                b[MOVETO(m) - 16] = _p;
-                men[boardState[PREV_STATES + ply].ncapNxt] = MOVETO(m) - 16;
+                b[m.to - 16] = _p;
+                *it_cap = m.to - 16;
             }
             else
             {
-                b[MOVETO(m) + 16] = _P;
-                men[boardState[PREV_STATES + ply].ncapNxt] = MOVETO(m) + 16;
+                b[m.to + 16] = _P;
+                *it_cap = m.to + 16;
             }
         }// if en_pass
+        else
+            material[!wtm]
+                += pc_streng[boardState[prev_states + ply].capt/2 - 1];
 
-        menNxt[boardState[PREV_STATES + ply].ncap] = boardState[PREV_STATES + ply].ncapNxt;
+        pc_list[!wtm].restore(it_cap);
         pieces[!wtm]++;
-        material[!wtm] += pc_streng[boardState[PREV_STATES + ply].capt & 0x0F];
     }// if capture
 
-    int prIx = (MOVEFLG(m) & mPROM) >> 16;
+    int prIx = m.flg & mPROM;
     UC prPc[] = {0, _q, _n, _r, _b};
     if(prIx)
     {
-        material[wtm >> 5] -= pc_streng[prPc[prIx]] - 1;
-        UC nprm = boardState[PREV_STATES + ply].nprom;
-        menNxt[wtm] = menNxt[MOVEPC(m)];
-        menNxt[MOVEPC(m)] = menNxt[nprm];
-        menNxt[nprm] = MOVEPC(m);
+        auto it_prom = pc_list[wtm].begin();
+        it_prom = boardState[prev_states + ply].nprom;
+        pc_list[wtm].move_element(it_prom, ++pc_list[wtm].begin());
+        --it_prom;
+        material[wtm] -= pc_streng[prPc[prIx]/2 - 1] - 1;
     }
 
-    if(MOVEFLG(m) & mCSTL)
+    if(m.flg & mCSTL)
         UnMakeCastle(m);
 
-#ifdef USE_PAWN_STRUCT
+#ifndef NOT_USE_PAWN_STRUCT
     MovePawnStruct(b[fr], fr, m);
-#endif // USE_PAWN_STRUCT
+#endif // NOT_USE_PAWN_STRUCT
 
     ply--;
-    valOpn = boardState[PREV_STATES + ply].valOpn;
-    valEnd = boardState[PREV_STATES + ply].valEnd;
+    valOpn = boardState[prev_states + ply].valOpn;
+    valEnd = boardState[prev_states + ply].valEnd;
 
 #ifndef NDEBUG
     curVar[5*ply] = '\0';
@@ -1196,25 +1244,32 @@ bool DrawByRepetitionInRoot(Move lastMove)
     if(reversibleMoves == 0)
         return false;
 
-    UC menTmp[sizeof(men)];
+    short_list<UC, lst_sz> tmp_list[2];
+    tmp_list[white] = pc_list[white];
+    tmp_list[black] = pc_list[black];
 
-    memcpy(menTmp, men, sizeof(men));
-    menTmp[MOVEPC(lastMove)] = boardState[PREV_STATES + ply].fr;
 
-    unsigned short max_count;
-    if(reversibleMoves > ply + finalyMadeMoves)
-        max_count = ply + finalyMadeMoves;
-    else
-        max_count = reversibleMoves;
 
-    for(unsigned short i = 0; i < max_count - 1; ++i)
-    {
-        menTmp[MOVEPC(doneMoves[i])] = MOVESCR(doneMoves[i]);
-        if(memcmp(menTmp, men, sizeof(men)) == 0)
-            return true;
-        ++i;
-        menTmp[MOVEPC(doneMoves[i])] = MOVESCR(doneMoves[i]);
-    }
+//    UC menTmp[sizeof(men)];
+//    auto tmp_list = pc_list[wtm];
+
+//    memcpy(menTmp, men, sizeof(men));
+//    menTmp[MOVEPC(lastMove)] = boardState[prev_states + ply].fr;
+
+//    unsigned short max_count;
+//    if(reversibleMoves > ply + finalyMadeMoves)
+//        max_count = ply + finalyMadeMoves;
+//    else
+//        max_count = reversibleMoves;
+
+//    for(unsigned short i = 0; i < max_count - 1; ++i)
+//   {
+//        menTmp[MOVEPC(doneMoves[i])] = MOVESCR(doneMoves[i]);
+//        if(memcmp(menTmp, men, sizeof(men)) == 0)
+//            return true;
+//        ++i;
+//        menTmp[MOVEPC(doneMoves[i])] = MOVESCR(doneMoves[i]);
+//    }
     return false;
 }
 #endif
@@ -1228,9 +1283,9 @@ void MakeNullMove()
         ply = ply;
 #endif // NDEBUG
 
-    boardState[PREV_STATES + ply + 1] = boardState[PREV_STATES + ply];
-    boardState[PREV_STATES + ply].to = MOVE_IS_NULL;
-    boardState[PREV_STATES + ply  + 1].ep = 0;
+    boardState[prev_states + ply + 1] = boardState[prev_states + ply];
+    boardState[prev_states + ply].to = MOVE_IS_NULL;
+    boardState[prev_states + ply  + 1].ep = 0;
 
     ply++;
 
@@ -1239,13 +1294,13 @@ void MakeNullMove()
     doneHashKeys[FIFTY_MOVES + ply - 1] = hash_key;
 #endif // NOT_USE_HASH_TABLE
 
-    wtm ^= WHT;
+    wtm ^= white;
 }
 
 //--------------------------------------
 void UnMakeNullMove()
 {
-    wtm ^= WHT;
+    wtm ^= white;
     curVar[5*ply] = '\0';
     ply--;
 #ifndef NOT_USE_HASH_TABLE
@@ -1257,16 +1312,16 @@ void UnMakeNullMove()
 bool NullMove(int depth, short beta, bool in_check)
 {
     if(in_check || depth < 3
-    || material[wtm >> 5] - pieces[wtm >> 5] < 3)
+    || material[wtm] - pieces[wtm] < 3)
         return false;
 
-    if(boardState[PREV_STATES + ply - 1].to == MOVE_IS_NULL
-//    && boardState[PREV_STATES + ply - 2].to == MOVE_IS_NULL
+    if(boardState[prev_states + ply - 1].to == MOVE_IS_NULL
+//    && boardState[prev_states + ply - 2].to == MOVE_IS_NULL
       )
         return false;
 
-    UC store_ep     = boardState[PREV_STATES + ply].ep;
-    UC store_to     = boardState[PREV_STATES + ply].to;
+    UC store_ep     = boardState[prev_states + ply].ep;
+    UC store_to     = boardState[prev_states + ply].to;
     US store_rv     = reversibleMoves;
     reversibleMoves = 0;
 
@@ -1277,11 +1332,11 @@ bool NullMove(int depth, short beta, bool in_check)
 #endif // NOT_USE_HASH_TABLE
 
     int r = depth > 6 ? 3 : 2;
-    short x = -Search(depth - r - 1, -beta, -beta + 1);
+    short x = -Search(depth - r - 1, -beta, -beta + 1, 0);
 
     UnMakeNullMove();
-    boardState[PREV_STATES + ply].to    = store_to;
-    boardState[PREV_STATES + ply].ep    = store_ep;
+    boardState[prev_states + ply].to    = store_to;
+    boardState[prev_states + ply].ep    = store_ep;
     reversibleMoves                     = store_rv;
 
 #ifndef NOT_USE_HASH_TABLE
@@ -1295,8 +1350,8 @@ bool NullMove(int depth, short beta, bool in_check)
 //-----------------------------
 bool Futility(int depth, short beta)
 {
-    if(boardState[PREV_STATES + ply].capt == 0
-    && boardState[PREV_STATES + ply - 1].to   != 0xFF
+    if(boardState[prev_states + ply].capt == 0
+    && boardState[prev_states + ply - 1].to   != 0xFF
     )
     {
         short margin = depth == 0 ? 350 : 550;
@@ -1358,8 +1413,8 @@ void ShowFen()
             if(blankCr != 0)
                 std::cout << blankCr;
             blankCr = 0;
-            if(pt & WHT)
-                std::cout << whites[pt - WHT - 1];
+            if(pt & white)
+                std::cout << whites[pt - white - 1];
             else
                 std::cout << blacks[pt - 1];
         }
@@ -1370,7 +1425,7 @@ void ShowFen()
     }
     std::cout << " " << (wtm ? 'w' : 'b') << " ";
 
-    UC cstl = boardState[PREV_STATES + 0].cstl;
+    UC cstl = boardState[prev_states + 0].cstl;
     if(cstl & 0x0F)
     {
         if(cstl & 0x01)
@@ -1487,4 +1542,8 @@ k3b1rr/p7/P3p3/4P1b1/3NK3/5R2/1P3B2/R7 w - - 9 58; king is too central
 2r1rbk1/p1Bq1ppp/Ppn1b3/1Npp4/B7/3P2Q1/1PP2PPP/R4RK1 w - - 0 1 bm Nxa7;
 
 8/6R1/3p4/3P3p/p4K1k/2r5/1R6/8 w - - 0 1; experiments with singular reply
+1k1q4/ppp1r3/8/6pp/3b4/P5B1/1PQ2PPP/2R3K1 w - - 0 1 am Rd1 @ply 7
+
+r1b2rk1/2q1bppp/2np1n2/1p2p3/p2PP3/4BN1P/PPBN1PP1/R2QR1K1 b - - 0 1; SEE bug with pawns fixed
+8/8/8/2PK4/4R2p/6k1/8/2r5 w - - 0 1 am Rc4
 */
