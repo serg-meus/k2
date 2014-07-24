@@ -4,16 +4,16 @@
 #include "short_list.h"
 
 //--------------------------------
-#define ENGINE_VERSION "050x"
+#define ENGINE_VERSION "051"
 
 //--------------------------------
 //#define DONT_SHOW_STATISTICS
 //#define DONT_USE_PAWN_STRUCT
 //#define DONT_USE_NULL_MOVE
 //#define DONT_USE_FUTILITY
-//#define DONT_USE_SEE_SORTING
-//#define DONT_USE_SEE_CUTOFF
-//#define DONT_USE_DELTA_PRUNING
+#define DONT_USE_SEE_SORTING
+#define DONT_USE_SEE_CUTOFF
+#define DONT_USE_DELTA_PRUNING
 #define DONT_USE_HISTORY
 #define DONT_USE_LMR
 
