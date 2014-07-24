@@ -33,4 +33,5 @@ extern bool     uci;
 extern bool     analyze;
 extern short    streng[7];
 extern UQ       tmpCr;
+extern short_list<UC, lst_sz>::reverse_iterator first_minor_piece[2];
 #endif
