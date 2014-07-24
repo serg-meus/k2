@@ -425,9 +425,9 @@ void EvalCommand(std::string in)
     short x = Eval(/*-INF, INF*/);
     std::cout << "Eval: " << (wtm ? -x : x) << std::endl;
     std::cout << "(positive is white advantage)" << std::endl;
-#ifndef NOT_USE_HASH_TABLE
+#ifndef DONT_USE_HASH_TABLE
     std::cout << "hash key = 0x" << std::hex << hash_key << std::dec << std::endl;
-#endif // NOT_USE_HASH_TABLE
+#endif // DONT_USE_HASH_TABLE
 
 }
 
@@ -484,7 +484,7 @@ void SetOptionCommand(std::string in)
         if(arg1 != "value")
             return;
         GetFirstArg(arg2, &arg1, &arg2);
-#ifndef NOT_USE_HASH_TABLE
+#ifndef DONT_USE_HASH_TABLE
         int size_MB = atoi(arg1.c_str());
         ReHash(size_MB);
 #endif
