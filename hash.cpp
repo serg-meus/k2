@@ -46,10 +46,10 @@ UQ InitHashKey()
 {
     UQ ans = 0;
 
-    for(auto fr : pc_list[wtm])
+    for(auto fr : coords[wtm])
         ans ^= zorb[MEN_TO_ZORB(b[fr])][COL(fr)][ROW(fr)];
 
-    for(auto fr : pc_list[!wtm])
+    for(auto fr : coords[!wtm])
         ans ^= zorb[MEN_TO_ZORB(b[fr])][COL(fr)][ROW(fr)];
 
     if(!wtm)
