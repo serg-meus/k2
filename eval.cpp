@@ -25,14 +25,8 @@ void InitEval()
 }
 
 //-----------------------------
-short Eval(/*short alpha, short beta*/)
+short Eval(short alpha, short beta)
 {
-/*    if(wtm && (valOpn < alpha - 550 && valEnd < alpha - 550)pieces
-    || wtm && (valOpn > beta + 550 && valEnd > beta + 550)
-    || !wtm && (-valOpn < alpha - 550 && -valEnd < alpha - 550)
-    || !wtm && (-valOpn < alpha - 550 && -valEnd < alpha - 550))
-        return valOpn;*/
-
     boardState[PREV_STATES + ply].valOpn = valOpn;
     boardState[PREV_STATES + ply].valEnd = valEnd;
 
@@ -44,17 +38,27 @@ short Eval(/*short alpha, short beta*/)
     KingSafety(WHT);
     KingSafety(BLK);
 
+/*    if(wtm && (valOpn < alpha - 550 && valEnd < alpha - 550)
+    || wtm && (valOpn > beta + 550 && valEnd > beta + 550)
+    || !wtm && (-valOpn < alpha - 550 && -valEnd < alpha - 550)
+    || !wtm && (-valOpn < alpha - 550 && -valEnd < alpha - 550))
+    {
+        valOpn = boardState[PREV_STATES + ply].valOpn;
+        valEnd = boardState[PREV_STATES + ply].valEnd;
+        return valOpn;
+    }
+*/
+//    CountKingAttacks(WHT);
+//    CountKingAttacks(BLK);
+
 //    RookEval(WHT);
 //    RookEval(BLK);
 
-#ifndef CHECK_PREDICTED_VALUE
    if(reversibleMoves > ply)
     {
         valOpn = (int)valOpn * (FIFTY_MOVES - reversibleMoves) / FIFTY_MOVES;
         valEnd = (int)valEnd * (FIFTY_MOVES - reversibleMoves) / FIFTY_MOVES;
     }
-#endif
-
 
     int X, Y;
     X = material[0] + 1 + material[1] + 1 - pieces[0] - pieces[1];
@@ -355,6 +359,7 @@ void KingSafety(UC stm)
     valOpn += stm ? ans : -ans;
 }
 
+/*
 //-----------------------------
 void RookEval(UC stm)
 {
@@ -380,4 +385,51 @@ void RookEval(UC stm)
     }
 
     valOpn += stm ? -ans : ans;
+}
+*/
+
+//-----------------------------
+void CountKingAttacks(UC stm)
+{
+    SC shifts[] = {15, 16, 17, -1, 1, -15, -16, -17};
+    UC k = men[stm + 1];
+    UC ans = 0;
+
+    UC menNum   = (stm ^ WHT) + 2;
+
+    int maxPc = pieces[!stm] - 1;
+
+    for(int pcCr = 0; pcCr < maxPc; ++pcCr)
+    {
+        UC fr = men[menNum];
+        UC pt = b[fr] & ~WHT;
+        if(pt == _p)
+            break;
+
+        for(int i = 0; i < sizeof(shifts); ++i)
+        {
+            UC to = k + shifts[i];
+            if(!ONBRD(to))
+                continue;
+            if(!(attacks[120 + fr - to] & (1 << pt)))
+                continue;
+            UC dist = kingDist[ABSI(k - fr)];
+            if(dist > 4)
+                continue;
+            dist = 5 - dist;
+            ans += dist;
+        }
+        menNum = menNxt[menNum];
+        if(ans > 120)
+        {
+            ans = 120;
+            break;
+        }
+    }
+
+    if(ans < 10)
+        ans = 0;
+
+    valOpn -= stm ? ans : -ans;
+    valEnd -= stm ? ans/2 : -ans/2;
 }
