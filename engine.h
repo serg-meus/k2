@@ -37,16 +37,6 @@
         bool        in_check        : 1;
     };
 #endif // NOT_USE_HASH_TABLE
-
-#ifdef CHECK_PREDICTED_VALUE
-struct PredictedInfo
-{
-    Move    oppMove;
-    short   score;
-    short   depth;
-    short   state;
-};
-#endif // CHECK_PREDICTED_VALUE
 //--------------------------------
 
 void InitEngine();
