@@ -85,7 +85,7 @@ int GenMoves(Move *list, int apprice)
 //--------------------------------
 void GenPawn(UC pc)
 {
-    UC to, pBeg, pEnd;
+    unsigned to, pBeg, pEnd;
     UC fr = men[pc];
     if((wtm && ROW(fr) == 6) || (!wtm && ROW(fr) == 1))
     {
@@ -97,7 +97,7 @@ void GenPawn(UC pc)
         pBeg = 0;
         pEnd = 0;
     }
-    for(int i = pBeg; i <= pEnd; i++)
+    for(unsigned i = pBeg; i <= pEnd; i += 0x010000)
         if(wtm)
         {
             to = fr + 17;
@@ -107,7 +107,7 @@ void GenPawn(UC pc)
             if(ONBRD(to) && DARK(b[to], wtm))
                 PUSH_MOVE(pc, to, mCAPT | i);
             to = fr + 16;
-            if(ONBRD(to) && !b[to])                 // ONBRD нахрена например?
+            if(ONBRD(to) && !b[to])                 // ONBRD íàõðåíà íàïðèìåð?
                 PUSH_MOVE(pc, to, i);
             if(ROW(fr) == 1 && !b[fr + 16] && !b[fr + 32])
                 PUSH_MOVE(pc, fr + 32, 0);
@@ -125,7 +125,7 @@ void GenPawn(UC pc)
             if(ONBRD(to) && DARK(b[to], wtm))
                 PUSH_MOVE(pc, to, mCAPT | i);
             to = fr - 16;
-            if(ONBRD(to) && !b[to])                  // ONBRD нахрена например?
+            if(ONBRD(to) && !b[to])                  // ONBRD íàõðåíà íàïðèìåð?
                 PUSH_MOVE(pc, to, i);
             if(ROW(fr) == 6 && !b[fr - 16] && !b[fr - 32])
                 PUSH_MOVE(pc, fr - 32, 0);
@@ -139,7 +139,7 @@ void GenPawn(UC pc)
 //--------------------------------
 void GenPawnCap(UC pc)
 {
-    UC to, pBeg, pEnd;
+    unsigned to, pBeg, pEnd;
     UC fr = men[pc];
     if((wtm && ROW(fr) == 6) || (!wtm && ROW(fr) == 1))
     {
@@ -151,7 +151,7 @@ void GenPawnCap(UC pc)
         pBeg = 0;
         pEnd = 0;
     }
-    for(int i = pBeg; i <= pEnd; i++)
+    for(unsigned i = pBeg; i <= pEnd; i += 0x010000)
         if(wtm)
         {
             to = fr + 17;
@@ -294,7 +294,7 @@ void AppriceMoves(Move *list)
 
         if(genBestMove && m == (bestMoveToGen & EXCEPT_SCORE))
             list[i] |= (PV_FOLLOW << MOVE_SCORE_SHIFT);
-        else if(pt == __ && !(MOVEFLG(m) & (mPROM << 16)))
+        else if(pt == __ && !(MOVEFLG(m) & mPROM))
         {
             if(m == (kil[ply][0] & EXCEPT_SCORE))
                 list[i] |= (FIRST_KILLER << MOVE_SCORE_SHIFT);
@@ -328,10 +328,9 @@ void AppriceMoves(Move *list)
         }
         else
         {
-            short streng[] = {0, 15000, 120, 60, 40, 40, 10};
             int ans;
             int src = streng[fr];
-            int dst = (MOVEFLG(m) & (mCAPT << 16)) ? streng[pt] : 0;
+            int dst = (MOVEFLG(m) & mCAPT) ? streng[pt] : 0;
 
 /*           if(dst && dst < src)
             {
@@ -361,8 +360,8 @@ void AppriceMoves(Move *list)
 
             ans = dst - src/16;
             short prms[] = {0, 1200, 400, 600, 400};
-            if(MOVEFLG(m) & (mPROM << 16))
-                ans += prms[(MOVEFLG(m) >> 16) & mPROM];
+            if(MOVEFLG(m) & mPROM)
+                ans += prms[(MOVEFLG(m) & mPROM) >> 16];
 
             if(ans > 0)
                 list[i] |= ((0x80 + ans/10) << MOVE_SCORE_SHIFT);
@@ -386,10 +385,9 @@ void AppriceQuiesceMoves(Move *list)
         UC fr = b[men[MOVEPC(m)]] & (WHT - 1);
         UC pt = b[MOVETO(m)] & (WHT - 1);
 
-        short streng[] = {0, 15000, 120, 60, 40, 40, 10};
         int ans;
         int src = streng[fr];
-        int dst = (MOVEFLG(m) & (mCAPT << 16)) ? streng[pt] : 0;
+        int dst = (MOVEFLG(m) & mCAPT) ? streng[pt] : 0;
         if(src > 120)
             continue;
         else if(dst > 120)
@@ -400,8 +398,8 @@ void AppriceQuiesceMoves(Move *list)
 
         ans = dst - src;
         short prms[] = {0, 1200, 400, 600, 400};
-        if(dst <= 1200 && (MOVEFLG(m) & (mPROM << 16)))
-            ans += prms[(MOVEFLG(m) >> 16) & mPROM];
+        if(dst <= 1200 && (MOVEFLG(m) & mPROM))
+            ans += prms[(MOVEFLG(m) & mPROM) >> 16];
 
         if(ans > 0)
             list[i] |= ((0x80 + ans/10) << MOVE_SCORE_SHIFT);
