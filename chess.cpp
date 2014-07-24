@@ -24,13 +24,13 @@ UQ nodes, tmpCr;
 char *cv;
 US reversibleMoves;
 
-#ifndef NOT_USE_PAWN_STRUCT
+#ifndef DONT_USE_PAWN_STRUCT
     int pmax[10][2], pmin[10][2];
 #endif
 UQ hash_key;
 char curVar[5*max_ply];
 
-short_list<UC, lst_sz>::reverse_iterator first_minor_piece[2];
+short_list<UC, lst_sz>::iterator first_minor_piece[2];
 
 //--------------------------------
 void InitChess()
@@ -55,7 +55,7 @@ void InitBrd()
     UC crd[] = {6, 1, 5, 2, 7, 0, 3, 4};
 
     memset(b, 0, sizeof(b)/sizeof(*b));
-    
+
     pc_list[white].clear();
     pc_list[black].clear();
 
@@ -87,21 +87,21 @@ void InitBrd()
     material[white] = 48;
 
     reversibleMoves     = 0;
-#ifndef NOT_USE_PAWN_STRUCT
+#ifndef DONT_USE_PAWN_STRUCT
     InitPawnStruct();
-#endif // NOT_USE_PAWN_STRUCT
+#endif // DONT_USE_PAWN_STRUCT
 
     auto rit = pc_list[white].rbegin();
     for(; rit != pc_list[white].rend(); ++rit)
         if(b[*rit] != _P)
             break;
-    first_minor_piece[white] = rit;
+//    first_minor_piece[white] = rit;
 
     rit = pc_list[black].rbegin();
     for(; rit != pc_list[black].rend(); ++rit)
         if(b[*rit] != _p)
             break;
-    first_minor_piece[black] = rit;
+//    first_minor_piece[black] = rit;
 
 }
 
@@ -249,9 +249,9 @@ bool FenToBoard(char *p)
             reversibleMoves += (*p++ - '0');
         }
 
-#ifndef NOT_USE_PAWN_STRUCT
+#ifndef DONT_USE_PAWN_STRUCT
     InitPawnStruct();
-#endif // NOT_USE_PAWN_STRUCT
+#endif // DONT_USE_PAWN_STRUCT
     return true;
 }
 
@@ -310,7 +310,7 @@ bool MakeCastle(Move m, UC fr)
         rFr += 0x70;
         rTo += 0x70;
     }
-    
+
     short_list<UC, lst_sz>::iterator it = pc_list[wtm].begin();
     for(; it != pc_list[wtm].end(); it++)
         if(*it == rFr)
