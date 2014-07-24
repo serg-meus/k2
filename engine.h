@@ -15,14 +15,15 @@
 #define MOVE_IS_NULL 0xFF
 #define HASH_ENTRIES_PER_MB 15625
 
-#define USE_PVS
-#define USE_NMR
-#define USE_FTL
-#define USE_HASH_TABLE
-#define USE_HASH_FOR_DRAW
+// #define NOT_USE_PVS
+// #define NOT_USE_NULL_MOVE
+// #define NOT_USE_FUTILITY
+// #define NOT_USE_HASH_TABLE
+// #define NOT_USE_HASH_FOR_DRAW
+// #define NOT_USE_PVS_IN_ROOT
 
 
-#ifdef USE_HASH_TABLE
+#ifndef NOT_USE_HASH_TABLE
     #include <unordered_map>
     enum {hNONE, hEXACT, hUPPER, hLOWER};
     struct hashEntryStruct
@@ -35,7 +36,7 @@
         bool        only_move       : 1;
         bool        in_check        : 1;
     };
-#endif // USE_HASH_TABLE
+#endif // NOT_USE_HASH_TABLE
 
 #ifdef CHECK_PREDICTED_VALUE
 struct PredictedInfo
