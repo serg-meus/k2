@@ -15,12 +15,12 @@
 #define MOVE_IS_NULL 0xFF
 #define HASH_ENTRIES_PER_MB 15625
 
-// #define NOT_USE_PVS
-// #define NOT_USE_NULL_MOVE
-// #define NOT_USE_FUTILITY
-// #define NOT_USE_HASH_TABLE
-// #define NOT_USE_HASH_FOR_DRAW
-// #define NOT_USE_PVS_IN_ROOT
+//#define NOT_USE_PVS
+//#define NOT_USE_NULL_MOVE
+//#define NOT_USE_FUTILITY
+//#define NOT_USE_HASH_TABLE
+//#define NOT_USE_HASH_FOR_DRAW
+//#define NOT_USE_PVS_IN_ROOT
 
 
 #ifndef NOT_USE_HASH_TABLE
