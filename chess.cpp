@@ -7,8 +7,8 @@ UC  b[137],                                                             // board
     std::list<UC>   piece_list[2];
 
 UC  attacks[240],                                                       // table for quick detect possible attacks
-    get_delta[240];                                                     // I'm already forget what's this
-SC  get_shift[240];                                                     // ... and this
+    get_delta[240];                                                     // table for getting maximum ray length while verify possible attack
+SC  get_shift[240];                                                     // table for getting ray direction for verified attack
 UC rays[7]   = {0, 8, 8, 4, 4, 8, 0};
 SC shifts[6][8] = {{ 0,  0,  0,  0,  0,  0,  0,  0},
                     { 1, 17, 16, 15, -1,-17,-16,-15},
@@ -78,10 +78,12 @@ void InitBrd()
         men[nms[i] + 0x01]  = XY2SQ(i, 7);
         piece_list[0].push_front(XY2SQ(i, 7));
     }
-    for(i = 0; i < 0x10; i++)
+    menNxt[0x00]    = 0x10;
+    menNxt[0x20]    = 0x30;
+    for(i = 0; i < 0x10 - 1; i++)
     {
-        menNxt[i]           = i + 1;
-        menNxt[i + 0x20]    = i + 0x21;
+        menNxt[0x10 - i]    = 0x10 - i - 1;
+        menNxt[0x30 - i]    = 0x30 - i - 1;
     }
     boardState[PREV_STATES + 0].capt    = 0;
     boardState[PREV_STATES + 0].cstl    = 0x0F;
@@ -144,24 +146,24 @@ bool BoardToMen()
         if(!ONBRD(i) || b[i] == __)
             continue;
         if(b[i] < WHT)
-            men[1 + wPieceCr++] = i;
+            men[1 + bPieceCr++] = i;
         else
-            men[1 + WHT + bPieceCr++] = i;
+            men[1 + WHT + wPieceCr++] = i;
 
         piece_list[(b[i] & WHT) >> 5].push_front(i);
     }
 
     UC tmp;
-    for(j = 0; j < wPieceCr; j++)
-        for(i = 0; i < wPieceCr - 1; i++)
+    for(j = 0; j < bPieceCr; j++)
+        for(i = 0; i < bPieceCr - 1; i++)
             if(streng[b[men[i + 1]]] < streng[b[men[i + 2]]])
             {
                 tmp         = men[i + 1];
                 men[i + 1]      = men[i + 2];
                 men[i + 2]  = tmp;
             }
-    for(j = WHT; j < WHT + bPieceCr; j++)
-        for(i = WHT; i < WHT + bPieceCr - 1; i++)
+    for(j = WHT; j < WHT + wPieceCr; j++)
+        for(i = WHT; i < WHT + wPieceCr - 1; i++)
             if(streng[(b[men[i + 1]] & ~WHT)] < streng[(b[men[i + 2]] & ~WHT)])
             {
                 tmp         = men[i + 1];
@@ -169,10 +171,16 @@ bool BoardToMen()
                 men[i + 2]  = tmp;
             }
 
-    for(i = 0; i < wPieceCr; i++)
-        menNxt[i] = i + 1;
-    for(i = WHT; i < WHT + bPieceCr; i++)
-        menNxt[i] = i + 1;
+//    menNxt[0x00]    = BLK + 1;
+//    menNxt[0x20]    = WHT + 1;
+    menNxt[0x00]    = bPieceCr;
+    menNxt[0x20]    = 0x20 + wPieceCr;
+    for(i = 0; i < bPieceCr - 1; i++)
+        menNxt[bPieceCr - i] = bPieceCr - i - 1;
+//        menNxt[i + 1] = i + 2;
+    for(i = 0; i < wPieceCr - 1; i++)
+        menNxt[0x20 + wPieceCr - i] = 0x20 + wPieceCr - i - 1;
+//        menNxt[0x20 + i + 1] = 0x20 + i + 2;
 
     piece_list[0].sort(PieceListCompare);
     piece_list[1].sort(PieceListCompare);
@@ -411,9 +419,10 @@ bool Attack(UC to, int xtm)
         menNum  = menNxt[menNum];
         fr      = men[menNum];
 
-        int pt  = b[fr] & 7;
+        int pt  = b[fr] & ~WHT;
         if(pt   == _p)
-            break;
+//            break;
+            continue;
 
         assert((unsigned)(120 + to - fr) < sizeof(attacks)/sizeof(*attacks));
         UC att = attacks[120 + to - fr] & (1 << pt);
