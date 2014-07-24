@@ -54,7 +54,7 @@ void InitBrd()
     UC pcs[] = {_N, _N, _B, _B, _R, _R, _Q, _K};
     UC crd[] = {6, 1, 5, 2, 7, 0, 3, 4};
 
-    memset(b, 0, sizeof(b)/sizeof(*b));
+    memset(b, 0, sizeof(b));
 
     pc_list[white].clear();
     pc_list[black].clear();
@@ -136,8 +136,8 @@ bool BoardToMen()
 {
     unsigned i;
 
-    pc_list[0].clear();
-    pc_list[1].clear();
+    pc_list[black].clear();
+    pc_list[white].clear();
     for(i = 0; i < sizeof(b)/sizeof(*b); i++)
     {
         if(!ONBRD(i) || b[i] == __)
@@ -145,8 +145,8 @@ bool BoardToMen()
         pc_list[b[i] & white].push_front(i);
     }
 
-    pc_list[0].sort(PieceListCompare);
-    pc_list[1].sort(PieceListCompare);
+    pc_list[black].sort(PieceListCompare);
+    pc_list[white].sort(PieceListCompare);
 
     return true;
 }
@@ -172,7 +172,10 @@ bool FenToBoard(char *p)
             if(ip >= 1 && ip <= 8)
             {
                 for(int j = 0; j < ip; ++j)
+                {
+                    assert(ONBRD(to + j));
                     b[to + j] = 0;
+                }
                 col += *p++ - '1';
             }
             else if(*p == '/')
@@ -184,8 +187,9 @@ bool FenToBoard(char *p)
             else
             {
                 i = 0;
-                for(; i < 12 && *p != chars[i]; i++)
-                    ;
+                for(; i < 12; ++i)
+                    if(*p == chars[i])
+                        break;
                 if(i >= 12)
                     return false;
                 if((pcs[i] & ~white) == _p && (row == 0 || row == 7))
@@ -398,6 +402,8 @@ bool Attack(UC to, int xtm)
 //--------------------------------
 bool LegalSlider(UC fr, UC to, UC pt)
 {
+    assert(120 + to - fr >= 0);
+    assert(120 + to - fr < 240);
     int shift = get_shift[120 + to - fr];
     for(int i = 0; i < 7; i++)
     {
@@ -422,6 +428,8 @@ bool Legal(Move m, bool ic)
         return !Attack(*pc_list[!wtm].begin(), wtm);
     UC fr = boardState[prev_states + ply].fr;
     UC to = *pc_list[!wtm].begin();
+    assert(120 + to - fr >= 0);
+    assert(120 + to - fr < 240);
     if(attacks[120 + to - fr] & (1 << _r/2))
         return LegalSlider(fr, to, _r);
     if(attacks[120 + to - fr] & (1 << _b/2))
@@ -433,6 +441,7 @@ bool Legal(Move m, bool ic)
 //-----------------------------
 void SetPawnStruct(int x)
 {
+    assert(x >= 0 && x <= 7);
     int y;
     if(!wtm)
     {
@@ -463,8 +472,7 @@ void SetPawnStruct(int x)
 //-----------------------------
 void MovePawnStruct(UC movedPiece, UC fr, Move m)
 {
-    if((movedPiece/2) == _p/2
-    || (m.flg & mPROM))
+    if((movedPiece/2) == _p/2 || (m.flg & mPROM))
     {
         SetPawnStruct(COL(m.to));
         if(m.flg)
