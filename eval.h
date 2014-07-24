@@ -9,7 +9,6 @@
 
 //--------------------------------
 #define TUNE_PARAMETERS
-//#define CHECK_PREDICTED_VALUE
 //#define EVAL_KING_TROPISM
 
 #ifdef TUNE_PARAMETERS
@@ -42,9 +41,10 @@ enum PriceList
 //--------------------------------
 void InitEval();
 void FastEval(Move m);
-short Eval(/*short alpha, short beta*/);
+short Eval(short alpha, short beta);
 void EvalAllMaterialAndPST();
 void EvalPawns(bool stm);
 bool TestUnstoppable(int x, int y, UC stm);
 void KingSafety(UC stm);
 void RookEval(UC stm);
+void CountKingAttacks(UC stm);
