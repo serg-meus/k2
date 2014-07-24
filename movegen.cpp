@@ -33,8 +33,8 @@ int GenMoves(Move *list, int apprice)
     int moveCr = 0;
 
     GenCastles(list, &moveCr);
-
-    for(auto it = pc_list[wtm].begin(); it != pc_list[wtm].end(); ++it)
+    auto it = --pc_list[wtm].end();
+    for(; it != pc_list[wtm].end(); --it)
     {
         UC fr = *it;
         UC at = b[fr]/2;
@@ -245,8 +245,8 @@ int GenCaptures(Move *list)
 {
     int i, fr, to, ray;
     int moveCr = 0;
-
-    for(auto it = pc_list[wtm].begin(); it != pc_list[wtm].end(); ++it)
+    auto it = --pc_list[wtm].end();
+    for(; it != pc_list[wtm].end(); --it)
     {
         fr      = *it;
 
