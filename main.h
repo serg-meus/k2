@@ -10,7 +10,6 @@
     #include <thread>                                                   // for std::thread
 #endif // USE_THREAD_FOR_INPUT
 
-
 //--------------------------------
 extern double timeRemains;
 extern double timeBase;
