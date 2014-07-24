@@ -4,7 +4,7 @@
 Move pv[max_ply][max_ply + 1];          // first element in a row is length of PV at that depth
 Move kil[max_ply][2];
 unsigned history [2][6][128];
-unsigned maxHistory;
+unsigned minHistory, maxHistory;
 
 //--------------------------------
 void InitMoveGen()
@@ -19,10 +19,6 @@ void PushMove(Move *list, int *movCr, short_list<UC, lst_sz>::iterator it, UC to
     m.pc    = it;
     m.to    = to;
     m.flg   = flg;
-#ifndef NDEBUG
-    if(to == 0x77)
-        ply = ply;
-#endif
 
     list[(*movCr)++] = m;
 }
@@ -82,9 +78,7 @@ int GenMoves(Move *list, int apprice, Move *best_move)
         AppriceMoves(list, moveCr, best_move);
     else if(apprice == APPRICE_CAPT)
         AppriceQuiesceMoves(list, moveCr);
-#ifndef DONT_USE_HISTORY
-   AppriceHistory(list, moveCr);
-#endif // DONT_USE_HISTORY
+
     return moveCr;
 }
 
@@ -293,8 +287,10 @@ int GenCaptures(Move *list)
 void AppriceMoves(Move *list, int moveCr, Move *bestMove)
 {
 #ifndef DONT_USE_HISTORY
+    minHistory = UINT_MAX;
     maxHistory = 0;
 #endif
+
     auto it = coords[wtm].begin();
     Move bm = *list;
     if(bestMove == nullptr)
@@ -304,11 +300,6 @@ void AppriceMoves(Move *list, int moveCr, Move *bestMove)
     for(int i = 0; i < moveCr; i++)
     {
         Move m = list[i];
-
-#ifndef NDEBUG
-        if(m.to == 0x77)
-            ply = ply;
-#endif
 
         it = m.pc;
         UC fr_pc = b[*it];
@@ -325,9 +316,16 @@ void AppriceMoves(Move *list, int moveCr, Move *bestMove)
                 list[i].scr = SECOND_KILLER;
             else if(m == pv[ply][1])
                 list[i].scr = MOVE_FROM_PV;
-#ifdef DONT_USE_HISTORY
             else
             {
+#ifndef DONT_USE_HISTORY
+                UC fr = *it;
+                unsigned h = history[wtm][b[fr]/2 - 1][m.to];
+                if(h > maxHistory)
+                    maxHistory = h;
+                if(h < minHistory)
+                    minHistory = h;
+#endif // DONT_USE_HISTORY
                 int y   = ROW(m.to);
                 int x   = COL(m.to);
                 int y0  = ROW(*it);
@@ -338,20 +336,15 @@ void AppriceMoves(Move *list, int moveCr, Move *bestMove)
                     y0  = 7 - y0;
                 }
                 int pstVal  = pst[fr_pc/2 - 1][0][y][x] - pst[fr_pc/2 - 1][0][y0][x0];
-                pstVal      = pstVal/2 + 48;
+                pstVal      = 96 + pstVal/2;
+                assert(pstVal >= 64);
+                assert(pstVal < 128);
+
                 list[i].scr = pstVal;
-            }
-#else
-            else
-            {
-                list[i].scr = 0;
-                UC fr = *it;
-                unsigned h = history[wtm][b[fr]/2 - 1][m.to];
-                if(h > maxHistory)
-                    maxHistory = h;
-            }
-#endif // DONT_USE_HISTORY
-        }
+
+
+            } // else (ordinary move)
+        }// if(to_pc == __ &&
         else
         {
             int ans;
@@ -359,7 +352,7 @@ void AppriceMoves(Move *list, int moveCr, Move *bestMove)
             int dst = (m.flg & mCAPT) ? streng[to_pc/2] : 0;
 
 #ifndef DONT_USE_SEE_SORTING
-            if(dst && dst - src < -2)
+            if(dst && dst - src < -2)                                   // -2 for case BxN
             {
                 auto storeMen = coords[wtm].begin();
                 storeMen = m.pc;
@@ -373,35 +366,68 @@ void AppriceMoves(Move *list, int moveCr, Move *bestMove)
                 coords[wtm].restore(storeMen);
                 b[*storeMen] = storeBrd;
             }
-#endif // DONT_USE_SEE_SORTING
-
+#else
             if(src > 120)
             {
                 list[i].scr = EQUAL_CAPTURE;
                 continue;
             }
-            else if(dst > 120)
+            else
+#endif // DONT_USE_SEE_SORTING
+            if(dst > 120)
             {
                 list[i].scr = 0;
                 continue;
             }
 
             ans = dst - src/16;
-            short prms[] = {0, 1200, 400, 600, 400};
+            short prms[] = {0, 12, 4, 6, 4};
             if(m.flg & mPROM)
                 ans += prms[m.flg & mPROM];
 
             if(ans > 0)
-                list[i].scr = (0x80 + ans/10);
+            {
+                if(200 + ans/10 > 250)
+                    ply = ply;
+                assert(200 + ans/10 >= 200);
+                assert(200 + ans/10 < 250);
+                list[i].scr = (200 + ans/10);
+            }
             else if(ans < 0)
             {
+                assert(33 + ans/32 >= 0);
+                assert(33 + ans/32 < 64);
                 if(fr_pc/2 != _k/2)
-                    list[i].scr = (11 + ans/10);
+                    list[i].scr = (33 + ans/32);
             }
             else
-                list[i].scr = EQUAL_CAPTURE;
+                list[i].scr = EQUAL_CAPTURE;                            // NB. need to be checked
+        }// else on captures
+    }// for(int i
+
+#ifndef DONT_USE_HISTORY
+    for(int i = 0; i < moveCr; i++)
+    {
+        Move m = list[i];
+        if(m.scr >= EQUAL_CAPTURE
+        || (m.flg & mCAPT))
+            continue;
+        it      = m.pc;
+        UC fr   = *it;
+        unsigned h = history[wtm][b[fr]/2 - 1][m.to];
+        if(h > 3)
+        {
+            h -= minHistory;
+            h = 64*h / (maxHistory - minHistory + 1);
+            h += 128;
+            assert(h >= 128);
+            assert(h < 196);
+            list[i].scr = h;
+            continue;
         }
-    }
+
+    }// for(int i
+#endif
 }
 
 //--------------------------------
@@ -419,9 +445,8 @@ void AppriceQuiesceMoves(Move *list, int moveCr)
         int ans;
         int src = streng[fr/2];
         int dst = (m.flg & mCAPT) ? streng[pt/2] : 0;
-/*        if(src > 120)
-            continue;
-        else */if(dst > 120)
+
+        if(dst > 120)
         {
             list[i].scr = KING_CAPTURE;
             return;
@@ -457,115 +482,5 @@ void AppriceQuiesceMoves(Move *list, int moveCr)
         }
         else
             list[i].scr = EQUAL_CAPTURE;
-    }
-}
-
-//--------------------------------
-void Next(Move *list, int cur, int top, Move *ans)
-{
-    int max = -32000, imx = cur;
-
-    for(int i = cur; i < top; i++)
-    {
-        UC sc = list[i].scr;
-        if(sc > max)
-        {
-            max = sc;
-            imx = i;
-        }
-    }
-    *ans = list[imx];
-    if(imx != cur)
-    {
-        list[imx] = list[cur];
-        list[cur] = *ans;
-    }
-}
-
-//-----------------------------
-short SEE(UC to, short frStreng, short val, bool stm)
-{
-    auto it = SeeMinAttacker(to);
-    if(it == coords[!wtm].end())
-        return -val;
-    if(frStreng == 15000)
-        return -15000;
-
-    val -= frStreng;
-    short tmp1 = -val;
-    if(wtm != stm && tmp1 < -2)
-        return tmp1;
-
-    auto storeMen = it;
-    UC storeBrd = b[*storeMen];
-    coords[!wtm].erase(it);
-    b[*storeMen] = __;
-    wtm = !wtm;
-
-    short tmp2 = -SEE(to, streng[storeBrd/2], -val, stm);
-
-    wtm = !wtm;
-    val = std::min(tmp1, tmp2);
-
-    it = storeMen;
-    coords[!wtm].restore(it);
-    b[*storeMen] = storeBrd;
-    return val;
-}
-
-//-----------------------------
-short_list<UC, lst_sz>::iterator SeeMinAttacker(UC to)
-{
-    int shft_l[] = {15, -17};
-    int shft_r[] = {17, -15};
-    UC  pw[] = {_p, _P};
-
-    if(b[to + shft_l[!wtm]] == pw[!wtm])
-        for(auto it = coords[!wtm].begin();
-            it != coords[!wtm].end();
-            ++it)
-            if(*it == to + shft_l[!wtm])
-                return it;
-
-    if(b[to + shft_r[!wtm]] == pw[!wtm])
-        for(auto it = coords[!wtm].begin();
-            it != coords[!wtm].end();
-            ++it)
-            if(*it == to + shft_r[!wtm])
-                return it;
-
-    auto it = coords[!wtm].begin();
-    for(; it != coords[!wtm].end(); ++it)
-    {
-        UC fr = *it;
-        int pt  = b[fr]/2;
-        if(pt == _p/2)
-            continue;
-        UC att = attacks[120 + to - fr] & (1 << pt);
-        if(!att)
-            continue;
-        if(!slider[pt])
-            return it;
-        if(SliderAttack(to, fr))
-             return it;
-    }// for (menCr
-
-    return it;
-}
-
-//-----------------------------
-void AppriceHistory(Move *list, int moveCr)
-{
-    if(maxHistory == 0)
-        maxHistory = 1;
-    auto it = coords[wtm].begin();
-    for(int i = 0; i < moveCr; ++i)
-    {
-        if(list[i].scr > 0)
-            continue;
-        it = list[i].pc;
-        UC fr = *it;
-        unsigned h = history[wtm][b[fr]/2 - 1][list[i].to];
-        list[i].scr = 100*h/maxHistory + 15;
     }
 }
