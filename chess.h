@@ -4,20 +4,7 @@
 #include <assert.h>
 #include "short_list.h"
 
-//--------------------------------
-#define ENGINE_VERSION "055x"
-
-//--------------------------------
-//#define DONT_SHOW_STATISTICS
 //#define DONT_USE_PAWN_STRUCT
-//#define DONT_USE_NULL_MOVE
-//#define DONT_USE_FUTILITY
-//#define DONT_USE_SEE_SORTING
-//#define DONT_USE_SEE_CUTOFF
-#define DONT_USE_DELTA_PRUNING
-#define DONT_USE_HISTORY
-//#define DONT_USE_LMR
-
 //--------------------------------
 #define UC unsigned char
 #define SC int8_t
@@ -63,13 +50,14 @@ public:
                                                                         // 'pc' - number of piece in 'men' array (8 bit);
                                                                         // 'flg' - flags (mCAPT, etc) - (8 bit)
                                                                         // 'scr' - unsigned score (priority) by move generator (8 bit)
-                                                                        //      0-15 - bad captures
-                                                                        //      16-115 - silent moves (history value)
-                                                                        //      119 - equal capture
-                                                                        //      121 - from pv
-                                                                        //      123 - second killer
-                                                                        //      125 - first killer
-                                                                        //      128 - 250 - good captures and/or promotions
+                                                                        //      0..63    - bad captures
+                                                                        //      64..127  - silent moves without history (pst value)
+                                                                        //      128..195 - silent moves with history value
+                                                                        //      196 - equal capture
+                                                                        //      197 - move from pv
+                                                                        //      198 - second killer
+                                                                        //      199 - first killer
+                                                                        //      200..250 - good captures and/or promotions
                                                                         //      255 - opp king capture or hash hit
 
 //--------------------------------
