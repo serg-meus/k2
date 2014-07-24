@@ -5,7 +5,7 @@
 #include "short_list.h"
 
 //--------------------------------
-#define ENGINE_VERSION "052"
+#define ENGINE_VERSION "055x"
 
 //--------------------------------
 //#define DONT_SHOW_STATISTICS
@@ -16,10 +16,10 @@
 //#define DONT_USE_SEE_CUTOFF
 #define DONT_USE_DELTA_PRUNING
 #define DONT_USE_HISTORY
-#define DONT_USE_LMR
+//#define DONT_USE_LMR
 
 //--------------------------------
-#define UC uint8_t
+#define UC unsigned char
 #define SC int8_t
 #define US uint16_t
 #define SS int16_t
