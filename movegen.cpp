@@ -1,13 +1,10 @@
-    #include "movegen.h"
+#include "movegen.h"
 
 //--------------------------------
 Move pv[max_ply][max_ply + 1];          // first element in a row is length of PV at that depth
 Move kil[max_ply][2];
 unsigned history [2][6][128];
-bool genBestMove;
-Move bestMoveToGen;
 unsigned maxHistory;
-
 
 //--------------------------------
 void InitMoveGen()
@@ -80,9 +77,9 @@ int GenMoves(Move *list, int apprice)
         AppriceMoves(list, moveCr);
     else if(apprice == APPRICE_CAPT)
         AppriceQuiesceMoves(list, moveCr);
-#ifndef NOT_USE_HISTORY
+#ifndef DONT_USE_HISTORY
    AppriceHistory(list, moveCr);
-#endif // NOT_USE_HISTORY
+#endif // DONT_USE_HISTORY
     return moveCr;
 }
 
@@ -291,6 +288,9 @@ int GenCaptures(Move *list)
 //--------------------------------
 void AppriceMoves(Move *list, int moveCr)
 {
+#ifndef DONT_USE_HISTORY
+    maxHistory = 0;
+#endif
     auto it = pc_list[wtm].begin();
     for(int i = 0; i < moveCr; i++)
     {
@@ -300,9 +300,10 @@ void AppriceMoves(Move *list, int moveCr)
         UC fr_pc = b[*it];
         UC to_pc = b[m.to];
 
-        if(genBestMove && m == bestMoveToGen)
+/*        if(genBestMove && m == bestMoveToGen)
             list[i].scr = PV_FOLLOW;
-        else if(to_pc == __ && !(m.flg & mPROM))
+        else*/
+        if(to_pc == __ && !(m.flg & mPROM))
         {
             if(m == kil[ply][0])
                 list[i].scr = FIRST_KILLER;
@@ -310,7 +311,7 @@ void AppriceMoves(Move *list, int moveCr)
                 list[i].scr = SECOND_KILLER;
             else if(m == pv[ply][1])
                 list[i].scr = MOVE_FROM_PV;
-#ifdef NOT_USE_HISTORY
+#ifdef DONT_USE_HISTORY
             else
             {
                 int y   = ROW(m.to);
@@ -335,7 +336,7 @@ void AppriceMoves(Move *list, int moveCr)
                 if(h > maxHistory)
                     maxHistory = h;
             }
-#endif // NOT_USE_HISTORY
+#endif // DONT_USE_HISTORY
         }
         else
         {
@@ -343,7 +344,7 @@ void AppriceMoves(Move *list, int moveCr)
             int src = streng[fr_pc/2];
             int dst = (m.flg & mCAPT) ? streng[to_pc/2] : 0;
 
-#ifndef NOT_USE_SEE_SORTING
+#ifndef DONT_USE_SEE_SORTING
             if(dst && dst - src < -2)
             {
                 auto storeMen = pc_list[wtm].begin();
@@ -359,7 +360,7 @@ void AppriceMoves(Move *list, int moveCr)
                 pc_list[wtm].restore(storeMen);
                 b[*storeMen] = storeBrd;
             }
-#endif // NOT_USE_SEE_SORTING
+#endif // DONT_USE_SEE_SORTING
 
             if(src > 120)
             {
@@ -412,7 +413,7 @@ void AppriceQuiesceMoves(Move *list, int moveCr)
             list[i].scr = KING_CAPTURE;
             return;
         }
-#ifndef NOT_USE_SEE_SORTING
+#ifndef DONT_USE_SEE_SORTING
         if(dst && dst - src < -2)
         {
             auto storeMen = pc_list[wtm].begin();
@@ -431,7 +432,7 @@ void AppriceQuiesceMoves(Move *list, int moveCr)
         ans = dst - src/16;
 #else
         ans = dst - src;
-#endif // NOT_USE_SEE_SORTING
+#endif // DONT_USE_SEE_SORTING
         short prms[] = {0, 1200, 400, 600, 400};
         if(dst <= 1200 && (m.flg & mPROM))
             ans += prms[m.flg & mPROM];
@@ -551,6 +552,7 @@ void AppriceHistory(Move *list, int moveCr)
     {
         if(list[i].scr > 0)
             continue;
+        it = list[i].pc;
         UC fr = *it;
         unsigned h = history[wtm][b[fr]/2 - 1][list[i].to];
         list[i].scr = 100*h/maxHistory + 15;
