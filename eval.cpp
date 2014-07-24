@@ -270,7 +270,7 @@ void EvalPawns(bool stm)
 //-----------------------------
 void ClampedRook(UC stm)
 {
-    UC k = *pc_list[stm].begin();
+    UC k = *king_coord[stm];
 
     if(stm)
     {
@@ -324,14 +324,14 @@ void ClampedRook(UC stm)
 //-----------------------------
 bool TestUnstoppable(int x, int y, UC stm)
 {
-    UC k    = *pc_list[!stm].begin();
+    UC k    = *king_coord[!stm];
 
     if(y > 5)
         y = 5;
     int psq = XY2SQ(x, stm ? 7 : 0);
     int d = kingDist[ABSI(k - psq)];
-    if(COL(*pc_list[stm].begin()) == x
-    && kingDist[ABSI(*pc_list[stm].begin() - psq)] <= y)
+    if(COL(*king_coord[stm]) == x
+    && kingDist[ABSI(*king_coord[stm] - psq)] <= y)
         y++;
     return d - (stm != wtm) > y;
 }
@@ -339,7 +339,7 @@ bool TestUnstoppable(int x, int y, UC stm)
 //-----------------------------
 short KingShieldFactor(UC stm)
 {
-    int k = *pc_list[stm].begin();
+    int k = *king_coord[stm];
     int shft = stm ? 16 : -16;
 
     if(!ONBRD(k + shft + shft))
@@ -407,7 +407,7 @@ void KingSafety(UC stm)
 
     short ans = 0;
 
-    UC k = *pc_list[stm].begin();                                              //
+    UC k = *king_coord[stm];                                              //
     if(COL(k) == 3 || COL(k) == 4)
         ans -= 100;
 
