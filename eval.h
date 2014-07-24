@@ -34,16 +34,10 @@ enum PriceList
     K_VAL       = 32000,
     INF         = 32760,
 
-    SHIELD_K    = 30,
-    CLAMPED_R   = 250,
+    SHIELD_K    = 33,
     UNSTOP_P    = 650,
     DBL_PROMO_P = 65,
-    OPP_NEAR_K  = 20,
-
 };
-
-//--------------------------------
-
 
 //--------------------------------
 void InitEval();
@@ -51,11 +45,6 @@ void FastEval(Move m);
 short Eval(/*short alpha, short beta*/);
 void EvalAllMaterialAndPST();
 void EvalPawns(bool stm);
-void SimpleKingShield(UC stm);
-void ClampedRook(UC stm);
-void SimpleKingNearOpp(UC stm);
 bool TestUnstoppable(int x, int y, UC stm);
-short SimpleKingDist(UC stm);
-short EvalAllKingDist(UC stm, UC king_coord);
 void KingSafety(UC stm);
-int KingAttacks(UC stm);
+void RookEval(UC stm);
