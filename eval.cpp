@@ -6,7 +6,6 @@ short MatArrOpn[] = {  0, 0, Q_VAL_OPN, R_VAL_OPN, B_VAL_OPN, N_VAL_OPN, P_VAL_O
 short MatArrEnd[] = {  0, 0, Q_VAL_END, R_VAL_END, B_VAL_END, N_VAL_END, P_VAL_END};
 
 char  kingDist[120];
-short tropism[]   = {  0, 0, -50, -30, -20, -20, -10};
 
 #ifdef TUNE_PARAMETERS
     std::vector <float> param;
@@ -45,11 +44,8 @@ short Eval(/*short alpha, short beta*/)
     KingSafety(WHT);
     KingSafety(BLK);
 
-#ifdef USE_PAWN_STRUCT
-    ClampedRook(WHT);
-    ClampedRook(BLK);
-#endif // USE_PAWN_STRUCT
-
+//    RookEval(WHT);
+//    RookEval(BLK);
 
 #ifndef CHECK_PREDICTED_VALUE
    if(reversibleMoves > ply)
@@ -143,52 +139,6 @@ void FastEval(Move m)
     deltaScoreOpn += pst[pt - 1][0][y][x] - pst[pt - 1][0][y0][x0];
     deltaScoreEnd += pst[pt - 1][1][y][x] - pst[pt - 1][1][y0][x0];
 
-#ifdef EVAL_KING_TROPISM
-
-    UC k        = men[wtm + 1];
-    UC fr       = boardState[PREV_STATES + ply].fr;
-    UC to       = MOVETO(m);
-    UC kdist_fr = kingDist[ABSI(k - fr)];
-    UC kdist_to = kingDist[ABSI(k - to)];
-
-    if(pt == _k)
-    {
-        deltaScoreOpn -= EvalAllKingDist(wtm, fr);
-        deltaScoreOpn += EvalAllKingDist(wtm, to);
-    }
-    else if(kdist_fr >  2 && kdist_to <= 2)
-        deltaScoreOpn -= tropism[pt];
-    else if(kdist_fr <= 2 && kdist_to >  2)
-        deltaScoreOpn += (MOVEFLG(m) & (mPROM << 16)) ? tropism[_p] : tropism[pt];
-    else
-        ply = ply;
-
-    if(kdist_to <= 2 && (MOVEFLG(m) & (mPROM << 16)))
-    {
-        deltaScoreOpn += tropism[_p];
-        if(kdist_fr <= 2)
-            deltaScoreOpn -= tropism[pt];
-    }
-
-    if(MOVEFLG(m)  & (mCAPT << 16))
-    {
-        k        = men[(wtm ^ WHT) + 1];
-        const bool en_ps = MOVEFLG(m) & (mENPS << 16);
-        if(en_ps)
-            to += wtm ? 16 : -16;
-        kdist_to = kingDist[ABSI(k - to)];
-        if(kdist_to <= 2)
-        {
-            UC capt;
-            if(en_ps)
-                capt = _p;
-            else
-                capt = boardState[PREV_STATES + ply].capt & ~WHT;
-            deltaScoreOpn -= tropism[capt];
-        }// if(kdist_to
-    }// if(MOVEGLG(m) ...
-#endif // EVAL_KING_TROPISM
-
     if(wtm)
     {
         valOpn -= deltaScoreOpn;
@@ -232,12 +182,7 @@ void EvalAllMaterialAndPST()
             valEnd -= tmpEnd;
         }
     }
-#ifdef EVAL_KING_TROPISM
-    valOpn -= EvalAllKingDist(WHT, men[BLK + 1));
-    valOpn += EvalAllKingDist(BLK, men[WHT + 1));
-#endif // EVAL_KING_TROPISM
 }
-
 
 //#ifdef USE_PAWN_STRUCT
 //--------------------------------
@@ -292,16 +237,6 @@ void EvalPawns(bool stm)
             ansE += delta;
             ansO += -delta/4;
 
-/*            UC k = men[(stm << 5) + 1];
-            UC col_k = COL(k);
-            if(ABSI(i - col_k) == 1)
-            {
-                UC row_k = stm ? ROW(k) : 7 - ROW(k);
-                if(mx == row_k || mx == row_k - 1)
-                    ansE += 60;
-            }
-*/
-
             if(oppHasOnlyPawns)
             {
                 if(TestUnstoppable(i, 7 - pmax[i + 1][stm], stm << 5))
@@ -321,60 +256,6 @@ void EvalPawns(bool stm)
 }
 
 //-----------------------------
-void ClampedRook(UC stm)
-{
-    UC k = men[stm + 1];
-
-    if(stm)
-    {
-        if(k == 0x06 && b[0x07] == _R && pmax[7 + 1][1])
-            valOpn -= CLAMPED_R;
-        else if(k == 0x05)
-        {
-            if(pmax[7 + 1][1] && b[0x07] == _R)
-                valOpn -= CLAMPED_R;
-            else
-            if(pmax[6 + 1][1] && b[0x06] == _R)
-                valOpn -= CLAMPED_R;
-        }
-        else if(k == 0x01 && b[0x00] == _R && pmax[0 + 1][1])
-            valOpn -= CLAMPED_R;
-        else if(k == 0x02)
-        {
-            if(pmax[0 + 1][1] && b[0x00] == _R)
-                valOpn -= CLAMPED_R;
-            else
-            if(pmax[1 + 1][1] && b[0x01] == _R)
-                valOpn -= CLAMPED_R;
-        }
-     }
-     else
-     {
-        if(k == 0x76 && b[0x77] == _r && pmax[7 + 1][0])
-            valOpn += CLAMPED_R;
-        else if(k == 0x75)
-        {
-            if(pmax[7 + 1][0] && b[0x77] == _r)
-                valOpn += CLAMPED_R;
-            else
-            if(pmax[6 + 1][0] && b[0x76] == _r)
-                valOpn += CLAMPED_R;
-        }
-        else if(k == 0x71 && b[0x70] == _r && pmax[0 + 1][0])
-            valOpn += CLAMPED_R;
-        else if(k == 0x72)
-        {
-            if(pmax[0 + 1][0] && b[0x70] == _r)
-                valOpn += CLAMPED_R;
-            else
-            if(pmax[1 + 1][0] && b[0x71] == _r)
-                valOpn += CLAMPED_R;
-        }
-     }
-}
-//#endif // USE_PAWN_STRUCT
-
-//-----------------------------
 bool TestUnstoppable(int x, int y, UC stm)
 {
     UC k    = men[(stm ^ WHT) + 1];
@@ -386,126 +267,6 @@ bool TestUnstoppable(int x, int y, UC stm)
         y++;
     return d - (stm != wtm) > y;
 }
-
-//-----------------------------
-/*short EvalAllKingDist(UC stm, UC king_coord)
-{
-    UC menNum   = stm;
-    menNum      = menNxt[menNum];
-    UC maxPc    = pieces[stm >> 5];
-    unsigned i  = 0;
-    short ans   = 0;
-
-    for(; i < maxPc; ++i)
-    {
-        UC fr = men[menNum];
-        UC pt = b[fr] & ~WHT;
-
-        int x = kingDist[ABSI(king_coord - fr)];
-        menNum = menNxt[menNum];
-        if(x > 2)
-            continue;
-
-        ans += tropism[pt];
-    }
-
-    return ans;
-}
-
-//-----------------------------
-short KingShieldFactor(UC stm)
-{
-    int k = men[stm + 1];
-
-    int row_k = stm ? ROW(k) : 7 - ROW(k);
-    if(row_k > 2)
-        return 7;
-
-    int col_k = COL(k);
-    if(col_k == 0)
-        col_k++;
-    else if(col_k == 7)
-        col_k--;
-
-    int danger = -4  + 2*pmin[col_k][stm >> 5]
-                + pmin[col_k - 1][stm >> 5]
-                + pmin[col_k + 1][stm >> 5];
-
-    if(danger >= 5)
-    {
-        int shft = stm ? 16 : -16;
-        if(LIGHT(b[k + shft], stm))
-        {
-            if(LIGHT(b[k + shft - 1], stm)
-            || LIGHT(b[k + shft + 1], stm))
-                danger = 1;
-            else if(LIGHT(b[k + 2*shft + 1], stm)
-            || LIGHT(b[k + 2*shft - 1], stm))
-                danger = 3;
-        }
-        else if(LIGHT(b[k + 2*shft + 1], stm)
-        && (LIGHT(b[k + shft + 1], stm)
-            || LIGHT(b[k + shft - 1], stm)))
-                danger = 4;
-    }
-    if(danger > 7)
-        danger = 7;
-
-    return danger;
-}
-
-//-----------------------------
-short SimpleKingDist(UC stm)
-{
-    UC menNum   = stm ^ WHT;
-    menNum      = menNxt[menNum];
-    UC maxPc    = pieces[!stm];
-    UC k        = men[stm + 1];
-    unsigned i  = 0;
-    short ans   = 0;
-
-    for(i = 0; i < maxPc; ++i)
-    {
-        UC fr = men[menNum];
-        menNum = menNxt[menNum];
-        int dst = kingDist[ABSI(k - fr)];
-        if(dst > 3)
-            continue;
-
-        switch(b[fr] & ~WHT)
-        {
-        case _q :
-            ans += dst <= 2 ? 212 : 212 / 4;
-            break;
-
-        case _b :
-            ans += dst <= 2 ? 84 : 84/4;
-            break;
-        case _n :
-            ans += dst <= 2 ? 24 : 24/4;
-            break;
-        }// switch
-    }// for i
-
-    return ans;
-}
-
-//-----------------------------
-int KingAttacks(UC stm)
-{
-    int ans = 0;
-    SC shifts[] = {15, 16, 17};//, 1, -1};//, -15, -16, -17};
-    UC k = men[stm + 1];
-    for(unsigned i = 0; i < sizeof(shifts); ++i)
-    {
-        if(!ONBRD(k + shifts[i]))
-            continue;
-        if(Attack(men[stm + 1], stm ^ WHT))
-            ans++;
-    }
-    return ans;
-}
-*/
 
 //-----------------------------
 short KingShieldFactor(UC stm)
@@ -578,9 +339,9 @@ void KingSafety(UC stm)
 
     short ans = 0;
 
-//    UC k = men[stm + 1];                                                //
-//    if(COL(k) == 3 || COL(k) == 4)
-//        ans -= 100;
+    UC k = men[stm + 1];                                                //
+    if(COL(k) == 3 || COL(k) == 4)
+        ans -= 100;
 
     if(boardState[PREV_STATES + ply].cstl & (0x0C >> (stm >> 4)))       // able to castle
     {
@@ -589,7 +350,34 @@ void KingSafety(UC stm)
     }
 
     int sh  = KingShieldFactor(stm);
-    ans +=  (1 - sh)*33;
+    ans +=  (1 - sh)*SHIELD_K;
 
     valOpn += stm ? ans : -ans;
+}
+
+//-----------------------------
+void RookEval(UC stm)
+{
+    short ans = 0;
+    UC pcs = pieces[stm >> 5];
+    if(material[stm >> 5] - pcs < 8)
+        return;
+    int i = 2;
+    while(i++ < pcs)
+    {
+        UC pt = b[men[stm + i]] & ~WHT;
+        if(pt > _r)
+            break;
+        if(pt < _r)
+            continue;
+
+        if(pmax[1 + COL(men[stm + 2 + i])][stm >> 5] == 0)
+        {
+            ans += param[0]/3;
+            if(pmax[1 + COL(men[stm + 2 + i])][!stm] == 0)
+                ans += param[0];
+        }
+    }
+
+    valOpn += stm ? -ans : ans;
 }
