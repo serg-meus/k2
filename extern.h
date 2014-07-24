@@ -1,9 +1,8 @@
 #if !defined(EXTERN)
 #define EXTERN
 //extern UC       b[128];
-extern UC b[137];
-extern UC men[64];
-extern UC menNxt[64];
+extern UC       b[137];
+extern std::list<UC>    pcs[2];
 extern UC       slider[7];
 extern UC       rays[7];
 extern UC       attacks[240];
