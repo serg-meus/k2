@@ -37,7 +37,8 @@ short Search(int depth, short alpha, short beta)
         pv[ply][0] = 0;
         return 0;
     }
-    bool in_check = Attack(men[wtm + 1], wtm ^ WHT);
+    auto king = pcs[(wtm ^ WHT) >> 5].begin();
+    bool in_check = Attack(*king, wtm ^ WHT);
     if(in_check)
         depth++;
 #ifndef NOT_USE_FUTILITY
@@ -68,14 +69,14 @@ short Search(int depth, short alpha, short beta)
         }// if(entry.depth
         else
         {
-            if(entry.only_move)
+/*            if(entry.only_move)
             {
                 if(!(MOVEFLG(entry.best_move) & mCAPT))
                     depth++;
-                else if(pc_streng[b[(MOVEPC(entry.best_move) >> 16)]  & ~WHT ] >=
+                else if(pc_streng[b[(MOVEPC(entry.best_move) >> 16)]  & ~WHT ] <=
                         pc_streng[b[MOVETO(entry.best_move)] & ~WHT])
                     depth++;
-            }
+            }*/
             if(entry.bound_type == hEXACT
             || entry.bound_type == hUPPER)
                 best_move_hashed = true;
@@ -286,12 +287,13 @@ short Quiesce(short alpha, short beta)
     }
     return alpha;
 }
-/*
+
 //--------------------------------
 void Perft(int depth)
 {
     Move moveList[MAX_MOVES];
-    bool in_check = Attack(men[wtm + 1], wtm ^ WHT);
+    auto king = pcs[(wtm ^ WHT) >> 5].begin();
+    bool in_check = Attack(*king, wtm ^ WHT);
     GenMoves(moveList, APPRICE_NONE);
     int top = moveCr;
     for(int i = 0; i < top; i++)
@@ -309,51 +311,6 @@ void Perft(int depth)
         if(depth == 1 && legal)
             nodes++;
         UnMove(m);
-    }
-}
-*/
-
-//--------------------------------
-void Perft(int depth)
-{
-#define PERFT_DEPTH 2
-    Move moveList[MAX_MOVES];
-    bool ic = Attack(men[wtm + 1], wtm ^ WHT);
-    GenMoves(moveList, APPRICE_NONE);
-    int top = moveCr;
-    for(int i = 0; i < top; i++)
-    {
-#ifndef NDEBUG
-        UC c[137 + 64 + 64];
-        memcpy(c, b, 137 + 64 + 64);
-#endif
-#ifndef NDEBUG
-        UQ tmpCr;
-        if(depth == PERFT_DEPTH)
-            tmpCr = nodes;
-#endif
-        Move m = moveList[i];
-        MkMove(m);
-#ifndef NDEBUG
-        if(strcmp(stop_str, cv) == 0)
-            ply = ply;
-#endif
-//        bool legal = !Attack(men[(wtm ^ WHT) + 1], wtm);
-        bool legal = Legal(m, ic);
-        if(depth > 1 && legal)
-            Perft(depth - 1);
-        if(depth == 1 && legal)
-            nodes++;
-#ifndef NDEBUG
-        if(depth == PERFT_DEPTH && legal
-        && cv[0] == 'f' && cv[1] == '6' && cv[2] == 'a')
-           std::cout << cv << nodes - tmpCr << std::endl;
-#endif
-        UnMove(m);
-#ifndef NDEBUG
-        if(memcmp(b, c, 137 + 64 + 64) != 0)
-            ply = ply;
-#endif
     }
 }
 
@@ -465,7 +422,8 @@ void MainSearch()
 //--------------------------------
 short RootSearch(int depth, short alpha, short beta)
 {
-    bool in_check = Attack(men[wtm + 1], wtm ^ WHT);
+    auto king = pcs[(wtm ^ WHT) >> 5].begin();
+    bool in_check = Attack(*king, wtm ^ WHT);
     boardState[PREV_STATES + ply].valOpn = valOpn;
     boardState[PREV_STATES + ply].valEnd = valEnd;
     if(!rootTop)
@@ -1146,9 +1104,9 @@ void MkMove(Move m)
             if(menNxt[i] == MOVEPC(m))
                 break;
         boardState[PREV_STATES + ply].nprom = i;
-//        menNxt[i] = menNxt[MOVEPC(m)];
-//        menNxt[MOVEPC(m)] = menNxt[wtm];
-//        menNxt[wtm] = MOVEPC(m);
+        menNxt[i] = menNxt[MOVEPC(m)];
+        menNxt[MOVEPC(m)] = menNxt[wtm];
+        menNxt[wtm] = MOVEPC(m);
         reversibleMoves = 0;
     }
 #ifndef NOT_USE_HASH_TABLE
@@ -1529,5 +1487,4 @@ k3b1rr/p7/P3p3/4P1b1/3NK3/5R2/1P3B2/R7 w - - 9 58; king is too central
 2r1rbk1/p1Bq1ppp/Ppn1b3/1Npp4/B7/3P2Q1/1PP2PPP/R4RK1 w - - 0 1 bm Nxa7;
 
 8/6R1/3p4/3P3p/p4K1k/2r5/1R6/8 w - - 0 1; experiments with singular reply
-8/7p/p4Rpb/4k3/P3n3/8/P2p2PP/1rB3K1 w - - 0 3; wrong perft 3 (must be 11468)
 */
