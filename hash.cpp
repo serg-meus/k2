@@ -90,17 +90,17 @@ void MoveHashKey(Move m, UC fr, int special)
     if(_f.ep)
         hash_key ^= zorb_en_passant[_f.ep];
 
-    if(MOVEFLG(m) & (mPROM << 16))
+    if(MOVEFLG(m) & mPROM)
         hash_key ^= zorb[MEN_TO_ZORB(_p ^ wtm)][COL(fr)][ROW(fr)]
                ^ zorb[MEN_TO_ZORB(pt)][COL(fr)][ROW(fr)];
-    else if(MOVEFLG(m) & (mENPS << 16))
+    else if(MOVEFLG(m) & mENPS)
         hash_key ^= zorb[MEN_TO_ZORB(_P ^ wtm)][COL(MOVETO(m))]
             [ROW(MOVETO(m)) + (wtm ? -1 : 1)];
-    else if(MOVEFLG(m) & (mCSTL << 16))
+    else if(MOVEFLG(m) & mCSTL)
     {
         if(wtm)
         {
-            if(MOVEFLG(m) & (mCS_K << 16))
+            if(MOVEFLG(m) & mCS_K)
                 hash_key ^= zorb[MEN_TO_ZORB(_R)][7][0]
                          ^  zorb[MEN_TO_ZORB(_R)][5][0];
             else
@@ -109,7 +109,7 @@ void MoveHashKey(Move m, UC fr, int special)
         }
         else
         {
-            if(MOVEFLG(m) & (mCS_K << 16))
+            if(MOVEFLG(m) & mCS_K)
                 hash_key ^= zorb[MEN_TO_ZORB(_r)][7][7]
                          ^  zorb[MEN_TO_ZORB(_r)][5][7];
             else
