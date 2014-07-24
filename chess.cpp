@@ -4,19 +4,21 @@
 UC  b[137],                                                             // board array in "0x88" style
     men[64],                                                            // piece list
     menNxt[64];                                                         // pointer to next piece
+    std::list<UC>   piece_list[2];
 
-UC  attacks[240],                                                       // table for quick deteck possible attacks
+UC  attacks[240],                                                       // table for quick detect possible attacks
     get_delta[240];                                                     // I'm already forget what's this
 SC  get_shift[240];                                                     // ... and this
-UC rays[]   = {0, 8, 8, 4, 4, 8, 0};
+UC rays[7]   = {0, 8, 8, 4, 4, 8, 0};
 SC shifts[6][8] = {{ 0,  0,  0,  0,  0,  0,  0,  0},
                     { 1, 17, 16, 15, -1,-17,-16,-15},
                     { 1, 17, 16, 15, -1,-17,-16,-15},
                     { 1, 16, -1,-16, 0,  0,  0,  0},
                     {17, 15,-17,-15, 0,  0,  0,  0},
                     {18, 33, 31, 14,-18,-33,-31,-14}};
-UC  pc_streng[]   =  {0, 0, 12, 6, 4, 4, 1};
-UC  slider[] = {0, 0, 1, 1, 1, 0, 0};
+UC  pc_streng[7]    =  {0, 0, 12, 6, 4, 4, 1};
+short streng[7]     = {0, 15000, 120, 60, 40, 40, 10};
+UC  slider[7]       = {0, 0, 1, 1, 1, 0, 0};
 int material[2], pieces[2];
 BrdState  boardState[PREV_STATES + MAX_PLY];
 unsigned wtm, ply;
@@ -55,6 +57,8 @@ void InitBrd()
     memset(b, 0, sizeof(b));
     memset(men, 0, sizeof(men));
     memset(menNxt, 0, sizeof(menNxt));
+    piece_list[0].clear();
+    piece_list[1].clear();
 
     InitAttacks();
 
@@ -63,12 +67,16 @@ void InitBrd()
     {
         b[XY2SQ(i, 1)]      = _P;
         men[i + 0x29 ]      = XY2SQ(i, 1);
+        piece_list[1].push_back(XY2SQ(7 - i, 1));
         b[XY2SQ(i, 6)]     = _p;
         men[i + 0x09 ]      = XY2SQ(i, 6);
+        piece_list[0].push_back(XY2SQ(7 - i, 6));
         b[XY2SQ(i, 0)]      = pcs[i];
         men[nms[i] + 0x21]  = XY2SQ(i, 0);
+        piece_list[1].push_front(XY2SQ(i, 0));
         b[XY2SQ(i, 7)]      = pcs[i] ^ WHT;
         men[nms[i] + 0x01]  = XY2SQ(i, 7);
+        piece_list[0].push_front(XY2SQ(i, 7));
     }
     for(i = 0; i < 0x10; i++)
     {
@@ -86,8 +94,7 @@ void InitBrd()
     pieces[1]       = 16;
     material[0]     = 48;
     material[1]     = 48;
-/*    ttKey           = TTSetKey();
-*/
+
     reversibleMoves     = 0;
 #ifdef USE_PAWN_STRUCT
     InitPawnStruct();
@@ -123,7 +130,6 @@ void InitAttacks()
 //--------------------------------
 bool BoardToMen()
 {
-    char strng[]  = {0, 32, 12, 6, 4, 4, 1};
     unsigned wPieceCr = 0, bPieceCr = 0;
     unsigned i, j;
     for(i = 0; i < sizeof(men); i++)
@@ -131,6 +137,8 @@ bool BoardToMen()
         men[i] = 0;
         menNxt[i] = 0;
     }
+    piece_list[0].clear();
+    piece_list[1].clear();
     for(i = 0; i < sizeof(b); i++)
     {
         if(!ONBRD(i) || b[i] == __)
@@ -139,12 +147,14 @@ bool BoardToMen()
             men[1 + wPieceCr++] = i;
         else
             men[1 + WHT + bPieceCr++] = i;
+
+        piece_list[(b[i] & WHT) >> 5].push_front(i);
     }
 
     UC tmp;
     for(j = 0; j < wPieceCr; j++)
         for(i = 0; i < wPieceCr - 1; i++)
-            if(strng[b[men[i + 1]]] < strng[b[men[i + 2]]])
+            if(streng[b[men[i + 1]]] < streng[b[men[i + 2]]])
             {
                 tmp         = men[i + 1];
                 men[i + 1]      = men[i + 2];
@@ -152,7 +162,7 @@ bool BoardToMen()
             }
     for(j = WHT; j < WHT + bPieceCr; j++)
         for(i = WHT; i < WHT + bPieceCr - 1; i++)
-            if(strng[(b[men[i + 1]] & ~WHT)] < strng[(b[men[i + 2]] & ~WHT)])
+            if(streng[(b[men[i + 1]] & ~WHT)] < streng[(b[men[i + 2]] & ~WHT)])
             {
                 tmp         = men[i + 1];
                 men[i + 1]  = men[i + 2];
@@ -163,6 +173,9 @@ bool BoardToMen()
         menNxt[i] = i + 1;
     for(i = WHT; i < WHT + bPieceCr; i++)
         menNxt[i] = i + 1;
+
+    piece_list[0].sort(PieceListCompare);
+    piece_list[1].sort(PieceListCompare);
 
     return true;
 }
@@ -305,11 +318,11 @@ bool MakeCastle(Move m, UC fr)
     if(castleRightsChanged)
         reversibleMoves = 0;
 
-    if(!(MOVEFLG(m) & (mCSTL << 16)))
+    if(!(MOVEFLG(m) & mCSTL))
         return castleRightsChanged;
 
     UC rFr, rTo;
-    if(MOVEFLG(m) == (mCS_K << 16))
+    if(MOVEFLG(m) == mCS_K)
     {
         rFr = 0x07;
         rTo = 0x05;
@@ -345,7 +358,7 @@ void UnMakeCastle(Move m)
 {
     UC rMen = boardState[PREV_STATES + ply].ncstl_r;
     UC rFr = men[rMen];
-    UC rTo = rFr + (MOVEFLG(m) == (mCS_K << 16) ? 2 : -3);
+    UC rTo = rFr + (MOVEFLG(m) == mCS_K ? 2 : -3);
     b[rTo] = b[rFr];
     b[rFr] = __;
     men[rMen] =rTo;
@@ -362,7 +375,7 @@ bool MakeEP(Move m, UC fr)
         boardState[PREV_STATES + ply].ep = (to & 7) + 1;
         return true;
     }
-    if(MOVEFLG(m) & (mENPS << 16))
+    if(MOVEFLG(m) & mENPS)
         b[to + (wtm ? -16 : 16)] = __;
     return false;
 }
@@ -485,14 +498,14 @@ void SetPawnStruct(int x)
 void MovePawnStruct(UC movedPiece, UC fr, Move m)
 {
     if((movedPiece & 0x0F) == _p
-    || (MOVEFLG(m) & (mPROM << 16)))
+    || (MOVEFLG(m) & mPROM))
     {
         SetPawnStruct(COL(MOVETO(m)));
         if(MOVEFLG(m))
             SetPawnStruct(COL(fr));
     }
     if((boardState[PREV_STATES + ply].capt & 0x0F) == _p
-    || (MOVEFLG(m) & (mENPS << 16)))                                    // mENPS нахрена например?
+    || (MOVEFLG(m) & mENPS))                                    // mENPS нахрена например?
     {
         wtm ^= WHT;
         SetPawnStruct(COL(MOVETO(m)));
@@ -535,4 +548,10 @@ void InitPawnStruct()
                 break;
             }
     }
+}
+
+//-----------------------------
+bool PieceListCompare(UC men1, UC men2)
+{
+    return streng[b[men1]] < streng[b[men2]];
 }
