@@ -1,7 +1,7 @@
 #include "engine.h"
 
 //--------------------------------
-char        stop_str[] = "e5d4 e8f8 f5f6 a3d6 e6e7 d6e7 f6e7 f8f7 ";
+char        stop_str[] = " g1f3 d7d5 e2e3 c8f5 f1e2 ";
 unsigned    stopPly   = 8;
 
 Timer       timer;
@@ -36,7 +36,7 @@ short Search(int depth, short alpha, short beta, int lmr_)
         pv[ply][0].flg = 0;
         return 0;
     }
-    bool in_check = Attack(*pc_list[wtm].begin(), !wtm);
+    bool in_check = Attack(*king_coord[wtm], !wtm);
     if(in_check)
         depth += 1 + lmr_;
 
@@ -46,6 +46,11 @@ short Search(int depth, short alpha, short beta, int lmr_)
     && Futility(depth, beta))
         return beta;
 #endif // DONT_USE_FUTILITY
+
+#ifndef NDEBUG
+    if(hash_key == 0x630fa5641c8d8294 && depth == 4)
+        ply = ply;//ShowFen();
+#endif //NGEBUG
 
     short _alpha = alpha;
     bool best_move_hashed = false;
@@ -60,7 +65,7 @@ short Search(int depth, short alpha, short beta, int lmr_)
         CheckForInterrupt();
 
 #ifndef DONT_USE_NULL_MOVE
-    if(NullMove(depth, beta, in_check))
+    if(NullMove(depth, beta, in_check, lmr_))
         return beta;
 #endif // DONT_USE_NULL_MOVE
 
@@ -68,12 +73,7 @@ short Search(int depth, short alpha, short beta, int lmr_)
     int i = 0, legals = 0, top;
     short x;
 
-#ifndef NDEBUG
-            if(hash_key == 0)
-                ShowFen();
-#endif //NGEBUG
-
-    if(best_move_hashed)
+/*    if(best_move_hashed)
     {
         m_best = entry.best_move;
         if(PseudoLegal(m_best, wtm))
@@ -90,6 +90,20 @@ short Search(int depth, short alpha, short beta, int lmr_)
     }
     else
         top = GenMoves(moveList, APPRICE_ALL, nullptr);
+*/
+    if(best_move_hashed)
+    {
+        top = GenMoves(moveList, APPRICE_ALL, &entry.best_move);
+        Next(moveList, 0, top, &m);
+#ifndef NDEBUG
+        if(entry.best_move != moveList[0])
+            ply = ply;
+#endif // NDEBUG
+    }
+    else
+    {
+        top = GenMoves(moveList, APPRICE_ALL, nullptr);
+    }
 
     boardState[prev_states + ply].valOpn = valOpn;
     boardState[prev_states + ply].valEnd = valEnd;
@@ -98,9 +112,9 @@ short Search(int depth, short alpha, short beta, int lmr_)
 
     for(; i < top && !stop && !mateFound; i++)
     {
-        if(!best_move_hashed)
+//        if(!best_move_hashed)
             Next(moveList, i, top, &m);
-        else
+/*        else
         {
             if(i == 0)
                 m = m_best;
@@ -114,7 +128,7 @@ short Search(int depth, short alpha, short beta, int lmr_)
                 Next(moveList, i, top, &m);
             }
         }
-
+*/
         MkMove(m);
 #ifndef NDEBUG
         if((!stopPly || rootPly == stopPly) && strcmp(stop_str, cv) == 0)
@@ -130,7 +144,7 @@ short Search(int depth, short alpha, short beta, int lmr_)
 
 #ifndef DONT_USE_LMR
         int lmr = 1;
-        if(depth < 5 || m.flg || in_check)
+        if(depth < 3 || m.flg || in_check)
             lmr = 0;
         else if(legals < 5/* || m.scr > 80*/)
             lmr = 0;
@@ -145,7 +159,7 @@ short Search(int depth, short alpha, short beta, int lmr_)
         else if(beta - alpha > 1)
         {
             x = -Search(depth - 1 - lmr, -alpha - 1, -alpha, lmr);
-            if(x > alpha)
+            if(x > alpha && x < beta)
                 x = -Search(depth - 1, -beta, -alpha, 0);
         }
         else
@@ -154,7 +168,6 @@ short Search(int depth, short alpha, short beta, int lmr_)
             if(lmr && x > alpha)
                 x = -Search(depth - 1, -beta, -alpha, 0);
         }
-
         legals++;
 
         if(x >= beta)
@@ -172,7 +185,6 @@ short Search(int depth, short alpha, short beta, int lmr_)
         pv[ply][0].flg = 0;
         return in_check ? -K_VAL + ply : 0;
     }
-
     else if(legals)
     {
         size_t sz = hash_table.size();
@@ -307,7 +319,7 @@ short Quiesce(short alpha, short beta)
 void Perft(int depth)
 {
     Move moveList[MAX_MOVES];
-    bool in_check = Attack(*pc_list[wtm].begin(), !wtm);
+    bool in_check = Attack(*king_coord[wtm], !wtm);
     int top = GenMoves(moveList, APPRICE_NONE, nullptr);
     for(int i = 0; i < top; i++)
     {
@@ -363,7 +375,7 @@ void UpdateStatistics(Move m, int dpt, unsigned i)
     }
 
 #ifndef DONT_USE_HISTORY
-    auto it = pc_list[wtm].begin();
+    auto it = coords[wtm].begin();
     it = m.pc;
     UC fr = *it;
     unsigned &h = history[wtm][(b[fr]/2) - 1][m.to];
@@ -442,7 +454,7 @@ void MainSearch()
 //--------------------------------
 short RootSearch(int depth, short alpha, short beta)
 {
-    bool in_check = Attack(*pc_list[wtm].begin(), !wtm);
+    bool in_check = Attack(*king_coord[wtm], !wtm);
     boardState[prev_states + ply].valOpn = valOpn;
     boardState[prev_states + ply].valEnd = valEnd;
     if(!rootTop)
@@ -627,7 +639,7 @@ void PrintSearchResult()
     char proms[] = {'?', 'q', 'n', 'r', 'b'};
 
     Move  p = pv[0][1];
-    auto it = pc_list[wtm].begin();
+    auto it = coords[wtm].begin();
     it      = p.pc;
     int  f  = *it;
     mov[0]  = COL(f) + 'a';
@@ -790,7 +802,7 @@ bool ShowPV(int _ply)
         for(; i < stp; i++)
         {
             Move m = pv[_ply][i + 1];
-            auto it = pc_list[wtm].begin();
+            auto it = coords[wtm].begin();
             it = m.pc;
             UC fr = *it;
             std::cout  << (char)(COL(fr) + 'a') << (char)(ROW(fr) + '1')
@@ -800,7 +812,7 @@ bool ShowPV(int _ply)
                 std::cout << proms[m.flg & mPROM];
             std::cout << " ";
             MkMove(m);
-            bool in_check = Attack(*pc_list[wtm].begin(), !wtm);
+            bool in_check = Attack(*king_coord[wtm], !wtm);
             if(!Legal(m, in_check))
                 ans = false;
         }
@@ -809,7 +821,7 @@ bool ShowPV(int _ply)
         for(; i < stp; i++)
         {
             Move m = pv[_ply][i + 1];
-            auto it = pc_list[wtm].begin();
+            auto it = coords[wtm].begin();
             it = m.pc;
             char pc = pc2chr[b[*it]];
             if(pc == 'K' && COL(*it) == 4 && COL(m.to) == 6)
@@ -827,7 +839,7 @@ bool ShowPV(int _ply)
             }
             else if(m.flg & mCAPT)
             {
-                auto it = pc_list[wtm].begin();
+                auto it = coords[wtm].begin();
                 it = m.pc;
                 std::cout << (char)(COL(*it) + 'a') << "x"
                      << (char)(COL(m.to) + 'a') << (char)(ROW(m.to) + '1');
@@ -839,7 +851,7 @@ bool ShowPV(int _ply)
                 std::cout << proms[m.flg& mPROM];
             std::cout << ' ';
             MkMove(m);
-            bool in_check = Attack(*pc_list[wtm].begin(), !wtm);
+            bool in_check = Attack(*king_coord[wtm], !wtm);
             if(!Legal(m, in_check))
                 ans = false;
         }
@@ -853,13 +865,13 @@ void Ambiguous(Move m)
 {
     Move marr[8];
     unsigned ambCr = 0;
-    auto it = pc_list[wtm].begin();
+    auto it = coords[wtm].begin();
     it = m.pc;
     UC fr0 = *it;
     UC pt0 = b[fr0]/2;
 
-    for(auto it = pc_list[wtm].begin();
-        it != pc_list[wtm].end();
+    for(auto it = coords[wtm].begin();
+        it != coords[wtm].end();
         ++it)
     {
         if(it == m.pc)
@@ -903,7 +915,7 @@ bool MakeMoveFinaly(char *mov)
     int ln = strlen(mov);
     if(ln < 4 || ln > 5)
         return false;
-    bool in_check = Attack(*pc_list[wtm].begin(), !wtm);
+    bool in_check = Attack(*king_coord[wtm], !wtm);
     RootMoveGen(in_check);
 
     char rMov[6];
@@ -911,7 +923,7 @@ bool MakeMoveFinaly(char *mov)
     for(unsigned i = 0; i < rootTop; ++i)
     {
         Move m  = rootMoveList[i];
-        auto it = pc_list[wtm].begin();
+        auto it = coords[wtm].begin();
         it = m.pc;
         rMov[0] = COL(*it) + 'a';
         rMov[1] = ROW(*it) + '1';
@@ -922,7 +934,7 @@ bool MakeMoveFinaly(char *mov)
 
         if(strcmp(mov, rMov) == 0)
         {
-            auto it = pc_list[wtm].begin();
+            auto it = coords[wtm].begin();
             it = m.pc;
 //            UC fr = *it;
             MkMove(m);
@@ -1060,7 +1072,7 @@ void MkMove(Move m)
     ply++;
     boardState[prev_states + ply].cstl   = boardState[prev_states + ply - 1].cstl;
     boardState[prev_states + ply].capt  = b[m.to];
-    auto it = pc_list[wtm].begin();
+    auto it = coords[wtm].begin();
     it      = m.pc;
     UC fr   = *it;
     UC targ = m.to;
@@ -1079,13 +1091,14 @@ void MkMove(Move m)
             material[!wtm] -=
                     pc_streng[boardState[prev_states + ply].capt/2 - 1];
 
-        auto it_cap = pc_list[!wtm].begin();
-        auto it_end = pc_list[!wtm].end();
+        auto it_cap = coords[!wtm].begin();
+        auto it_end = coords[!wtm].end();
         for(; it_cap != it_end; ++it_cap)
             if(*it_cap == targ)
                 break;
+        assert(it_cap != it_end);
         boardState[prev_states + ply].captured_it = it_cap;
-        pc_list[!wtm].erase(it_cap);
+        coords[!wtm].erase(it_cap);
 
         pieces[!wtm]--;
         reversibleMoves = 0;
@@ -1115,7 +1128,7 @@ void MkMove(Move m)
         material[wtm] += pc_streng[prPc[prIx]/2 - 1] - 1;
         boardState[prev_states + ply].nprom = ++it;
         --it;
-        pc_list[wtm].move_element(++pc_list[wtm].begin(), it);
+        coords[wtm].move_element(king_coord[wtm], it);
         reversibleMoves = 0;
     }
     *it   = m.to;
@@ -1138,7 +1151,7 @@ void MkMove(Move m)
 void UnMove(Move m)
 {
     UC fr = boardState[prev_states + ply].fr;
-    auto it = pc_list[!wtm].begin();
+    auto it = coords[!wtm].begin();
     it = m.pc;
     *it = fr;
     b[fr] = (m.flg & mPROM) ? _P ^ wtm : b[m.to];
@@ -1152,7 +1165,7 @@ void UnMove(Move m)
 
     if(m.flg & mCAPT)
     {
-        auto it_cap = pc_list[!wtm].begin();
+        auto it_cap = coords[!wtm].begin();
         it_cap = boardState[prev_states + ply].captured_it;
 
         if(m.flg & mENPS)
@@ -1173,7 +1186,7 @@ void UnMove(Move m)
             material[!wtm]
                 += pc_streng[boardState[prev_states + ply].capt/2 - 1];
 
-        pc_list[!wtm].restore(it_cap);
+        coords[!wtm].restore(it_cap);
         pieces[!wtm]++;
     }// if capture
 
@@ -1181,10 +1194,11 @@ void UnMove(Move m)
     UC prPc[] = {0, _q, _n, _r, _b};
     if(prIx)
     {
-        auto it_prom = pc_list[wtm].begin();
-        it_prom = boardState[prev_states + ply].nprom;
-        pc_list[wtm].move_element(it_prom, ++pc_list[wtm].begin());
-        --it_prom;
+        auto it_prom = coords[wtm].begin();
+        it_prom = boardState[prev_states + ply].nprom;     
+        auto before_king = king_coord[wtm];
+        --before_king;
+        coords[wtm].move_element(it_prom, before_king);
         material[wtm] -= pc_streng[prPc[prIx]/2 - 1] - 1;
     }
 
@@ -1235,7 +1249,7 @@ void UnMakeNullMove()
 }
 
 //-----------------------------
-bool NullMove(int depth, short beta, bool in_check)
+bool NullMove(int depth, short beta, bool in_check, int lmr_)
 {
     if(in_check || depth < 3
     || material[wtm] - pieces[wtm] < 3)
@@ -1259,6 +1273,8 @@ bool NullMove(int depth, short beta, bool in_check)
         hash_key = InitHashKey();
 
     int r = depth > 6 ? 3 : 2;
+    if(lmr_ > 0 && depth - r - 1 <= 0)
+        r--;
     short x = -Search(depth - r - 1, -beta, -beta + 1, 0);
 
     UnMakeNullMove();
@@ -1407,7 +1423,8 @@ bool HashProbe(int depth, short alpha, short beta,
         {
             UC hbnd = entry->bound_type;
             short hval = -entry->value;
-            if(((hbnd == hUPPER || hbnd == hEXACT) && hval >= beta)
+            if( hbnd == hEXACT ||
+               ((hbnd == hUPPER || hbnd == hEXACT) && hval >= beta)
             || ((hbnd == hLOWER || hbnd == hEXACT) && hval <= alpha)
             )
             {
@@ -1432,7 +1449,12 @@ bool HashProbe(int depth, short alpha, short beta,
 //-----------------------------
 bool PseudoLegal(Move m, bool stm)
 {
-    auto it = pc_list[stm].begin();
+    auto it = coords[stm].begin();
+    for(; it != coords[stm].end(); ++it)
+        if(it == m.pc)
+            break;
+    if(it == coords[stm].end())
+        return false;
     it = m.pc;
     UC fr = *it;
     UC pt = b[m.to];
@@ -1566,6 +1588,10 @@ r1b2rk1/2q1bppp/2np1n2/1p2p3/p2PP3/4BN1P/PPBN1PP1/R2QR1K1 b - - 0 1; SEE bug wit
 8/8/8/2PK4/4R2p/6k1/8/2r5 w - - 0 1 am Rc4
 6k1/pp3ppp/1qr2n2/8/4P3/P1N3PP/1P3QK1/3R4 b - - 0 1 am Rc5 @nodes <= 40000 fixed
 8/1p3r1p/p7/4Qp2/3Rp1kP/Pq6/1P3PP1/4K3 b - - 7 32 am Kxh4 @ply 7 lmr issue
-r5k1/5pp1/6p1/1p2P3/1P1Q4/5b2/5P1P/r4NK1 w - - 2 35 am Qd3 @ply 7 lmr issueposition fen 8/5k2/4P2p/5P1p/4K1bP/4N3/3p4/2b5 b - - 0 57 moves f7e8 e4e5 c1a3
-position fen 8/5k2/4P2p/5P1p/4K1bP/4N3/3p4/2b5 b - - 0 57 moves f7e8 e4e5 c1a3
+8/5k2/4P2p/5P1p/4K1bP/4N3/3p4/2b5 b - - 0 57 PseudoLegal() bug fixed after f7e8 e4e5 c1a3
+rnbqk2r/pppp1ppp/5n2/4N3/2B1P3/8/PPPP1bPP/RNBQK2R w KQkq - 0 5 SEE bug
+3r1q1r/2k2P1p/1p1p1Rp1/2p5/4Q3/1P4P1/P1K5/4R3 b - - 1 26 am Rd7 lmr issue
+r1b1r1k1/ppb2pp1/7p/2p2P2/4P2q/8/PP1P1PBP/RQB2RK1 w - - 1 18 am h3 @ply 10
+8/8/8/p7/P7/8/4K1k1/8 w - - 0 83 draw is inevitable
+2rq1rk1/1p2b1pp/p2p4/2PP4/NP2p3/1Q1b1p2/P4PPP/R1B1R1K1 w - - 0 14 am g2g3 @ply 9
 */
