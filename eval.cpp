@@ -25,13 +25,13 @@ void InitEval()
 }
 
 //-----------------------------
-short Eval(short alpha, short beta)
+short Eval(/*short alpha, short beta*/)
 {
     int X, Y;
     X = material[0] + 1 + material[1] + 1 - pieces[0] - pieces[1];
 
-    boardState[PREV_STATES + ply].valOpn = valOpn;
-    boardState[PREV_STATES + ply].valEnd = valEnd;
+    boardState[prev_states + ply].valOpn = valOpn;
+    boardState[prev_states + ply].valEnd = valEnd;
 
     if(X == 3
     && (material[0] == 4 || material[1] == 4)
@@ -39,33 +39,33 @@ short Eval(short alpha, short beta)
         return 0;
 
 
-#ifdef USE_PAWN_STRUCT
-    EvalPawns((bool)WHT);
-    EvalPawns((bool)BLK);
-#endif // USE_PAWN_STRUCT
+#ifndef NOT_USE_PAWN_STRUCT
+    EvalPawns((bool)white);
+    EvalPawns((bool)black);
+#endif // NOT_USE_PAWN_STRUCT
 
-    KingSafety(WHT);
-    KingSafety(BLK);
+    KingSafety(white);
+    KingSafety(black);
 /*
   if((wtm && (valOpn < alpha - 120 && valEnd < alpha - 120))
     || (!wtm && (-valOpn < alpha - 120 && -valEnd < alpha - 120)))
     {
-        valOpn = boardState[PREV_STATES + ply].valOpn;
-        valEnd = boardState[PREV_STATES + ply].valEnd;
+        valOpn = boardState[prev_states + ply].valOpn;
+        valEnd = boardState[prev_states + ply].valEnd;
         return -alpha;
     }
     if((wtm && (valOpn > beta + 120 && valEnd > beta + 120))
     || (!wtm && (-valOpn > beta + 120 && -valEnd > beta + 120)))
     {
-        valOpn = boardState[PREV_STATES + ply].valOpn;
-        valEnd = boardState[PREV_STATES + ply].valEnd;
+        valOpn = boardState[prev_states + ply].valOpn;
+        valEnd = boardState[prev_states + ply].valEnd;
         return -beta;
     }
-    CountKingAttacks(WHT);
-    CountKingAttacks(BLK);
+    CountKingAttacks(white);
+    CountKingAttacks(black);
 */
-//    RookEval(WHT);
-//    RookEval(BLK);
+//    RookEval(white);
+//    RookEval(black);
 
    if(reversibleMoves > ply)
     {
@@ -75,8 +75,8 @@ short Eval(short alpha, short beta)
 
     Y = ((valOpn - valEnd)*X + 80*valEnd)/80;
 
-    valOpn = boardState[PREV_STATES + ply].valOpn;
-    valEnd = boardState[PREV_STATES + ply].valEnd;
+    valOpn = boardState[prev_states + ply].valOpn;
+    valEnd = boardState[prev_states + ply].valEnd;
 
     return wtm ? (short)(-Y) : (short)Y;
 }
@@ -87,11 +87,11 @@ void FastEval(Move m)
 {
     short deltaScoreOpn = 0, deltaScoreEnd = 0;
 
-    int x  = COL(MOVETO(m));
-    int y  = ROW(MOVETO(m));
-    int x0 = COL(boardState[PREV_STATES + ply].fr);
-    int y0 = ROW(boardState[PREV_STATES + ply].fr);
-    UC pt  = b[MOVETO(m)] & ~WHT;
+    int x  = COL(m.to);
+    int y  = ROW(m.to);
+    int x0 = COL(boardState[prev_states + ply].fr);
+    int y0 = ROW(boardState[prev_states + ply].fr);
+    UC pt  = b[m.to]/2;
 
     if(!wtm)
     {
@@ -99,50 +99,50 @@ void FastEval(Move m)
         y0 = 7 - y0;
     }
 
-    if(MOVEFLG(m) & mPROM)
+    if(m.flg & mPROM)
     {
-        deltaScoreOpn -= MatArrOpn[_p] + pst[_p - 1][0][y0][x0];
-        deltaScoreEnd -= MatArrEnd[_p] + pst[_p - 1][1][y0][x0];
-        switch(MOVEFLG(m) & mPROM)
+        deltaScoreOpn -= MatArrOpn[_p/2] + pst[_p/2 - 1][0][y0][x0];
+        deltaScoreEnd -= MatArrEnd[_p/2] + pst[_p/2 - 1][1][y0][x0];
+        switch(m.flg & mPROM)
         {
-            case mPR_Q :    deltaScoreOpn += MatArrOpn[_q] + pst[_q - 1][0][y0][x0];
-                            deltaScoreEnd += MatArrEnd[_q] + pst[_q - 1][1][y0][x0];
+            case mPR_Q :    deltaScoreOpn += MatArrOpn[_q/2] + pst[_q/2 - 1][0][y0][x0];
+                            deltaScoreEnd += MatArrEnd[_q/2] + pst[_q/2 - 1][1][y0][x0];
                             break;
-            case mPR_R :    deltaScoreOpn += MatArrOpn[_r] + pst[_r - 1][0][y0][x0];
-                            deltaScoreEnd += MatArrEnd[_r] + pst[_r - 1][1][y0][x0];
+            case mPR_R :    deltaScoreOpn += MatArrOpn[_r/2] + pst[_r/2 - 1][0][y0][x0];
+                            deltaScoreEnd += MatArrEnd[_r/2] + pst[_r/2 - 1][1][y0][x0];
                             break;
-            case mPR_B :    deltaScoreOpn += MatArrOpn[_b] + pst[_b - 1][0][y0][x0];
-                            deltaScoreEnd += MatArrOpn[_b] + pst[_b - 1][1][y0][x0];
+            case mPR_B :    deltaScoreOpn += MatArrOpn[_b/2] + pst[_b/2 - 1][0][y0][x0];
+                            deltaScoreEnd += MatArrOpn[_b/2] + pst[_b/2 - 1][1][y0][x0];
                             break;
-            case mPR_N :    deltaScoreOpn += MatArrOpn[_n] + pst[_n - 1][0][y0][x0];
-                            deltaScoreEnd += MatArrOpn[_n] + pst[_n - 1][1][y0][x0];
+            case mPR_N :    deltaScoreOpn += MatArrOpn[_n/2] + pst[_n/2 - 1][0][y0][x0];
+                            deltaScoreEnd += MatArrOpn[_n/2] + pst[_n/2 - 1][1][y0][x0];
                             break;
         }
     }
 
-    if(MOVEFLG(m) & mCAPT)
+    if(m.flg & mCAPT)
     {
-        UC capt = boardState[PREV_STATES + ply].capt & ~WHT;
-        if(MOVEFLG(m) & mENPS)
+        UC capt = boardState[prev_states + ply].capt & ~white;
+        if(m.flg & mENPS)
         {
-            deltaScoreOpn +=  MatArrOpn[_p] + pst[_p - 1][0][7 - y0][x];
-            deltaScoreEnd +=  MatArrEnd[_p] + pst[_p - 1][1][7 - y0][x];
+            deltaScoreOpn +=  MatArrOpn[_p/2] + pst[_p/2 - 1][0][7 - y0][x];
+            deltaScoreEnd +=  MatArrEnd[_p/2] + pst[_p/2 - 1][1][7 - y0][x];
         }
         else
         {
-            deltaScoreOpn +=  MatArrOpn[capt] + pst[capt - 1][0][7 - y][x];
-            deltaScoreEnd +=  MatArrEnd[capt] + pst[capt - 1][1][7 - y][x];
+            deltaScoreOpn +=  MatArrOpn[capt/2] + pst[capt/2 - 1][0][7 - y][x];
+            deltaScoreEnd +=  MatArrEnd[capt/2] + pst[capt/2 - 1][1][7 - y][x];
         }
     }
-    else if(MOVEFLG(m) & mCS_K)
+    else if(m.flg & mCS_K)
     {
-        deltaScoreOpn += pst[_r - 1][0][7][5] - pst[_r - 1][0][7][7];
-        deltaScoreEnd += pst[_r - 1][1][7][5] - pst[_r - 1][1][7][7];
+        deltaScoreOpn += pst[_r/2 - 1][0][7][5] - pst[_r/2 - 1][0][7][7];
+        deltaScoreEnd += pst[_r/2 - 1][1][7][5] - pst[_r/2 - 1][1][7][7];
     }
-    else if(MOVEFLG(m) & mCS_Q)
+    else if(m.flg & mCS_Q)
     {
-        deltaScoreOpn += pst[_r - 1][0][7][3] - pst[_r - 1][0][7][0];
-        deltaScoreEnd += pst[_r - 1][1][7][3] - pst[_r - 1][1][7][0];
+        deltaScoreOpn += pst[_r/2 - 1][0][7][3] - pst[_r/2 - 1][0][7][0];
+        deltaScoreEnd += pst[_r/2 - 1][1][7][3] - pst[_r/2 - 1][1][7][0];
     }
 
     deltaScoreOpn += pst[pt - 1][0][y][x] - pst[pt - 1][0][y0][x0];
@@ -174,13 +174,13 @@ void EvalAllMaterialAndPST()
             continue;
         UC x0 = COL(i);
         UC y0 = ROW(i);
-        if(pt & WHT)
+        if(pt & white)
             y0 = 7 - y0;
 
-        short tmpOpn = MatArrOpn[pt & ~WHT] + pst[(pt & ~WHT) - 1][0][y0][x0];
-        short tmpEnd = MatArrEnd[pt & ~WHT] + pst[(pt & ~WHT) - 1][1][y0][x0];
+        short tmpOpn = MatArrOpn[pt/2] + pst[(pt/2) - 1][0][y0][x0];
+        short tmpEnd = MatArrEnd[pt/2] + pst[(pt/2) - 1][1][y0][x0];
 
-        if(pt & WHT)
+        if(pt & white)
         {
             valOpn += tmpOpn;
             valEnd += tmpEnd;
@@ -193,7 +193,20 @@ void EvalAllMaterialAndPST()
     }
 }
 
-//#ifdef USE_PAWN_STRUCT
+//--------------------------------
+bool TestPromo(int col, UC stm)
+{
+    int mx = pmax[col + 1][stm];
+
+    if(mx >= 7 - pmin[col + 1][!stm]
+    && mx >= 7 - pmin[col - 0][!stm]
+    && mx >= 7 - pmin[col + 2][!stm])
+        return true;
+    else
+        return false;
+
+}
+
 //--------------------------------
 void EvalPawns(bool stm)
 {
@@ -248,7 +261,7 @@ void EvalPawns(bool stm)
 
             if(oppHasOnlyPawns)
             {
-                if(TestUnstoppable(i, 7 - pmax[i + 1][stm], stm << 5))
+                if(TestUnstoppable(i, 7 - pmax[i + 1][stm], stm))
                 {
                     ansO += 120*mx + 350;
                     ansE += 120*mx + 350;
@@ -267,12 +280,13 @@ void EvalPawns(bool stm)
 //-----------------------------
 bool TestUnstoppable(int x, int y, UC stm)
 {
-    UC k    = men[(stm ^ WHT) + 1];
+    UC k    = *pc_list[!stm].begin();
     if(y > 5)
         y = 5;
     int psq = XY2SQ(x, stm ? 7 : 0);
     int d = kingDist[ABSI(k - psq)];
-    if(COL(men[stm + 1]) == x && kingDist[ABSI(men[stm + 1] - psq)] <= y)
+    if(COL(*pc_list[stm].begin()) == x
+    && kingDist[ABSI(*pc_list[stm].begin() - psq)] <= y)
         y++;
     return d - (stm != wtm) > y;
 }
@@ -280,7 +294,7 @@ bool TestUnstoppable(int x, int y, UC stm)
 //-----------------------------
 short KingShieldFactor(UC stm)
 {
-    int k = men[stm + 1];
+    int k = *pc_list[stm].begin();
     int shft = stm ? 16 : -16;
 
     if(!ONBRD(k + shft + shft))
@@ -348,11 +362,11 @@ void KingSafety(UC stm)
 
     short ans = 0;
 
-    UC k = men[stm + 1];                                                //
-    if(COL(k) == 3 || COL(k) == 4)
-        ans -= 100;
+//    UC k = *pc_list[stm].begin();
+//    if(COL(k) == 3 || COL(k) == 4)
+//        ans -= 100;
 
-    if(boardState[PREV_STATES + ply].cstl & (0x0C >> (stm >> 4)))       // able to castle
+    if(boardState[prev_states + ply].cstl & 0x0C)       // able to castle
     {
         valOpn += stm ? ans : -ans;
         return;
@@ -368,25 +382,21 @@ void KingSafety(UC stm)
 void CountKingAttacks(UC stm)
 {
     SC shifts[] = {15, 16, 17, -1, 1, -15, -16, -17};
-    UC k = men[stm + 1];
+    UC k = *pc_list[stm].begin();
     unsigned ans = 0;
 
-    UC menNum   = (stm ^ WHT) + 2;
-    int maxPc = pieces[!stm] - 1;
-
-    for(int pcCr = 0; pcCr < maxPc; ++pcCr)
+    for(auto fr : pc_list[!stm])
     {
-        UC fr = men[menNum];
-        UC pt = b[fr] & ~WHT;
+        UC pt = b[fr] & ~white;
         if(pt == _p)
             break;
 
-        for(unsigned i = 0; i < sizeof(shifts); ++i)
+        for(unsigned i = 0; i < sizeof(shifts)/sizeof(*shifts); ++i)
         {
             UC to = k + shifts[i];
             if(!ONBRD(to))
                 continue;
-            if(!(attacks[120 + fr - to] & (1 << pt)))
+            if(!(attacks[120 + fr - to] & (1 << pt/2)))
                 continue;
             UC dist = kingDist[ABSI(k - fr)];
             if(dist > 4)
@@ -395,14 +405,13 @@ void CountKingAttacks(UC stm)
             ans += dist;
         }
 
-        menNum = menNxt[menNum];
         if(ans > 120/6)
         {
             ans = 120/6;
             break;
         }
     }
-//    if(wtm == WHT || wtm == BLK)
+//    if(wtm == white || wtm == black)
 //        ans = 0;
     valOpn -= stm ? 6*ans : -6*ans;
 }
@@ -412,19 +421,19 @@ void CountKingAttacks(UC stm)
 void RookEval(UC stm)
 {
     short ans = 0;
-    UC pi = pieces[stm >> 5];
-    if(material[stm >> 5] - pi < 8)
+    UC pcs = pieces[stm];
+    if(material[stm] - pcs < 8)
         return;
     int i = 2;
-    while(i++ < pi)
+    while(i++ < pcs)
     {
-        UC pt = b[men[stm + i]] & ~WHT;
+        UC pt = b[men[stm + i]] & ~white;
         if(pt > _r)
             break;
         if(pt < _r)
             continue;
 
-        if(pmax[1 + COL(men[stm + 2 + i])][stm >> 5] == 0)
+        if(pmax[1 + COL(men[stm + 2 + i])][stm] == 0)
         {
             ans += param[0]/3;
             if(pmax[1 + COL(men[stm + 2 + i])][!stm] == 0)
