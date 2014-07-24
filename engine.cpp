@@ -26,9 +26,9 @@ bool        timeCommandSent;
 #ifndef NOT_USE_HASH_TABLE
     unsigned long hashSize = 64*HASH_ENTRIES_PER_MB;
     std::unordered_map<UQ, hashEntryStruct> hash_table(hashSize);
-//    UQ  doneHashKeys[FIFTY_MOVES + MAX_PLY];
-    std::array<UQ, FIFTY_MOVES + MAX_PLY> doneHashKeys;
+    UQ  doneHashKeys[FIFTY_MOVES + MAX_PLY];
 #endif // NOT_USE_HASH_TABLE
+
 //--------------------------------
 short Search(int depth, short alpha, short beta)
 {
@@ -68,8 +68,14 @@ short Search(int depth, short alpha, short beta)
         }// if(entry.depth
         else
         {
-//            if(entry.only_move)
-//                depth++;
+            if(entry.only_move)
+            {
+                if(!(MOVEFLG(entry.best_move) & mCAPT))
+                    depth++;
+                else if(pc_streng[b[(MOVEPC(entry.best_move) >> 16)]  & ~WHT ] <=
+                        pc_streng[b[MOVETO(entry.best_move)] & ~WHT])
+                    depth++;
+            }
             if(entry.bound_type == hEXACT
             || entry.bound_type == hUPPER)
                 best_move_hashed = true;
@@ -374,7 +380,7 @@ void MainSearch()
                 break;
             if(ABSI(sc) > K_VAL - MAX_PLY && !stop)
                 break;
-            if(rootTop == 1 && rootPly >= 6 )
+            if(rootTop == 1 && rootPly >= 8 )
                 break;
         }
         if(rootPly >= timeMaxPly)
@@ -404,6 +410,10 @@ void MainSearch()
     if(_abort_)
         analyze = false;
 
+/*    if(sc < K_VAL - MAX_PLY)
+        std::cout << "( mate not found )" << std::endl;
+    #warning
+*/
     busy = false;
 }
 
@@ -605,7 +615,7 @@ void PrintSearchResult()
     mov[1]  = ROW(f) + '1';
     mov[2]  = COL(MOVETO(p)) + 'a';
     mov[3]  = ROW(MOVETO(p)) + '1';
-    mov[4]  = (MOVEFLG(p) & (mPROM << 16)) ? proms[(MOVEFLG(p) >> 16) & mPROM] : '\0';
+    mov[4]  = (MOVEFLG(p) & mPROM) ? proms[(MOVEFLG(p) & mPROM) >> 16] : '\0';
     mov[5]  = '\0';
 
     if(!uci && !MakeMoveFinaly(mov))
@@ -739,8 +749,8 @@ bool ShowPV(int _ply)
             std::cout  << (char)(COL(fr) + 'a') << (char)(ROW(fr) + '1')
                 << (char)(COL(MOVETO(m)) + 'a') << (char)(ROW(MOVETO(m)) + '1');
             char proms[] = {'?', 'q', 'n', 'r', 'b'};
-            if(MOVEFLG(m) & (mPROM << 16))
-                std::cout << proms[(MOVEFLG(m) >> 16) & mPROM];
+            if(MOVEFLG(m) & mPROM)
+                std::cout << proms[(MOVEFLG(m) & mPROM) >> 16];
             std::cout << " ";
             MkMove(m);
             bool in_check = Attack(men[wtm + 1], wtm ^ WHT);
@@ -761,19 +771,19 @@ bool ShowPV(int _ply)
             {
                 std::cout << pc;
                 Ambiguous(m);
-                if(MOVEFLG(m) & (mCAPT << 16))
+                if(MOVEFLG(m) & mCAPT)
                     std::cout << 'x';
                 std::cout << (char)(COL(MOVETO(m)) + 'a');
                 std::cout << (char)(ROW(MOVETO(m)) + '1');
             }
-            else if(MOVEFLG(m) & (mCAPT << 16))
+            else if(MOVEFLG(m) & mCAPT)
                 std::cout << (char)(COL(men[MOVEPC(m)]) + 'a') << "x"
                      << (char)(COL(MOVETO(m)) + 'a') << (char)(ROW(MOVETO(m)) + '1');
             else
                 std::cout << (char)(COL(MOVETO(m)) + 'a') << (char)(ROW(MOVETO(m)) + '1');
             char proms[] = "?QNRB";
-            if(pc == 'P' && (MOVEFLG(m) & (mPROM << 16)))
-                std::cout << proms[(MOVEFLG(m) >> 16) & mPROM];
+            if(pc == 'P' && (MOVEFLG(m) & mPROM))
+                std::cout << proms[(MOVEFLG(m)& mPROM) >> 16];
             std::cout << ' ';
             MkMove(m);
             bool in_check = Attack(men[wtm + 1], wtm ^ WHT);
@@ -806,7 +816,7 @@ void Ambiguous(Move m)
         UC pt = b[fr];
         if(pt != pt0)
             continue;
-        pt &= 0x07;
+        pt &= ~WHT;
         if(!(attacks[120 + fr - MOVETO(m)] & (1 << pt)))
             continue;
         if(slider[pt] && !SliderAttack(fr, MOVETO(m)))
@@ -852,7 +862,7 @@ bool MakeMoveFinaly(char *mov)
         rMov[1] = ROW(men[MOVEPC(m)]) + '1';
         rMov[2] = COL(MOVETO(m)) + 'a';
         rMov[3] = ROW(MOVETO(m)) + '1';
-        rMov[4] = (MOVEFLG(m) & (mPROM << 16)) ? proms[(MOVEFLG(m) >> 16) & mPROM] : '\0';
+        rMov[4] = (MOVEFLG(m) & mPROM) ? proms[(MOVEFLG(m) & mPROM) >> 16] : '\0';
         rMov[5] = '\0';
 
         if(strcmp(mov, rMov) == 0)
@@ -982,7 +992,7 @@ bool SimpleDrawByRepetition()
 //--------------------------------
 void CheckForInterrupt()
 {
-    if(uci && (nodes & 0x07FFFF) == 0x07FFFF)
+    if(uci && (nodes & 0x7FFFFF) == 0x7FFFFF)
     {
         double t = timer.getElapsedTimeInMicroSec();
 
@@ -995,8 +1005,8 @@ void CheckForInterrupt()
             << (char)(COL(fr) + 'a') << (char)(ROW(fr) + '1')
             << (char)(COL(MOVETO(m)) + 'a') << (char)(ROW(MOVETO(m)) + '1');
         char proms[] = {'?', 'q', 'n', 'r', 'b'};
-        if(MOVEFLG(m) & (mPROM << 16))
-            std::cout << proms[(MOVEFLG(m) >> 16) & mPROM];
+        if(MOVEFLG(m) & mPROM)
+            std::cout << proms[(MOVEFLG(m) & mPROM) >> 16];
 
         std::cout << " currmovenumber " << rootMoveCr + 1;
         std::cout << " hashfull ";
@@ -1037,9 +1047,9 @@ void MkMove(Move m)
     boardState[PREV_STATES + ply].to = targ;
     boardState[PREV_STATES + ply].reversibleCr = reversibleMoves;
     reversibleMoves++;
-    if(MOVEFLG(m) & (mCAPT << 16))
+    if(MOVEFLG(m) & mCAPT)
     {
-        if (MOVEFLG(m) & (mENPS << 16))
+        if (MOVEFLG(m) & mENPS)
         {
             targ += wtm ? -16 : 16;
             material[!wtm]--;
@@ -1063,7 +1073,7 @@ void MkMove(Move m)
         reversibleMoves = 0;
     }// if capture
 
-    if(!(b[fr] & 0xDC) || (MOVEFLG(m) & (mCAPT << 16)))        // trick: fast exit if not K|Q|R moves, and no captures
+    if(!(b[fr] & 0xDC) || (MOVEFLG(m) & mCAPT))        // trick: fast exit if not K|Q|R moves, and no captures
         specialMove |= MakeCastle(m, fr);
 
     boardState[PREV_STATES + ply].ep = 0;
@@ -1080,7 +1090,7 @@ void MkMove(Move m)
     b[MOVETO(m)]     = b[fr];
     b[fr]       = __;
 
-    int prIx = (MOVEFLG(m) >> 16) & mPROM;
+    int prIx = (MOVEFLG(m) & mPROM) >> 16;
     UC prPc[] = {0, _q, _n, _r, _b};
     if(prIx)
     {
@@ -1097,7 +1107,7 @@ void MkMove(Move m)
         reversibleMoves = 0;
     }
 #ifndef NOT_USE_HASH_TABLE
-    doneHashKeys.at(FIFTY_MOVES + ply - 1) = hash_key;
+    doneHashKeys[FIFTY_MOVES + ply - 1] = hash_key;
     MoveHashKey(m, fr, specialMove);
     #ifndef NDEBUG
         UQ tmp_key = InitHashKey() ^ -1ULL;
@@ -1118,18 +1128,18 @@ void UnMove(Move m)
 {
     UC fr = boardState[PREV_STATES + ply].fr;
     men[MOVEPC(m)] = fr;
-    b[fr] = (MOVEFLG(m) & (mPROM << 16)) ? _P ^ wtm : b[MOVETO(m)];
+    b[fr] = (MOVEFLG(m) & mPROM) ? _P ^ wtm : b[MOVETO(m)];
     b[MOVETO(m)] = boardState[PREV_STATES + ply].capt;
 
     reversibleMoves = boardState[PREV_STATES + ply].reversibleCr;
 #ifndef NOT_USE_HASH_TABLE
-    hash_key = doneHashKeys.at(FIFTY_MOVES + ply - 1);
+    hash_key = doneHashKeys[FIFTY_MOVES + ply - 1];
 #endif // NOT_USE_HASH_TABLE
     wtm ^= WHT;
 
-    if(MOVEFLG(m) & (mCAPT << 16))
+    if(MOVEFLG(m) & mCAPT)
     {
-        if(MOVEFLG(m) & (mENPS << 16))
+        if(MOVEFLG(m) & mENPS)
         {
             material[!wtm]++;
             if(wtm)
@@ -1149,7 +1159,7 @@ void UnMove(Move m)
         material[!wtm] += pc_streng[boardState[PREV_STATES + ply].capt & 0x0F];
     }// if capture
 
-    int prIx = (MOVEFLG(m) >> 16) & mPROM;
+    int prIx = (MOVEFLG(m) & mPROM) >> 16;
     UC prPc[] = {0, _q, _n, _r, _b};
     if(prIx)
     {
@@ -1160,7 +1170,7 @@ void UnMove(Move m)
         menNxt[nprm] = MOVEPC(m);
     }
 
-    if(MOVEFLG(m) & (mCSTL << 16))
+    if(MOVEFLG(m) & mCSTL)
         UnMakeCastle(m);
 
 #ifdef USE_PAWN_STRUCT
@@ -1223,7 +1233,7 @@ void MakeNullMove()
 
 #ifndef NOT_USE_HASH_TABLE
     hash_key ^= -1ULL;
-    doneHashKeys.at(FIFTY_MOVES + ply - 1) = hash_key;
+    doneHashKeys[FIFTY_MOVES + ply - 1] = hash_key;
 #endif // NOT_USE_HASH_TABLE
 
     wtm ^= WHT;
@@ -1316,7 +1326,7 @@ bool DrawByRepetition()
     unsigned i;
     for(i = 4; i <= max_count; i += 2)
     {
-        if(hash_key == doneHashKeys.at(FIFTY_MOVES + ply - i))
+        if(hash_key == doneHashKeys[FIFTY_MOVES + ply - i])
             return true;
     }
 
@@ -1355,11 +1365,32 @@ void ShowFen()
         if(row != 0)
             std::cout << "/";
     }
-    std::cout << " " << (wtm ? 'w' : 'b');
+    std::cout << " " << (wtm ? 'w' : 'b') << " ";
+
+    UC cstl = boardState[PREV_STATES + 0].cstl;
+    if(cstl & 0x0F)
+    {
+        if(cstl & 0x01)
+            std::cout << "K";
+        if(cstl & 0x02)
+            std::cout << "Q";
+        if(cstl & 0x04)
+            std::cout << "k";
+        if(cstl & 0x08)
+            std::cout << "q";
+    }
+    else
+        std::cout << "-";
+
+
+    std::cout << " -";                                                  // No en passant yet
+
+    std::cout << " " << reversibleMoves;
+    std::cout << " " << finalyMadeMoves/2 + 1;
 
     std::cout << std::endl;
 }
-
+#ifndef NOT_USE_HASH_TABLE
 //--------------------------------
 void ReHash(int size_MB)
 {
@@ -1368,6 +1399,7 @@ void ReHash(int size_MB)
     hash_table.rehash(hashSize);
     busy = false;
 }
+#endif // NOT_USE_HASH_TABLE
 
 /*
 r4rk1/ppqn1pp1/4pn1p/2b2N1P/8/5N2/PPPBQPP1/2KRR3 w - - 0 18 Nxh6?! speed test position
@@ -1447,4 +1479,9 @@ r5k1/1pp2r1p/1b1p4/3Pp3/p1Q1P1p1/PnBP1BPq/1P3P1P/4RRK1 w - - 1 27; KS eval, no o
 k4q2/1p6/8/2p1P3/r7/8/3Q1P1r/4RKR1 w - - 0 53 am Rg2; no only move ext
 k3b1rr/p7/P3p3/4P1b1/3NK3/5R2/1P3B2/R7 w - - 9 58; king is too central
 8/4p1k1/3pP1p1/3P2P1/5P2/8/r1BK4/8 b - - 68 84; eval: white's better?
+
+5r2/8/3k4/8/8/8/8/K6B b - - 98 139; fifty-move rule
+2r1rbk1/p1Bq1ppp/Ppn1b3/1Npp4/B7/3P2Q1/1PP2PPP/R4RK1 w - - 0 1 bm Nxa7;
+
+8/6R1/3p4/3P3p/p4K1k/2r5/1R6/8 w - - 0 1; experiments with singular reply
 */
