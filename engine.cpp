@@ -11,23 +11,22 @@ unsigned    timeMaxNodes, timeMaxPly;
 unsigned    rootPly, rootTop, rootMoveCr;
 bool        _abort_, stop, analyze, busy;
 Move        rootMoveList[MAX_MOVES];
-UQ          qnodes, cutCr, cutNumCr[8], qCutCr, qCutNumCr[8], futCr;
+UQ          qnodes, cutCr, cutNumCr[5], qCutCr, qCutNumCr[5], futCr;
+UQ          nullProbeCr, nullCutCr, hashProbeCr, hashHitCr, hashCutCr;
 UQ          totalNodes;
 double      timeBase, timeInc, timeRemains, totalTimeSpent;
 unsigned    movesPerSession;
 int         finalyMadeMoves, movsRemain;
-#ifdef NOT_USE_HASH_FOR_DRAW
-    Move        doneMoves[FIFTY_MOVES];
-#endif
+Move        doneMoves[FIFTY_MOVES];
 bool        spentExactTime;
 unsigned    resignCr;
 bool        timeCommandSent;
 
-#ifndef NOT_USE_HASH_TABLE
-    unsigned long hashSize = 64*HASH_ENTRIES_PER_MB;
-    std::unordered_map<UQ, hashEntryStruct> hash_table(hashSize);
-    UQ  doneHashKeys[FIFTY_MOVES + max_ply];
-#endif // NOT_USE_HASH_TABLE
+
+unsigned long hashSize = 64*HASH_ENTRIES_PER_MB;
+std::unordered_map<UQ, hashEntryStruct> hash_table(hashSize);
+UQ  doneHashKeys[FIFTY_MOVES + max_ply];
+
 
 //--------------------------------
 short Search(int depth, short alpha, short beta, int lmr_)
@@ -41,79 +40,64 @@ short Search(int depth, short alpha, short beta, int lmr_)
     if(in_check)
         depth += 1 + lmr_;
 
-#ifndef NOT_USE_FUTILITY
+#ifndef DONT_USE_FUTILITY
     if(depth <= 1 && depth >= 0 && !in_check
     && beta < (short)(K_VAL - max_ply)
     && Futility(depth, beta))
         return beta;
-#endif // NOT_USE_FUTILITY
+#endif // DONT_USE_FUTILITY
 
-#ifndef NOT_USE_HASH_TABLE
     short _alpha = alpha;
     bool best_move_hashed = false;
     hashEntryStruct entry;
-    if(hash_table.count(hash_key) > 0 && !stop)
-    {
-        entry = hash_table[hash_key];
-        if(entry.depth >= depth)
-        {
-            UC hbnd = entry.bound_type;
-            short hval = -entry.value;
-            if(((hbnd == hUPPER || hbnd == hEXACT) && hval >= beta)
-            || ((hbnd == hLOWER || hbnd == hEXACT) && hval <= alpha)
-            )
-            {
-                pv[ply][0].flg = 0;
-                return hval;
-            }// if(bnd
-        }// if(entry.depth
-        else
-        {
-            if(entry.bound_type == hEXACT
-            || entry.bound_type == hUPPER)
-                best_move_hashed = true;
-        }
-    }
-#endif // NOT_USE_HASH_TABLE
+    if(HashProbe(depth, alpha, beta, &entry, &best_move_hashed))
+        return -entry.value;
+
     if(depth <= 0)
         return Quiesce(alpha, beta);
     nodes++;
     if((nodes & 511) == 511)
         CheckForInterrupt();
 
-#ifndef NOT_USE_NULL_MOVE
+#ifndef DONT_USE_NULL_MOVE
     if(NullMove(depth, beta, in_check))
         return beta;
-#endif // NOT_USE_NULL_MOVE
+#endif // DONT_USE_NULL_MOVE
 
-    Move moveList[MAX_MOVES];
-#ifdef NOT_USE_HASH_TABLE
-    if(genBestMove)
-        bestMoveToGen = pv[0][1 + ply];
-#else
+    Move moveList[MAX_MOVES], m, m_best;
+    int i = 0, legals = 0, top;
+    short x;
+
     if(best_move_hashed)
     {
-        genBestMove     = true;
-        bestMoveToGen   = entry.best_move;
+        m_best = entry.best_move;
+        top = 999;
     }
     else
-        genBestMove = false;
-#endif // NOT_USE_HASH_TABLE
-    int i = 0, legals = 0;
-    int top = GenMoves(moveList, APPRICE_ALL);
-
-    Move m;
-    short x;
+        top = GenMoves(moveList, APPRICE_ALL);
 
     boardState[prev_states + ply].valOpn = valOpn;
     boardState[prev_states + ply].valEnd = valEnd;
 
     bool mateFound = alpha >= (short)(K_VAL - max_ply + 1);
-//    if(analyze)
-//        mateFound = false;
+
     for(; i < top && !stop && !mateFound; i++)
     {
-        Next(moveList, i, top, &m);
+        if(!best_move_hashed)
+            Next(moveList, i, top, &m);
+        else
+        {
+            if(i == 0)
+                m = m_best;
+            else
+            {
+                if(i == 1)
+                    top = GenMoves(moveList, APPRICE_ALL);
+                Next(moveList, i, top, &m);
+                if(m == m_best)
+                    continue;
+            }
+        }// else
 
         MkMove(m);
 #ifndef NDEBUG
@@ -128,7 +112,7 @@ short Search(int depth, short alpha, short beta, int lmr_)
 
         FastEval(m);
 
-#ifndef NOT_USE_LMR
+#ifndef DONT_USE_LMR
         int lmr = 1;
         if(depth < 3 || m.flg || in_check)
             lmr = 0;
@@ -140,34 +124,22 @@ short Search(int depth, short alpha, short beta, int lmr_)
             ply = ply;
 #else
         int lmr = 0;
-#endif  // NOT_USE_LMR
-
+#endif  // DONT_USE_LMR
 
         if(legals == 0)
             x = -Search(depth - 1, -beta, -alpha, 0);
-        else
+        else if(beta - alpha > 1)
         {
             x = -Search(depth - 1 - lmr, -alpha - 1, -alpha, lmr);
-            if(x > alpha && (x < beta || lmr))
-                x = -Search(depth - 1, -beta, -alpha, 0);
-        }
-
-
-/*#ifndef NOT_USE_PVS
-        if(legals && depth > 1 && beta != alpha + 1
-        && ABSI(alpha) < (short)(K_VAL - max_ply + 1))
-        {
-            x = -Search(depth - 1 - lmr, -alpha - 1, -alpha, lmr);
-            if(x > alpha && x < beta)
+            if(x > alpha)
                 x = -Search(depth - 1, -beta, -alpha, 0);
         }
         else
-            x = -Search(depth - 1, -beta, -alpha, 0);
-#else
-        x = -Search(depth - 1, -beta, -alpha, 0);
-#endif // NOT_USE_PVS
-        */
-        genBestMove = false;
+        {
+            x = -Search(depth - 1 - lmr, -beta, -alpha, lmr);
+            if(lmr && x > alpha)
+                x = -Search(depth - 1, -beta, -alpha, 0);
+        }
 
         legals++;
 
@@ -186,7 +158,7 @@ short Search(int depth, short alpha, short beta, int lmr_)
         pv[ply][0].flg = 0;
         return in_check ? -K_VAL + ply : 0;
     }
-#ifndef NOT_USE_HASH_TABLE
+
     else if(legals)
     {
         size_t sz = hash_table.size();
@@ -224,12 +196,13 @@ short Search(int depth, short alpha, short beta, int lmr_)
                 hs.bound_type   = hLOWER;
                 hs.value        = -_alpha;
                 hash_table[hash_key] = hs;
+//                hs.best_move    = pv[ply][1];
             }
             else
                 ply = ply;
         }// if(exist && sz < ...
     }// else if(legals
-#endif // NOT_USE_HASH_TABLE
+
     if(i >= BETA_CUTOFF)
     {
         UpdateStatistics(m, depth, i);
@@ -269,11 +242,11 @@ short Quiesce(short alpha, short beta)
         Move m;
         Next(moveList, i, top, &m);
 
-#ifndef NOT_USE_SEE_CUTOFF
+#ifndef DONT_USE_SEE_CUTOFF
         if(m.scr <= BAD_CAPTURES)
             break;
 #endif
-#ifndef NOT_USE_DELTA_PRUNING
+#ifndef DONT_USE_DELTA_PRUNING
         if(material[0] + material[1] > 24
         && (wtm ? valOpn : -valOpn) + 100*pc_streng[b[m.to]/2] < alpha - 450)
             continue;
@@ -305,9 +278,12 @@ short Quiesce(short alpha, short beta)
 
     if(i > top + 1)
     {
+#ifndef DONT_SHOW_STATISTICS
+
         qCutCr++;
         if(i < BETA_CUTOFF + sizeof(qCutNumCr)/sizeof(*qCutNumCr))
             qCutNumCr[i - BETA_CUTOFF]++;
+#endif // DONT_SHOW_STATISTICS
         return beta;
     }
     return alpha;
@@ -357,11 +333,15 @@ void StorePV(Move m)
 //-----------------------------
 void UpdateStatistics(Move m, int dpt, unsigned i)
 {
-    cutCr++;
-    if(i < BETA_CUTOFF + sizeof(cutNumCr)/sizeof(*cutNumCr))
-        cutNumCr[i - BETA_CUTOFF]++;
+#ifndef DONT_SHOW_STATISTICS
+        cutCr++;
+        if(i < BETA_CUTOFF + sizeof(cutNumCr)/sizeof(*cutNumCr))
+            cutNumCr[i - BETA_CUTOFF]++;
+#else
+    UNUSED(i);
+#endif // DONT_SHOW_STATISTICS
 #ifndef NDEBUG
-    else if(i > BETA_CUTOFF + 10 && dpt > 4)
+    else if(i > BETA_CUTOFF)
         ply = ply;
 #endif //NDEBUG
     if(m.flg)
@@ -372,7 +352,7 @@ void UpdateStatistics(Move m, int dpt, unsigned i)
         kil[ply][0] = m;
     }
 
-#ifndef NOT_USE_HISTORY
+#ifndef DONT_USE_HISTORY
     auto it = pc_list[wtm].begin();
     it = m.pc;
     UC fr = *it;
@@ -380,7 +360,7 @@ void UpdateStatistics(Move m, int dpt, unsigned i)
     h += dpt*dpt + 1;
 #else
     UNUSED(dpt);
-#endif // NOT_USE_HISTORY
+#endif // DONT_USE_HISTORY
 }
 
 //--------------------------------
@@ -398,7 +378,6 @@ void MainSearch()
         if(rootPly == 7)
             ply = ply;
 #endif
-        genBestMove = false;
         _sc_     = sc;
 
         sc = RootSearch(rootPly, -INF, INF);
@@ -417,7 +396,7 @@ void MainSearch()
                 break;
             if(ABSI(sc) > (short)(K_VAL - max_ply) && !stop)
                 break;
-            if(rootTop == 1 && rootPly >= 8 )
+            if(rootTop == 1 && rootPly >= 8)
                 break;
         }
         if(rootPly >= timeMaxPly)
@@ -484,30 +463,14 @@ short RootSearch(int depth, short alpha, short beta)
         FastEval(m);
         UQ _nodes = nodes;
 
-#ifndef NOT_USE_HASH_FOR_DRAW
         if(!DrawByRepetition())
-        {
-//            if(rootMoveCr > 0)
-//                x = -Search(depth - 1, -alpha - 1, - alpha, 0);
-//            if(rootMoveCr <= 0 || x > alpha)
                 x = -Search(depth - 1, -beta, -alpha, 0);
-        }
-#else
-        if(true/*!DrawByRepetitionInRoot(m)*/)
-        {
-//            if(rootMoveCr > 0)
-//                x = -Search(depth - 1, -alpha - 1, -alpha, 0);
-//            if(rootMoveCr <= 0 || x > alpha)
-                x = -Search(depth - 1, -beta, -alpha), 0;
-        }
-#endif // NOT_USE_HASH_FOR_DRAW
+
         else
         {
             x = 0;
             pv[1][0].flg = 0;
         }
-
-        genBestMove = false;
 
         UQ dn = nodes - _nodes;
 
@@ -606,6 +569,11 @@ void InitSearch()
     cutCr   = 0;
     qCutCr  = 0;
     futCr   = 0;
+    nullCutCr   = 0;
+    nullProbeCr = 0;
+    hashCutCr   = 0;
+    hashProbeCr = 0;
+    hashHitCr   = 0;
 
     unsigned i, j;
     for(i = 0; i < sizeof(cutNumCr)/sizeof(*cutNumCr); i++)
@@ -628,7 +596,7 @@ void InitSearch()
     stop = false;
     _abort_ = false;
 
-    if(!uci)
+    if(!uci && !xboard)
     {
     std::cout   << "( tRemain=" << timeRemains/1e6
                 << ", t2thnk=" << timeToThink/1e6
@@ -637,10 +605,11 @@ void InitSearch()
     std::cout   << "Ply Value  Time    Nodes        Principal Variation" << std::endl;
     }
 
-
-#ifndef NOT_USE_HASH_TABLE
     hash_table.clear();
-#endif // NOT_USE_HASH_TABLE
+
+#ifndef DONT_USE_HISTORY
+    memset(history, 0, sizeof(history));
+#endif // DONT_USE_HISTORY
 }
 
 //--------------------------------
@@ -665,28 +634,43 @@ void PrintSearchResult()
         std::cout << "tellusererror err01" << std::endl << "resign" << std::endl;
     }
 
-#ifndef NOT_SHOW_STATISTICS
-        std::cout << "( q/n = " << (int)(qnodes/(nodes/100 + 1)) << "%, ";
-
-        std::cout << "cut = [";
-        for(unsigned i = 0; i < sizeof(cutNumCr)/sizeof(*cutNumCr); i++)
-            std::cout  << (int)(cutNumCr[i]/(cutCr/100 + 1)) << " ";
-        std::cout << "]% )" << std::endl;
-
-        std::cout << "( qCut = [";
-        for(unsigned i = 0; i < sizeof(qCutNumCr)/sizeof(*qCutNumCr); i++)
-            std::cout  << (int)(qCutNumCr[i]/(qCutCr/100 + 1)) << " ";
-        std::cout << "]% )" << std::endl;
-
-        std::cout   << "( tSpent=" << timeSpent/1e6
-                    << ", nodes=" << nodes
-                    << ", futCr = " << futCr
-                    << " )" << std::endl;
-#endif
     if(!uci)
         std::cout << "move " << mov << std::endl;
     else
         std::cout << "bestmove " << mov << std::endl;
+
+    if(xboard || uci)
+        return;
+
+#ifndef DONT_SHOW_STATISTICS
+    std::cout << "( q/n = " << (int)(qnodes/(nodes/100 + 1)) << "%, ";
+
+    std::cout << "cut = [";
+    for(unsigned i = 0; i < sizeof(cutNumCr)/sizeof(*cutNumCr); i++)
+        std::cout  << (int)(cutNumCr[i]/(cutCr/100 + 1)) << " ";
+    std::cout << "]% )" << std::endl;
+    std::cout << "( qCut = [";
+    for(unsigned i = 0; i < sizeof(qCutNumCr)/sizeof(*qCutNumCr); i++)
+        std::cout  << (int)(qCutNumCr[i]/(qCutCr/100 + 1)) << " ";
+    std::cout << "]% )" << std::endl;
+
+    std::cout   << "( hash probes = " << hashProbeCr
+                << ", hits = "
+                << (int)(hashHitCr/(hashProbeCr/100 + 1)) << "%, "
+                << "cutoffs = "
+                << (int)(hashCutCr/(hashProbeCr/100 + 1)) << "% )"
+                << std::endl;
+#ifndef DONT_USE_NULL_MOVE
+    std::cout   << "( null move probes = " << hashProbeCr
+                << ", cutoffs = "
+                << (int)(nullCutCr/(nullProbeCr/100 + 1)) << "% )"
+                << std::endl;
+#endif // DONT_USE_NULL_MOVE
+    std::cout   << "( tSpent=" << timeSpent/1e6
+                << ", nodes=" << nodes
+                << ", futCr = " << futCr
+                << " )" << std::endl;
+#endif
 }
 
 //--------------------------------
@@ -918,11 +902,9 @@ bool MakeMoveFinaly(char *mov)
 
         if(strcmp(mov, rMov) == 0)
         {
-#ifdef NOT_USE_HASH_FOR_DRAW
             auto it = pc_list[wtm].begin();
             it = m.pc;
-            UC fr = *it;
-#endif //NOT_USE_HASH_FOR_DRAW
+//            UC fr = *it;
             MkMove(m);
 
             FastEval(m);
@@ -942,16 +924,8 @@ bool MakeMoveFinaly(char *mov)
                         << std::endl << "resign"
                         << std::endl;
             }
-#ifndef NOT_USE_HASH_FOR_DRAW
             for(int i = 0; i < FIFTY_MOVES; ++i)
                 doneHashKeys[i] = doneHashKeys[i + 1];
-#else
-            memmove(&doneMoves[1], &doneMoves[0],
-                    sizeof(doneMoves) - sizeof(Move));
-            Move m1 = m;
-            m.scr = fr;
-            doneMoves[0] = m1;
-#endif // NOT_USE_HASH_FOR_DRAW
 
             finalyMadeMoves++;
             return true;
@@ -964,10 +938,7 @@ bool MakeMoveFinaly(char *mov)
 void InitEngine()
 {
     InitEval();
-
-#ifndef NOT_USE_HASH_TABLE
     hash_key = InitHashKey();
-#endif // NOT_USE_HASH_TABLE
 
     std::cin.rdbuf()->pubsetbuf(NULL, 0);
     std::cout.rdbuf()->pubsetbuf(NULL, 0);
@@ -996,9 +967,7 @@ bool FenStringToEngine(char *fen)
     timeSpent   = 0;
     timeRemains = timeBase;
     finalyMadeMoves = 0;
-#ifndef NOT_USE_HASH_TABLE
     hash_key = InitHashKey();
-#endif // NOT_USE_HASH_TABLE
 
 //    std::cout << "( " << fen << " )" << std::endl;
     return true;
@@ -1019,28 +988,7 @@ bool DrawDetect()
     if(reversibleMoves == FIFTY_MOVES)
         return true;
 
-#ifndef NOT_USE_HASH_FOR_DRAW
     return DrawByRepetition();
-#else
-    return SimpleDrawByRepetition();
-#endif // USE_HASH_FOR_DRAW
-
-}
-
-//--------------------------------
-bool SimpleDrawByRepetition()
-{
-    if(reversibleMoves < 4)
-        return false;
-    if(ply + finalyMadeMoves < 4)
-        return false;
-    if(boardState[prev_states + ply].to == boardState[prev_states + ply - 2].fr
-    && boardState[prev_states + ply].fr == boardState[prev_states + ply - 2].to
-    && boardState[prev_states + ply - 1].fr == boardState[prev_states + ply - 3].to
-    && boardState[prev_states + ply - 1].to == boardState[prev_states + ply - 3].fr)
-        return true;
-
-    return false;
 }
 
 //--------------------------------
@@ -1064,13 +1012,10 @@ void CheckForInterrupt()
 
         std::cout << " currmovenumber " << rootMoveCr + 1;
         std::cout << " hashfull ";
-#ifndef NOT_USE_HASH_TABLE
+
         UQ hsz = hash_table.size();
         hsz = 1000*hsz / hashSize;
             std::cout << hsz;
-#else
-        std::cout << "0";
-#endif // NOT_USE_HASH_TABLE
         std::cout << std::endl;
 
     }
@@ -1155,20 +1100,17 @@ void MkMove(Move m)
     }
     *it   = m.to;
 
-#ifndef NOT_USE_HASH_TABLE
     doneHashKeys[FIFTY_MOVES + ply - 1] = hash_key;
     MoveHashKey(m, fr, specialMove);
-    #ifndef NDEBUG
+#ifndef NDEBUG
         UQ tmp_key = InitHashKey() ^ -1ULL;
         if(tmp_key != hash_key)
             ply = ply;
-    #endif //NDEBUG
+#endif //NDEBUG
 
-#endif // NOT_USE_HASH_TABLE
-
-#ifndef NOT_USE_PAWN_STRUCT
+#ifndef DONT_USE_PAWN_STRUCT
     MovePawnStruct(b[m.to], fr, m);
-#endif // NOT_USE_PAWN_STRUCT
+#endif // DONT_USE_PAWN_STRUCT
     wtm ^= white;
 }
 
@@ -1183,9 +1125,9 @@ void UnMove(Move m)
     b[m.to] = boardState[prev_states + ply].capt;
 
     reversibleMoves = boardState[prev_states + ply].reversibleCr;
-#ifndef NOT_USE_HASH_TABLE
+
     hash_key = doneHashKeys[FIFTY_MOVES + ply - 1];
-#endif // NOT_USE_HASH_TABLE
+
     wtm ^= white;
 
     if(m.flg & mCAPT)
@@ -1229,9 +1171,9 @@ void UnMove(Move m)
     if(m.flg & mCSTL)
         UnMakeCastle(m);
 
-#ifndef NOT_USE_PAWN_STRUCT
+#ifndef DONT_USE_PAWN_STRUCT
     MovePawnStruct(b[fr], fr, m);
-#endif // NOT_USE_PAWN_STRUCT
+#endif // DONT_USE_PAWN_STRUCT
 
     ply--;
     valOpn = boardState[prev_states + ply].valOpn;
@@ -1241,42 +1183,6 @@ void UnMove(Move m)
     curVar[5*ply] = '\0';
 #endif // NDEBUG
 }
-
-//--------------------------------
-#ifdef NOT_USE_HASH_FOR_DRAW
-bool DrawByRepetitionInRoot(Move lastMove)
-{
-    if(reversibleMoves == 0)
-        return false;
-
-    short_list<UC, lst_sz> tmp_list[2];
-    tmp_list[white] = pc_list[white];
-    tmp_list[black] = pc_list[black];
-
-
-//    UC menTmp[sizeof(men)];
-//    auto tmp_list = pc_list[wtm];
-
-//    memcpy(menTmp, men, sizeof(men));
-//    menTmp[MOVEPC(lastMove)] = boardState[prev_states + ply].fr;
-
-//    unsigned short max_count;
-//    if(reversibleMoves > ply + finalyMadeMoves)
-//        max_count = ply + finalyMadeMoves;
-//    else
-//        max_count = reversibleMoves;
-
-//    for(unsigned short i = 0; i < max_count - 1; ++i)
-//   {
-//        menTmp[MOVEPC(doneMoves[i])] = MOVESCR(doneMoves[i]);
-//        if(memcmp(menTmp, men, sizeof(men)) == 0)
-//            return true;
-//        ++i;
-//        menTmp[MOVEPC(doneMoves[i])] = MOVESCR(doneMoves[i]);
-//    }
-    return false;
-}
-#endif
 
 //--------------------------------------
 void MakeNullMove()
@@ -1293,10 +1199,8 @@ void MakeNullMove()
 
     ply++;
 
-#ifndef NOT_USE_HASH_TABLE
     hash_key ^= -1ULL;
     doneHashKeys[FIFTY_MOVES + ply - 1] = hash_key;
-#endif // NOT_USE_HASH_TABLE
 
     wtm ^= white;
 }
@@ -1307,9 +1211,7 @@ void UnMakeNullMove()
     wtm ^= white;
     curVar[5*ply] = '\0';
     ply--;
-#ifndef NOT_USE_HASH_TABLE
     hash_key ^= -1ULL;
-#endif // NOT_USE_HASH_TABLE
 }
 
 //-----------------------------
@@ -1318,6 +1220,9 @@ bool NullMove(int depth, short beta, bool in_check)
     if(in_check || depth < 3
     || material[wtm] - pieces[wtm] < 3)
         return false;
+#ifndef DONT_SHOW_STATISTICS
+    nullProbeCr++;
+#endif // DONT_SHOW_STATISTICS
 
     if(boardState[prev_states + ply - 1].to == MOVE_IS_NULL
 //    && boardState[prev_states + ply - 2].to == MOVE_IS_NULL
@@ -1330,10 +1235,8 @@ bool NullMove(int depth, short beta, bool in_check)
     reversibleMoves = 0;
 
     MakeNullMove();
-#ifndef NOT_USE_HASH_TABLE
     if(store_ep)
         hash_key = InitHashKey();
-#endif // NOT_USE_HASH_TABLE
 
     int r = depth > 6 ? 3 : 2;
     short x = -Search(depth - r - 1, -beta, -beta + 1, 0);
@@ -1343,10 +1246,13 @@ bool NullMove(int depth, short beta, bool in_check)
     boardState[prev_states + ply].ep    = store_ep;
     reversibleMoves                     = store_rv;
 
-#ifndef NOT_USE_HASH_TABLE
     if(store_ep)
         hash_key = InitHashKey();
-#endif // NOT_USE_HASH_TABLE
+
+#ifndef DONT_SHOW_STATISTICS
+    if(x >= beta)
+        nullCutCr++;
+#endif // DONT_SHOW_STATISTICS
 
     return (x >= beta);
 }
@@ -1363,14 +1269,15 @@ bool Futility(int depth, short beta)
         if((wtm  &&  valOpn > margin &&  valEnd > margin)
         || (!wtm && -valOpn > margin && -valEnd > margin))
         {
+#ifndef DONT_SHOW_STATISTICS
             futCr++;
+#endif // DONT_SHOW_STATISTICS
             return true;
         }
     }
     return false;
 }
 
-#ifndef NOT_USE_HASH_TABLE
 //--------------------------------
 bool DrawByRepetition()
 {
@@ -1394,7 +1301,6 @@ bool DrawByRepetition()
 
     return false;
 }
-#endif // NOT_USE_HASH_TABLE
 
 //--------------------------------
 void ShowFen()
@@ -1452,7 +1358,7 @@ void ShowFen()
 
     std::cout << std::endl;
 }
-#ifndef NOT_USE_HASH_TABLE
+
 //--------------------------------
 void ReHash(int size_MB)
 {
@@ -1461,7 +1367,44 @@ void ReHash(int size_MB)
     hash_table.rehash(hashSize);
     busy = false;
 }
-#endif // NOT_USE_HASH_TABLE
+
+//--------------------------------
+bool HashProbe(int depth, short alpha, short beta,
+               hashEntryStruct *entry,
+               bool *best_move_hashed)
+{
+    if(hash_table.count(hash_key) <= 0 || stop)
+        return false;
+
+#ifndef DONT_SHOW_STATISTICS
+        hashProbeCr++;
+#endif //DONT_SHOW_STATISTICS
+        *entry = hash_table[hash_key];
+        if(entry->depth >= depth)
+        {
+            UC hbnd = entry->bound_type;
+            short hval = -entry->value;
+            if(((hbnd == hUPPER || hbnd == hEXACT) && hval >= beta)
+            || ((hbnd == hLOWER || hbnd == hEXACT) && hval <= alpha)
+            )
+            {
+#ifndef DONT_SHOW_STATISTICS
+                hashCutCr++;
+#endif //DONT_SHOW_STATISTICS
+                pv[ply][0].flg = 0;
+                return true;
+            }// if(bnd
+        }// if(entry.depth
+        else if(entry->bound_type == hEXACT
+             || entry->bound_type == hUPPER)
+        {
+#ifndef DONT_SHOW_STATISTICS
+            hashHitCr++;
+#endif //DONT_SHOW_STATISTICS
+            *best_move_hashed = true;
+        }
+    return false;
+}
 
 /*
 r4rk1/ppqn1pp1/4pn1p/2b2N1P/8/5N2/PPPBQPP1/2KRR3 w - - 0 18 Nxh6?! speed test position
@@ -1551,4 +1494,5 @@ k3b1rr/p7/P3p3/4P1b1/3NK3/5R2/1P3B2/R7 w - - 9 58; king is too central
 r1b2rk1/2q1bppp/2np1n2/1p2p3/p2PP3/4BN1P/PPBN1PP1/R2QR1K1 b - - 0 1; SEE bug with pawns fixed
 8/8/8/2PK4/4R2p/6k1/8/2r5 w - - 0 1 am Rc4
 6k1/pp3ppp/1qr2n2/8/4P3/P1N3PP/1P3QK1/3R4 b - - 0 1 am Rc5 @nodes <= 40000 fixed
+8/1p3r1p/p7/4Qp2/3Rp1kP/Pq6/1P3PP1/4K3 b - - 7 32 am Kxh4 @ply 7 lmr issue
 */
