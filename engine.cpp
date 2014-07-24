@@ -16,7 +16,7 @@ UQ          totalNodes;
 double      timeBase, timeInc, timeRemains, totalTimeSpent;
 unsigned    movesPerSession;
 int         finalyMadeMoves, movsRemain;
-#ifndef USE_HASH_FOR_DRAW
+#ifdef NOT_USE_HASH_FOR_DRAW
     Move        doneMoves[FIFTY_MOVES];
 #endif
 bool        spentExactTime;
@@ -27,12 +27,12 @@ bool        timeCommandSent;
     PredictedInfo prediction;
 #endif // CHECK_PREDICTED_VALUE
 
-#ifdef USE_HASH_TABLE
+#ifndef NOT_USE_HASH_TABLE
     unsigned long hashSize = 64*HASH_ENTRIES_PER_MB;
     std::unordered_map<UQ, hashEntryStruct> hash_table(hashSize);
 //    UQ  doneHashKeys[FIFTY_MOVES + MAX_PLY];
     std::array<UQ, FIFTY_MOVES + MAX_PLY> doneHashKeys;
-#endif // USE_HASH_TABLE
+#endif // NOT_USE_HASH_TABLE
 //--------------------------------
 short Search(int depth, short alpha, short beta)
 {
@@ -44,14 +44,14 @@ short Search(int depth, short alpha, short beta)
     bool in_check = Attack(men[wtm + 1], wtm ^ WHT);
     if(in_check)
         depth++;
-#ifdef USE_FTL
+#ifndef NOT_USE_FUTILITY
     if(depth <= 1 && depth >= 0 && !in_check
     && beta < K_VAL - MAX_PLY
     && Futility(depth, beta))
         return beta;
-#endif // USE_FTL
+#endif // NOT_USE_FUTILITY
 
-#ifdef USE_HASH_TABLE
+#ifndef NOT_USE_HASH_TABLE
     short _alpha = alpha;
     bool best_move_hashed = false;
     hashEntryStruct entry;
@@ -62,8 +62,7 @@ short Search(int depth, short alpha, short beta)
         {
             UC hbnd = entry.bound_type;
             short hval = -entry.value;
-            if(/*hbnd == hEXACT
-            || */((hbnd == hUPPER || hbnd == hEXACT) && hval >= beta)
+            if(((hbnd == hUPPER || hbnd == hEXACT) && hval >= beta)
             || ((hbnd == hLOWER || hbnd == hEXACT) && hval <= alpha)
             )
             {
@@ -80,7 +79,7 @@ short Search(int depth, short alpha, short beta)
                 best_move_hashed = true;
         }
     }
-#endif // USE_HASH_TABLE
+#endif // NOT_USE_HASH_TABLE
     if(depth <= 0)
     {
         return Quiesce(alpha, beta);
@@ -90,13 +89,13 @@ short Search(int depth, short alpha, short beta)
         CheckForInterrupt();
 
 
-#ifdef USE_NMR
+#ifndef NOT_USE_NULL_MOVE
     if(NullMove(depth, beta, in_check))
         return beta;
-#endif // USE_NMR
+#endif // NOT_USE_NULL_MOVE
 
     Move moveList[MAX_MOVES];
-#ifndef USE_HASH_TABLE
+#ifdef NOT_USE_HASH_TABLE
     if(genBestMove)
         bestMoveToGen = pv[0][1 + ply];
 #else
@@ -107,7 +106,7 @@ short Search(int depth, short alpha, short beta)
     }
     else
         genBestMove = false;
-#endif // USE_HASH_TABLE
+#endif // NOT_USE_HASH_TABLE
     int i = 0, legals = 0;
     int top = GenMoves(moveList, APPRICE_ALL);
 
@@ -137,7 +136,7 @@ short Search(int depth, short alpha, short beta)
 
         FastEval(m);
 
-#ifdef USE_PVS
+#ifndef NOT_USE_PVS
         if(legals && depth > 1 && beta != alpha + 1
         && ABSI(alpha) < K_VAL - MAX_PLY + 1)
         {
@@ -149,7 +148,7 @@ short Search(int depth, short alpha, short beta)
             x = -Search(depth - 1 /*- lmr*/, -beta, -alpha);
 #else
         x = -Search(depth - 1, -beta, -alpha);
-#endif // USE_PVS
+#endif // NOT_USE_PVS
         genBestMove = false;
 
         legals++;
@@ -169,7 +168,7 @@ short Search(int depth, short alpha, short beta)
         pv[ply][0] = 0;
         return in_check ? -K_VAL + ply : 0;
     }
-#ifdef USE_HASH_TABLE
+#ifndef NOT_USE_HASH_TABLE
     else if(legals)
     {
         size_t sz = hash_table.size();
@@ -212,7 +211,7 @@ short Search(int depth, short alpha, short beta)
                 ply = ply;
         }// if(exist && sz < ...
     }// else if(legals
-#endif // USE_HASH_TABLE
+#endif // NOT_USE_HASH_TABLE
     if(i >= BETA_CUTOFF)
     {
         UpdateStatistics(m, depth, i);
@@ -357,7 +356,7 @@ void MainSearch()
     for(; rootPly <= MAX_PLY && !stop; ++rootPly)
     {
 #ifndef NDEBUG
-        if(rootPly == 0)
+        if(rootPly == 7)
             ply = ply;
 #endif
         genBestMove = false;
@@ -417,10 +416,8 @@ void MainSearch()
     if((!stop && !analyze && sc < -K_VAL + MAX_PLY)
     || (!analyze && sc < -RESIGN_VALUE && resignCr > RESIGN_MOVES))
     {
-        std::cout << "resign" << std::endl;// << "(mate found)" << std::endl;
+        std::cout << "resign" << std::endl;
         busy = false;
-//        timer.stop();
-//        return;
     }
 
     totalNodes      += nodes;
@@ -484,13 +481,21 @@ short RootSearch(int depth, short alpha, short beta)
         FastEval(m);
         UQ _nodes = nodes;
 
-#ifdef USE_HASH_FOR_DRAW
+#ifndef NOT_USE_HASH_FOR_DRAW
         if(!DrawByRepetition())
-            x = -Search(depth - 1, -beta, -alpha);
+        {
+            x = -Search(depth - 1, -alpha - 1, - alpha);
+            if(x > alpha)
+                x = -Search(depth - 1, -beta, -alpha);
+        }
 #else
         if(!DrawByRepetitionInRoot(m))
-            x = -Search(depth - 1, -beta, -alpha);
-#endif
+        {
+            x = -Search(depth - 1, -alpha - 1, -alpha);
+            if(x > alpha)
+                x = -Search(depth - 1, -beta, -alpha);
+        }
+#endif // NOT_USE_HASH_FOR_DRAW
         else
         {
             x = 0;
@@ -612,8 +617,6 @@ void InitSearch()
     }
     stop = false;
     _abort_ = false;
-//    if(analyze)
-//        prevRootPly = 0;
 
 //    if(!uci)
 //    {
@@ -625,16 +628,14 @@ void InitSearch()
 //    }
 
 
-#ifdef USE_HASH_TABLE
+#ifndef NOT_USE_HASH_TABLE
     hash_table.clear();
-#endif // USE_HASH_TABLE
+#endif // NOT_USE_HASH_TABLE
 }
 
 //--------------------------------
 void PrintSearchResult()
 {
-//    if(analyze)
-//        return;
     char mov[6];
     char proms[] = {'?', 'q', 'n', 'r', 'b'};
 
@@ -738,7 +739,6 @@ void InitTime()                                                         // too c
     || (timeInc == 0 && movesPerSession == 0
     && timeRemains < timeBase / 4)))
     {
-//        std::cout << "telluser Switch to exact time spent mode OK" << std::endl;
         spentExactTime = true;
     }
 
@@ -746,7 +746,7 @@ void InitTime()                                                         // too c
     {
         if(!timeCommandSent)
             timeRemains += timeBase;
-//        std::cout << "telluser Switch to non-exact time spent mode OK" << std::endl;
+
         if(movsRemain > 5)
             spentExactTime = false;
     }
@@ -761,7 +761,6 @@ void InitTime()                                                         // too c
         timeToThink = timeInc;
 
     timeCommandSent = false;
-//    std::cout << "telluser " << timeToThink << std::endl;
 }
 
 //-----------------------------
@@ -898,9 +897,9 @@ bool MakeMoveFinaly(char *mov)
 
         if(strcmp(mov, rMov) == 0)
         {
-#ifndef USE_HASH_FOR_DRAW
+#ifdef NOT_USE_HASH_FOR_DRAW
             UC fr = men[MOVEPC(m)];
-#endif //USE_HASH_FOR_DRAW
+#endif //NOT_USE_HASH_FOR_DRAW
             MkMove(m);
 
             FastEval(m);
@@ -920,7 +919,7 @@ bool MakeMoveFinaly(char *mov)
                         << std::endl << "resign"
                         << std::endl;
             }
-#ifdef USE_HASH_FOR_DRAW
+#ifndef NOT_USE_HASH_FOR_DRAW
             for(int i = 0; i < FIFTY_MOVES; ++i)
                 doneHashKeys[i] = doneHashKeys[i + 1];
 #else
@@ -928,7 +927,7 @@ bool MakeMoveFinaly(char *mov)
                     sizeof(doneMoves) - sizeof(Move));
             Move m1 = (fr << MOVE_SCORE_SHIFT) | (m & EXCEPT_SCORE);
             doneMoves[0] = m1;
-#endif // USE_HASH_TABLE
+#endif // NOT_USE_HASH_FOR_DRAW
 
             finalyMadeMoves++;
 
@@ -953,10 +952,9 @@ void InitEngine()
 {
     InitEval();
 
-#ifdef USE_HASH_TABLE
+#ifndef NOT_USE_HASH_TABLE
     hash_key = InitHashKey();
-//    hash_table.reserve(100);          //slows down?
-#endif // USE_HASH_TABLE
+#endif // NOT_USE_HASH_TABLE
 
     std::cin.rdbuf()->pubsetbuf(NULL, 0);
     std::cout.rdbuf()->pubsetbuf(NULL, 0);
@@ -989,9 +987,9 @@ bool FenStringToEngine(char *fen)
     timeSpent   = 0;
     timeRemains = timeBase;
     finalyMadeMoves = 0;
-#ifdef USE_HASH_TABLE
+#ifndef NOT_USE_HASH_TABLE
     hash_key = InitHashKey();
-#endif // USE_HASH_TABLE
+#endif // NOT_USE_HASH_TABLE
 
 //    std::cout << "( " << fen << " )" << std::endl;
     return true;
@@ -1012,7 +1010,7 @@ bool DrawDetect()
     if(reversibleMoves == FIFTY_MOVES)
         return true;
 
-#ifdef USE_HASH_FOR_DRAW
+#ifndef USE_HASH_FOR_DRAW
     return DrawByRepetition();
 #else
     return SimpleDrawByRepetition();
@@ -1057,13 +1055,13 @@ void CheckForInterrupt()
 
         std::cout << " currmovenumber " << rootMoveCr + 1;
         std::cout << " hashfull ";
-#ifdef USE_HASH_TABLE
+#ifndef NOT_USE_HASH_TABLE
         UQ hsz = hash_table.size();
         hsz = 1000*hsz / hashSize;
             std::cout << hsz;
 #else
         std::cout << "0";
-#endif // USE_HASH_TABLE
+#endif // NOT_USE_HASH_TABLE
         std::cout << std::endl;
 
     }
@@ -1153,7 +1151,7 @@ void MkMove(Move m)
         menNxt[wtm] = MOVEPC(m);
         reversibleMoves = 0;
     }
-#ifdef USE_HASH_TABLE
+#ifndef NOT_USE_HASH_TABLE
     doneHashKeys.at(FIFTY_MOVES + ply - 1) = hash_key;
     MoveHashKey(m, fr, specialMove);
     #ifndef NDEBUG
@@ -1162,7 +1160,7 @@ void MkMove(Move m)
             ply = ply;
     #endif //NDEBUG
 
-#endif // USE_HASH_TABLE
+#endif // NOT_USE_HASH_TABLE
 
 #ifdef USE_PAWN_STRUCT
     MovePawnStruct(b[MOVETO(m)], fr, m);
@@ -1179,9 +1177,9 @@ void UnMove(Move m)
     b[MOVETO(m)] = boardState[PREV_STATES + ply].capt;
 
     reversibleMoves = boardState[PREV_STATES + ply].reversibleCr;
-#ifdef USE_HASH_TABLE
+#ifndef NOT_USE_HASH_TABLE
     hash_key = doneHashKeys.at(FIFTY_MOVES + ply - 1);
-#endif // USE_HASH_TABLE
+#endif // NOT_USE_HASH_TABLE
     wtm ^= WHT;
 
     if(MOVEFLG(m) & (mCAPT << 16))
@@ -1234,7 +1232,7 @@ void UnMove(Move m)
 }
 
 //--------------------------------
-#ifndef USE_HASH_FOR_DRAW
+#ifdef NOT_USE_HASH_FOR_DRAW
 bool DrawByRepetitionInRoot(Move lastMove)
 {
     if(reversibleMoves == 0)
@@ -1278,10 +1276,10 @@ void MakeNullMove()
 
     ply++;
 
-#ifdef USE_HASH_TABLE
+#ifndef NOT_USE_HASH_TABLE
     hash_key ^= -1ULL;
     doneHashKeys.at(FIFTY_MOVES + ply - 1) = hash_key;
-#endif // USE_HASH_TAVLE
+#endif // NOT_USE_HASH_TABLE
 
     wtm ^= WHT;
 }
@@ -1292,9 +1290,9 @@ void UnMakeNullMove()
     wtm ^= WHT;
     curVar[5*ply] = '\0';
     ply--;
-#ifdef USE_HASH_TABLE
+#ifndef NOT_USE_HASH_TABLE
     hash_key ^= -1ULL;
-#endif
+#endif // NOT_USE_HASH_TABLE
 }
 
 //-----------------------------
@@ -1315,10 +1313,10 @@ bool NullMove(int depth, short beta, bool in_check)
     reversibleMoves = 0;
 
     MakeNullMove();
-#ifdef USE_HASH_TABLE
+#ifndef NOT_USE_HASH_TABLE
     if(store_ep)
         hash_key = InitHashKey();
-#endif
+#endif // NOT_USE_HASH_TABLE
 
     int r = depth > 6 ? 3 : 2;
     short x = -Search(depth - r - 1, -beta, -beta + 1);
@@ -1327,10 +1325,11 @@ bool NullMove(int depth, short beta, bool in_check)
     boardState[PREV_STATES + ply].to    = store_to;
     boardState[PREV_STATES + ply].ep    = store_ep;
     reversibleMoves                     = store_rv;
-#ifdef USE_HASH_TABLE
+
+#ifndef NOT_USE_HASH_TABLE
     if(store_ep)
         hash_key = InitHashKey();
-#endif
+#endif // NOT_USE_HASH_TABLE
 
     return (x >= beta);
 }
@@ -1354,7 +1353,7 @@ bool Futility(int depth, short beta)
     return false;
 }
 
-#ifdef USE_HASH_TABLE
+#ifndef NOT_USE_HASH_TABLE
 //--------------------------------
 bool DrawByRepetition()
 {
@@ -1378,7 +1377,7 @@ bool DrawByRepetition()
 
     return false;
 }
-#endif
+#endif // NOT_USE_HASH_TABLE
 
 //--------------------------------
 void ShowFen()
@@ -1481,8 +1480,8 @@ r1b1k2r/pp3ppp/2p1q3/3nP3/3P4/b1BB1NP1/P1P4P/R2QK2R w KQkq - 5 15  am Ng5
 rnbqkb1r/1p1n1ppp/p3p3/1BppP3/3P4/2N2N2/PPP2PPP/R1BQK2R w KQkq - 0 7 am Ba4; @ply 6
 8/5p2/4p3/6k1/8/P3K1pP/8/8 w - - 0 48 am a4
 8/7p/4b2P/2K5/1B4p1/1k3pP1/5P2/8 w - - 76 100 am Be1
-5nkr/4Qbpp/2p2p2/1qP2N2/3P4/p7/5PPP/3RB1K1 w - - 0 34  am Rd2
-8/p1k4p/3p1p2/1p1P1K2/2p2P2/7P/1N6/8 w - - 0 40  bm Ke4
+5nkr/4Qbpp/2p2p2/1qP2N2/3P4/p7/5PPP/3RB1K1 w - - 0 34 am Rd2
+8/p1k4p/3p1p2/1p1P1K2/2p2P2/7P/1N6/8 w - - 0 40 bm Ke4
 8/8/8/8/1N1k4/8/1r6/3K4 w - - 0 1 am Nc6
 8/8/8/R7/4bk2/7K/8/6r1 w - - 98 180 bm Ra2; fifty move rule bug with mate at last ply fixed
 3q3k/4bQp1/p1p1P2p/3p4/r1p4P/6P1/5P2/1B2R1K1 w - - 10 36 search explosion @ply 11
@@ -1491,5 +1490,16 @@ rnbqkb1r/1p1n1ppp/p3p3/1BppP3/3P4/2N2N2/PPP2PPP/R1BQK2R w KQkq - 0 7 am Ba4; @pl
 8/1p6/P1p5/P1P4P/4k3/2Kp4/8/5q2 b - - 0 68 uci mate score display fixed
 8/1b1pk1P1/3p1p1P/3P1K2/P1P5/8/4B3/8 w - - 3 54 g8R?
 5k2/1p4p1/p2q2bp/4p3/3pP3/1P1Pn2P/P1PQ2P1/2R3K1 b - - 1 28 am Ke7; king safety
+
+1r4k1/p6p/2p1b1p1/2q1bp1B/4p3/4N3/PPPRQPPP/2K5 w - - 1 25; king safety eval (KSE)
+r5k1/1p3q1p/3p2p1/2pPp3/2Pb1rp1/3P3P/PPQ1RPB1/R5K1 w - - 0 26; KSE
+r4rk1/3b2qp/1p1p4/1Pp1P3/2Pb1p2/1KNR1Q2/P2NB1P1/8 w - - 1 46; KSE
+1r3rk1/3b2b1/p1pq3p/3p2p1/N3p3/2P1Q3/PP1N1PPP/1R1R2K1 b - - 1 21; KSE
+6k1/Qn2q1pp/8/2p5/3pN3/P4r2/1P3P1P/R1B3K1 w - - 0 29; KSE, bad rook, bishop and quieen, no only move ext
+r5k1/1pp2r1p/1b1p4/3Pp3/p1Q1P1p1/PnBP1BPq/1P3P1P/4RRK1 w - - 1 27; KSE, no only move ext
+8/b7/P5k1/1P6/2KpN1p1/8/8/8 w - - 14 66; am Kd5
+5k2/p6P/1pp1p1P1/8/7r/3B4/2P2P2/5K2 b - - 0 45; connected promos eval
+k4q2/1p6/8/2p1P3/r7/8/3Q1P1r/4RKR1 w - - 0 53 am Rg2; no only move ext
+k3b1rr/p7/P3p3/4P1b1/3NK3/5R2/1P3B2/R7 w - - 9 58; king too central
 
 */
