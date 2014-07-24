@@ -57,7 +57,7 @@ void UnMove(Move m);
 bool DrawByRepetitionInRoot(Move lastMove);
 void MakeNullMove();
 void UnMakeNullMove();
-bool NullMove(int depth, short beta, bool ic);
+bool NullMove(int depth, short beta, bool ic, int lmr_);
 bool Futility(int depth, short beta);
 bool DrawByRepetition();
 void ShowFen();
