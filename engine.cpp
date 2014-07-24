@@ -39,12 +39,7 @@ short Search(int depth, short alpha, short beta, int lmr_)
     }
     bool in_check = Attack(*pc_list[wtm].begin(), !wtm);
     if(in_check)
-    {
-        if(lmr_)
-            depth += 2;
-        else
-            depth += 1;
-    }
+        depth += 1 + lmr_;
 
 #ifndef NOT_USE_FUTILITY
     if(depth <= 1 && depth >= 0 && !in_check
@@ -137,23 +132,33 @@ short Search(int depth, short alpha, short beta, int lmr_)
         int lmr = 1;
         if(depth < 3 || m.flg || in_check)
             lmr = 0;
-        else if(legals < 4 || m.scr > 80)
+        else if(legals < 5/* || m.scr > 80*/)
             lmr = 0;
         else if((b[m.to] & ~white) == _p && TestPromo(COL(m.to), !wtm))
             lmr = 0;
+        else
+            ply = ply;
 #else
         int lmr = 0;
 #endif  // NOT_USE_LMR
 
 
-#ifndef NOT_USE_PVS
+        if(legals == 0)
+            x = -Search(depth - 1, -beta, -alpha, 0);
+        else
+        {
+            x = -Search(depth - 1 - lmr, -alpha - 1, -alpha, lmr);
+            if(x > alpha && (x < beta || lmr))
+                x = -Search(depth - 1, -beta, -alpha, 0);
+        }
+
+
+/*#ifndef NOT_USE_PVS
         if(legals && depth > 1 && beta != alpha + 1
         && ABSI(alpha) < (short)(K_VAL - max_ply + 1))
         {
             x = -Search(depth - 1 - lmr, -alpha - 1, -alpha, lmr);
-//            if(lmr && x > alpha)
-//                x = -Search(depth - 1, -alpha - 1, -alpha, 0);
-            if(x > alpha)
+            if(x > alpha && x < beta)
                 x = -Search(depth - 1, -beta, -alpha, 0);
         }
         else
@@ -161,6 +166,7 @@ short Search(int depth, short alpha, short beta, int lmr_)
 #else
         x = -Search(depth - 1, -beta, -alpha, 0);
 #endif // NOT_USE_PVS
+        */
         genBestMove = false;
 
         legals++;
@@ -467,8 +473,7 @@ short RootSearch(int depth, short alpha, short beta)
     for(; rootMoveCr < rootTop && alpha < K_VAL - 99 && !stop; rootMoveCr++)
     {
         m = rootMoveList[rootMoveCr];
-//        if(m == probed)
-//            continue;
+
         MkMove(m);
 
 #ifndef NDEBUG
@@ -482,17 +487,17 @@ short RootSearch(int depth, short alpha, short beta)
 #ifndef NOT_USE_HASH_FOR_DRAW
         if(!DrawByRepetition())
         {
-            if(rootMoveCr > 0)
-                x = -Search(depth - 1, -alpha - 1, - alpha, 0);
-            if(rootMoveCr <= 0 || x > alpha)
+//            if(rootMoveCr > 0)
+//                x = -Search(depth - 1, -alpha - 1, - alpha, 0);
+//            if(rootMoveCr <= 0 || x > alpha)
                 x = -Search(depth - 1, -beta, -alpha, 0);
         }
 #else
         if(true/*!DrawByRepetitionInRoot(m)*/)
         {
-            if(rootMoveCr > 0)
-                x = -Search(depth - 1, -alpha - 1, -alpha, 0);
-            if(rootMoveCr <= 0 || x > alpha)
+//            if(rootMoveCr > 0)
+//                x = -Search(depth - 1, -alpha - 1, -alpha, 0);
+//            if(rootMoveCr <= 0 || x > alpha)
                 x = -Search(depth - 1, -beta, -alpha), 0;
         }
 #endif // NOT_USE_HASH_FOR_DRAW
@@ -508,10 +513,10 @@ short RootSearch(int depth, short alpha, short beta)
 
         if(x <= alpha && rootMoveCr > 2 && dn > prevDeltaNodes && depth > 2)
         {
-            int tmp = *(int *)&rootMoveList[rootMoveCr];
-            *(int *)&rootMoveList[rootMoveCr] =
-                *(int *)&rootMoveList[rootMoveCr - 1];
-            *(int *)&rootMoveList[rootMoveCr - 1] = tmp;
+            Move tmp = rootMoveList[rootMoveCr];
+            rootMoveList[rootMoveCr] =
+                rootMoveList[rootMoveCr - 1];
+            rootMoveList[rootMoveCr - 1] = tmp;
         }
         prevDeltaNodes = dn;
 
@@ -534,10 +539,10 @@ short RootSearch(int depth, short alpha, short beta)
                 PlyOutput(x);
             if(rootMoveCr != 0)
             {
-                int tmp = *(int *)&rootMoveList[rootMoveCr];
+                Move tmp = rootMoveList[rootMoveCr];
                 memmove(&rootMoveList[1], &rootMoveList[0],
                         sizeof(Move)*rootMoveCr);
-                *(int *)&rootMoveList[0] = tmp;
+                rootMoveList[0] = tmp;
             }
         }
         else
@@ -616,21 +621,21 @@ void InitSearch()
         }
     for(i = 0; i < max_ply; i++)
     {
-        kil[i][0].to =  0;                                              //>> NB
-        kil[i][1].to =  0;
+        kil[i][0].flg =  0xFF;                                              //>> NB
+        kil[i][1].flg =  0xFF;
     }
 
     stop = false;
     _abort_ = false;
 
-//    if(!uci)
-//    {
+    if(!uci)
+    {
     std::cout   << "( tRemain=" << timeRemains/1e6
                 << ", t2thnk=" << timeToThink/1e6
                 << ", tExact = " << (spentExactTime ? "true " : "false ")
                 << " )" << std::endl;
     std::cout   << "Ply Value  Time    Nodes        Principal Variation" << std::endl;
-//    }
+    }
 
 
 #ifndef NOT_USE_HASH_TABLE
@@ -1249,7 +1254,6 @@ bool DrawByRepetitionInRoot(Move lastMove)
     tmp_list[black] = pc_list[black];
 
 
-
 //    UC menTmp[sizeof(men)];
 //    auto tmp_list = pc_list[wtm];
 
@@ -1546,4 +1550,5 @@ k3b1rr/p7/P3p3/4P1b1/3NK3/5R2/1P3B2/R7 w - - 9 58; king is too central
 
 r1b2rk1/2q1bppp/2np1n2/1p2p3/p2PP3/4BN1P/PPBN1PP1/R2QR1K1 b - - 0 1; SEE bug with pawns fixed
 8/8/8/2PK4/4R2p/6k1/8/2r5 w - - 0 1 am Rc4
+6k1/pp3ppp/1qr2n2/8/4P3/P1N3PP/1P3QK1/3R4 b - - 0 1 am Rc5 @nodes <= 40000 fixed
 */
