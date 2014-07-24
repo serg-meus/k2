@@ -41,10 +41,11 @@ enum PriceList
 //--------------------------------
 void InitEval();
 void FastEval(Move m);
-short Eval(short alpha, short beta);
+short Eval();
 void EvalAllMaterialAndPST();
 void EvalPawns(bool stm);
 bool TestUnstoppable(int x, int y, UC stm);
 void KingSafety(UC stm);
 void RookEval(UC stm);
 void CountKingAttacks(UC stm);
+bool TestPromo(int col, UC stm);
