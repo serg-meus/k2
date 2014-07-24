@@ -1,8 +1,8 @@
 #include "engine.h"
 
 //--------------------------------
-char        stop_str[] = "";
-unsigned    stopPly   = 0;
+char        stop_str[] = "c4c3 ";
+unsigned    stopPly   = 8;
 
 Timer       timer;
 double      time0;
@@ -68,13 +68,24 @@ short Search(int depth, short alpha, short beta, int lmr_)
     int i = 0, legals = 0, top;
     short x;
 
+#ifndef NDEBUG
+            if(hash_key == 0)
+                ShowFen();
+#endif //NGEBUG
+
     if(best_move_hashed)
     {
         m_best = entry.best_move;
-        top = 999;
+        if(PseudoLegal(m_best, wtm))
+            top = 999;
+        else
+        {
+            best_move_hashed = false;
+            top = GenMoves(moveList, APPRICE_ALL, nullptr);
+        }
     }
     else
-        top = GenMoves(moveList, APPRICE_ALL);
+        top = GenMoves(moveList, APPRICE_ALL, nullptr);
 
     boardState[prev_states + ply].valOpn = valOpn;
     boardState[prev_states + ply].valEnd = valEnd;
@@ -92,12 +103,13 @@ short Search(int depth, short alpha, short beta, int lmr_)
             else
             {
                 if(i == 1)
-                    top = GenMoves(moveList, APPRICE_ALL);
+                {
+                    top = GenMoves(moveList, APPRICE_ALL, &m_best);
+                    Next(moveList, 0, top, &m);
+                }
                 Next(moveList, i, top, &m);
-                if(m == m_best)
-                    continue;
             }
-        }// else
+        }
 
         MkMove(m);
 #ifndef NDEBUG
@@ -120,8 +132,6 @@ short Search(int depth, short alpha, short beta, int lmr_)
             lmr = 0;
         else if((b[m.to] & ~white) == _p && TestPromo(COL(m.to), !wtm))
             lmr = 0;
-        else
-            ply = ply;
 #else
         int lmr = 0;
 #endif  // DONT_USE_LMR
@@ -165,10 +175,6 @@ short Search(int depth, short alpha, short beta, int lmr_)
         int exist = hash_table.count(hash_key);
         if(exist || sz < hashSize)
         {
-#ifndef NDEBUG
-            if(hash_key == 0)
-                ply = ply;
-#endif //NGEBUG
             hashEntryStruct hs;
             hs.depth = depth;
 
@@ -196,10 +202,10 @@ short Search(int depth, short alpha, short beta, int lmr_)
                 hs.bound_type   = hLOWER;
                 hs.value        = -_alpha;
                 hash_table[hash_key] = hs;
-//                hs.best_move    = pv[ply][1];
+                if(legals > 0)
+                    hs.best_move    = moveList[0];
+//                hs.best_move.flg = 0xFF;
             }
-            else
-                ply = ply;
         }// if(exist && sz < ...
     }// else if(legals
 
@@ -294,7 +300,7 @@ void Perft(int depth)
 {
     Move moveList[MAX_MOVES];
     bool in_check = Attack(*pc_list[wtm].begin(), !wtm);
-    int top = GenMoves(moveList, APPRICE_NONE);
+    int top = GenMoves(moveList, APPRICE_NONE, nullptr);
     for(int i = 0; i < top; i++)
     {
 #ifndef NDEBUG
@@ -340,10 +346,6 @@ void UpdateStatistics(Move m, int dpt, unsigned i)
 #else
     UNUSED(i);
 #endif // DONT_SHOW_STATISTICS
-#ifndef NDEBUG
-    else if(i > BETA_CUTOFF)
-        ply = ply;
-#endif //NDEBUG
     if(m.flg)
         return;
     if(m != kil[ply][0] && m != kil[ply][1])
@@ -374,10 +376,6 @@ void MainSearch()
     rootTop = 0;
     for(; rootPly <= max_ply && !stop; ++rootPly)
     {
-#ifndef NDEBUG
-        if(rootPly == 7)
-            ply = ply;
-#endif
         _sc_     = sc;
 
         sc = RootSearch(rootPly, -INF, INF);
@@ -535,7 +533,7 @@ short RootSearch(int depth, short alpha, short beta)
 void RootMoveGen(bool in_check)
 {
     Move moveList[MAX_MOVES];
-    rootTop = GenMoves(moveList, APPRICE_ALL);
+    rootTop = GenMoves(moveList, APPRICE_ALL, nullptr);
     boardState[prev_states + ply].valOpn = valOpn;
     boardState[prev_states + ply].valEnd = valEnd;
     for(unsigned i = 0; i < rootTop; i++)
@@ -747,8 +745,6 @@ void InitTime()                                                         // too c
     }
     if(!timeCommandSent)
         timeRemains += timeInc;
-//    if(movsRemain == 0)
-//        ply = ply;
     timeToThink = timeRemains / movsRemain;
     if(movsRemain != 1 && !spentExactTime)
         timeToThink /= 3;                           // average branching factor
@@ -968,8 +964,9 @@ bool FenStringToEngine(char *fen)
     timeRemains = timeBase;
     finalyMadeMoves = 0;
     hash_key = InitHashKey();
-
-//    std::cout << "( " << fen << " )" << std::endl;
+    std::cout << "( " << "hash_key = "
+              << std::hex << hash_key
+              << std::dec << " )" << std::endl;
     return true;
 }
 
@@ -1324,9 +1321,9 @@ void ShowFen()
                 std::cout << blankCr;
             blankCr = 0;
             if(pt & white)
-                std::cout << whites[pt - white - 1];
+                std::cout << whites[pt/2 - 1];
             else
-                std::cout << blacks[pt - 1];
+                std::cout << blacks[pt/2 - 1];
         }
         if(blankCr != 0)
             std::cout << blankCr;
@@ -1404,6 +1401,54 @@ bool HashProbe(int depth, short alpha, short beta,
             *best_move_hashed = true;
         }
     return false;
+}
+
+//-----------------------------
+bool PseudoLegal(Move m, bool stm)
+{
+    auto it = pc_list[stm].begin();
+    it = m.pc;
+    UC fr = *it;
+    UC pt = b[m.to];
+    int dCOL = COL(m.to) - COL(fr);
+    int dROW = ROW(m.to) - ROW(fr);
+    if(!dCOL && !dROW)
+        return false;
+    if(!LIGHT(b[fr], stm))
+        return false;
+    if((b[fr]/2) != _p/2 && ((!DARK(pt, stm) && (m.flg & mCAPT))
+    || (pt != __ && !(m.flg & mCAPT))))
+        return false;
+    switch(b[fr]/2)
+    {
+        case _p/2 :
+            if((m.flg & mPROM) && ((stm && ROW(fr) != 6)
+            || (!stm && ROW(fr) != 1)))
+                return false;
+            if((m.flg & mCAPT) && (ABSI(dCOL) != 1
+            || (stm && dROW != 1) || (!stm && dROW != -1)
+            || (!(m.flg & mENPS) && !DARK(pt, stm))))
+                return false;
+            if((m.flg & mENPS) && pt != __)
+                return false;
+            break;
+        case _n/2 :
+            if(ABSI(dCOL) + ABSI(dROW) != 3)
+                return false;
+            break;
+        case _b/2 :
+        case _r/2 :
+        case _q/2 :
+            if(!(attacks[120 + m.to - fr] & (1 << (b[fr]/2)))
+            || !SliderAttack(m.to, fr))
+                return false;
+            break;
+        case _k/2 :
+            if(!(m.flg & mCSTL) && (ABSI(dCOL) > 1 || ABSI(dROW) > 1))
+                return false;
+            break;
+    }
+    return true;
 }
 
 /*
