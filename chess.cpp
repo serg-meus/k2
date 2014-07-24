@@ -2,7 +2,7 @@
 
 //--------------------------------
 UC  b[137];                                                             // board array in "0x88" style
-std::list<UC>   pcs[2];                                                 // list with piece coordinates and piece codes
+short_list<UC, lst_sz> pc_list[2];
 
 UC  attacks[240],                                                       // table for quick detect possible attacks
     get_delta[240];                                                     // I'm already forget what's this
@@ -14,21 +14,21 @@ SC shifts[6][8] = {{ 0,  0,  0,  0,  0,  0,  0,  0},
                     { 1, 16, -1,-16, 0,  0,  0,  0},
                     {17, 15,-17,-15, 0,  0,  0,  0},
                     {18, 33, 31, 14,-18,-33,-31,-14}};
-UC  pc_streng[7]    =  {0, 0, 12, 6, 4, 4, 1};
-short streng[7]     = {0, 15000, 120, 60, 40, 40, 10};
+UC  pc_streng[7]    =  {0, 12, 6, 4, 4, 1};
+short streng[7]     = {0, 15000, 120, 60, 41, 40, 10};
 UC  slider[7]       = {0, 0, 1, 1, 1, 0, 0};
 int material[2], pieces[2];
-BrdState  boardState[PREV_STATES + MAX_PLY];
+BrdState  boardState[prev_states + max_ply];
 unsigned wtm, ply;
 UQ nodes, tmpCr;
 char *cv;
 US reversibleMoves;
 
-#ifdef USE_PAWN_STRUCT
+#ifndef NOT_USE_PAWN_STRUCT
     int pmax[10][2], pmin[10][2];
 #endif
 UQ hash_key;
-char curVar[5*MAX_PLY];
+char curVar[5*max_ply];
 
 //--------------------------------
 void InitChess()
@@ -49,13 +49,13 @@ void InitChess()
 //--------------------------------
 void InitBrd()
 {
-    UC nums[] = {_R, _N, _B, _Q, _K, _B, _N, _R};
-    UC nms[] = { 2,  6,  4,  1,  0,  5,  7,  3};
+    UC pcs[] = {_N, _N, _B, _B, _R, _R, _Q, _K};
+    UC crd[] = {6, 1, 5, 2, 7, 0, 3, 4};
 
-    memset(b, 0, sizeof(b));
-
-    pcs[0].clear();
-    pcs[1].clear();
+    memset(b, 0, sizeof(b)/sizeof(*b));
+    
+    pc_list[white].clear();
+    pc_list[black].clear();
 
     InitAttacks();
 
@@ -63,31 +63,31 @@ void InitBrd()
     for(i = 0; i < 8; i++)
     {
         b[XY2SQ(i, 1)]      = _P;
-        pcs[1].push_back(XY2SQ(7 - i, 1));
+        pc_list[white].push_back(XY2SQ(7 - i, 1));
         b[XY2SQ(i, 6)]     = _p;
-        pcs[0].push_back(XY2SQ(7 - i, 6));
-        b[XY2SQ(i, 0)]      = nums[i];
-        pcs[1].push_front(XY2SQ(i, 0));
-        b[XY2SQ(i, 7)]      = nums[i] ^ WHT;
-        pcs[0].push_front(XY2SQ(i, 7));
+        pc_list[black].push_back(XY2SQ(7 - i, 6));
+        b[XY2SQ(crd[i], 0)]      = pcs[i];
+        pc_list[white].push_front(XY2SQ(crd[i], 0));
+        b[XY2SQ(crd[i], 7)]      = pcs[i] ^ white;
+        pc_list[black].push_front(XY2SQ(crd[i], 7));
     }
 
-    boardState[PREV_STATES + 0].capt    = 0;
-    boardState[PREV_STATES + 0].cstl    = 0x0F;
-    boardState[PREV_STATES + 0].ep      = 0;
-    wtm             = WHT;
+    boardState[prev_states + 0].capt    = 0;
+    boardState[prev_states + 0].cstl    = 0x0F;
+    boardState[prev_states + 0].ep      = 0;
+    wtm             = white;
     ply             = 0;
     nodes           = 0;
     cv[0]           = '\0';
-    pieces[0]       = 16;
-    pieces[1]       = 16;
-    material[0]     = 48;
-    material[1]     = 48;
+    pieces[black]   = 16;
+    pieces[white]   = 16;
+    material[black] = 48;
+    material[white] = 48;
 
     reversibleMoves     = 0;
-#ifdef USE_PAWN_STRUCT
+#ifndef NOT_USE_PAWN_STRUCT
     InitPawnStruct();
-#endif // USE_PAWN_STRUCT
+#endif // NOT_USE_PAWN_STRUCT
 }
 
 //--------------------------------
@@ -119,19 +119,19 @@ void InitAttacks()
 //--------------------------------
 bool BoardToMen()
 {
-    unsigned wPieceCr = 0, bPieceCr = 0;
     unsigned i;
 
-    pcs[0].clear();
-    pcs[1].clear();
-    for(i = 0; i < sizeof(b); i++)
+    pc_list[0].clear();
+    pc_list[1].clear();
+    for(i = 0; i < sizeof(b)/sizeof(*b); i++)
     {
         if(!ONBRD(i) || b[i] == __)
             continue;
-        pcs[(b[i] & WHT) >> 5].push_front(i);
+        pc_list[b[i] & white].push_front(i);
     }
-    pcs[0].sort(PieceListCompare);
-    pcs[1].sort(PieceListCompare);
+
+    pc_list[0].sort(PieceListCompare);
+    pc_list[1].sort(PieceListCompare);
 
     return true;
 }
@@ -140,13 +140,13 @@ bool BoardToMen()
 bool FenToBoard(char *p)
 {
     char chars[] = "kqrbnpKQRBNP";
-    char nums[]  = { _k, _q, _r, _b, _n, _p, _K, _Q, _R, _B, _N, _P};
+    char pcs[]  = { _k, _q, _r, _b, _n, _p, _K, _Q, _R, _B, _N, _P};
     int mtr[]   = {0, 12, 6, 4, 4, 1, 0, 12, 6, 4, 4, 1};
     int i;
-    material[0] = 0;
-    material[1] = 0;
-    pieces[0]   = 0;
-    pieces[1]   = 0;
+    material[black] = 0;
+    material[white] = 0;
+    pieces[black]   = 0;
+    pieces[white]   = 0;
     reversibleMoves = 0;
 
     for(int row = 7; row >= 0; row--)
@@ -163,8 +163,8 @@ bool FenToBoard(char *p)
             else if(*p == '/')
             {
                 p++;
-                col = -1;
-                continue;
+                col = -1;						// break ?
+                continue;						//
             }
             else
             {
@@ -173,18 +173,20 @@ bool FenToBoard(char *p)
                     ;
                 if(i >= 12)
                     return false;
-                if((nums[i] & 0x0F) == _p && (row == 0 || row == 7))
+                if((pcs[i] & ~white) == _p && (row == 0 || row == 7))
                     return false;
-                b[XY2SQ(col, row)] = nums[i];
+                b[XY2SQ(col, row)] = pcs[i];
                 material[i >= 6]  += mtr[i];
                 pieces[i >= 6]++;
                 p++;
             }// else
         }// for( col
+
+
     BoardToMen();
 
-    boardState[PREV_STATES + 0].ep   = 0;
-    wtm = (*(++p) == 'b') ? BLK : WHT;
+    boardState[prev_states + 0].ep   = 0;
+    wtm = (*(++p) == 'b') ? black : white;
 
     UC cstl = 0;
     p += 2;
@@ -213,7 +215,7 @@ bool FenToBoard(char *p)
     && (b[XY2SQ(4, 7)] != _k || b[XY2SQ(0, 7 )] != _r))
         cstl &= ~0x08;
 
-    boardState[PREV_STATES + 0].cstl = cstl;
+    boardState[prev_states + 0].cstl = cstl;
 
     p++;
     if(*p != '-')
@@ -223,7 +225,7 @@ bool FenToBoard(char *p)
         int s = wtm ? -1 : 1;
         UC pawn = wtm ? _P : _p;
         if(b[XY2SQ(col-1, row+s)] == pawn || b[XY2SQ(col+1, row+s)] == pawn)
-            boardState[PREV_STATES + 0].ep = col + 1;
+            boardState[prev_states + 0].ep = col + 1;
     }
     if(*(++p) && *(++p))
         while(*p >= '0' && *p <= '9')
@@ -232,9 +234,9 @@ bool FenToBoard(char *p)
             reversibleMoves += (*p++ - '0');
         }
 
-#ifdef USE_PAWN_STRUCT
+#ifndef NOT_USE_PAWN_STRUCT
     InitPawnStruct();
-#endif // USE_PAWN_STRUCT
+#endif // NOT_USE_PAWN_STRUCT
     return true;
 }
 
@@ -253,32 +255,32 @@ void ShowMove(UC fr, UC to)
 //--------------------------------
 bool MakeCastle(Move m, UC fr)
 {
-    UC cs = boardState[PREV_STATES + ply].cstl;
-    if(MOVEPC(m) == wtm + 1)                     // K moves
-        boardState[PREV_STATES + ply].cstl &= wtm ? 0xFC : 0xF3;
+    UC cs = boardState[prev_states + ply].cstl;
+    if(m.pc == pc_list[wtm].begin())                     // K moves
+        boardState[prev_states + ply].cstl &= wtm ? 0xFC : 0xF3;
     else if(b[fr] == (_r ^ wtm))        // R moves
     {
         if((wtm && fr == 0x07) || (!wtm && fr == 0x77))
-            boardState[PREV_STATES + ply].cstl &= wtm ? 0xFE : 0xFB;
+            boardState[prev_states + ply].cstl &= wtm ? 0xFE : 0xFB;
         else if((wtm && fr == 0x00) || (!wtm && fr == 0x70))
-            boardState[PREV_STATES + ply].cstl &= wtm ? 0xFD : 0xF7;
+            boardState[prev_states + ply].cstl &= wtm ? 0xFD : 0xF7;
     }
-    if(b[MOVETO(m)] == (_R ^ wtm))           // R is taken
+    if(b[m.to] == (_R ^ wtm))           // R is taken
     {
-        if((wtm && MOVETO(m) == 0x77) || (!wtm && MOVETO(m) == 0x07))
-            boardState[PREV_STATES + ply].cstl &= wtm ? 0xFB : 0xFE;
-        else if((wtm && MOVETO(m) == 0x70) || (!wtm && MOVETO(m) == 0x00))
-            boardState[PREV_STATES + ply].cstl &= wtm ? 0xF7 : 0xFD;
+        if((wtm && m.to == 0x77) || (!wtm && m.to == 0x07))
+            boardState[prev_states + ply].cstl &= wtm ? 0xFB : 0xFE;
+        else if((wtm && m.to == 0x70) || (!wtm && m.to == 0x00))
+            boardState[prev_states + ply].cstl &= wtm ? 0xF7 : 0xFD;
     }
-    bool castleRightsChanged = (cs != boardState[PREV_STATES + ply].cstl);
+    bool castleRightsChanged = (cs != boardState[prev_states + ply].cstl);
     if(castleRightsChanged)
         reversibleMoves = 0;
 
-    if(!(MOVEFLG(m) & mCSTL))
+    if(!(m.flg & mCSTL))
         return castleRightsChanged;
 
     UC rFr, rTo;
-    if(MOVEFLG(m) == mCS_K)
+    if(m.flg == mCS_K)
     {
         rFr = 0x07;
         rTo = 0x05;
@@ -293,16 +295,16 @@ bool MakeCastle(Move m, UC fr)
         rFr += 0x70;
         rTo += 0x70;
     }
-
-    auto it = pcs[wtm >> 5].begin();
-    for(; it != pcs[wtm >> 5].end(); ++it)
+    
+    short_list<UC, lst_sz>::iterator it = pc_list[wtm].begin();
+    for(; it != pc_list[wtm].end(); it++)
         if(*it == rFr)
             break;
 
-    boardState[PREV_STATES + ply].cstl_rook_it = it;
+    boardState[prev_states + ply].castled_rook_it = it;
     b[rTo] = b[rFr];
     b[rFr] = __;
-    *it = rTo;
+    pc_list[wtm][it] = rTo;
 
     reversibleMoves = 0;
 
@@ -312,26 +314,27 @@ bool MakeCastle(Move m, UC fr)
 //--------------------------------
 void UnMakeCastle(Move m)
 {
-    auto r_it = boardState[PREV_STATES + ply].cstl_rook_it;
-    UC rFr = *r_it;
-    UC rTo = rFr + (MOVEFLG(m) == mCS_K ? 2 : -3);
+    auto rMen = pc_list[wtm].begin();
+    rMen = boardState[prev_states + ply].castled_rook_it;
+    UC rFr = pc_list[wtm][rMen];
+    UC rTo = rFr + (m.flg == mCS_K ? 2 : -3);
     b[rTo] = b[rFr];
     b[rFr] = __;
-    *r_it =rTo;
+    *rMen = rTo;
 }
 
 //--------------------------------
 bool MakeEP(Move m, UC fr)
 {
-    int delta = MOVETO(m) - fr;
-    UC to = MOVETO(m);
+    int delta = m.to - fr;
+    UC to = m.to;
     if(ABSI(delta) == 0x20
-    && (b[MOVETO(m) + 1] == (_P ^ wtm) || b[to - 1] == (_P ^ wtm)))
+    && (b[m.to + 1] == (_P ^ wtm) || b[to - 1] == (_P ^ wtm)))
     {
-        boardState[PREV_STATES + ply].ep = (to & 7) + 1;
+        boardState[prev_states + ply].ep = (to & 0x07) + 1;
         return true;
     }
-    if(MOVEFLG(m) & mENPS)
+    if(m.flg & mENPS)
         b[to + (wtm ? -16 : 16)] = __;
     return false;
 }
@@ -353,23 +356,16 @@ bool SliderAttack(UC fr, UC to)
 //--------------------------------
 bool Attack(UC to, int xtm)
 {
-    UC fr;
-
     if((!xtm && (b[to+15] == _p || b[to+17] == _p))
     ||  (xtm && ((to >= 15 && b[to-15] == _P)
         || (to >= 17 && b[to-17] == _P))))
 
         return true;
 
-    UC menNum = xtm;
-    auto it = pcs[wtm >> 5].begin();
-    auto it_end = pcs[wtm >> 5].end();
-    for(;it != it_end; ++it)
+    for(auto fr : pc_list[xtm])
     {
-        fr      = *it;
-
-        int pt  = b[fr] & ~WHT;
-        if(pt   == _p)
+        int pt  = b[fr]/2;
+        if(pt   == _p/2)
             break;
 
         UC att = attacks[120 + to - fr] & (1 << pt);
@@ -379,7 +375,7 @@ bool Attack(UC to, int xtm)
             return true;
         if(SliderAttack(to, fr))
              return true;
-    }// for (; it
+    }// for (menCr
 
     return false;
 }
@@ -407,17 +403,13 @@ bool LegalSlider(UC fr, UC to, UC pt)
 //--------------------------------
 bool Legal(Move m, bool ic)
 {
-    if(ic || (b[MOVETO(m)] & ~WHT) == _k)
-    {
-        auto king = pcs[(wtm ^ WHT) >> 5].begin();
-        return !Attack(*king, wtm);
-    }
-    UC fr = boardState[PREV_STATES + ply].fr;
-    auto king = pcs[(wtm ^ WHT) >> 5].begin();
-    UC to = *king;
-    if(attacks[120 + to - fr] & (1 << _r))
+    if(ic || (b[m.to] & ~white) == _k)
+        return !Attack(*pc_list[!wtm].begin(), wtm);
+    UC fr = boardState[prev_states + ply].fr;
+    UC to = *pc_list[!wtm].begin();
+    if(attacks[120 + to - fr] & (1 << _r/2))
         return LegalSlider(fr, to, _r);
-    if(attacks[120 + to - fr] & (1 << _b))
+    if(attacks[120 + to - fr] & (1 << _b/2))
         return LegalSlider(fr, to, _b);
 
     return true;
@@ -456,19 +448,19 @@ void SetPawnStruct(int x)
 //-----------------------------
 void MovePawnStruct(UC movedPiece, UC fr, Move m)
 {
-    if((movedPiece & 0x0F) == _p
-    || (MOVEFLG(m) & mPROM))
+    if((movedPiece/2) == _p/2
+    || (m.flg & mPROM))
     {
-        SetPawnStruct(COL(MOVETO(m)));
-        if(MOVEFLG(m))
+        SetPawnStruct(COL(m.to));
+        if(m.flg)
             SetPawnStruct(COL(fr));
     }
-    if((boardState[PREV_STATES + ply].capt & 0x0F) == _p
-    || (MOVEFLG(m) & mENPS))                                    // mENPS нахрена например?
+    if(boardState[prev_states + ply].capt/2 == _p/2
+    || (m.flg & mENPS))                                    // mENPS not needed
     {
-        wtm ^= WHT;
-        SetPawnStruct(COL(MOVETO(m)));
-        wtm ^= WHT;
+        wtm ^= white;
+        SetPawnStruct(COL(m.to));
+        wtm ^= white;
     }
 }
 
@@ -510,7 +502,13 @@ void InitPawnStruct()
 }
 
 //-----------------------------
+void piece_list::clear()
+{
+    _size = 0;
+}
+
+//-----------------------------
 bool PieceListCompare(UC men1, UC men2)
 {
-    return streng[b[men1] & ~WHT] < streng[b[men2] & ~WHT];
+    return streng[b[men1]/2] < streng[b[men2]/2];
 }
