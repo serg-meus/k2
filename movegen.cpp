@@ -16,12 +16,13 @@ void InitMoveGen()
 }
 
 //--------------------------------
-int GenMoves(Move *list, int apprice)
+int GenMoves(Move *mlist, int apprice)
 {
     int i, fr, to, ray;
+    int fr2, to2;
 
     moveCr = 0;
-    ml = list;
+    ml = mlist;
     GenCastles();
     UC menNum   = wtm;
     menNum      = menNxt[menNum];
@@ -30,7 +31,6 @@ int GenMoves(Move *list, int apprice)
     for(; pcCr < maxPc; pcCr++)
     {
         fr = men[menNum];
-
 
         UC at = b[fr] & 7;
         if(at == _p)
@@ -75,9 +75,9 @@ int GenMoves(Move *list, int apprice)
         menNum = menNxt[menNum];
     }// for(pc
     if(apprice == APPRICE_ALL)
-        AppriceMoves(list);
+        AppriceMoves(mlist);
     else if(apprice == APPRICE_CAPT)
-        AppriceQuiesceMoves(list);
+        AppriceQuiesceMoves(mlist);
 //   AppriceHistory(list);
     return moveCr;
 }
@@ -229,11 +229,11 @@ void GenCastles()
 }
 
 //--------------------------------
-int GenCaptures(Move *list)
+int GenCaptures(Move *mlist)
 {
     int i, fr, to, ray;
     moveCr = 0;
-    ml = list;
+    ml = mlist;
 
     UC menNum   = wtm;
 
@@ -279,29 +279,29 @@ int GenCaptures(Move *list)
             }// for(i
         }// for(ray
     }// for(pc
-    AppriceQuiesceMoves(list);
+    AppriceQuiesceMoves(mlist);
     return moveCr;
 }
 
 //--------------------------------
-void AppriceMoves(Move *list)
+void AppriceMoves(Move *mlist)
 {
     for(int i = 0; i < moveCr; i++)
     {
-        Move m = list[i];
+        Move m = mlist[i];
         UC fr = b[men[MOVEPC(m)]] & (WHT - 1);
         UC pt = b[MOVETO(m)] & (WHT - 1);
 
         if(genBestMove && m == (bestMoveToGen & EXCEPT_SCORE))
-            list[i] |= (PV_FOLLOW << MOVE_SCORE_SHIFT);
+            mlist[i] |= (PV_FOLLOW << MOVE_SCORE_SHIFT);
         else if(pt == __ && !(MOVEFLG(m) & mPROM))
         {
             if(m == (kil[ply][0] & EXCEPT_SCORE))
-                list[i] |= (FIRST_KILLER << MOVE_SCORE_SHIFT);
+                mlist[i] |= (FIRST_KILLER << MOVE_SCORE_SHIFT);
             else if(m == (kil[ply][1] & EXCEPT_SCORE))
-                list[i] |= (SECOND_KILLER << MOVE_SCORE_SHIFT);
+                mlist[i] |= (SECOND_KILLER << MOVE_SCORE_SHIFT);
             else if(m == (pv[ply][1] & EXCEPT_SCORE))
-                list[i] |= (MOVE_FROM_PV << MOVE_SCORE_SHIFT);
+                mlist[i] |= (MOVE_FROM_PV << MOVE_SCORE_SHIFT);
             else
             {
                 int y   = ROW(MOVETO(m));
@@ -315,7 +315,7 @@ void AppriceMoves(Move *list)
                 }
                 int pstVal  = pst[fr - 1][0][y][x] - pst[fr - 1][0][y0][x0];
                 pstVal      = (pstVal >> 1) + 32 + 16;
-                list[i] |= (pstVal << MOVE_SCORE_SHIFT);
+                mlist[i] |= (pstVal << MOVE_SCORE_SHIFT);
             }
 /*            else
             {
@@ -349,12 +349,12 @@ void AppriceMoves(Move *list)
 */
             if(src > 120)
             {
-                list[i] |= (EQUAL_CAPTURE << MOVE_SCORE_SHIFT);
+                mlist[i] |= (EQUAL_CAPTURE << MOVE_SCORE_SHIFT);
                 continue;
             }
             else if(dst > 120)
             {
-                list[i] |= (KING_CAPTURE << MOVE_SCORE_SHIFT);
+                mlist[i] |= (KING_CAPTURE << MOVE_SCORE_SHIFT);
                 return;
             }
 
@@ -364,24 +364,24 @@ void AppriceMoves(Move *list)
                 ans += prms[(MOVEFLG(m) & mPROM) >> 16];
 
             if(ans > 0)
-                list[i] |= ((0x80 + ans/10) << MOVE_SCORE_SHIFT);
+                mlist[i] |= ((0x80 + ans/10) << MOVE_SCORE_SHIFT);
             else if(ans < 0)
             {
                 if(fr != _k)
-                    list[i] |= ((11 + ans/10) << MOVE_SCORE_SHIFT);
+                    mlist[i] |= ((11 + ans/10) << MOVE_SCORE_SHIFT);
             }
             else
-                list[i] |= (EQUAL_CAPTURE << MOVE_SCORE_SHIFT);
+                mlist[i] |= (EQUAL_CAPTURE << MOVE_SCORE_SHIFT);
         }
     }
 }
 
 //--------------------------------
-void AppriceQuiesceMoves(Move *list)
+void AppriceQuiesceMoves(Move *mlist)
 {
     for(int i = 0; i < moveCr; i++)
     {
-        Move m = list[i];
+        Move m = mlist[i];
         UC fr = b[men[MOVEPC(m)]] & (WHT - 1);
         UC pt = b[MOVETO(m)] & (WHT - 1);
 
@@ -392,7 +392,7 @@ void AppriceQuiesceMoves(Move *list)
             continue;
         else if(dst > 120)
         {
-            list[i] |= (KING_CAPTURE << MOVE_SCORE_SHIFT);
+            mlist[i] |= (KING_CAPTURE << MOVE_SCORE_SHIFT);
             return;
         }
 
@@ -402,38 +402,38 @@ void AppriceQuiesceMoves(Move *list)
             ans += prms[(MOVEFLG(m) & mPROM) >> 16];
 
         if(ans > 0)
-            list[i] |= ((0x80 + ans/10) << MOVE_SCORE_SHIFT);
+            mlist[i] |= ((0x80 + ans/10) << MOVE_SCORE_SHIFT);
         else if(ans < 0)
         {
             if(fr != _k)
-                list[i] |= ((11 + ans/10) << MOVE_SCORE_SHIFT);
+                mlist[i] |= ((11 + ans/10) << MOVE_SCORE_SHIFT);
         }
         else
-            list[i] |= (EQUAL_CAPTURE << MOVE_SCORE_SHIFT);
+            mlist[i] |= (EQUAL_CAPTURE << MOVE_SCORE_SHIFT);
 
     }
 
 }
 
 //--------------------------------
-void Next(Move *list, int cur, int top, Move *ans)
+void Next(Move *mlist, int cur, int top, Move *ans)
 {
 
-    int max = -32000, imx = cur;
+    int max_sc = -32000, imx = cur;
 
     for(int i = cur; i < top; i++)
     {
-        UC sc = MOVESCR(list[i]);
-        if(sc > max)
+        UC sc = MOVESCR(mlist[i]);
+        if(sc > max_sc)
         {
-            max = sc;
+            max_sc = sc;
             imx = i;
         }
     }
-    *ans = list[imx];
+    *ans = mlist[imx];
     if(imx != cur)
     {
-        list[imx] = list[cur];
-        list[cur] = *ans;
+        mlist[imx] = mlist[cur];
+        mlist[cur] = *ans;
     }
 }
