@@ -1,7 +1,7 @@
 #include "engine.h"
 
 //--------------------------------
-char        stop_str[] = "c4c3 ";
+char        stop_str[] = "e5d4 e8f8 f5f6 a3d6 e6e7 d6e7 f6e7 f8f7 ";
 unsigned    stopPly   = 8;
 
 Timer       timer;
@@ -11,9 +11,9 @@ unsigned    timeMaxNodes, timeMaxPly;
 unsigned    rootPly, rootTop, rootMoveCr;
 bool        _abort_, stop, analyze, busy;
 Move        rootMoveList[MAX_MOVES];
-UQ          qnodes, cutCr, cutNumCr[5], qCutCr, qCutNumCr[5], futCr;
-UQ          nullProbeCr, nullCutCr, hashProbeCr, hashHitCr, hashCutCr;
-UQ          totalNodes;
+UQ          qnodes, cutCr, cutNumCr[5], qCutCr, qCutNumCr[5];
+UQ          nullProbeCr, nullCutCr, hashProbeCr, hashHitCr, hashCutCr, hashHitCutCr;
+UQ          totalNodes, futProbes, futHits;
 double      timeBase, timeInc, timeRemains, totalTimeSpent;
 unsigned    movesPerSession;
 int         finalyMadeMoves, movsRemain;
@@ -77,7 +77,11 @@ short Search(int depth, short alpha, short beta, int lmr_)
     {
         m_best = entry.best_move;
         if(PseudoLegal(m_best, wtm))
+        {
             top = 999;
+            if(!Legal(m_best, in_check))
+                ply = ply;
+        }
         else
         {
             best_move_hashed = false;
@@ -126,7 +130,7 @@ short Search(int depth, short alpha, short beta, int lmr_)
 
 #ifndef DONT_USE_LMR
         int lmr = 1;
-        if(depth < 3 || m.flg || in_check)
+        if(depth < 5 || m.flg || in_check)
             lmr = 0;
         else if(legals < 5/* || m.scr > 80*/)
             lmr = 0;
@@ -211,6 +215,10 @@ short Search(int depth, short alpha, short beta, int lmr_)
 
     if(i >= BETA_CUTOFF)
     {
+#ifndef DONT_SHOW_STATISTICS
+        if(best_move_hashed && i == BETA_CUTOFF)
+            hashHitCutCr++;
+#endif //DONT_SHOW_STATISTICS
         UpdateStatistics(m, depth, i);
         return beta;
     }
@@ -566,12 +574,14 @@ void InitSearch()
     qnodes  = 0;
     cutCr   = 0;
     qCutCr  = 0;
-    futCr   = 0;
+    futProbes   = 0;
     nullCutCr   = 0;
     nullProbeCr = 0;
     hashCutCr   = 0;
     hashProbeCr = 0;
     hashHitCr   = 0;
+    hashHitCutCr = 0;
+    futHits     = 0;
 
     unsigned i, j;
     for(i = 0; i < sizeof(cutNumCr)/sizeof(*cutNumCr); i++)
@@ -641,32 +651,46 @@ void PrintSearchResult()
         return;
 
 #ifndef DONT_SHOW_STATISTICS
-    std::cout << "( q/n = " << (int)(qnodes/(nodes/100 + 1)) << "%, ";
-
-    std::cout << "cut = [";
+    std::cout << "( nodes=" << nodes
+              << ", cuts = [";
     for(unsigned i = 0; i < sizeof(cutNumCr)/sizeof(*cutNumCr); i++)
         std::cout  << (int)(cutNumCr[i]/(cutCr/100 + 1)) << " ";
     std::cout << "]% )" << std::endl;
-    std::cout << "( qCut = [";
+
+    std::cout << "( q_nodes = " << qnodes
+              << ", q_cuts = [";
     for(unsigned i = 0; i < sizeof(qCutNumCr)/sizeof(*qCutNumCr); i++)
         std::cout  << (int)(qCutNumCr[i]/(qCutCr/100 + 1)) << " ";
-    std::cout << "]% )" << std::endl;
+    std::cout << "]%, ";
+
+    std::cout << "q/n = " << (int)(qnodes/(nodes/100 + 1))
+              << "% )" << std::endl;
 
     std::cout   << "( hash probes = " << hashProbeCr
-                << ", hits = "
-                << (int)(hashHitCr/(hashProbeCr/100 + 1)) << "%, "
-                << "cutoffs = "
+                << ", immediate cutoffs = "
                 << (int)(hashCutCr/(hashProbeCr/100 + 1)) << "% )"
-                << std::endl;
+                << std::endl
+                << "( hash best moves = "
+                << (int)(hashHitCr/(hashProbeCr/100 + 1)) << "%, "
+                << "hits = "
+                << (int)(hashHitCutCr/(hashHitCr/100 + 1)) << "% )"
+                << std::endl
+                << "( hash full = " << (int)100*hash_table.size()/hashSize
+                << "% (" << hash_table.size() << "/" << hashSize
+                << " entries )" << std::endl;
 #ifndef DONT_USE_NULL_MOVE
     std::cout   << "( null move probes = " << hashProbeCr
                 << ", cutoffs = "
                 << (int)(nullCutCr/(nullProbeCr/100 + 1)) << "% )"
                 << std::endl;
 #endif // DONT_USE_NULL_MOVE
+
+#ifndef DONT_USE_FUTILITY
+    std::cout << "( futility probes = " << futProbes
+              << ", hits = " << (int)(futHits/(futProbes/100 + 1))
+              << "% )" << std::endl;
+#endif //DONT_USE_FUTILITY
     std::cout   << "( tSpent=" << timeSpent/1e6
-                << ", nodes=" << nodes
-                << ", futCr = " << futCr
                 << " )" << std::endl;
 #endif
 }
@@ -948,7 +972,6 @@ void InitEngine()
     finalyMadeMoves = 0;
     resignCr        = 0;
     timeSpent       = 0;
-    futCr           = 0;
 }
 
 //--------------------------------
@@ -1261,13 +1284,16 @@ bool Futility(int depth, short beta)
     && boardState[prev_states + ply - 1].to   != 0xFF
     )
     {
+#ifndef DONT_SHOW_STATISTICS
+            futProbes++;
+#endif // DONT_SHOW_STATISTICS
         short margin = depth == 0 ? 350 : 550;
         margin += beta;
         if((wtm  &&  valOpn > margin &&  valEnd > margin)
         || (!wtm && -valOpn > margin && -valEnd > margin))
         {
 #ifndef DONT_SHOW_STATISTICS
-            futCr++;
+            futHits++;
 #endif // DONT_SHOW_STATISTICS
             return true;
         }
@@ -1540,4 +1566,6 @@ r1b2rk1/2q1bppp/2np1n2/1p2p3/p2PP3/4BN1P/PPBN1PP1/R2QR1K1 b - - 0 1; SEE bug wit
 8/8/8/2PK4/4R2p/6k1/8/2r5 w - - 0 1 am Rc4
 6k1/pp3ppp/1qr2n2/8/4P3/P1N3PP/1P3QK1/3R4 b - - 0 1 am Rc5 @nodes <= 40000 fixed
 8/1p3r1p/p7/4Qp2/3Rp1kP/Pq6/1P3PP1/4K3 b - - 7 32 am Kxh4 @ply 7 lmr issue
+r5k1/5pp1/6p1/1p2P3/1P1Q4/5b2/5P1P/r4NK1 w - - 2 35 am Qd3 @ply 7 lmr issueposition fen 8/5k2/4P2p/5P1p/4K1bP/4N3/3p4/2b5 b - - 0 57 moves f7e8 e4e5 c1a3
+position fen 8/5k2/4P2p/5P1p/4K1bP/4N3/3p4/2b5 b - - 0 57 moves f7e8 e4e5 c1a3
 */
