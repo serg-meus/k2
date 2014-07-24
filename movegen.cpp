@@ -19,12 +19,16 @@ void PushMove(Move *list, int *movCr, short_list<UC, lst_sz>::iterator it, UC to
     m.pc    = it;
     m.to    = to;
     m.flg   = flg;
+#ifndef NDEBUG
+    if(to == 0x22)
+        ply = ply;
+#endif
 
     list[(*movCr)++] = m;
 }
 
 //--------------------------------
-int GenMoves(Move *list, int apprice)
+int GenMoves(Move *list, int apprice, Move *best_move)
 {
     int i, to, ray;
     int moveCr = 0;
@@ -74,7 +78,7 @@ int GenMoves(Move *list, int apprice)
         }// for(ray
     }// for(it
     if(apprice == APPRICE_ALL)
-        AppriceMoves(list, moveCr);
+        AppriceMoves(list, moveCr, best_move);
     else if(apprice == APPRICE_CAPT)
         AppriceQuiesceMoves(list, moveCr);
 #ifndef DONT_USE_HISTORY
@@ -286,12 +290,17 @@ int GenCaptures(Move *list)
 }
 
 //--------------------------------
-void AppriceMoves(Move *list, int moveCr)
+void AppriceMoves(Move *list, int moveCr, Move *bestMove)
 {
 #ifndef DONT_USE_HISTORY
     maxHistory = 0;
 #endif
     auto it = pc_list[wtm].begin();
+    Move bm = *list;
+    if(bestMove == nullptr)
+        bm.flg = 0xFF;
+    else
+        bm = *bestMove;
     for(int i = 0; i < moveCr; i++)
     {
         Move m = list[i];
@@ -300,9 +309,9 @@ void AppriceMoves(Move *list, int moveCr)
         UC fr_pc = b[*it];
         UC to_pc = b[m.to];
 
-/*        if(genBestMove && m == bestMoveToGen)
+        if(m == bm)
             list[i].scr = PV_FOLLOW;
-        else*/
+        else
         if(to_pc == __ && !(m.flg & mPROM))
         {
             if(m == kil[ply][0])
