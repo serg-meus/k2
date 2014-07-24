@@ -77,7 +77,7 @@ int main(int argc, char* argv[])
 
     InitEngine();
 
-    timeMaxPly      = MAX_PLY;
+    timeMaxPly      = max_ply;
     timeRemains     = 300000000;
     timeBase        = 300000000;
     timeInc         = 0;
@@ -242,7 +242,9 @@ void PerftCommand(std::string in)
     tick1 = t.getElapsedTimeInMicroSec();
 
     nodes = 0;
-    Perft(atoi(in.c_str()));
+    timeMaxPly = atoi(in.c_str());
+    Perft(timeMaxPly);
+    timeMaxPly = max_ply;
     tick2 = t.getElapsedTimeInMicroSec();
     deltaTick = tick2 - tick1;
 
@@ -307,7 +309,7 @@ void LevelCommand(std::string in)
     movesPerSession         = mps;
     timeRemains     = timeBase;
     timeMaxNodes    = 0;
-    timeMaxPly      = MAX_PLY;
+    timeMaxPly      = max_ply;
 }
 
 //--------------------------------
@@ -328,7 +330,7 @@ void SetNodesCommand(std::string in)
     movesPerSession      = 0;
     timeInc      = 0;
     timeMaxNodes = atoi(in.c_str());
-    timeMaxPly   = MAX_PLY;
+    timeMaxPly   = max_ply;
 }
 
 //--------------------------------
@@ -340,7 +342,7 @@ void SetTimeCommand(std::string in)             //<< NB: wrong
     movesPerSession      = 1;
     timeInc      = atof(in.c_str())*1000000.;
     timeMaxNodes = 0;
-    timeMaxPly   = MAX_PLY;
+    timeMaxPly   = max_ply;
     timeRemains  = 0;
 }
 
@@ -420,7 +422,7 @@ void EvalCommand(std::string in)
         return;
     std::cout << "Fast eval: " << valOpn << " / "
         << valEnd << std::endl;
-    short x = Eval(-INF, INF);
+    short x = Eval(/*-INF, INF*/);
     std::cout << "Eval: " << (wtm ? -x : x) << std::endl;
     std::cout << "(positive is white advantage)" << std::endl;
 #ifndef NOT_USE_HASH_TABLE
@@ -575,7 +577,7 @@ void UciGoCommand(std::string in)
                 timeBase        = 1000.*atof(arg1.c_str());
                 timeRemains     = timeBase;
                 timeMaxNodes    = 0;
-                timeMaxPly      = MAX_PLY;
+                timeMaxPly      = max_ply;
                 timeCommandSent = true;                                 // crutch: engine must know that time changed by GUI
             }
             arg1 = arg2;
@@ -601,7 +603,7 @@ void UciGoCommand(std::string in)
             movesPerSession      = 1;
             timeInc      = atof(arg1.c_str())*1000;
             timeMaxNodes = 0;
-            timeMaxPly   = MAX_PLY;
+            timeMaxPly   = max_ply;
 
             arg1 = arg2;
         }
@@ -621,7 +623,7 @@ void UciGoCommand(std::string in)
             timeBase        = INFINITY;
             timeRemains     = timeBase;
             timeMaxNodes    = atoi(arg1.c_str());
-            timeMaxPly      = MAX_PLY;
+            timeMaxPly      = max_ply;
 
             arg1 = arg2;
         }
