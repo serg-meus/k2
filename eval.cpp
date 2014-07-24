@@ -31,18 +31,18 @@ short Eval(/*short alpha, short beta*/)
     boardState[prev_states + ply].valOpn = valOpn;
     boardState[prev_states + ply].valEnd = valEnd;
 
-#ifndef NOT_USE_PAWN_STRUCT
+#ifndef DONT_USE_PAWN_STRUCT
     EvalPawns((bool)white);
     EvalPawns((bool)black);
-#endif // NOT_USE_PAWN_STRUCT
+#endif // DONT_USE_PAWN_STRUCT
 
     KingSafety(white);
     KingSafety(black);
 
-#ifndef NOT_USE_PAWN_STRUCT
+#ifndef DONT_USE_PAWN_STRUCT
     ClampedRook(white);
     ClampedRook(black);
-#endif // NOT_USE_PAWN_STRUCT
+#endif // DONT_USE_PAWN_STRUCT
 
 
 #ifndef CHECK_PREDICTED_VALUE
@@ -410,6 +410,7 @@ void KingSafety(UC stm)
     UC k = *pc_list[stm].begin();                                              //
     if(COL(k) == 3 || COL(k) == 4)
         ans -= 100;
+
 
     if(boardState[prev_states + ply].cstl & (0x0C >> 2*stm))       // able to castle
     {
