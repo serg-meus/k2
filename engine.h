@@ -5,6 +5,16 @@
 #include "Timer.h"
 
 //--------------------------------
+#define ENGINE_VERSION "057"
+//--------------------------------
+//#define DONT_SHOW_STATISTICS
+//#define DONT_USE_NULL_MOVE
+//#define DONT_USE_FUTILITY
+//#define DONT_USE_DELTA_PRUNING
+//#define DONT_USE_HISTORY
+//#define DONT_USE_LMR
+
+//--------------------------------
 #define UNUSED(x) (void)(x)
 
 #define MAX_MOVES       256
@@ -62,8 +72,9 @@ bool Futility(int depth, short beta);
 bool DrawByRepetition();
 void ShowFen();
 void ReHash(int size_MB);
-#ifndef DONT_USE_HASH_TABLE
 bool HashProbe(int depth, short alpha, short beta,
                hashEntryStruct *entry, bool *best_move_hashed);
 bool PseudoLegal(Move m, bool stm);
-#endif // DONT_USE_HASH_TABLE
+Move Next(Move *moves, unsigned cur, unsigned *top,
+          bool *best_move_hashed, hashEntryStruct entry,
+          UC stm, bool captures_only);
