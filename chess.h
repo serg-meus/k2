@@ -2,8 +2,7 @@
 #include <cstring>
 #include <stdint.h>
 #include <assert.h>
-
-#include <array>
+#include <list>
 
 //--------------------------------
 #define USE_PAWN_STRUCT
@@ -33,8 +32,8 @@
 
 //--------------------------------
 enum {__ = 0,  _k, _q, _r, _b, _n, _p, _K = 0x21, _Q, _R, _B, _N, _P};
-enum {mCAPT = 0x10, mCS_K = 0x20, mCS_Q = 0x40, mCSTL = 0x60, mENPS = 0x80,
-      mPR_Q = 0x01, mPR_N = 0x02, mPR_R = 0x03, mPR_B = 0x04, mPROM = 0x07};
+enum {mCAPT = 0x100000, mCS_K = 0x200000, mCS_Q = 0x400000, mCSTL = 0x600000, mENPS = 0x800000,
+      mPR_Q = 0x010000, mPR_N = 0x020000, mPR_R = 0x030000, mPR_B = 0x040000, mPROM = 0x070000};
 
 //--------------------------------
 typedef unsigned Move;  // beginning from LSB:
@@ -98,3 +97,4 @@ void ShowMove(UC fr, UC to);
 void SetPawnStruct(int x);
 void MovePawnStruct(UC pt, UC fr, Move m);
 void InitPawnStruct();
+bool PieceListCompare(UC men1, UC men2);
