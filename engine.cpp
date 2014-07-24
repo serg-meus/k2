@@ -959,7 +959,7 @@ bool DrawDetect()
     return DrawByRepetition();
 #else
     return SimpleDrawByRepetition();
-#endif // NOT_USE_HASH_FOR_DRAW
+#endif // USE_HASH_FOR_DRAW
 
 }
 
@@ -1436,15 +1436,15 @@ rnbqkb1r/1p1n1ppp/p3p3/1BppP3/3P4/2N2N2/PPP2PPP/R1BQK2R w KQkq - 0 7 am Ba4; @pl
 8/1b1pk1P1/3p1p1P/3P1K2/P1P5/8/4B3/8 w - - 3 54 g8R?
 5k2/1p4p1/p2q2bp/4p3/3pP3/1P1Pn2P/P1PQ2P1/2R3K1 b - - 1 28 am Ke7; king safety
 
-1r4k1/p6p/2p1b1p1/2q1bp1B/4p3/4N3/PPPRQPPP/2K5 w - - 1 25; king safety eval (KSE)
-r5k1/1p3q1p/3p2p1/2pPp3/2Pb1rp1/3P3P/PPQ1RPB1/R5K1 w - - 0 26; KSE
-r4rk1/3b2qp/1p1p4/1Pp1P3/2Pb1p2/1KNR1Q2/P2NB1P1/8 w - - 1 46; KSE
-1r3rk1/3b2b1/p1pq3p/3p2p1/N3p3/2P1Q3/PP1N1PPP/1R1R2K1 b - - 1 21; KSE
-6k1/Qn2q1pp/8/2p5/3pN3/P4r2/1P3P1P/R1B3K1 w - - 0 29; KSE, bad rook, bishop and quieen, no only move ext
-r5k1/1pp2r1p/1b1p4/3Pp3/p1Q1P1p1/PnBP1BPq/1P3P1P/4RRK1 w - - 1 27; KSE, no only move ext
+1r4k1/p6p/2p1b1p1/2q1bp1B/4p3/4N3/PPPRQPPP/2K5 w - - 1 25; king safety (KS) eval
+r5k1/1p3q1p/3p2p1/2pPp3/2Pb1rp1/3P3P/PPQ1RPB1/R5K1 w - - 0 26; KS eval
+r4rk1/3b2qp/1p1p4/1Pp1P3/2Pb1p2/1KNR1Q2/P2NB1P1/8 w - - 1 46; KS eval
+1r3rk1/3b2b1/p1pq3p/3p2p1/N3p3/2P1Q3/PP1N1PPP/1R1R2K1 b - - 1 21; KS eval
+6k1/Qn2q1pp/8/2p5/3pN3/P4r2/1P3P1P/R1B3K1 w - - 0 29; KS eval, bad rook, bishop and queen, no only move ext
+r5k1/1pp2r1p/1b1p4/3Pp3/p1Q1P1p1/PnBP1BPq/1P3P1P/4RRK1 w - - 1 27; KS eval, no only move ext
 8/b7/P5k1/1P6/2KpN1p1/8/8/8 w - - 14 66; am Kd5
 5k2/p6P/1pp1p1P1/8/7r/3B4/2P2P2/5K2 b - - 0 45; connected promos eval
 k4q2/1p6/8/2p1P3/r7/8/3Q1P1r/4RKR1 w - - 0 53 am Rg2; no only move ext
-k3b1rr/p7/P3p3/4P1b1/3NK3/5R2/1P3B2/R7 w - - 9 58; king too central
-
+k3b1rr/p7/P3p3/4P1b1/3NK3/5R2/1P3B2/R7 w - - 9 58; king is too central
+8/4p1k1/3pP1p1/3P2P1/5P2/8/r1BK4/8 b - - 68 84; eval: white's better?
 */
