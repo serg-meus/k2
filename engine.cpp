@@ -23,10 +23,6 @@ bool        spentExactTime;
 unsigned    resignCr;
 bool        timeCommandSent;
 
-#ifdef CHECK_PREDICTED_VALUE
-    PredictedInfo prediction;
-#endif // CHECK_PREDICTED_VALUE
-
 #ifndef NOT_USE_HASH_TABLE
     unsigned long hashSize = 64*HASH_ENTRIES_PER_MB;
     std::unordered_map<UQ, hashEntryStruct> hash_table(hashSize);
@@ -235,7 +231,7 @@ short Quiesce(short alpha, short beta)
     boardState[PREV_STATES + ply].valOpn = valOpn;
     boardState[PREV_STATES + ply].valEnd = valEnd;
 
-    short x = Eval(/*alpha, beta*/);
+    short x = Eval(alpha, beta);
 
     if(-x >= beta)
         return beta;
@@ -364,28 +360,6 @@ void MainSearch()
 
         sc = RootSearch(rootPly, -INF, INF);
 
-#ifdef CHECK_PREDICTED_VALUE
-        if(!stop && !_abort_ && ABSI(sc) < K_VAL - MAX_PLY
-        && (prediction.state == 4 || prediction.state == 1)
-        && rootPly == prediction.depth - 2)
-        {
-            if((prediction.state == 4 && sc != prediction.score)
-            || (prediction.state == 1 && sc < prediction.score))
-            {
-                std::cout << "tellusererror err03: wrong predicted score" << std::endl;
-                std::cout << "resign" << std::endl;
-                stop = true;
-            }
-            prediction.state = 1;
-        }
-#endif // CHECK_PREDICTED_VALUE
-#ifndef NDEBUG
-        if(stop && wtm != 0 && wtm != WHT)
-        {
-            sc = - K_VAL;
-            break;
-        }
-#endif
         if(stop && rootMoveCr <= 2)
         {
             rootPly--;
@@ -426,23 +400,7 @@ void MainSearch()
     timer.stop();
 
     if(!_abort_)
-    {
-#ifdef CHECK_PREDICTED_VALUE
-        if(rootPly > 1 && pv[0][0] > 1)
-        {
-            MkMove(pv[0][1]);
-            bool in_check = Attack(men[wtm + 1], wtm ^ WHT);
-            UnMove(pv[0][1]);
-            prediction.depth = in_check ? rootPly + 1 : in_check;
-            if(stop)
-                prediction.depth--;
-            prediction.oppMove = (pv[0][2] & EXCEPT_SCORE);
-            prediction.score = sc;
-            prediction.state = 2;
-        }
-#endif // CHECK_PREDICTED_VALUE
         PrintSearchResult();
-    }
     if(_abort_)
         analyze = false;
 
@@ -484,15 +442,17 @@ short RootSearch(int depth, short alpha, short beta)
 #ifndef NOT_USE_HASH_FOR_DRAW
         if(!DrawByRepetition())
         {
-            x = -Search(depth - 1, -alpha - 1, - alpha);
-            if(x > alpha)
+            if(rootMoveCr > 0)
+                x = -Search(depth - 1, -alpha - 1, - alpha);
+            if(rootMoveCr <= 0 || x > alpha)
                 x = -Search(depth - 1, -beta, -alpha);
         }
 #else
         if(!DrawByRepetitionInRoot(m))
         {
-            x = -Search(depth - 1, -alpha - 1, -alpha);
-            if(x > alpha)
+            if(rootMoveCr > 0)
+                x = -Search(depth - 1, -alpha - 1, -alpha);
+            if(rootMoveCr <= 0 || x > alpha)
                 x = -Search(depth - 1, -beta, -alpha);
         }
 #endif // NOT_USE_HASH_FOR_DRAW
@@ -930,17 +890,6 @@ bool MakeMoveFinaly(char *mov)
 #endif // NOT_USE_HASH_FOR_DRAW
 
             finalyMadeMoves++;
-
-#ifdef CHECK_PREDICTED_VALUE
-            if(prediction.state == 2)
-                prediction.state = 3;
-            else if(prediction.state == 3
-                 && prediction.oppMove == (m & EXCEPT_SCORE))
-                prediction.state = 4;
-            else
-                prediction.state = 1;
-#endif // CHECK_PREDICTED_VALUE
-
             return true;
         }
     }
@@ -963,10 +912,6 @@ void InitEngine()
     stop            = false;
     totalNodes      = 0;
     totalTimeSpent  = 0;
-
-#ifdef CHECK_PREDICTED_VALUE
-    prediction.state = 0;
-#endif // CHECK_PREDICTED_VALUE
 
     spentExactTime  = false;
     finalyMadeMoves = 0;
@@ -1010,11 +955,11 @@ bool DrawDetect()
     if(reversibleMoves == FIFTY_MOVES)
         return true;
 
-#ifndef USE_HASH_FOR_DRAW
+#ifndef NOT_USE_HASH_FOR_DRAW
     return DrawByRepetition();
 #else
     return SimpleDrawByRepetition();
-#endif // USE_HASH_FOR_DRAW
+#endif // NOT_USE_HASH_FOR_DRAW
 
 }
 
