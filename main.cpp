@@ -3,7 +3,7 @@
 // K2, the chess engine
 // Author: Sergey Meus (serg_meus@mail.ru)
 // Krasnoyarsk Kray, Russia
-// Copyright 2012-2013
+// Copyright 2012-2014
 //--------------------------------
 
 cmdStruct commands[]
@@ -482,8 +482,10 @@ void SetOptionCommand(std::string in)
         if(arg1 != "value")
             return;
         GetFirstArg(arg2, &arg1, &arg2);
+#ifndef NOT_USE_HASH_TABLE
         int size_MB = atoi(arg1.c_str());
         ReHash(size_MB);
+#endif
     }
 }
 
@@ -607,7 +609,7 @@ void UciGoCommand(std::string in)
         {
             GetFirstArg(arg2, &arg1, &arg2);
             timeMaxPly = atoi(arg1.c_str());
-            timeBase        = INF;
+            timeBase        = INFINITY;
             timeRemains     = timeBase;
             timeMaxNodes    = 0;
 
@@ -616,7 +618,7 @@ void UciGoCommand(std::string in)
         else if(arg1 == "nodes")
         {
             GetFirstArg(arg2, &arg1, &arg2);
-            timeBase        = INF;
+            timeBase        = INFINITY;
             timeRemains     = timeBase;
             timeMaxNodes    = atoi(arg1.c_str());
             timeMaxPly      = MAX_PLY;
