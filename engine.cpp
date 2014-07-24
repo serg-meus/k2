@@ -1,8 +1,8 @@
 #include "engine.h"
 
 //--------------------------------
-char        stop_str[] = " g1f3 d7d5 e2e3 c8f5 f1e2 ";
-unsigned    stopPly   = 8;
+char        stop_str[] = "";
+unsigned    stopPly   = 0;
 
 Timer       timer;
 double      time0;
@@ -22,11 +22,9 @@ bool        spentExactTime;
 unsigned    resignCr;
 bool        timeCommandSent;
 
-
 unsigned long hashSize = 64*HASH_ENTRIES_PER_MB;
 std::unordered_map<UQ, hashEntryStruct> hash_table(hashSize);
 UQ  doneHashKeys[FIFTY_MOVES + max_ply];
-
 
 //--------------------------------
 short Search(int depth, short alpha, short beta, int lmr_)
@@ -47,11 +45,6 @@ short Search(int depth, short alpha, short beta, int lmr_)
         return beta;
 #endif // DONT_USE_FUTILITY
 
-#ifndef NDEBUG
-    if(hash_key == 0x630fa5641c8d8294 && depth == 4)
-        ply = ply;//ShowFen();
-#endif //NGEBUG
-
     short _alpha = alpha;
     bool best_move_hashed = false;
     hashEntryStruct entry;
@@ -65,45 +58,16 @@ short Search(int depth, short alpha, short beta, int lmr_)
         CheckForInterrupt();
 
 #ifndef DONT_USE_NULL_MOVE
-    if(NullMove(depth, beta, in_check, lmr_))
+/*    if(best_move_hashed && entry.avoid_null_move
+    && entry.bound_type == hUPPER && -entry.value <= alpha)
+        ply = ply;
+    else */if(NullMove(depth, beta, in_check, lmr_))
         return beta;
 #endif // DONT_USE_NULL_MOVE
 
     Move moveList[MAX_MOVES], m, m_best;
-    int i = 0, legals = 0, top;
+    unsigned i = 0, legals = 0, top = 999;
     short x;
-
-/*    if(best_move_hashed)
-    {
-        m_best = entry.best_move;
-        if(PseudoLegal(m_best, wtm))
-        {
-            top = 999;
-            if(!Legal(m_best, in_check))
-                ply = ply;
-        }
-        else
-        {
-            best_move_hashed = false;
-            top = GenMoves(moveList, APPRICE_ALL, nullptr);
-        }
-    }
-    else
-        top = GenMoves(moveList, APPRICE_ALL, nullptr);
-*/
-    if(best_move_hashed)
-    {
-        top = GenMoves(moveList, APPRICE_ALL, &entry.best_move);
-        Next(moveList, 0, top, &m);
-#ifndef NDEBUG
-        if(entry.best_move != moveList[0])
-            ply = ply;
-#endif // NDEBUG
-    }
-    else
-    {
-        top = GenMoves(moveList, APPRICE_ALL, nullptr);
-    }
 
     boardState[prev_states + ply].valOpn = valOpn;
     boardState[prev_states + ply].valEnd = valEnd;
@@ -112,23 +76,9 @@ short Search(int depth, short alpha, short beta, int lmr_)
 
     for(; i < top && !stop && !mateFound; i++)
     {
-//        if(!best_move_hashed)
-            Next(moveList, i, top, &m);
-/*        else
-        {
-            if(i == 0)
-                m = m_best;
-            else
-            {
-                if(i == 1)
-                {
-                    top = GenMoves(moveList, APPRICE_ALL, &m_best);
-                    Next(moveList, 0, top, &m);
-                }
-                Next(moveList, i, top, &m);
-            }
-        }
-*/
+        m = Next(moveList, i, &top, &best_move_hashed, entry, wtm, false);
+        if(top <= 0)
+            break;
         MkMove(m);
 #ifndef NDEBUG
         if((!stopPly || rootPly == stopPly) && strcmp(stop_str, cv) == 0)
@@ -144,9 +94,9 @@ short Search(int depth, short alpha, short beta, int lmr_)
 
 #ifndef DONT_USE_LMR
         int lmr = 1;
-        if(depth < 3 || m.flg || in_check)
+        if(depth < 2 || m.flg || in_check)
             lmr = 0;
-        else if(legals < 5/* || m.scr > 80*/)
+        else if(legals < 4/* || m.scr > 80*/)
             lmr = 0;
         else if((b[m.to] & ~white) == _p && TestPromo(COL(m.to), !wtm))
             lmr = 0;
@@ -185,14 +135,14 @@ short Search(int depth, short alpha, short beta, int lmr_)
         pv[ply][0].flg = 0;
         return in_check ? -K_VAL + ply : 0;
     }
-    else if(legals)
-    {
-        size_t sz = hash_table.size();
+    else if(legals)                                                     // save results of search to hash table
+    {                                                                   // note that this result is for 'parent' node
+        size_t sz = hash_table.size();                                  // (negative score, alpha = -beta, etc)
         int exist = hash_table.count(hash_key);
         if(exist || sz < hashSize)
         {
             hashEntryStruct hs;
-            hs.depth = depth;
+//            hashEntryStruct hs = hash_table[hash_key];/
 
             if(legals == 1 && i <= top + 1)
                 hs.only_move = true;
@@ -201,27 +151,34 @@ short Search(int depth, short alpha, short beta, int lmr_)
 
             if(i >= BETA_CUTOFF)
             {
-                hs.bound_type   = hUPPER;
+//                if(exist && !hash_probe && depth <= hs.depth)
+//                    ply = ply;
+                hs.bound_type   = hLOWER;
                 hs.value        = -beta;
                 hs.best_move    = m;
-                hash_table[hash_key] = hs;
             }
             else if(alpha > _alpha && pv[ply][0].flg > 0)
             {
+//                if(exist && hash_probe && depth <= hs.depth)
+//                    ply = ply;
                 hs.bound_type   = hEXACT;
                 hs.value        = -alpha;
                 hs.best_move    = pv[ply][1];
-                hash_table[hash_key] = hs;
             }
             else if(alpha <= _alpha)
             {
-                hs.bound_type   = hLOWER;
+//                if(exist && !hash_probe && depth <= hs.depth)
+//                    ply = ply;
+                hs.bound_type   = hUPPER;
                 hs.value        = -_alpha;
-                hash_table[hash_key] = hs;
                 if(legals > 0)
                     hs.best_move    = moveList[0];
 //                hs.best_move.flg = 0xFF;
             }
+        hs.depth = depth;
+        if(depth >= 3)
+            hs.avoid_null_move = true;
+        hash_table[hash_key] = hs;
         }// if(exist && sz < ...
     }// else if(legals
 
@@ -261,12 +218,15 @@ short Quiesce(short alpha, short beta)
 
     Move moveList[MAX_MOVES];
     unsigned i = 0;
-    unsigned top = GenCaptures(moveList);
+    unsigned top = 999;
 
     for(; i < top && !stop; i++)
     {
-        Move m;
-        Next(moveList, i, top, &m);
+        hashEntryStruct hs;
+        bool bm_not_hashed = false;
+        Move m = Next(moveList, i, &top, &bm_not_hashed, hs, wtm, true);
+        if(top <= 0)
+            break;
 
 #ifndef DONT_USE_SEE_CUTOFF
         if(m.scr <= BAD_CAPTURES)
@@ -482,7 +442,7 @@ short RootSearch(int depth, short alpha, short beta)
         UQ _nodes = nodes;
 
         if(!DrawByRepetition())
-                x = -Search(depth - 1, -beta, -alpha, 0);
+            x = -Search(depth - 1, -beta, -alpha, 0);
 
         else
         {
@@ -552,26 +512,26 @@ short RootSearch(int depth, short alpha, short beta)
 //--------------------------------
 void RootMoveGen(bool in_check)
 {
-    Move moveList[MAX_MOVES];
-    rootTop = GenMoves(moveList, APPRICE_ALL, nullptr);
+    Move moveList[MAX_MOVES], m;
+//    rootTop = GenMoves(moveList, APPRICE_ALL, nullptr);
+    unsigned top = 999;
     boardState[prev_states + ply].valOpn = valOpn;
     boardState[prev_states + ply].valEnd = valEnd;
-    for(unsigned i = 0; i < rootTop; i++)
+    for(unsigned i = 0; i < top; i++)
     {
-        Move m;
-        Next(moveList, i, rootTop, &m);
+        hashEntryStruct hs;
+        bool bm_not_hashed = false;
+        m = Next(moveList, i, &top, &bm_not_hashed, hs, wtm, false);
+    }
+    for(unsigned i = 0; i < top; i++)
+    {
+        m = moveList[i];
         MkMove(m);
-        if(!Legal(m, in_check))
-        {
-            memmove(&moveList[i], &moveList[i + 1],
-                sizeof(Move)*(rootTop - 1));
-            rootTop--;
-            i--;
-        }
-        else
-            rootMoveList[i] = m;
+        if(Legal(m, in_check))
+            rootMoveList[rootTop++] = m;
         UnMove(m);
     }
+
     pv[0][1] = rootMoveList[0];
 }
 
@@ -916,6 +876,7 @@ bool MakeMoveFinaly(char *mov)
     if(ln < 4 || ln > 5)
         return false;
     bool in_check = Attack(*king_coord[wtm], !wtm);
+    rootTop = 0;
     RootMoveGen(in_check);
 
     char rMov[6];
@@ -1195,7 +1156,7 @@ void UnMove(Move m)
     if(prIx)
     {
         auto it_prom = coords[wtm].begin();
-        it_prom = boardState[prev_states + ply].nprom;     
+        it_prom = boardState[prev_states + ply].nprom;
         auto before_king = king_coord[wtm];
         --before_king;
         coords[wtm].move_element(it_prom, before_king);
@@ -1422,11 +1383,10 @@ bool HashProbe(int depth, short alpha, short beta,
         if(entry->depth >= depth)
         {
             UC hbnd = entry->bound_type;
-            short hval = -entry->value;
-            if( hbnd == hEXACT ||
-               ((hbnd == hUPPER || hbnd == hEXACT) && hval >= beta)
-            || ((hbnd == hLOWER || hbnd == hEXACT) && hval <= alpha)
-            )
+            short hval = entry->value;
+            if( hbnd == hEXACT
+            || (hbnd == hUPPER && hval >= -alpha)                       // -alpha is beta for parent node
+            || (hbnd == hLOWER && hval <= -beta) )                      // -beta is alpha for parent node
             {
 #ifndef DONT_SHOW_STATISTICS
                 hashCutCr++;
@@ -1435,8 +1395,8 @@ bool HashProbe(int depth, short alpha, short beta,
                 return true;
             }// if(bnd
         }// if(entry.depth
-        else if(entry->bound_type == hEXACT
-             || entry->bound_type == hUPPER)
+        else/* if(entry->bound_type == hEXACT
+             || entry->bound_type == hUPPER)*/
         {
 #ifndef DONT_SHOW_STATISTICS
             hashHitCr++;
@@ -1498,6 +1458,141 @@ bool PseudoLegal(Move m, bool stm)
     }
     return true;
 }
+
+//--------------------------------
+Move Next(Move *list, unsigned cur, unsigned *top,
+          bool *best_move_hashed, hashEntryStruct entry,
+          UC stm, bool only_captures)
+{
+    Move ans;
+    if(cur == 0)
+    {
+        if(!*best_move_hashed)
+        {
+            if(!only_captures)
+                *top = GenMoves(list, APPRICE_ALL, nullptr);
+            else
+            {
+                *top = GenCaptures(list);
+                AppriceQuiesceMoves(list, *top);
+            }
+        }
+        else
+        {
+            ans = entry.best_move;
+            if(PseudoLegal(ans, stm))
+                return ans;
+            else
+            {
+                *best_move_hashed = false;
+                *top = GenMoves(list, APPRICE_ALL, nullptr);
+            }
+        }
+    }
+    else if(cur == 1 && *best_move_hashed)
+    {
+        *top = GenMoves(list, APPRICE_ALL, &entry.best_move);
+        for(unsigned i = cur; i < *top; i++)
+            if(list[i].scr == PV_FOLLOW && i != 0)
+            {
+                ans = list[0];
+                list[0] = list[i];
+                list[i] = ans;
+                break;
+            }
+    }
+    int max = -32000;
+    unsigned imx = cur;
+
+    for(unsigned i = cur; i < *top; i++)
+    {
+        UC sc = list[i].scr;
+        if(sc > max)
+        {
+            max = sc;
+            imx = i;
+        }
+    }
+    ans = list[imx];
+    if(imx != cur)
+    {
+        list[imx] = list[cur];
+        list[cur] = ans;
+    }
+    return ans;
+}
+
+//-----------------------------
+short SEE(UC to, short frStreng, short val, bool stm)
+{
+    auto it = SeeMinAttacker(to);
+    if(it == coords[!wtm].end())
+        return -val;
+    if(frStreng == 15000)
+        return -15000;
+
+    val -= frStreng;
+    short tmp1 = -val;
+    if(wtm != stm && tmp1 < -2)
+        return tmp1;
+
+    auto storeMen = it;
+    UC storeBrd = b[*storeMen];
+    coords[!wtm].erase(it);
+    b[*storeMen] = __;
+    wtm = !wtm;
+
+    short tmp2 = -SEE(to, streng[storeBrd/2], -val, stm);
+
+    wtm = !wtm;
+    val = std::min(tmp1, tmp2);
+
+    it = storeMen;
+    coords[!wtm].restore(it);
+    b[*storeMen] = storeBrd;
+    return val;
+}
+
+//-----------------------------
+short_list<UC, lst_sz>::iterator SeeMinAttacker(UC to)
+{
+    int shft_l[] = {15, -17};
+    int shft_r[] = {17, -15};
+    UC  pw[] = {_p, _P};
+
+    if(b[to + shft_l[!wtm]] == pw[!wtm])
+        for(auto it = coords[!wtm].begin();
+            it != coords[!wtm].end();
+            ++it)
+            if(*it == to + shft_l[!wtm])
+                return it;
+
+    if(b[to + shft_r[!wtm]] == pw[!wtm])
+        for(auto it = coords[!wtm].begin();
+            it != coords[!wtm].end();
+            ++it)
+            if(*it == to + shft_r[!wtm])
+                return it;
+
+    auto it = coords[!wtm].begin();
+    for(; it != coords[!wtm].end(); ++it)
+    {
+        UC fr = *it;
+        int pt  = b[fr]/2;
+        if(pt == _p/2)
+            continue;
+        UC att = attacks[120 + to - fr] & (1 << pt);
+        if(!att)
+            continue;
+        if(!slider[pt])
+            return it;
+        if(SliderAttack(to, fr))
+             return it;
+    }// for (menCr
+
+    return it;
+}
+
 
 /*
 r4rk1/ppqn1pp1/4pn1p/2b2N1P/8/5N2/PPPBQPP1/2KRR3 w - - 0 18 Nxh6?! speed test position
@@ -1588,10 +1683,12 @@ r1b2rk1/2q1bppp/2np1n2/1p2p3/p2PP3/4BN1P/PPBN1PP1/R2QR1K1 b - - 0 1; SEE bug wit
 8/8/8/2PK4/4R2p/6k1/8/2r5 w - - 0 1 am Rc4
 6k1/pp3ppp/1qr2n2/8/4P3/P1N3PP/1P3QK1/3R4 b - - 0 1 am Rc5 @nodes <= 40000 fixed
 8/1p3r1p/p7/4Qp2/3Rp1kP/Pq6/1P3PP1/4K3 b - - 7 32 am Kxh4 @ply 7 lmr issue
-8/5k2/4P2p/5P1p/4K1bP/4N3/3p4/2b5 b - - 0 57 PseudoLegal() bug fixed after f7e8 e4e5 c1a3
+8/5k2/4P2p/5P1p/4K1bP/4N3/3p4/2b5 b - - 0 57 PseudoLegal() bug f ixed after f7e8 e4e5 c1a3
 rnbqk2r/pppp1ppp/5n2/4N3/2B1P3/8/PPPP1bPP/RNBQK2R w KQkq - 0 5 SEE bug
 3r1q1r/2k2P1p/1p1p1Rp1/2p5/4Q3/1P4P1/P1K5/4R3 b - - 1 26 am Rd7 lmr issue
 r1b1r1k1/ppb2pp1/7p/2p2P2/4P2q/8/PP1P1PBP/RQB2RK1 w - - 1 18 am h3 @ply 10
 8/8/8/p7/P7/8/4K1k1/8 w - - 0 83 draw is inevitable
-2rq1rk1/1p2b1pp/p2p4/2PP4/NP2p3/1Q1b1p2/P4PPP/R1B1R1K1 w - - 0 14 am g2g3 @ply 9
+2rq1rk1/1p2b1pp/p2p4/2PP4/NP2p3/1Q1b1p2/P4PPP/R1B1R1K1 w - - 0 14 am g2g3 @ply 9 lmr sucks?
+2r3k1/ppBR3B/5p2/3P2p1/6r1/2p2NPp/P4P2/6K1 b - - 1 24 bug with illegal move fixed
+8/2pk2pB/1P1n2P1/6p1/4r3/3K4/8/1R6 b - - 2 40 ab c5 bug in Next() fixed
 */
