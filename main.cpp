@@ -420,7 +420,7 @@ void EvalCommand(std::string in)
         return;
     std::cout << "Fast eval: " << valOpn << " / "
         << valEnd << std::endl;
-    short x = Eval();
+    short x = Eval(-INF, INF);
     std::cout << "Eval: " << (wtm ? -x : x) << std::endl;
     std::cout << "(positive is white advantage)" << std::endl;
 #ifndef NOT_USE_HASH_TABLE
