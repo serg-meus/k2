@@ -1,6 +1,6 @@
 #include "main.h"
 //--------------------------------
-// k2, the chess engine
+// K2, the chess engine
 // Author: Sergey Meus (serg_meus@mail.ru)
 // Krasnoyarsk Kray, Russia
 // Copyright 2012-2013
@@ -362,7 +362,7 @@ void ProtoverCommand(std::string in)
     uci     = false;
 
     std::cout << "feature "
-            "myname=\"k2 v." ENGINE_VERSION "\" "
+            "myname=\"K2 v." ENGINE_VERSION "\" "
             "setboard=1 "
             "analyze=0 "
             "san=0 "
@@ -423,9 +423,9 @@ void EvalCommand(std::string in)
     short x = Eval();
     std::cout << "Eval: " << (wtm ? -x : x) << std::endl;
     std::cout << "(positive is white advantage)" << std::endl;
-#ifdef USE_HASH_TABLE
+#ifndef NOT_USE_HASH_TABLE
     std::cout << "hash key = 0x" << std::hex << hash_key << std::dec << std::endl;
-#endif // USE_HASH_TABLE
+#endif // NOT_USE_HASH_TABLE
 
 }
 
@@ -461,7 +461,7 @@ void UciCommand(std::string in)
 {
     UNUSED(in);
     uci = true;
-    std::cout << "id name k2 v." ENGINE_VERSION << std::endl;
+    std::cout << "id name K2 v." ENGINE_VERSION << std::endl;
     std::cout << "id author Sergey Meus" << std::endl;
     std::cout << "option name Hash type spin default 64 min 2 max 1024" << std::endl;
     std::cout << "uciok" << std::endl;
@@ -624,5 +624,4 @@ void UciGoCommand(std::string in)
             arg1 = arg2;
         }
     }//while(true
-
 }
