@@ -5,7 +5,7 @@
 #include "Timer.h"
 
 //--------------------------------
-#define ENGINE_VERSION "057"
+#define ENGINE_VERSION "058"
 //--------------------------------
 //#define DONT_SHOW_STATISTICS
 //#define DONT_USE_NULL_MOVE
@@ -13,6 +13,7 @@
 //#define DONT_USE_DELTA_PRUNING
 //#define DONT_USE_HISTORY
 //#define DONT_USE_LMR
+//#define DONT_USE_ONLY_MOVE_EXTENSION
 
 //--------------------------------
 #define UNUSED(x) (void)(x)
@@ -21,7 +22,6 @@
 #define RESIGN_VALUE    850
 #define RESIGN_MOVES    3
 
-#define BETA_CUTOFF 1000
 #define MOVE_IS_NULL 0xFF
 #define HASH_ENTRIES_PER_MB 15625
 
@@ -78,3 +78,4 @@ bool PseudoLegal(Move m, bool stm);
 Move Next(Move *moves, unsigned cur, unsigned *top,
           bool *best_move_hashed, hashEntryStruct entry,
           UC stm, bool captures_only);
+
