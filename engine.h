@@ -15,7 +15,7 @@
 #define MOVE_IS_NULL 0xFF
 #define HASH_ENTRIES_PER_MB 15625
 
-#ifndef NOT_USE_HASH_TABLE
+#ifndef DONT_USE_HASH_TABLE
     #include <unordered_map>
     enum {hNONE, hEXACT, hUPPER, hLOWER};
     struct hashEntryStruct
@@ -28,7 +28,7 @@
         bool        only_move       : 1;
         bool        in_check        : 1;
     };
-#endif // NOT_USE_HASH_TABLE
+#endif // DONT_USE_HASH_TABLE
 //--------------------------------
 
 void InitEngine();
@@ -62,3 +62,7 @@ bool Futility(int depth, short beta);
 bool DrawByRepetition();
 void ShowFen();
 void ReHash(int size_MB);
+#ifndef DONT_USE_HASH_TABLE
+bool HashProbe(int depth, short alpha, short beta,
+               hashEntryStruct *entry, bool *best_move_hashed);
+#endif // DONT_USE_HASH_TABLE
