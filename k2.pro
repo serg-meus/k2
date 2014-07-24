@@ -23,12 +23,25 @@ HEADERS += \
     extern.h \
     eval.h \
     engine.h \
-    chess.h
+    chess.h \
+    short_list.h
 
 QMAKE_CXXFLAGS += -std=c++11
+CONFIG -= exceptions
 
-release
-{
+debug_and_release {
+    CONFIG -= debug_and_release
+    CONFIG += debug_and_release
+}
+
+CONFIG(debug, debug|release) {
+    CONFIG -= debug release
+    CONFIG += debug
+}
+
+CONFIG(release, debug|release) {
+    CONFIG -= debug release
+    CONFIG += release
     DEFINES += NDEBUG
     QMAKE_LFLAGS += -static
 }
