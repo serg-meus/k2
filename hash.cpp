@@ -46,30 +46,15 @@ UQ InitHashKey()
 {
     UQ ans = 0;
 
-    UC menNum   = wtm;
-    menNum      = menNxt[menNum];
-    unsigned maxPc = pieces[wtm >> 5];
+    for(auto fr : pc_list[wtm])
+        ans ^= zorb[MEN_TO_ZORB(b[fr])][COL(fr)][ROW(fr)];
 
-    for(unsigned pcCr = 0; pcCr < maxPc; ++pcCr)
-    {
-        UC pc = men[menNum];
-        ans ^= zorb[MEN_TO_ZORB(b[pc])][COL(pc)][ROW(pc)];
-        menNum      = menNxt[menNum];
-    }
-    menNum  = wtm ^ WHT;
-    menNum  = menNxt[menNum];
-    maxPc   = pieces[(wtm ^ WHT) >> 5];
-
-    for(unsigned pcCr = 0; pcCr < maxPc; ++pcCr)
-    {
-        UC pc = men[menNum];
-        ans ^= zorb[MEN_TO_ZORB(b[pc])][COL(pc)][ROW(pc)];
-        menNum      = menNxt[menNum];
-    }
+    for(auto fr : pc_list[!wtm])
+        ans ^= zorb[MEN_TO_ZORB(b[fr])][COL(fr)][ROW(fr)];
 
     if(!wtm)
         ans ^= (UQ)-1;
-    BrdState &f = boardState[PREV_STATES + ply];
+    BrdState &f = boardState[prev_states + ply];
     ans ^= zorb_en_passant[f.ep] ^ zorb_castling[f.cstl];
 
     return ans;
@@ -78,29 +63,29 @@ UQ InitHashKey()
 //--------------------------------
 void MoveHashKey(Move m, UC fr, int special)
 {
-    UC pt   = b[MOVETO(m)];
-    BrdState &f = boardState[PREV_STATES + ply],
-            &_f = boardState[PREV_STATES + ply - 1];
+    UC pt   = b[m.to];
+    BrdState &f = boardState[prev_states + ply],
+            &_f = boardState[prev_states + ply - 1];
 
     hash_key ^= zorb[MEN_TO_ZORB(pt)][COL(fr)][ROW(fr)]
-           ^ zorb[MEN_TO_ZORB(pt)][COL(MOVETO(m))][ROW(MOVETO(m))];
+           ^ zorb[MEN_TO_ZORB(pt)][COL(m.to)][ROW(m.to)];
 
     if(f.capt)
-        hash_key ^= zorb[MEN_TO_ZORB(f.capt)][COL(MOVETO(m))][ROW(MOVETO(m))];
+        hash_key ^= zorb[MEN_TO_ZORB(f.capt)][COL(m.to)][ROW(m.to)];
     if(_f.ep)
         hash_key ^= zorb_en_passant[_f.ep];
 
-    if(MOVEFLG(m) & mPROM)
+    if(m.flg & mPROM)
         hash_key ^= zorb[MEN_TO_ZORB(_p ^ wtm)][COL(fr)][ROW(fr)]
                ^ zorb[MEN_TO_ZORB(pt)][COL(fr)][ROW(fr)];
-    else if(MOVEFLG(m) & mENPS)
-        hash_key ^= zorb[MEN_TO_ZORB(_P ^ wtm)][COL(MOVETO(m))]
-            [ROW(MOVETO(m)) + (wtm ? -1 : 1)];
-    else if(MOVEFLG(m) & mCSTL)
+    else if(m.flg & mENPS)
+        hash_key ^= zorb[MEN_TO_ZORB(_P ^ wtm)][COL(m.to)]
+            [ROW(m.to) + (wtm ? -1 : 1)];
+    else if(m.flg & mCSTL)
     {
         if(wtm)
         {
-            if(MOVEFLG(m) & mCS_K)
+            if(m.flg & mCS_K)
                 hash_key ^= zorb[MEN_TO_ZORB(_R)][7][0]
                          ^  zorb[MEN_TO_ZORB(_R)][5][0];
             else
@@ -109,7 +94,7 @@ void MoveHashKey(Move m, UC fr, int special)
         }
         else
         {
-            if(MOVEFLG(m) & mCS_K)
+            if(m.flg & mCS_K)
                 hash_key ^= zorb[MEN_TO_ZORB(_r)][7][7]
                          ^  zorb[MEN_TO_ZORB(_r)][5][7];
             else
@@ -122,7 +107,7 @@ void MoveHashKey(Move m, UC fr, int special)
     hash_key ^= -1L;
     if(!special)
         return;
-    if((pt & ~WHT) == _p && !f.capt)
+    if((pt & ~white) == _p && !f.capt)
         hash_key ^= zorb_en_passant[f.ep];
     else
         hash_key ^= zorb_castling[_f.cstl] ^ zorb_castling[f.cstl];
