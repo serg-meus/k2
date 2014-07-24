@@ -30,13 +30,14 @@ short Eval(short alpha, short beta)
     int X, Y;
     X = material[0] + 1 + material[1] + 1 - pieces[0] - pieces[1];
 
+    boardState[PREV_STATES + ply].valOpn = valOpn;
+    boardState[PREV_STATES + ply].valEnd = valEnd;
+
     if(X == 3
     && (material[0] == 4 || material[1] == 4)
     && (pieces[0] + pieces[1] == 3))                // KNk, KBk, Kkn, Kkb
         return 0;
 
-    boardState[PREV_STATES + ply].valOpn = valOpn;
-    boardState[PREV_STATES + ply].valEnd = valEnd;
 
 #ifdef USE_PAWN_STRUCT
     EvalPawns((bool)WHT);
@@ -45,7 +46,7 @@ short Eval(short alpha, short beta)
 
     KingSafety(WHT);
     KingSafety(BLK);
-
+/*
   if((wtm && (valOpn < alpha - 120 && valEnd < alpha - 120))
     || (!wtm && (-valOpn < alpha - 120 && -valEnd < alpha - 120)))
     {
@@ -60,10 +61,9 @@ short Eval(short alpha, short beta)
         valEnd = boardState[PREV_STATES + ply].valEnd;
         return -beta;
     }
-
     CountKingAttacks(WHT);
     CountKingAttacks(BLK);
-
+*/
 //    RookEval(WHT);
 //    RookEval(BLK);
 
@@ -99,11 +99,11 @@ void FastEval(Move m)
         y0 = 7 - y0;
     }
 
-    if(MOVEFLG(m) & (mPROM << 16))
+    if(MOVEFLG(m) & mPROM)
     {
         deltaScoreOpn -= MatArrOpn[_p] + pst[_p - 1][0][y0][x0];
         deltaScoreEnd -= MatArrEnd[_p] + pst[_p - 1][1][y0][x0];
-        switch((MOVEFLG(m) >> 16) & mPROM)
+        switch(MOVEFLG(m) & mPROM)
         {
             case mPR_Q :    deltaScoreOpn += MatArrOpn[_q] + pst[_q - 1][0][y0][x0];
                             deltaScoreEnd += MatArrEnd[_q] + pst[_q - 1][1][y0][x0];
@@ -120,10 +120,10 @@ void FastEval(Move m)
         }
     }
 
-    if(MOVEFLG(m) & (mCAPT << 16))
+    if(MOVEFLG(m) & mCAPT)
     {
         UC capt = boardState[PREV_STATES + ply].capt & ~WHT;
-        if(MOVEFLG(m) & (mENPS << 16))
+        if(MOVEFLG(m) & mENPS)
         {
             deltaScoreOpn +=  MatArrOpn[_p] + pst[_p - 1][0][7 - y0][x];
             deltaScoreEnd +=  MatArrEnd[_p] + pst[_p - 1][1][7 - y0][x];
@@ -134,12 +134,12 @@ void FastEval(Move m)
             deltaScoreEnd +=  MatArrEnd[capt] + pst[capt - 1][1][7 - y][x];
         }
     }
-    else if(MOVEFLG(m) & (mCS_K << 16))
+    else if(MOVEFLG(m) & mCS_K)
     {
         deltaScoreOpn += pst[_r - 1][0][7][5] - pst[_r - 1][0][7][7];
         deltaScoreEnd += pst[_r - 1][1][7][5] - pst[_r - 1][1][7][7];
     }
-    else if(MOVEFLG(m) & (mCS_Q << 16))
+    else if(MOVEFLG(m) & mCS_Q)
     {
         deltaScoreOpn += pst[_r - 1][0][7][3] - pst[_r - 1][0][7][0];
         deltaScoreEnd += pst[_r - 1][1][7][3] - pst[_r - 1][1][7][0];
@@ -359,7 +359,7 @@ void KingSafety(UC stm)
     }
 
     int sh  = KingShieldFactor(stm);
-    ans +=  (1 - sh)*27;
+    ans +=  (1 - sh)*30;
 
     valOpn += stm ? ans : -ans;
 }
@@ -402,7 +402,7 @@ void CountKingAttacks(UC stm)
             break;
         }
     }
-//    if(ans < 10)
+//    if(wtm == WHT || wtm == BLK)
 //        ans = 0;
     valOpn -= stm ? 6*ans : -6*ans;
 }
