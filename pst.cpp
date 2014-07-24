@@ -1,6 +1,9 @@
 #include "chess.h"
 
+// WARNING: change values may cause error in AppriceMoves()
+
 SC pst[6][2][8][8] =
+
 {
   {         // KING
     {   {-30,-40,-40,-50,-50,-40,-40,-30},
