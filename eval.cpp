@@ -348,9 +348,9 @@ void KingSafety(UC stm)
 
     short ans = 0;
 
-//    UC k = men[stm + 1];                                                //
-//    if(COL(k) == 3 || COL(k) == 4)
-//        ans -= 100;
+    UC k = men[stm + 1];                                                //
+    if(COL(k) == 3 || COL(k) == 4)
+        ans -= 100;
 
     if(boardState[PREV_STATES + ply].cstl & (0x0C >> (stm >> 4)))       // able to castle
     {
@@ -412,11 +412,11 @@ void CountKingAttacks(UC stm)
 void RookEval(UC stm)
 {
     short ans = 0;
-    UC pcs = pieces[stm >> 5];
-    if(material[stm >> 5] - pcs < 8)
+    UC pi = pieces[stm >> 5];
+    if(material[stm >> 5] - pi < 8)
         return;
     int i = 2;
-    while(i++ < pcs)
+    while(i++ < pi)
     {
         UC pt = b[men[stm + i]] & ~WHT;
         if(pt > _r)
