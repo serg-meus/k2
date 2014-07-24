@@ -1,6 +1,6 @@
 #include "engine.h"
 //--------------------------------
-#define ENGINE_VERSION "044"
+#define ENGINE_VERSION "045"
 //--------------------------------
 #ifdef NDEBUG
     #define USE_THREAD_FOR_INPUT
@@ -9,6 +9,10 @@
 #ifdef USE_THREAD_FOR_INPUT
     #include <thread>                                                   // for std::thread
 #endif // USE_THREAD_FOR_INPUT
+
+#if (defined(NDEBUG) && !defined(USE_THREAD_FOR_INPUT))
+    #warning("Thread is off")
+#endif
 
 //--------------------------------
 extern double timeRemains;
