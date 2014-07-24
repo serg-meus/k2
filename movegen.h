@@ -19,15 +19,15 @@
 
 //--------------------------------
 void    InitMoveGen();
-int     GenMoves(Move *list, int apprice);
+int     GenMoves(Move *list, int apprice, Move *best_move);
 void    GenPawn(Move *list, int *movCr, short_list<UC, lst_sz>::iterator it);
 void    GenPawnCap(Move *list, int *movCr, short_list<UC, lst_sz>::iterator it);
 void    GenCastles(Move *list, int *movCr);
 int     GenCaptures(Move *list);
-void    AppriceMoves(Move *list, int moveCr);
+void    AppriceMoves(Move *list, int moveCr, Move *best_move);
 void    Next(Move *m, int cur, int top, Move *ans);
 void    AppriceQuiesceMoves(Move *list, int moveCr);
 short   SEE(UC to, short frStreng, short val);
 short_list<UC, lst_sz>::reverse_iterator SeeMinAttacker(UC to);
-void AppriceHistory(Move *list, int moveCr);
+void    AppriceHistory(Move *list, int moveCr);
 //--------------------------------
