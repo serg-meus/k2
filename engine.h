@@ -15,22 +15,14 @@
 #define MOVE_IS_NULL 0xFF
 #define HASH_ENTRIES_PER_MB 15625
 
-//#define NOT_USE_PVS
-//#define NOT_USE_NULL_MOVE
-//#define NOT_USE_FUTILITY
-//#define NOT_USE_HASH_TABLE
-//#define NOT_USE_HASH_FOR_DRAW
-//#define NOT_USE_PVS_IN_ROOT
-
-
 #ifndef NOT_USE_HASH_TABLE
     #include <unordered_map>
     enum {hNONE, hEXACT, hUPPER, hLOWER};
     struct hashEntryStruct
     {
         short       value;
+        Move        best_move;
         unsigned    depth           : 7;
-        unsigned    best_move       : 24;
         unsigned    bound_type      : 2;
         bool        avoid_null_move : 1;
         bool        only_move       : 1;
@@ -41,7 +33,7 @@
 
 void InitEngine();
 void Perft(int depth);
-short Search(int depth, short alpha, short beta);
+short Search(int depth, short alpha, short beta, int lmr);
 short Quiesce(short alpha, short beta);
 void StorePV(Move m);
 void UpdateStatistics(Move m, int dpt, unsigned i);
