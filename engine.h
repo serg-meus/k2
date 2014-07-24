@@ -65,4 +65,5 @@ void ReHash(int size_MB);
 #ifndef DONT_USE_HASH_TABLE
 bool HashProbe(int depth, short alpha, short beta,
                hashEntryStruct *entry, bool *best_move_hashed);
+bool PseudoLegal(Move m, bool stm);
 #endif // DONT_USE_HASH_TABLE
