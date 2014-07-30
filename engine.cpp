@@ -732,7 +732,7 @@ void InitTime()                                                         // too c
         timeRemains += timeInc;
     timeToThink = timeRemains / movsRemain;
     if(movsRemain != 1 && !spentExactTime)
-        timeToThink /= 3;                           // average branching factor
+        timeToThink /= 2;                           // average branching factor
     else if(timeInc != 0 && timeBase != 0)
         timeToThink = timeInc;
 
