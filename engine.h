@@ -5,7 +5,7 @@
 #include "Timer.h"
 
 //--------------------------------
-#define ENGINE_VERSION "058"
+#define ENGINE_VERSION "059"
 //--------------------------------
 //#define DONT_SHOW_STATISTICS
 //#define DONT_USE_NULL_MOVE
@@ -13,7 +13,7 @@
 //#define DONT_USE_DELTA_PRUNING
 //#define DONT_USE_HISTORY
 //#define DONT_USE_LMR
-//#define DONT_USE_ONLY_MOVE_EXTENSION
+#define DONT_USE_ONLY_MOVE_EXTENSION
 
 //--------------------------------
 #define UNUSED(x) (void)(x)
@@ -75,7 +75,12 @@ void ReHash(int size_MB);
 bool HashProbe(int depth, short alpha, short beta,
                hashEntryStruct *entry, bool *best_move_hashed);
 bool PseudoLegal(Move m, bool stm);
-Move Next(Move *moves, unsigned cur, unsigned *top,
+Move Next(Move *max_moves, unsigned cur, unsigned *top,
           bool *best_move_hashed, hashEntryStruct entry,
           UC stm, bool captures_only);
-
+void StoreResultInHash(int depth, short _alpha, short alpha, short beta,
+                       unsigned legals, bool in_hash,
+                       bool beta_cutoff, Move best_move);
+bool DetectOnlyMove(bool beta_cutoff, bool in_check,
+                    unsigned move_cr, unsigned max_moves,
+                    Move *moveList);
