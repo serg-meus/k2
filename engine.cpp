@@ -305,7 +305,7 @@ void StorePV(Move m)
     int nextLen = pv[ply][0].flg;
     pv[ply - 1][0].flg = nextLen + 1;
     pv[ply - 1][1] = m;
-    memcpy(&pv[ply - 1][2], &pv[ply][1], sizeof(Move)*(nextLen << 2));
+    memcpy(&pv[ply - 1][2], &pv[ply][1], sizeof(Move)*nextLen);
 }
 
 //-----------------------------
@@ -1691,5 +1691,5 @@ r1b1r1k1/ppb2pp1/7p/2p2P2/4P2q/8/PP1P1PBP/RQB2RK1 w - - 1 18 am h3 @ply 10
 2rq1rk1/1p2b1pp/p2p4/2PP4/NP2p3/1Q1b1p2/P4PPP/R1B1R1K1 w - - 0 14 am g2g3 @ply 9 lmr sucks?
 2r3k1/ppBR3B/5p2/3P2p1/6r1/2p2NPp/P4P2/6K1 b - - 1 24 bug with illegal move fixed
 8/2pk2pB/1P1n2P1/6p1/4r3/3K4/8/1R6 b - - 2 40 ab c5 bug in Next() fixed
-2k5/8/8/8/7p/8/6P1/5K2 w - - 0 1 bm Kg1; bug in PV @ply 28
+2k5/8/8/8/7p/8/6P1/5K2 w - - 0 1 bm Kg1; bug in PV @ply ~28 fixed
 */
