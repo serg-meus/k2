@@ -9,7 +9,6 @@
 #define DARK(X, s2m)    ((X) && (((X) & white) != (s2m)))
 
 
-#define EQUAL_CAPTURE   196
 #define MOVE_FROM_PV    197
 #define SECOND_KILLER   198
 #define FIRST_KILLER    199
@@ -33,4 +32,5 @@ void    AppriceMoves(Move *list, int moveCr, Move *best_move);
 void    AppriceQuiesceMoves(Move *list, int moveCr);
 short   SEE(UC to, short frStreng, short val, bool stm);
 short_list<UC, lst_sz>::iterator SeeMinAttacker(UC to);
+short   SEE_main(Move m);
 //--------------------------------

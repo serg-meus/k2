@@ -337,12 +337,7 @@ void AppriceMoves(Move *list, int moveCr, Move *bestMove)
                 }
                 int pstVal  = pst[fr_pc/2 - 1][0][y][x] - pst[fr_pc/2 - 1][0][y0][x0];
                 pstVal      = 96 + pstVal/2;
-                assert(pstVal >= 64);
-                assert(pstVal < 128);
-
                 list[i].scr = pstVal;
-
-
             } // else (ordinary move)
         }// if(to_pc == __ &&
         else
@@ -352,19 +347,14 @@ void AppriceMoves(Move *list, int moveCr, Move *bestMove)
             int dst = (m.flg & mCAPT) ? streng[to_pc/2] : 0;
 
 #ifndef DONT_USE_SEE_SORTING
-            if(dst && dst - src < -2)                                   // -2 for case BxN
+            if(dst && dst - src < 0)
             {
-                auto storeMen = coords[wtm].begin();
-                storeMen = m.pc;
-                UC storeBrd = b[*storeMen];
-                coords[wtm].erase(storeMen);
-                b[*storeMen] = __;
-                short tmp = -SEE(m.to, src, dst, wtm);
-
-                dst = tmp;
-                src = 0;
-                coords[wtm].restore(storeMen);
-                b[*storeMen] = storeBrd;
+                short tmp = SEE_main(m);
+                if(tmp > 0)
+                {
+                    dst = tmp;
+                    src = 0;
+                }
             }
 #else
             if(src > 120)
@@ -380,36 +370,44 @@ void AppriceMoves(Move *list, int moveCr, Move *bestMove)
                 continue;
             }
 
-            ans = dst - src/16;
-            short prms[] = {0, 12, 4, 6, 4};
-            if(m.flg & mPROM)
-                ans += prms[m.flg & mPROM];
+            short prms[] = {0, 1200, 400, 600, 400};
+            if(dst <= 1200 && (m.flg & mPROM))
+                dst += prms[m.flg & mPROM];
 
-            if(ans > 0)
+            if(dst >= src)
+                ans = dst - src/16;
+            else
+                ans = dst - src;
+
+            if(dst - src >= 0)
             {
-                if(200 + ans/10 > 250)
-                    ply = ply;
-                assert(200 + ans/10 >= 200);
-                assert(200 + ans/10 < 250);
-                list[i].scr = (200 + ans/10);
-            }
-            else if(ans < 0)
-            {
-                assert(33 + ans/32 >= 0);
-                assert(33 + ans/32 < 64);
-                if(fr_pc/2 != _k/2)
-                    list[i].scr = (33 + ans/32);
+                assert(200 + ans/32 > FIRST_KILLER);
+                assert(200 + ans/32 <= 250);
+                list[i].scr = (200 + ans/32);
             }
             else
-                list[i].scr = EQUAL_CAPTURE;                            // NB. need to be checked
-        }// else on captures
+            {
+                if(b[*it]/2 != _k/2)
+                {
+                    assert(-ans/2 >= 0);
+                    assert(-ans/2 <= BAD_CAPTURES);
+                    list[i].scr = -ans/2;
+                }
+                else
+                {
+                    assert(dst/10 >= 0);
+                    assert(dst/10 <= BAD_CAPTURES);
+                    list[i].scr = dst/10;
+                }
+            }
+       }// else on captures
     }// for(int i
 
 #ifndef DONT_USE_HISTORY
     for(int i = 0; i < moveCr; i++)
     {
         Move m = list[i];
-        if(m.scr >= EQUAL_CAPTURE
+        if(m.scr >= MOVE_FROM_PV
         || (m.flg & mCAPT))
             continue;
         it      = m.pc;
@@ -420,12 +418,9 @@ void AppriceMoves(Move *list, int moveCr, Move *bestMove)
             h -= minHistory;
             h = 64*h / (maxHistory - minHistory + 1);
             h += 128;
-            assert(h >= 128);
-            assert(h < 196);
             list[i].scr = h;
             continue;
         }
-
     }// for(int i
 #endif
 }
@@ -442,7 +437,6 @@ void AppriceQuiesceMoves(Move *list, int moveCr)
         UC fr = b[*it];
         UC pt = b[m.to];
 
-        int ans;
         int src = streng[fr/2];
         int dst = (m.flg & mCAPT) ? streng[pt/2] : 0;
 
@@ -451,36 +445,128 @@ void AppriceQuiesceMoves(Move *list, int moveCr)
             list[i].scr = KING_CAPTURE;
             return;
         }
-#ifndef DONT_USE_SEE_SORTING
-        if(dst && dst - src < -2)
-        {
-            auto storeMen = coords[wtm].begin();
-            storeMen = m.pc;
-            UC storeBrd = b[*storeMen];
-            coords[wtm].erase(storeMen);
-            b[*storeMen] = __;
-            short tmp = -SEE(m.to, src, dst, wtm);
-            dst = tmp;
-            src = 0;
-            coords[wtm].restore(storeMen);
-            b[*storeMen] = storeBrd;
-        }
-        ans = dst - src/16;
-#else
-        ans = dst - src;
-#endif // DONT_USE_SEE_SORTING
+
         short prms[] = {0, 1200, 400, 600, 400};
         if(dst <= 1200 && (m.flg & mPROM))
-            ans += prms[m.flg & mPROM];
+            dst += prms[m.flg & mPROM];
 
-        if(ans > 0)
-            list[i].scr = (0x80 + ans/10);
-        else if(ans < 0)
+        int ans;
+        if(dst >= src)
+            ans = dst - src/16;
+        else
+            ans = dst - src;
+
+        if(dst - src >= 0)
         {
-            if(fr/2 != _k/2)
-                list[i].scr = (11 + ans/10);
+            assert(200 + ans/32 > FIRST_KILLER);
+            assert(200 + ans/32 <= 250);
+            list[i].scr = (200 + ans/32);
         }
         else
-            list[i].scr = EQUAL_CAPTURE;
+        {
+            if(fr/2 != _k/2)
+            {
+                assert(-ans/2 >= 0);
+                assert(-ans/2 <= BAD_CAPTURES);
+                list[i].scr = -ans/2;
+            }
+            else
+            {
+                assert(dst/10 >= 0);
+                assert(dst/10 <= BAD_CAPTURES);
+                list[i].scr = dst/10;
+            }
+        }
     }
+}
+
+//-----------------------------
+short SEE(UC to, short frStreng, short val, bool stm)
+{
+    auto it = SeeMinAttacker(to);
+    if(it == coords[!wtm].end())
+        return -val;
+    if(frStreng == 15000)
+        return -15000;
+
+    val -= frStreng;
+    short tmp1 = -val;
+    if(wtm != stm && tmp1 < -2)
+        return tmp1;
+
+    auto storeMen = it;
+    UC storeBrd = b[*storeMen];
+    coords[!wtm].erase(it);
+    b[*storeMen] = __;
+    wtm = !wtm;
+
+    short tmp2 = -SEE(to, streng[storeBrd/2], -val, stm);
+
+    wtm = !wtm;
+    val = std::min(tmp1, tmp2);
+
+    it = storeMen;
+    coords[!wtm].restore(it);
+    b[*storeMen] = storeBrd;
+    return val;
+}
+
+//-----------------------------
+short_list<UC, lst_sz>::iterator SeeMinAttacker(UC to)
+{
+    int shft_l[] = {15, -17};
+    int shft_r[] = {17, -15};
+    UC  pw[] = {_p, _P};
+
+    if(b[to + shft_l[!wtm]] == pw[!wtm])
+        for(auto it = coords[!wtm].begin();
+            it != coords[!wtm].end();
+            ++it)
+            if(*it == to + shft_l[!wtm])
+                return it;
+
+    if(b[to + shft_r[!wtm]] == pw[!wtm])
+        for(auto it = coords[!wtm].begin();
+            it != coords[!wtm].end();
+            ++it)
+            if(*it == to + shft_r[!wtm])
+                return it;
+
+    auto it = coords[!wtm].begin();
+    for(; it != coords[!wtm].end(); ++it)
+    {
+        UC fr = *it;
+        int pt  = b[fr]/2;
+        if(pt == _p/2)
+            continue;
+        UC att = attacks[120 + to - fr] & (1 << pt);
+        if(!att)
+            continue;
+        if(!slider[pt])
+            return it;
+        if(SliderAttack(to, fr))
+             return it;
+    }// for (menCr
+
+    return it;
+}
+
+//-----------------------------
+short SEE_main(Move m)
+{
+    auto it = coords[wtm].begin();
+    it = m.pc;
+    UC fr_pc = b[*it];
+    UC to_pc = b[m.to];
+    int src = streng[fr_pc/2];
+    int dst = (m.flg & mCAPT) ? streng[to_pc/2] : 0;
+    auto storeMen = coords[wtm].begin();
+    storeMen = m.pc;
+    UC storeBrd = b[*storeMen];
+    coords[wtm].erase(storeMen);
+    b[*storeMen] = __;
+    short see_score = -SEE(m.to, src, dst, wtm);
+    coords[wtm].restore(storeMen);
+    b[*storeMen] = storeBrd;
+    return see_score;
 }

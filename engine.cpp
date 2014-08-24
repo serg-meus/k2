@@ -174,7 +174,8 @@ short Search(int depth, short alpha, short beta, int lmr_)
         if(in_hash && legals == 1)
             hashHitCutCr++;
 #endif //DONT_SHOW_STATISTICS
-        UpdateStatistics(m, depth, move_cr);
+        assert(legals > 0);
+        UpdateStatistics(m, depth, legals - 1);
         return beta;
     }
     return alpha;
@@ -203,8 +204,7 @@ short Quiesce(short alpha, short beta)
         alpha = -x;
 
     Move moveList[MAX_MOVES];
-    unsigned move_cr = 0;
-    unsigned max_moves = 999;
+    unsigned move_cr = 0, max_moves = 999, legals = 0;
     bool beta_cutoff = false;
 
     for(; move_cr < max_moves && !stop; move_cr++)
@@ -216,16 +216,17 @@ short Quiesce(short alpha, short beta)
             break;
 
 #ifndef DONT_USE_SEE_CUTOFF
-        if(m.scr <= BAD_CAPTURES)
-            break;
+        if(m.scr <= BAD_CAPTURES && SEE_main(m) < 0)
+            continue;
 #endif
 #ifndef DONT_USE_DELTA_PRUNING
         if(material[0] + material[1] > 24
-        && (wtm ? valOpn : -valOpn) + 100*pc_streng[b[m.to]/2] < alpha - 450)
+        && (wtm ? valOpn : -valOpn)
+        + 100*pc_streng[b[m.to]/2] < alpha - 450)
             continue;
 #endif
-
         MkMove(m);
+        legals++;
 #ifndef NDEBUG
         if((!stopPly || rootPly == stopPly) && strcmp(stop_str, cv) == 0)
             ply = ply;
@@ -257,8 +258,9 @@ short Quiesce(short alpha, short beta)
     {
 #ifndef DONT_SHOW_STATISTICS
         qCutCr++;
-        if(move_cr < sizeof(qCutNumCr)/sizeof(*qCutNumCr))
-            qCutNumCr[move_cr]++;
+        assert(legals > 0);
+        if(legals - 1 < (int)(sizeof(qCutNumCr)/sizeof(*qCutNumCr)))
+            qCutNumCr[legals - 1]++;
 #endif // DONT_SHOW_STATISTICS
         return beta;
     }
@@ -615,7 +617,7 @@ void PrintSearchResult()
         return;
 
 #ifndef DONT_SHOW_STATISTICS
-    std::cout << "( nodes=" << nodes
+    std::cout << "( nodes = " << nodes
               << ", cuts = [";
     for(unsigned i = 0; i < sizeof(cutNumCr)/sizeof(*cutNumCr); i++)
         std::cout  << (int)(cutNumCr[i]/(cutCr/100 + 1)) << " ";
@@ -976,7 +978,7 @@ bool DrawDetect()
 //--------------------------------
 void CheckForInterrupt()
 {
-    if(uci && (nodes & 0x7FFFFF) == 0x7FFFFF)
+    if(uci && (nodes & 0x7FFFFF) == 0x07FFFF)
     {
         double t = timer.getElapsedTimeInMicroSec();
 
@@ -1507,77 +1509,6 @@ Move Next(Move *list, unsigned cur, unsigned *max_moves,
         list[cur] = ans;
     }
     return ans;
-}
-
-//-----------------------------
-short SEE(UC to, short frStreng, short val, bool stm)
-{
-    auto it = SeeMinAttacker(to);
-    if(it == coords[!wtm].end())
-        return -val;
-    if(frStreng == 15000)
-        return -15000;
-
-    val -= frStreng;
-    short tmp1 = -val;
-    if(wtm != stm && tmp1 < -2)
-        return tmp1;
-
-    auto storeMen = it;
-    UC storeBrd = b[*storeMen];
-    coords[!wtm].erase(it);
-    b[*storeMen] = __;
-    wtm = !wtm;
-
-    short tmp2 = -SEE(to, streng[storeBrd/2], -val, stm);
-
-    wtm = !wtm;
-    val = std::min(tmp1, tmp2);
-
-    it = storeMen;
-    coords[!wtm].restore(it);
-    b[*storeMen] = storeBrd;
-    return val;
-}
-
-//-----------------------------
-short_list<UC, lst_sz>::iterator SeeMinAttacker(UC to)
-{
-    int shft_l[] = {15, -17};
-    int shft_r[] = {17, -15};
-    UC  pw[] = {_p, _P};
-
-    if(b[to + shft_l[!wtm]] == pw[!wtm])
-        for(auto it = coords[!wtm].begin();
-            it != coords[!wtm].end();
-            ++it)
-            if(*it == to + shft_l[!wtm])
-                return it;
-
-    if(b[to + shft_r[!wtm]] == pw[!wtm])
-        for(auto it = coords[!wtm].begin();
-            it != coords[!wtm].end();
-            ++it)
-            if(*it == to + shft_r[!wtm])
-                return it;
-
-    auto it = coords[!wtm].begin();
-    for(; it != coords[!wtm].end(); ++it)
-    {
-        UC fr = *it;
-        int pt  = b[fr]/2;
-        if(pt == _p/2)
-            continue;
-        UC att = attacks[120 + to - fr] & (1 << pt);
-        if(!att)
-            continue;
-        if(!slider[pt])
-            return it;
-        if(SliderAttack(to, fr))
-             return it;
-    }// for (menCr
-
-    return it;
 }
 
 //-----------------------------
