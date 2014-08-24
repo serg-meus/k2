@@ -109,7 +109,7 @@ short Search(int depth, short alpha, short beta, int lmr_)
 
 #ifndef DONT_USE_LMR
         int lmr = 1;
-        if(depth < 2 || m.flg || in_check)
+        if(depth < 3 || m.flg || in_check)
             lmr = 0;
         else if(legals < 4/* || m.scr > 80*/)
             lmr = 0;
