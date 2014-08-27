@@ -154,7 +154,7 @@ void EvalAllMaterialAndPST()
 {
     valOpn = 0;
     valEnd = 0;
-    for(unsigned i = 0; i < sizeof(b); ++i)
+    for(unsigned i = 0; i < sizeof(b)/sizeof(*b); ++i)
     {
         if(!ONBRD(i))
             continue;
@@ -409,7 +409,7 @@ void KingSafety(UC stm)
 
     UC k = *king_coord[stm];                                              //
     if(COL(k) == 3 || COL(k) == 4)
-        ans -= 100;
+        ans -= 75;
 
 
     if(boardState[prev_states + ply].cstl & (0x0C >> 2*stm))       // able to castle
@@ -417,9 +417,26 @@ void KingSafety(UC stm)
         valOpn += stm ? ans : -ans;
         return;
     }
-
+/*
     int sh  = KingShieldFactor(stm);
     ans +=  (1 - sh)*33;
+
+    auto rit = coords[!stm].rbegin();
+    ++rit;
+    for(; rit != coords[!stm].rend(); ++rit)
+    {
+        UC pt = b[*rit] & ~white;
+        if(pt == _p)
+            break;
+        int dist = kingDist[ABSI(k - *rit)];
+        if(dist >= 4)
+            continue;
+        if(pt == _q)
+            ans -= (5 - dist);
+        else
+            ans -= (5 - dist);
+    }
+*/
 
     valOpn += stm ? ans : -ans;
 }

@@ -5,7 +5,7 @@
 #include "Timer.h"
 
 //--------------------------------
-#define ENGINE_VERSION "060"
+#define ENGINE_VERSION "061"
 //--------------------------------
 //#define DONT_SHOW_STATISTICS
 //#define DONT_USE_NULL_MOVE

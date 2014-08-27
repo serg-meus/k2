@@ -1087,12 +1087,12 @@ void MkMove(Move m)
 
     doneHashKeys[FIFTY_MOVES + ply - 1] = hash_key;
     MoveHashKey(m, fr, specialMove);
-#ifndef NDEBUG
+/*#ifndef NDEBUG
         UQ tmp_key = InitHashKey() ^ -1ULL;
         if(tmp_key != hash_key)
             ply = ply;
 #endif //NDEBUG
-
+*/
 #ifndef DONT_USE_PAWN_STRUCT
     MovePawnStruct(b[m.to], fr, m);
 #endif // DONT_USE_PAWN_STRUCT

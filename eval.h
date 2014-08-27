@@ -1,4 +1,4 @@
-    #include "movegen.h"
+#include "movegen.h"
 #include <fstream>                  // to work with files (ifstream, getline())
 #include <cstdlib>                  // to convert strings to floats (atof())
 #include <iostream>
@@ -8,7 +8,7 @@
 #define MAXI(X, Y)       ((X) > (Y) ? (X) : (Y))
 
 //--------------------------------
-//#define TUNE_PARAMETERS
+#define TUNE_PARAMETERS
 //#define CHECK_PREDICTED_VALUE
 //#define EVAL_KING_TROPISM
 
