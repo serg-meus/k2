@@ -442,6 +442,8 @@ short RootSearch(int depth, short alpha, short beta)
             x = 0;
             pv[1][0].flg = 0;
         }
+        if(uci && rootPly > 6)
+            ShowCurrentUciInfo();
 
         UQ dn = nodes - _nodes;
 
@@ -978,31 +980,6 @@ bool DrawDetect()
 //--------------------------------
 void CheckForInterrupt()
 {
-    if(uci && (nodes & 0x7FFFFF) == 0x07FFFF)
-    {
-        double t = timer.getElapsedTimeInMicroSec();
-
-        std::cout << "info nodes " << nodes
-            << " nps " << (int)(1000000 * nodes / (t - time0 + 1));
-
-        Move m = rootMoveList[rootMoveCr];
-        UC fr = boardState[prev_states + 1].fr;
-        std::cout << " currmove "
-            << (char)(COL(fr) + 'a') << (char)(ROW(fr) + '1')
-            << (char)(COL(m.to) + 'a') << (char)(ROW(m.to) + '1');
-        char proms[] = {'?', 'q', 'n', 'r', 'b'};
-        if(m.flg & mPROM)
-            std::cout << proms[m.flg & mPROM];
-
-        std::cout << " currmovenumber " << rootMoveCr + 1;
-        std::cout << " hashfull ";
-
-        UQ hsz = hash_table.size();
-        hsz = 1000*hsz / hashMaxSize;
-            std::cout << hsz;
-        std::cout << std::endl;
-
-    }
     if(timeMaxNodes != 0)
     {
         if(nodes >= timeMaxNodes - 512)
@@ -1592,6 +1569,32 @@ bool DetectOnlyMove(bool beta_cutoff, bool in_check,
         return true;
 
     return false;
+}
+
+//-----------------------------
+void ShowCurrentUciInfo()
+{
+    double t = timer.getElapsedTimeInMicroSec();
+
+    std::cout << "info nodes " << nodes
+        << " nps " << (int)(1000000 * nodes / (t - time0 + 1));
+
+    Move m = rootMoveList[rootMoveCr];
+    UC fr = boardState[prev_states + 1].fr;
+    std::cout << " currmove "
+        << (char)(COL(fr) + 'a') << (char)(ROW(fr) + '1')
+        << (char)(COL(m.to) + 'a') << (char)(ROW(m.to) + '1');
+    char proms[] = {'?', 'q', 'n', 'r', 'b'};
+    if(m.flg & mPROM)
+        std::cout << proms[m.flg & mPROM];
+
+    std::cout << " currmovenumber " << rootMoveCr + 1;
+    std::cout << " hashfull ";
+
+    UQ hsz = hash_table.size();
+    hsz = 1000*hsz / hashMaxSize;
+        std::cout << hsz;
+    std::cout << std::endl;
 }
 
 /*

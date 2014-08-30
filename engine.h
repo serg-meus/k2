@@ -84,3 +84,4 @@ void StoreResultInHash(int depth, short _alpha, short alpha, short beta,
 bool DetectOnlyMove(bool beta_cutoff, bool in_check,
                     unsigned move_cr, unsigned max_moves,
                     Move *moveList);
+void ShowCurrentUciInfo();
