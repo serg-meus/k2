@@ -434,6 +434,9 @@ short RootSearch(int depth, short alpha, short beta)
         FastEval(m);
         UQ _nodes = nodes;
 
+        if(uci && rootPly > 6)
+            ShowCurrentUciInfo();
+
         if(!DrawByRepetition())
             x = -Search(depth - 1, -beta, -alpha, 0);
 
@@ -442,8 +445,6 @@ short RootSearch(int depth, short alpha, short beta)
             x = 0;
             pv[1][0].flg = 0;
         }
-        if(uci && rootPly > 6)
-            ShowCurrentUciInfo();
 
         UQ dn = nodes - _nodes;
 
