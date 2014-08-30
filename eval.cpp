@@ -201,7 +201,7 @@ bool TestPromo(int col, UC stm)
 void EvalPawns(bool stm)
 {
     short ansO = 0, ansE = 0;
-	bool promo, prevPromo = false;
+	bool promo;//, prevPromo = false;
     bool oppHasOnlyPawns = material[!stm] == pieces[!stm] - 1;
 
     for(int i = 0; i < 8; i++)
@@ -240,11 +240,11 @@ void EvalPawns(bool stm)
 
         if(promo)
         {
-            if(i > 0 && prevPromo && mx >= 5
-            && pmax[i - 0][stm] >= 5)
-                ansE += DBL_PROMO_P*MAXI(mx, pmax[i - 0][stm]);
+//            if(i > 0 && prevPromo && mx >= 5
+//            && pmax[i - 0][stm] >= 5)
+//                ansE += DBL_PROMO_P*MAXI(mx, pmax[i - 0][stm]);
 
-            prevPromo = true;
+//            prevPromo = true;
             short delta = 16*mx - 16;
             ansE += delta;
             ansO += -delta/4;
@@ -259,8 +259,8 @@ void EvalPawns(bool stm)
             }
 
         }// if promo
-        else
-            prevPromo = false;
+//        else
+//            prevPromo = false;
     }// for i
 
     valOpn += stm ? ansO : -ansO;
