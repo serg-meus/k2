@@ -417,10 +417,11 @@ void KingSafety(UC stm)
         valOpn += stm ? ans : -ans;
         return;
     }
-/*
+
     int sh  = KingShieldFactor(stm);
     ans +=  (1 - sh)*33;
 
+    int occ_cr = 0;
     auto rit = coords[!stm].rbegin();
     ++rit;
     for(; rit != coords[!stm].rend(); ++rit)
@@ -431,12 +432,14 @@ void KingSafety(UC stm)
         int dist = kingDist[ABSI(k - *rit)];
         if(dist >= 4)
             continue;
-        if(pt == _q)
-            ans -= (5 - dist);
-        else
-            ans -= (5 - dist);
+
+        if(dist < 3 && pt != _b && pt != _n)
+            occ_cr += 2;
+        else occ_cr++;
     }
-*/
+
+    ans -= 30*occ_cr*occ_cr;
+
 
     valOpn += stm ? ans : -ans;
 }
