@@ -344,7 +344,7 @@ void MainSearch()
     InitSearch();
 
     short sc = 0, _sc_;
-    rootPly = 1;
+    rootPly = 2;
     rootTop = 0;
     for(; rootPly <= max_ply && !stop; ++rootPly)
     {
