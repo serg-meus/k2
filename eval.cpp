@@ -402,7 +402,7 @@ short KingShieldFactor(UC stm)
 //-----------------------------
 void KingSafety(UC stm)
 {
-    if(material[!stm] - pieces[!stm] < 16)
+    if(material[!stm] - pieces[!stm] < 10)
         return;
 
     short ans = 0;
