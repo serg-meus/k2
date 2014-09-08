@@ -402,7 +402,7 @@ short KingShieldFactor(UC stm)
 //-----------------------------
 void KingSafety(UC stm)
 {
-    if(material[!stm] - pieces[!stm] < 10)
+    if(material[!stm] - pieces[!stm] < 8)
         return;
 
     short ans = 0;
@@ -419,7 +419,7 @@ void KingSafety(UC stm)
     }
 
     int sh  = KingShieldFactor(stm);
-    ans +=  (1 - sh)*33;
+    ans +=  material[!stm]*(1 - sh)/3;
 
     int occ_cr = 0;
     auto rit = coords[!stm].rbegin();
