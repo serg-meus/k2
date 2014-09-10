@@ -33,4 +33,5 @@ extern bool     analyze;
 extern short    streng[7];
 extern UQ       tmpCr;
 extern short_list<UC, lst_sz>::iterator king_coord[2];
+extern bool     ponder;
 #endif

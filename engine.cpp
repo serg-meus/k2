@@ -360,7 +360,7 @@ void MainSearch()
         double time1 = timer.getElapsedTimeInMicroSec();
         timeSpent = time1 - time0;
 
-        if(!analyze)
+        if(!analyze && !ponder)
         {
             if(timeSpent > timeToThink && !timeMaxNodes)
                 break;
@@ -374,6 +374,11 @@ void MainSearch()
 
     }// for(rootPly
 
+    if(ponder && spentExactTime)
+    {
+        ponder = false;
+        spentExactTime = false;
+    }
     if(sc < -RESIGN_VALUE)
         resignCr++;
     else
@@ -590,21 +595,26 @@ void InitSearch()
 }
 
 //--------------------------------
+void MoveToStr(Move m, bool stm, char *out)
+{
+    char proms[] = {'?', 'q', 'n', 'r', 'b'};
+
+    auto it = coords[stm].begin();
+    it      = m.pc;
+    int  f  = *it;
+    out[0]  = COL(f) + 'a';
+    out[1]  = ROW(f) + '1';
+    out[2]  = COL(m.to) + 'a';
+    out[3]  = ROW(m.to) + '1';
+    out[4]  = (m.flg & mPROM) ? proms[m.flg & mPROM] : '\0';
+    out[5]  = '\0';
+}
+
+//--------------------------------
 void PrintSearchResult()
 {
     char mov[6];
-    char proms[] = {'?', 'q', 'n', 'r', 'b'};
-
-    Move  p = pv[0][1];
-    auto it = coords[wtm].begin();
-    it      = p.pc;
-    int  f  = *it;
-    mov[0]  = COL(f) + 'a';
-    mov[1]  = ROW(f) + '1';
-    mov[2]  = COL(p.to) + 'a';
-    mov[3]  = ROW(p.to) + '1';
-    mov[4]  = (p.flg & mPROM) ? proms[p.flg & mPROM] : '\0';
-    mov[5]  = '\0';
+    MoveToStr(pv[0][1], wtm, mov);
 
     if(!uci && !MakeMoveFinaly(mov))
     {
@@ -614,7 +624,16 @@ void PrintSearchResult()
     if(!uci)
         std::cout << "move " << mov << std::endl;
     else
-        std::cout << "bestmove " << mov << std::endl;
+    {
+        std::cout << "bestmove " << mov;
+        if(pv[0][0].flg > 1)
+        {
+            char pndr[6];
+            MoveToStr(pv[0][2], !wtm, pndr);
+            std::cout << " ponder " << pndr;
+        }
+        std::cout << std::endl;
+    }
 
     if(xboard || uci)
         return;
@@ -927,8 +946,8 @@ void InitEngine()
     InitEval();
     hash_key = InitHashKey();
 
-    std::cin.rdbuf()->pubsetbuf(NULL, 0);
-    std::cout.rdbuf()->pubsetbuf(NULL, 0);
+    std::cin.rdbuf()->pubsetbuf(nullptr, 0);
+    std::cout.rdbuf()->pubsetbuf(nullptr, 0);
 
     _abort_         = false;
     stop            = false;
@@ -1598,6 +1617,17 @@ void ShowCurrentUciInfo()
     std::cout << std::endl;
 }
 
+//-----------------------------
+void PonderHit()
+{
+    double time1 = timer.getElapsedTimeInMicroSec();
+    double timeSpent = time1 - time0;
+    if(timeSpent >= 5*timeToThink)
+        spentExactTime  = true;
+    else
+        ponder = false;
+}
+
 /*
 r4rk1/ppqn1pp1/4pn1p/2b2N1P/8/5N2/PPPBQPP1/2KRR3 w - - 0 18 Nxh6?! speed test position
 2k1r2r/1pp3pp/p2b4/2p1n2q/6b1/1NQ1B3/PPP2PPP/R3RNK1 b - - bm Nf3+; speed test position
@@ -1696,4 +1726,6 @@ r1b1r1k1/ppb2pp1/7p/2p2P2/4P2q/8/PP1P1PBP/RQB2RK1 w - - 1 18 am h3 @ply 10
 2r3k1/ppBR3B/5p2/3P2p1/6r1/2p2NPp/P4P2/6K1 b - - 1 24 bug with illegal move fixed
 8/2pk2pB/1P1n2P1/6p1/4r3/3K4/8/1R6 b - - 2 40 ab c5 bug in Next() fixed
 2k5/8/8/8/7p/8/6P1/5K2 w - - 0 1 bm Kg1; bug in PV @ply ~28 fixed
+8/6p1/4k1Pp/6P1/5K2/8/8/8 b - - 0 49
+5Q1r/8/4k3/8/8/5RK1/8/8 b - - 0 56
 */

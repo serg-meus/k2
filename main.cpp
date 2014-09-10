@@ -29,16 +29,16 @@ cmdStruct commands[]
     {"test",        TestCommand},
     {"fen",         FenCommand},
     {"xboard",      XboardCommand},
+    {"easy",        Unsupported},
+    {"hard",        Unsupported},
 
     {"analyze",     Unsupported},
     {"exit",        Unsupported},
     {"undo",        Unsupported},
     {"remove",      Unsupported},
     {"computer",    Unsupported},
-    {"easy",        Unsupported},
-    {"hard",        Unsupported},
-    {"otim",        Unsupported},
 
+    {"otim",        Unsupported},
     {"accepted",    Unsupported},
     {".",           Unsupported},
     {"",            Unsupported},
@@ -49,6 +49,7 @@ cmdStruct commands[]
     {"position",    PositionCommand},
     {"ucinewgame",  NewCommand},
     {"stop",        StopCommand},
+    {"ponderhit",   PonderhitCommand},
 
 };
 
@@ -56,6 +57,7 @@ bool force  = false;
 bool quit   = false;
 bool xboard = false;
 bool uci    = false;
+bool ponder = false;
 
 #ifdef USE_THREAD_FOR_INPUT
     std::thread t;                                                      // for compilers with C++11 support
@@ -194,6 +196,7 @@ void NewCommand(std::string in)
     if(busy)
         StopEngine();
     force = false;
+    ponder = false;
     if(!uci)
     {
         std::cout
@@ -554,6 +557,7 @@ void ProcessMoveSequence(std::string in)
 //--------------------------------
 void UciGoCommand(std::string in)
 {
+    ponder = false;
     std::string arg1, arg2;
     arg1 = in;
     while(true)
@@ -572,7 +576,7 @@ void UciGoCommand(std::string in)
         {
             char clr = arg1[0];
             GetFirstArg(arg2, &arg1, &arg2);
-            if((clr== 'w' && wtm) || (clr == 'b' && !wtm))
+            if((clr == 'w' && wtm) || (clr == 'b' && !wtm))
             {
                 timeBase        = 1000.*atof(arg1.c_str());
                 timeRemains     = timeBase;
@@ -627,5 +631,31 @@ void UciGoCommand(std::string in)
 
             arg1 = arg2;
         }
+        else if(arg1 == "ponder")
+        {
+            ponder = true;
+            GetFirstArg(arg2, &arg1, &arg2);
+        }
     }//while(true
+}
+
+//--------------------------------
+void EasyCommand(std::string in)
+{
+    UNUSED(in);
+    ponder  = false;
+}
+
+//--------------------------------
+void HardCommand(std::string in)
+{
+    UNUSED(in);
+    ponder  = true;
+}
+
+//--------------------------------
+void PonderhitCommand(std::string in)
+{
+    UNUSED(in);
+    PonderHit();
 }

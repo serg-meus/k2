@@ -5,7 +5,7 @@
 #include "Timer.h"
 
 //--------------------------------
-#define ENGINE_VERSION "063"
+#define ENGINE_VERSION "063x"
 //--------------------------------
 //#define DONT_SHOW_STATISTICS
 //#define DONT_USE_NULL_MOVE
@@ -85,3 +85,5 @@ bool DetectOnlyMove(bool beta_cutoff, bool in_check,
                     unsigned move_cr, unsigned max_moves,
                     Move *moveList);
 void ShowCurrentUciInfo();
+void MoveToStr(Move m, bool stm, char *out);
+void PonderHit();
