@@ -1,7 +1,7 @@
 #include "movegen.h"
 
 //--------------------------------
-Move pv[max_ply][max_ply + 1];          // first element in a row is length of PV at that depth
+Move pv[max_ply][max_ply + 1];          // the 'flg' property of first element in a row is length of PV at that depth
 Move kil[max_ply][2];
 unsigned history [2][6][128];
 unsigned minHistory, maxHistory;

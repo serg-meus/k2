@@ -421,7 +421,7 @@ void KingSafety(UC stm)
     int sh  = KingShieldFactor(stm);
     ans +=  material[!stm]*(1 - sh)/3;
 
-    int occ_cr = 0;
+    int occ_cr = 0, pieces_near = 0;
     auto rit = coords[!stm].rbegin();
     ++rit;
     for(; rit != coords[!stm].rend(); ++rit)
@@ -432,13 +432,16 @@ void KingSafety(UC stm)
         int dist = kingDist[ABSI(k - *rit)];
         if(dist >= 4)
             continue;
-
+        pieces_near++;
         if(dist < 3 && pt != _b && pt != _n)
             occ_cr += 2;
         else occ_cr++;
     }
 
-    ans -= 30*occ_cr*occ_cr;
+    short tropism = 30*occ_cr*occ_cr;
+    if(pieces_near == 1)
+        tropism /= 2;
+    ans -= tropism;
 
 
     valOpn += stm ? ans : -ans;

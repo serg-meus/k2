@@ -1622,6 +1622,8 @@ void PonderHit()
 {
     double time1 = timer.getElapsedTimeInMicroSec();
     double timeSpent = time1 - time0;
+//    std::cout << "( time spent = " << timeSpent << " )" << std::endl;
+//    std::cout << "( time to think = " << timeToThink << " )" << std::endl;
     if(timeSpent >= 5*timeToThink)
         spentExactTime  = true;
     else
