@@ -634,7 +634,7 @@ void UciGoCommand(std::string in)
         else if(arg1 == "ponder")
         {
             ponder = true;
-            GetFirstArg(arg2, &arg1, &arg2);
+            arg1 = arg2;
         }
     }//while(true
 }
