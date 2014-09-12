@@ -438,7 +438,7 @@ void KingSafety(UC stm)
         else occ_cr++;
     }
 
-    short tropism = 30*occ_cr*occ_cr;
+    short tropism = 40*occ_cr*occ_cr;
     if(pieces_near == 1)
         tropism /= 2;
     ans -= tropism;
