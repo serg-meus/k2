@@ -29,8 +29,9 @@ cmdStruct commands[]
     {"test",        TestCommand},
     {"fen",         FenCommand},
     {"xboard",      XboardCommand},
-    {"easy",        Unsupported},
-    {"hard",        Unsupported},
+    {"easy",        EasyCommand},
+    {"hard",        HardCommand},
+    {"memory",      MemoryCommand},
 
     {"analyze",     Unsupported},
     {"exit",        Unsupported},
@@ -487,10 +488,8 @@ void SetOptionCommand(std::string in)
         if(arg1 != "value")
             return;
         GetFirstArg(arg2, &arg1, &arg2);
-#ifndef DONT_USE_HASH_TABLE
         int size_MB = atoi(arg1.c_str());
         ReHash(size_MB);
-#endif
     }
 }
 
@@ -658,4 +657,14 @@ void PonderhitCommand(std::string in)
 {
     UNUSED(in);
     PonderHit();
+}
+
+//--------------------------------
+void MemoryCommand(std::string in)
+{
+    std::string arg1, arg2;
+    arg1 = in;
+    GetFirstArg(arg2, &arg1, &arg2);
+    int size_MB = atoi(arg1.c_str());
+    ReHash(size_MB);
 }

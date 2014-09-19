@@ -73,3 +73,4 @@ void UciGoCommand(std::string in);
 void EasyCommand(std::string in);
 void HardCommand(std::string in);
 void PonderhitCommand(std::string in);
+void MemoryCommand(std::string in);

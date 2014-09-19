@@ -9,3 +9,17 @@
 bool    InitHashTable();
 UQ      InitHashKey();
 void    MoveHashKey(Move m, UC fr, int special);
+
+/*
+class TT
+{
+///////
+public:
+
+    TT();
+    TT(int size_mb);
+
+    set_size(int size_mb);
+
+};
+*/

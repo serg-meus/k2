@@ -1369,7 +1369,11 @@ bool HashProbe(int depth, short alpha, short beta,
 #endif //DONT_SHOW_STATISTICS
     *entry = hash_table[hash_key];
     UC hbnd = entry->bound_type;
+#ifndef DONT_USE_ONLY_MOVE_EXTENTION
+    if(entry->depth >= depth)
+#else
     if(entry->depth >= depth + entry->only_move)
+#endif // DONT_USE_ONLY_MOVE_EXTENTION
     {
         short hval = entry->value;
         if( hbnd == hEXACT
@@ -1730,4 +1734,7 @@ r1b1r1k1/ppb2pp1/7p/2p2P2/4P2q/8/PP1P1PBP/RQB2RK1 w - - 1 18 am h3 @ply 10
 2k5/8/8/8/7p/8/6P1/5K2 w - - 0 1 bm Kg1; bug in PV @ply ~28 fixed
 8/6p1/4k1Pp/6P1/5K2/8/8/8 b - - 0 49
 5Q1r/8/4k3/8/8/5RK1/8/8 b - - 0 56
+rn1qkbnr/1b3ppp/p3p3/1pppP3/5P2/2NB1N2/PPPP2PP/R1BQK2R w KQkq d6 0 7 am 0-0
+8/5k2/3p4/1P1r1P2/8/4K1P1/7R/8 b - - 0 60 am Rxb5
+
 */
