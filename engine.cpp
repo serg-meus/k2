@@ -54,7 +54,7 @@ short Search(int depth, short alpha, short beta, int lmr_)
     short x, _alpha = alpha;
     bool in_hash = false;
     tt_entry entry;
-    if(HashProbe(depth, alpha, beta, &entry, &in_hash))
+    if(depth > 0 && HashProbe(depth, alpha, beta, &entry, &in_hash))
         return -entry.value;
 
     if(depth <= 0)
