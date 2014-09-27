@@ -184,7 +184,6 @@ void StopEngine()
 {
 #ifdef USE_THREAD_FOR_INPUT
         stop = true;
-        _abort_ = true;
         t.join();
 #endif // USE_THREAD_FOR_INPUT
 }
@@ -390,7 +389,6 @@ void StopCommand(std::string in)
     if(busy)
     {
         stop = true;
-        _abort_ = false;
         t.join();
     }
 #endif // USE_THREAD_FOR_INPUT
@@ -498,10 +496,11 @@ void SetOptionCommand(std::string in)
 void IsReadyCommand(std::string in)
 {
     UNUSED(in);
-    while(busy)
+/*    while(busy)
     {
         // Do Nothing
     }
+*/
     std::cout << "readyok" << std::endl;
 }
 
