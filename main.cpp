@@ -120,7 +120,6 @@ int main(int argc, char* argv[])
         StopEngine();
 }
 
-
 //--------------------------------
 bool CmdProcess(std::string in)
 {
@@ -379,6 +378,7 @@ void ProtoverCommand(std::string in)
             "draw=0 "
             "sigterm=0 "
             "sigint=0 "
+            "memory=1"
             "done=1 " << std::endl;
 }
 
@@ -454,6 +454,7 @@ void XboardCommand(std::string in)
     UNUSED(in);
     xboard  = true;
     uci     = false;
+    std::cout << "( build date: " << __DATE__ << " )" << std::endl;
 }
 
 //--------------------------------
