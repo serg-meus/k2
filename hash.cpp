@@ -187,6 +187,7 @@ void transposition_table::add(UQ key, short value, Move best,
             break;
 
     if(i == entries_in_a_bucket)
+    {
         for(i = 0; i < entries_in_a_bucket; ++i)                        // looking for empty entries
             if(bucket[i].key == 0 && bucket[i].depth == 0)
             {
@@ -194,19 +195,22 @@ void transposition_table::add(UQ key, short value, Move best,
                 break;
             }
 
-    if(i == entries_in_a_bucket)                                        // looking for entries with lower depth
-        for(i = 1; i < entries_in_a_bucket; ++i)
-            if(bucket[i].depth < depth)
-                break;
+        if(i == entries_in_a_bucket)
+        {
+            for(i = 1; i < entries_in_a_bucket; ++i)                    // looking for entries with lower depth
+                if(bucket[i].depth < depth)
+                    break;
 
-    if(i == entries_in_a_bucket)                                        // if not found anything, rewrite first entry in a bucket
-        i = 0;
+            if(i == entries_in_a_bucket)                                        // if not found anything, rewrite first entry in a bucket
+                i = 0;
+        }
+    }
 
     bucket[i].key           = key >> 32;
     bucket[i].best_move     = best;
     bucket[i].depth         = depth;
     bucket[i].bound_type    = bound_type;
-    bucket[i].value         = value;  
+    bucket[i].value         = value;
 }
 
 //--------------------------------
@@ -231,6 +235,7 @@ unsigned transposition_table::count(UQ key, tt_entry *entry)
         {
             ans++;
             last_index = i;
+//            break;
         }
     assert(ans <= 1);
     *entry = bucket[last_index];
