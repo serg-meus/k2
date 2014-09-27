@@ -26,8 +26,9 @@ HEADERS += \
     chess.h \
     short_list.h
 
-QMAKE_CXXFLAGS += -std=c++11
+QMAKE_CXXFLAGS += -std=c++0x
 CONFIG -= exceptions
+
 
 debug_and_release {
     CONFIG -= debug_and_release
@@ -43,5 +44,6 @@ CONFIG(release, debug|release) {
     CONFIG -= debug release
     CONFIG += release
     DEFINES += NDEBUG
-    QMAKE_LFLAGS += -static
+    LIBS += -pthread
+    win32:QMAKE_LFLAGS += -static
 }
