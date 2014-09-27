@@ -5,12 +5,6 @@ UQ  zorb[12][8][8],
     zorb_en_passant[9],
     zorb_castling[16];
 
-
-/*int MEN_TO_ZORB(UC x)
-{
-    return men2zorb[x];
-}
-*/
 //--------------------------------
 bool InitHashTable()
 {
@@ -18,7 +12,6 @@ bool InitHashTable()
 
     std::uniform_int_distribution<UQ> zorb_distr(0, (UQ)-1);
     std::mt19937 rnd_gen;
-//    rnd_gen.seed(31);
 
     for(unsigned i = 0; i < 12; ++i)
         for(unsigned j = 0; j < 8; ++j)
@@ -111,4 +104,157 @@ void MoveHashKey(Move m, UC fr, int special)
         hash_key ^= zorb_en_passant[f.ep];
     else
         hash_key ^= zorb_castling[_f.cstl] ^ zorb_castling[f.cstl];
+}
+
+//--------------------------------
+transposition_table::transposition_table()
+{
+    set_size(64);
+}
+
+//--------------------------------
+transposition_table::transposition_table(unsigned size_mb)
+{
+    set_size(size_mb);
+}
+
+//--------------------------------
+transposition_table::~transposition_table()
+{
+    for (UI i = 0; i < buckets; ++i)
+        delete[] data[i];
+
+    delete[] data;
+}
+
+//--------------------------------
+bool transposition_table::set_size(unsigned size_mb)
+{
+    bool ans = true;
+    buckets = 0;
+    mask = 0;
+    unsigned sz = size_mb * 1000 / sizeof(tt_entry)
+                * 1000 / entries_in_a_bucket;
+    unsigned MSB_count = 0;
+    while(sz >>= 1)
+        MSB_count++;
+    sz = (1 << MSB_count);
+
+    if((data = new tt_entry*[sz]) == nullptr)
+        ans = false;
+    if(ans)
+        for(unsigned i = 0; i < sz; ++i)
+            if((data[i] = new tt_entry[entries_in_a_bucket]) == nullptr)
+                ans = false;
+
+    if(ans)
+    {
+        buckets = sz;
+        mask = sz - 1;
+
+        clear();
+    }
+    else
+    {
+        buckets = 0;
+        mask = 0;
+        data = new tt_entry*[1];
+        data[0] = new tt_entry[1];
+
+        memset(&data[0][0], 0, sizeof(tt_entry));
+    }
+
+    return ans;
+}
+
+//--------------------------------
+void transposition_table::clear()
+{
+    _size = 0;
+    for(UI i = 0; i < buckets; ++i)
+        for(UI j = 0; j < entries_in_a_bucket; ++j)
+            memset(&data[i][j], 0, sizeof(tt_entry));
+}
+
+//--------------------------------
+void transposition_table::add(UQ key, short value, Move best,
+                              UI depth, UI bound_type)
+{
+    unsigned i;
+    tt_entry *bucket = data[key & mask];                                // looking for already existed entries for the same position
+    for(i = 0; i < entries_in_a_bucket; ++i)
+        if(bucket[i].key == (key >> 32))
+            break;
+
+    if(i == entries_in_a_bucket)
+        for(i = 0; i < entries_in_a_bucket; ++i)                        // looking for empty entries
+            if(bucket[i].key == 0 && bucket[i].depth == 0)
+            {
+                _size += sizeof(tt_entry);
+                break;
+            }
+
+    if(i == entries_in_a_bucket)                                        // looking for entries with lower depth
+        for(i = 1; i < entries_in_a_bucket; ++i)
+            if(bucket[i].depth < depth)
+                break;
+
+    if(i == entries_in_a_bucket)                                        // if not found anything, rewrite first entry in a bucket
+        i = 0;
+
+    bucket[i].key           = key >> 32;
+    bucket[i].best_move     = best;
+    bucket[i].depth         = depth;
+    bucket[i].bound_type    = bound_type;
+    bucket[i].value         = value;  
+}
+
+//--------------------------------
+unsigned transposition_table::count(UQ key)
+{
+    unsigned i, ans = 0;
+    tt_entry *bucket = data[key & mask];
+    for(i = 0; i < entries_in_a_bucket; ++i)
+        if(bucket[i].key == key >> 32)
+            ans++;
+    assert(ans <= 1);
+    return ans;
+}
+
+//--------------------------------
+unsigned transposition_table::count(UQ key, tt_entry *entry)
+{
+    unsigned i, ans = 0, last_index = 0;
+    tt_entry *bucket = data[key & mask];
+    for(i = 0; i < entries_in_a_bucket; ++i)
+        if(bucket[i].key == key >> 32)
+        {
+            ans++;
+            last_index = i;
+        }
+    assert(ans <= 1);
+    *entry = bucket[last_index];
+    return ans;
+}
+
+//--------------------------------
+tt_entry& transposition_table::operator [](UQ key)
+{
+    unsigned i, ans = 0;
+    tt_entry *bucket = data[key & mask];
+    for(i = 0; i < entries_in_a_bucket; ++i)
+        if(bucket[i].key == key >> 32)
+            ans++;
+
+    return bucket[ans];
+}
+
+//--------------------------------
+bool transposition_table::resize(unsigned size_mb)
+{
+    for (UI i = 0; i < buckets; ++i)
+        delete[] data[i];
+    delete[] data;
+
+    return set_size(size_mb);
 }

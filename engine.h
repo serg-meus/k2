@@ -5,7 +5,7 @@
 #include "Timer.h"
 
 //--------------------------------
-#define ENGINE_VERSION "064x"
+#define ENGINE_VERSION "065x"
 //--------------------------------
 //#define DONT_SHOW_STATISTICS
 //#define DONT_USE_NULL_MOVE
@@ -23,22 +23,7 @@
 #define RESIGN_MOVES    3
 
 #define MOVE_IS_NULL 0xFF
-#define HASH_ENTRIES_PER_MB 15625
 
-#ifndef DONT_USE_HASH_TABLE
-    #include <unordered_map>
-    enum {hNONE, hEXACT, hUPPER, hLOWER};
-    struct hashEntryStruct
-    {
-        short       value;
-        Move        best_move;
-        unsigned    depth           : 7;
-        unsigned    bound_type      : 2;
-        bool        avoid_null_move : 1;
-        bool        only_move       : 1;
-        bool        in_check        : 1;
-    };
-#endif // DONT_USE_HASH_TABLE
 //--------------------------------
 
 void InitEngine();
@@ -71,12 +56,12 @@ bool NullMove(int depth, short beta, bool ic, int lmr_);
 bool Futility(int depth, short beta);
 bool DrawByRepetition();
 void ShowFen();
-void ReHash(int size_MB);
+void ReHash(int size_mb);
 bool HashProbe(int depth, short alpha, short beta,
-               hashEntryStruct *entry, bool *best_move_hashed);
+               tt_entry *entry, bool *best_move_hashed);
 bool PseudoLegal(Move m, bool stm);
 Move Next(Move *max_moves, unsigned cur, unsigned *top,
-          bool *best_move_hashed, hashEntryStruct entry,
+          bool *best_move_hashed, tt_entry entry,
           UC stm, bool captures_only);
 void StoreResultInHash(int depth, short _alpha, short alpha, short beta,
                        unsigned legals, bool in_hash,

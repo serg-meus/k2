@@ -78,47 +78,6 @@ struct BrdState
 };
 
 //--------------------------------
-struct tt_entry
-{
-    SS  scr;
-    SS  bMov;
-    SS  flags;
-    UC  depth;
-    UC  unused;
-};
-
-//--------------------------------
-#define PC_LIST_SIZE 64
-
-class piece_list
-{
-
-protected:
-
-    UC coord[PC_LIST_SIZE];
-    UC ptr_prev[PC_LIST_SIZE];
-    UC ptr_next[PC_LIST_SIZE];
-    UC id[PC_LIST_SIZE];
-
-    UC _size;
-    UC _first;
-    UC _last;
-
-public:
-
-    typedef UC iterator;
-    piece_list::iterator begin();
-    piece_list::iterator end();
-    piece_list::iterator rbegin();
-    piece_list::iterator rend();
-    bool push_front(UC, UC);
-    bool push_back(UC, UC);
-    bool erase(piece_list::iterator);
-    void clear();
-
-};
-
-//--------------------------------
 void InitChess();
 void InitAttacks();
 void InitBrd();

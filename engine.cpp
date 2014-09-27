@@ -21,8 +21,7 @@ bool        spentExactTime;
 unsigned    resignCr;
 bool        timeCommandSent;
 
-unsigned long hashMaxSize = 64*HASH_ENTRIES_PER_MB;
-std::unordered_map<UQ, hashEntryStruct> hash_table(hashMaxSize);
+transposition_table tt;
 UQ  doneHashKeys[FIFTY_MOVES + max_ply];
 
 //--------------------------------
@@ -46,21 +45,20 @@ short Search(int depth, short alpha, short beta, int lmr_)
 
     short x, _alpha = alpha;
     bool in_hash = false;
-    hashEntryStruct entry;
+    tt_entry entry;
     if(HashProbe(depth, alpha, beta, &entry, &in_hash))
         return -entry.value;
 
     if(depth <= 0)
     {
         x = Quiesce(alpha, beta);
-        if(false)
-        {
-            if(x > alpha)
-                alpha = x;
-            Move nm;
-            nm.flg = 0xFF;
-            StoreResultInHash(0, _alpha, alpha, beta, 2, in_hash, x >= beta, nm);
-        }
+/*
+        if(x > alpha)
+            alpha = x;
+        Move nm;
+        nm.flg = 0xFF;
+        StoreResultInHash(0, _alpha, alpha, beta, 2, in_hash, x >= beta, nm);
+*/
         return x;
     }
     nodes++;
@@ -209,7 +207,7 @@ short Quiesce(short alpha, short beta)
 
     for(; move_cr < max_moves && !stop; move_cr++)
     {
-        hashEntryStruct hs;
+        tt_entry hs;
         bool bm_not_hashed = false;
         Move m = Next(moveList, move_cr, &max_moves, &bm_not_hashed, hs, wtm, true);
         if(max_moves <= 0)
@@ -521,7 +519,7 @@ void RootMoveGen(bool in_check)
     boardState[prev_states + ply].valEnd = valEnd;
     for(unsigned move_cr = 0; move_cr < max_moves; move_cr++)
     {
-        hashEntryStruct hs;
+        tt_entry hs;
         bool bm_not_hashed = false;
         m = Next(moveList, move_cr, &max_moves, &bm_not_hashed, hs, wtm, false);
     }
@@ -587,7 +585,7 @@ void InitSearch()
     std::cout   << "Ply Value  Time    Nodes        Principal Variation" << std::endl;
     }
 
-    hash_table.clear();
+    tt.clear();
 
 #ifndef DONT_USE_HISTORY
     memset(history, 0, sizeof(history));
@@ -660,8 +658,9 @@ void PrintSearchResult()
                 << "cutoffs by best move = "
                 << (int)(hashHitCutCr/(hashHitCr/100 + 1)) << "% )"
                 << std::endl
-                << "( hash full = " << (int)100*hash_table.size()/hashMaxSize
-                << "% (" << hash_table.size() << "/" << hashMaxSize
+                << "( hash full = " << (int)100*tt.size()/tt.max_size()
+                << "% (" << tt.size()/sizeof(tt_entry)
+                << "/" << tt.max_size()/sizeof(tt_entry)
                 << " entries )" << std::endl;
 #ifndef DONT_USE_NULL_MOVE
     std::cout   << "( null move probes = " << hashProbeCr
@@ -1348,26 +1347,24 @@ void ShowFen()
 }
 
 //--------------------------------
-void ReHash(int size_MB)
+void ReHash(int size_mb)
 {
     busy = true;
-    hashMaxSize = size_MB*HASH_ENTRIES_PER_MB;
-    hash_table.rehash(hashMaxSize);
+    tt.resize(size_mb);
     busy = false;
 }
 
 //--------------------------------
 bool HashProbe(int depth, short alpha, short beta,
-               hashEntryStruct *entry,
+               tt_entry *entry,
                bool *in_hash)
 {
-    if(hash_table.count(hash_key) <= 0 || stop)
+    if(tt.count(hash_key, entry) == 0 || stop)
         return false;
 
 #ifndef DONT_SHOW_STATISTICS
     hashProbeCr++;
 #endif //DONT_SHOW_STATISTICS
-    *entry = hash_table[hash_key];
     UC hbnd = entry->bound_type;
 #ifndef DONT_USE_ONLY_MOVE_EXTENTION
     if(entry->depth >= depth)
@@ -1451,7 +1448,7 @@ bool PseudoLegal(Move m, bool stm)
 
 //--------------------------------
 Move Next(Move *list, unsigned cur, unsigned *max_moves,
-          bool *in_hash, hashEntryStruct entry,
+          bool *in_hash, tt_entry entry,
           UC stm, bool only_captures)
 {
     Move ans;
@@ -1471,7 +1468,10 @@ Move Next(Move *list, unsigned cur, unsigned *max_moves,
         {
             ans = entry.best_move;
             if(PseudoLegal(ans, stm))
+            {
+                ans.scr = MOVE_FROM_PV;
                 return ans;
+            }
             else
             {
                 *in_hash = false;
@@ -1517,52 +1517,20 @@ void StoreResultInHash(int depth, short _alpha, short alpha,            // save 
                        short beta, unsigned legals, bool in_hash,       // note that this result is for 'parent' node (negative score, alpha = -beta, etc)
                        bool beta_cutoff, Move best_move)
 {
-    if(!in_hash && hash_table.size() >= hashMaxSize)
-        return;
-
-    hashEntryStruct hs;
-    if(in_hash)
-    {
-        hs = hash_table[hash_key];
-//        if(hs.depth > depth)
-//            return;
-    }
-
     if(beta_cutoff)
-    {
-//                if(in_hash && !hash_probe && depth <= hs.depth)
-//                    ply = ply;
-        hs.bound_type   = hLOWER;
-        hs.value        = -beta;
-        hs.best_move    = best_move;
-    }
+        tt.add(hash_key, -beta, best_move, depth, hLOWER);
     else if(alpha > _alpha && pv[ply][0].flg > 0)
-    {
-//                if(in_hash && hash_probe && depth <= hs.depth)
-//                    ply = ply;
-        hs.bound_type   = hEXACT;
-        hs.value        = -alpha;
-        hs.best_move    = pv[ply][1];
-    }
+        tt.add(hash_key, -alpha, pv[ply][1], depth, hEXACT);
     else if(alpha <= _alpha)
     {
-//                if(in_hash && !hash_probe && depth <= hs.depth)
-//                    ply = ply;
-        hs.bound_type   = hUPPER;
-        hs.value        = -_alpha;
-        if(legals > 0)
-            hs.best_move    = best_move;
-        else
-            hs.best_move.flg = 0xFF;
+        Move no_move;
+        no_move.flg = 0xFF;
+        tt.add(hash_key, -_alpha, legals > 0 ? best_move : no_move, depth, hUPPER);
     }
-    hs.depth = depth;
-    if(depth >= 3)
-        hs.avoid_null_move = true;
 #ifndef DONT_USE_ONLY_MOVE_EXTENSION
     if(!in_hash)
         hs.only_move = false;
 #endif // DONT_USE_ONLY_MOVE_EXTENSION
-    hash_table[hash_key] = hs;
 }
 
 //-----------------------------
@@ -1577,7 +1545,7 @@ bool DetectOnlyMove(bool beta_cutoff, bool in_check,
     while(++cr < max_moves)
     {
         bool nh = false;
-        hashEntryStruct hs;
+        tt_entry hs;
         hs.best_move.flg = 0xFF;
         Move tmp = Next(moveList, cr, &max_moves,
                  &nh, hs, wtm, false);
@@ -1615,10 +1583,8 @@ void ShowCurrentUciInfo()
     std::cout << " currmovenumber " << rootMoveCr + 1;
     std::cout << " hashfull ";
 
-    UQ hsz = hash_table.size();
-    hsz = 1000*hsz / hashMaxSize;
-        std::cout << hsz;
-    std::cout << std::endl;
+    UQ hsz = 1000*tt.size() / tt.max_size();
+    std::cout << hsz << std::endl;
 }
 
 //-----------------------------
@@ -1736,5 +1702,5 @@ r1b1r1k1/ppb2pp1/7p/2p2P2/4P2q/8/PP1P1PBP/RQB2RK1 w - - 1 18 am h3 @ply 10
 5Q1r/8/4k3/8/8/5RK1/8/8 b - - 0 56
 rn1qkbnr/1b3ppp/p3p3/1pppP3/5P2/2NB1N2/PPPP2PP/R1BQK2R w KQkq d6 0 7 am 0-0
 8/5k2/3p4/1P1r1P2/8/4K1P1/7R/8 b - - 0 60 am Rxb5
-
+8/6p1/8/6P1/K7/8/1kB5/8 w - - 0 1 bm Bb1
 */

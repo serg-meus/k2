@@ -526,12 +526,6 @@ void InitPawnStruct()
 }
 
 //-----------------------------
-void piece_list::clear()
-{
-    _size = 0;
-}
-
-//-----------------------------
 bool PieceListCompare(UC men1, UC men2)
 {
     return streng[b[men1]/2] > streng[b[men2]/2];
