@@ -14,6 +14,7 @@
 //#define DONT_USE_HISTORY
 //#define DONT_USE_LMR
 #define DONT_USE_ONLY_MOVE_EXTENSION
+//#define DONT_USE_MATE_DISTANCE_PRUNING
 
 //--------------------------------
 #define UNUSED(x) (void)(x)
@@ -64,7 +65,7 @@ Move Next(Move *max_moves, unsigned cur, unsigned *top,
           bool *best_move_hashed, tt_entry entry,
           UC stm, bool captures_only);
 void StoreResultInHash(int depth, short _alpha, short alpha, short beta,
-                       unsigned legals, bool in_hash,
+                       unsigned legals,
                        bool beta_cutoff, Move best_move);
 bool DetectOnlyMove(bool beta_cutoff, bool in_check,
                     unsigned move_cr, unsigned max_moves,

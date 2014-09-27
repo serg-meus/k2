@@ -9,7 +9,7 @@ double      time0;
 double      timeSpent, timeToThink;
 unsigned    timeMaxNodes, timeMaxPly;
 unsigned    rootPly, rootTop, rootMoveCr;
-bool        _abort_, stop, analyze, busy;
+bool        stop, analyze, busy;
 Move        rootMoveList[MAX_MOVES];
 UQ          qnodes, cutCr, cutNumCr[5], qCutCr, qCutNumCr[5];
 UQ          nullProbeCr, nullCutCr, hashProbeCr, hashHitCr, hashCutCr, hashHitCutCr;
@@ -36,6 +36,14 @@ short Search(int depth, short alpha, short beta, int lmr_)
     if(in_check)
         depth += 1 + lmr_;
 
+#ifndef DONT_USE_MATE_DISTANCE_PRUNING
+    short mate_score = (short)(K_VAL - ply);
+    if(alpha >= mate_score)
+       return alpha;
+    if(beta <= -mate_score)
+        return beta;
+#endif  // DONT_USE_MATE_DISTANCE_PRUNING
+
 #ifndef DONT_USE_FUTILITY
     if(depth <= 1 && depth >= 0 && !in_check
     && beta < (short)(K_VAL - max_ply)
@@ -52,12 +60,12 @@ short Search(int depth, short alpha, short beta, int lmr_)
     if(depth <= 0)
     {
         x = Quiesce(alpha, beta);
-/*
-        if(x > alpha)
+
+/*        if(x > alpha)
             alpha = x;
         Move nm;
         nm.flg = 0xFF;
-        StoreResultInHash(0, _alpha, alpha, beta, 2, in_hash, x >= beta, nm);
+        StoreResultInHash(0, _alpha, alpha, beta, 2, x >= beta, nm);
 */
         return x;
     }
@@ -85,9 +93,9 @@ short Search(int depth, short alpha, short beta, int lmr_)
     boardState[prev_states + ply].valOpn = valOpn;
     boardState[prev_states + ply].valEnd = valEnd;
 
-    bool mateFound = alpha >= (short)(K_VAL - max_ply + 1);
+//    bool mateFound = alpha >= (short)(K_VAL - max_ply + 1);
 
-    for(; move_cr < max_moves && !stop && !mateFound; move_cr++)
+    for(; move_cr < max_moves && !stop/* && !mateFound*/; move_cr++)
     {
         m = Next(moveList, move_cr, &max_moves,
                  &in_hash, entry, wtm, false);
@@ -103,6 +111,11 @@ short Search(int depth, short alpha, short beta, int lmr_)
             UnMove(m);
             continue;
         }
+#ifdef NDEBUG
+        if(depth > 5 && legals == 0
+        && beta != alpha + 1 && m.scr < PV_FOLLOW)
+            ply = ply;
+#endif // NDEBUG
         FastEval(m);
 
 #ifndef DONT_USE_LMR
@@ -154,7 +167,7 @@ short Search(int depth, short alpha, short beta, int lmr_)
     }
     else if(legals)
     {
-        StoreResultInHash(depth, _alpha, alpha, beta, legals, in_hash,
+        StoreResultInHash(depth, _alpha, alpha, beta, legals,
                           beta_cutoff, (beta_cutoff ? m : moveList[0]));
 #ifndef DONT_USE_ONLY_MOVE_EXTENSION
         if(legals == 1 && !in_hash && hash_table.size() < hashMaxSize)
@@ -394,15 +407,9 @@ void MainSearch()
 
     timer.stop();
 
-    if(!_abort_)
-        PrintSearchResult();
-    if(_abort_)
-        analyze = false;
+    PrintSearchResult();
 
-/*    if(sc < K_VAL - max_ply)
-        std::cout << "( mate not found )" << std::endl;
-    #warning
-*/
+    analyze = false;
     busy = false;
 }
 
@@ -423,7 +430,7 @@ short RootSearch(int depth, short alpha, short beta)
     Move  m;
     bool beta_cutoff = false;
 
-    for(; rootMoveCr < rootTop && alpha < K_VAL - 99 && !stop; rootMoveCr++)
+    for(; rootMoveCr < rootTop/* && alpha < K_VAL - 99*/ && !stop; rootMoveCr++)
     {
         m = rootMoveList[rootMoveCr];
 
@@ -442,7 +449,6 @@ short RootSearch(int depth, short alpha, short beta)
 
         if(!DrawByRepetition())
             x = -Search(depth - 1, -beta, -alpha, 0);
-
         else
         {
             x = 0;
@@ -574,7 +580,6 @@ void InitSearch()
     }
 
     stop = false;
-    _abort_ = false;
 
     if(!uci && !xboard)
     {
@@ -948,7 +953,6 @@ void InitEngine()
     std::cin.rdbuf()->pubsetbuf(nullptr, 0);
     std::cout.rdbuf()->pubsetbuf(nullptr, 0);
 
-    _abort_         = false;
     stop            = false;
     totalNodes      = 0;
     totalTimeSpent  = 0;
@@ -1469,7 +1473,7 @@ Move Next(Move *list, unsigned cur, unsigned *max_moves,
             ans = entry.best_move;
             if(PseudoLegal(ans, stm))
             {
-                ans.scr = MOVE_FROM_PV;
+                ans.scr = PV_FOLLOW;
                 return ans;
             }
             else
@@ -1514,7 +1518,7 @@ Move Next(Move *list, unsigned cur, unsigned *max_moves,
 
 //-----------------------------
 void StoreResultInHash(int depth, short _alpha, short alpha,            // save results of search to hash table
-                       short beta, unsigned legals, bool in_hash,       // note that this result is for 'parent' node (negative score, alpha = -beta, etc)
+                       short beta, unsigned legals,                     // note that this result is for 'parent' node (negative score, alpha = -beta, etc)
                        bool beta_cutoff, Move best_move)
 {
     if(beta_cutoff)
