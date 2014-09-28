@@ -803,7 +803,7 @@ bool ShowPV(int _ply)
 {
     char pc2chr[] = "??KKQQRRBBNNPP";
     bool ans = true;
-    int i = 0, stp = pv[ply][0].flg;
+    int i = 0, stp = pv[_ply][0].flg;
 
     if(uci)
     {
