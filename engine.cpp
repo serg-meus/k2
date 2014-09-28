@@ -447,12 +447,43 @@ short RootSearch(int depth, short alpha, short beta)
         if(uci && rootPly > 6)
             ShowCurrentUciInfo();
 
-        if(!DrawByRepetition())
-            x = -Search(depth - 1, -beta, -alpha, 0);
-        else
+        if(DrawByRepetition())
         {
             x = 0;
             pv[1][0].flg = 0;
+        }
+        else
+        {
+#ifndef DONT_USE_PVS_IN_ROOT
+            if(rootMoveCr == 0)
+                x = -Search(depth - 1, -beta, -alpha, 0);
+            else
+            {
+                x = -Search(depth - 1, -alpha - 1, -alpha, 0);
+                if(x > alpha)
+                {
+                    UnMove(m);
+                    char mstr[6];
+                    MoveToStr(m, wtm, mstr);
+
+                    Move tmp0       = pv[0][0];
+                    Move tmp1       = pv[0][1];
+                    pv[0][0].flg    = 1;
+                    pv[0][1]        = m;
+
+                    PlyOutput(x);
+                    pv[0][0].flg    = tmp0.flg;
+                    pv[0][1]        = tmp1;
+
+                    MkMove(m);
+                    FastEval(m);
+
+                    x = -Search(depth - 1, -beta, -alpha, 0);
+                }
+            }
+#else
+        x = -Search(depth - 1, -beta, -alpha, 0);
+#endif // DONT_USE_PVS_IN_ROOT
         }
 
         UQ dn = nodes - _nodes;
