@@ -377,7 +377,7 @@ void ProtoverCommand(std::string in)
             "draw=0 "
             "sigterm=0 "
             "sigint=0 "
-            "memory=1"
+            "memory=1 "
             "done=1 " << std::endl;
 }
 
