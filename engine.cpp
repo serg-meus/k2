@@ -18,7 +18,7 @@ double      timeBase, timeInc, timeRemains, totalTimeSpent;
 unsigned    movesPerSession;
 int         finalyMadeMoves, movsRemain;
 bool        spentExactTime;
-unsigned    resignCr;
+unsigned    resignCr, pv_stable_cr;
 bool        timeCommandSent;
 
 transposition_table tt;
@@ -357,17 +357,18 @@ void MainSearch()
     short sc = 0, _sc_;
     rootPly = 2;
     rootTop = 0;
+    pv_stable_cr = 0;
     for(; rootPly <= max_ply && !stop; ++rootPly)
     {
         _sc_     = sc;
 
         sc = RootSearch(rootPly, -INF, INF);
 
-        if(stop && rootMoveCr <= 2)
+/*        if(stop && rootMoveCr <= 2)
         {
             rootPly--;
             sc = _sc_;
-        }
+        }*/
         double time1 = timer.getElapsedTimeInMicroSec();
         timeSpent = time1 - time0;
 
@@ -455,25 +456,26 @@ short RootSearch(int depth, short alpha, short beta)
         else
         {
 #ifndef DONT_USE_PVS_IN_ROOT
-            if(rootMoveCr == 0)
+            if(rootMoveCr == 0 || pv_stable_cr < 3)
                 x = -Search(depth - 1, -beta, -alpha, 0);
             else
             {
                 x = -Search(depth - 1, -alpha - 1, -alpha, 0);
                 if(x > alpha)
                 {
+                    pv_stable_cr = 0;
                     UnMove(m);
                     char mstr[6];
                     MoveToStr(m, wtm, mstr);
 
-                    Move tmp0       = pv[0][0];
-                    Move tmp1       = pv[0][1];
+//                    Move tmp0       = pv[0][0];
+//                    Move tmp1       = pv[0][1];
                     pv[0][0].flg    = 1;
                     pv[0][1]        = m;
 
                     PlyOutput(x);
-                    pv[0][0].flg    = tmp0.flg;
-                    pv[0][1]        = tmp1;
+//                    pv[0][0].flg    = tmp0.flg;
+//                    pv[0][1]        = tmp1;
 
                     MkMove(m);
                     FastEval(m);
@@ -508,6 +510,8 @@ short RootSearch(int depth, short alpha, short beta)
         }
         else if(x > alpha)
         {
+            if(rootMoveCr > 0)
+                pv_stable_cr = 0;
             alpha = x;
             StorePV(m);
             UnMove(m);
@@ -529,8 +533,9 @@ short RootSearch(int depth, short alpha, short beta)
 //            if(MOVEPC(probed) == 0xFF)
 //                probed = m;
         }
-    }
+    }// for(; rootMoveCr < rootTop
 
+    pv_stable_cr++;
     if(depth <= 3 && rootTop)
         PlyOutput(alpha);
     if(!rootTop)
