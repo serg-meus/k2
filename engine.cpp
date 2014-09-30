@@ -354,21 +354,17 @@ void MainSearch()
     busy = true;
     InitSearch();
 
-    short sc = 0, _sc_;
+    short sc = 0, sc_;
     rootPly = 2;
     rootTop = 0;
     pv_stable_cr = 0;
     for(; rootPly <= max_ply && !stop; ++rootPly)
     {
-        _sc_     = sc;
-
+        sc_ = sc;
         sc = RootSearch(rootPly, -INF, INF);
+        if(stop && sc == -INF)
+            sc = sc_;
 
-/*        if(stop && rootMoveCr <= 2)
-        {
-            rootPly--;
-            sc = _sc_;
-        }*/
         double time1 = timer.getElapsedTimeInMicroSec();
         timeSpent = time1 - time0;
 
@@ -456,35 +452,38 @@ short RootSearch(int depth, short alpha, short beta)
         else
         {
 #ifndef DONT_USE_PVS_IN_ROOT
-            if(rootMoveCr == 0 || pv_stable_cr < 3)
+            if(rootMoveCr == 0 || pv_stable_cr < 2)
+            {
                 x = -Search(depth - 1, -beta, -alpha, 0);
+                if(stop)
+                    x = -INF;
+            }
             else
             {
                 x = -Search(depth - 1, -alpha - 1, -alpha, 0);
-                if(x > alpha)
+                if(stop)
+                    x = -INF;
+                if(!stop && x > alpha)
                 {
                     pv_stable_cr = 0;
-                    UnMove(m);
-                    char mstr[6];
-                    MoveToStr(m, wtm, mstr);
+                    ShowPVfailHigh(m, x);
 
-//                    Move tmp0       = pv[0][0];
-//                    Move tmp1       = pv[0][1];
-                    pv[0][0].flg    = 1;
-                    pv[0][1]        = m;
-
-                    PlyOutput(x);
-//                    pv[0][0].flg    = tmp0.flg;
-//                    pv[0][1]        = tmp1;
-
-                    MkMove(m);
-                    FastEval(m);
-
-                    x = -Search(depth - 1, -beta, -alpha, 0);
+                    short x_ = -Search(depth - 1, -beta, -alpha, 0);
+                    if(stop)
+                        ply = ply;
+                    if(!stop)
+                        x = x_;
+                    if(x > alpha)
+                    {
+                        pv[0][0].flg    = 1;
+                        pv[0][1]        = m;
+                    }
                 }
             }
 #else
         x = -Search(depth - 1, -beta, -alpha, 0);
+        if(stop)
+            x = -INF;
 #endif // DONT_USE_PVS_IN_ROOT
         }
 
@@ -498,9 +497,6 @@ short RootSearch(int depth, short alpha, short beta)
             rootMoveList[rootMoveCr - 1] = tmp;
         }
         prevDeltaNodes = dn;
-
-        if(stop)
-            x   = -INF;
 
         if(x >= beta)
         {
@@ -549,6 +545,26 @@ short RootSearch(int depth, short alpha, short beta)
         return beta;
     }
     return alpha;
+}
+
+//--------------------------------
+void ShowPVfailHigh(Move m, short x)
+{
+    UnMove(m);
+    char mstr[6];
+    MoveToStr(m, wtm, mstr);
+
+    Move tmp0       = pv[0][0];
+    Move tmp1       = pv[0][1];
+    pv[0][0].flg    = 1;
+    pv[0][1]        = m;
+
+    PlyOutput(x);
+    pv[0][0].flg    = tmp0.flg;
+    pv[0][1]        = tmp1;
+
+    MkMove(m);
+    FastEval(m);
 }
 
 //--------------------------------
@@ -665,7 +681,7 @@ void PrintSearchResult()
     else
     {
         std::cout << "bestmove " << mov;
-        if(pv[0][0].flg > 1)
+        if(!analyze && pv[0][0].flg > 1)
         {
             char pndr[6];
             MoveToStr(pv[0][2], !wtm, pndr);
@@ -1738,9 +1754,11 @@ r1b1r1k1/ppb2pp1/7p/2p2P2/4P2q/8/PP1P1PBP/RQB2RK1 w - - 1 18 am h3 @ply 10
 2r3k1/ppBR3B/5p2/3P2p1/6r1/2p2NPp/P4P2/6K1 b - - 1 24 bug with illegal move fixed
 8/2pk2pB/1P1n2P1/6p1/4r3/3K4/8/1R6 b - - 2 40 ab c5 bug in Next() fixed
 2k5/8/8/8/7p/8/6P1/5K2 w - - 0 1 bm Kg1; bug in PV @ply ~28 fixed
-8/6p1/4k1Pp/6P1/5K2/8/8/8 b - - 0 49
-5Q1r/8/4k3/8/8/5RK1/8/8 b - - 0 56
+8/6p1/4k1Pp/6P1/5K2/8/8/8 b - - 0 49 search explosion
+5Q1r/8/4k3/8/8/5RK1/8/8 b - - 0 56 search explosion
 rn1qkbnr/1b3ppp/p3p3/1pppP3/5P2/2NB1N2/PPPP2PP/R1BQK2R w KQkq d6 0 7 am 0-0
 8/5k2/3p4/1P1r1P2/8/4K1P1/7R/8 b - - 0 60 am Rxb5
 8/6p1/8/6P1/K7/8/1kB5/8 w - - 0 1 bm Bb1
+8/5kp1/1p1P3p/7P/P7/PK2r3/8/3R4 w - - 3 56 search explosion
+8/3K4/BbP5/p5p1/8/5k2/8/8 w - - 4 67 am c7
 */

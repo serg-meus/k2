@@ -5,7 +5,7 @@
 #include "Timer.h"
 
 //--------------------------------
-#define ENGINE_VERSION "065y"
+#define ENGINE_VERSION "065"
 //--------------------------------
 //#define DONT_SHOW_STATISTICS
 //#define DONT_USE_FUTILITY
@@ -74,3 +74,4 @@ bool DetectOnlyMove(bool beta_cutoff, bool in_check,
 void ShowCurrentUciInfo();
 void MoveToStr(Move m, bool stm, char *out);
 void PonderHit();
+void ShowPVfailHigh(Move m, short x);
