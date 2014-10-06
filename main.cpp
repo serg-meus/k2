@@ -32,12 +32,16 @@ cmdStruct commands[]
     {"easy",        EasyCommand},
     {"hard",        HardCommand},
     {"memory",      MemoryCommand},
+    {"analyze",     AnalyzeCommand},
+    {"exit",        ExitCommand},
 
-    {"analyze",     Unsupported},
-    {"exit",        Unsupported},
     {"undo",        Unsupported},
     {"remove",      Unsupported},
     {"computer",    Unsupported},
+    {"random",      Unsupported},
+    {"post",        Unsupported},
+    {"nopost",      Unsupported},
+    {"random",      Unsupported},
 
     {"otim",        Unsupported},
     {"accepted",    Unsupported},
@@ -196,7 +200,7 @@ void NewCommand(std::string in)
         StopEngine();
     force = false;
     ponder = false;
-    if(!uci)
+    if(!xboard && !uci)
     {
         std::cout
                 << "( Total node count: " << totalNodes
@@ -219,6 +223,8 @@ void SetboardCommand(std::string in)
 
     if(!FenStringToEngine((char *)in.c_str()))
         std::cout << "Illegal position" << std::endl;
+    else if(analyze && xboard)
+        AnalyzeCommand(in);
 }
 
 //--------------------------------
@@ -368,7 +374,7 @@ void ProtoverCommand(std::string in)
     std::cout << "feature "
             "myname=\"K2 v." ENGINE_VERSION "\" "
             "setboard=1 "
-            "analyze=0 "
+            "analyze=1 "
             "san=0 "
             "colors=0 "
             "pause=0 "
@@ -642,14 +648,14 @@ void UciGoCommand(std::string in)
 void EasyCommand(std::string in)
 {
     UNUSED(in);
-    ponder  = false;
+//    ponder  = false;
 }
 
 //--------------------------------
 void HardCommand(std::string in)
 {
     UNUSED(in);
-    ponder  = true;
+//    ponder  = true;
 }
 
 //--------------------------------
@@ -667,4 +673,27 @@ void MemoryCommand(std::string in)
     GetFirstArg(arg2, &arg1, &arg2);
     int size_MB = atoi(arg1.c_str());
     ReHash(size_MB);
+}
+
+//--------------------------------
+void AnalyzeCommand(std::string in)
+{
+    UNUSED(in);
+    force = false;
+    analyze = true;
+
+    #ifdef USE_THREAD_FOR_INPUT
+    if(t.joinable())
+        t.join();
+    t = std::thread(MainSearch);
+    #else
+    MainSearch();
+    #endif // USE_THREAD_FOR_INPUT
+}
+
+//--------------------------------
+void ExitCommand(std::string in)
+{
+    StopCommand(in);
+    analyze = false;
 }

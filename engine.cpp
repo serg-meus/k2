@@ -404,9 +404,11 @@ void MainSearch()
 
     timer.stop();
 
-    PrintSearchResult();
+    if(!analyze || uci)
+        PrintSearchResult();
 
-    analyze = false;
+    if(!xboard)
+        analyze = false;
     busy = false;
 }
 
