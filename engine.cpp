@@ -60,15 +60,21 @@ short Search(int depth, short alpha, short beta, int lmr_)
     if(depth <= 0)
     {
         x = Quiesce(alpha, beta);
-
-/*        if(x > alpha)
+/*
+        if(x > alpha && x < beta)
+        {
             alpha = x;
+            pv[ply][0].flg = 1;
+        }
         Move nm;
         nm.flg = 0xFF;
         StoreResultInHash(0, _alpha, alpha, beta, 2, x >= beta, nm);
+        pv[ply][0].flg = 0;
 */
         return x;
     }
+
+
     nodes++;
     if((nodes & 511) == 511)
         CheckForInterrupt();
@@ -77,7 +83,8 @@ short Search(int depth, short alpha, short beta, int lmr_)
 /*    if(in_hash && entry.avoid_null_move
     && entry.bound_type == hUPPER && -entry.value <= alpha)
         ply = ply;
-    else */if(beta - alpha == 1 && NullMove(depth, beta, in_check, lmr_))
+    else */
+    if(beta - alpha == 1 && NullMove(depth, beta, in_check, lmr_))
         return beta;
 #endif // DONT_USE_NULL_MOVE
 
@@ -1497,7 +1504,18 @@ bool PseudoLegal(Move m, bool stm)
                 return false;
             break;
         case _k/2 :
-            if(!(m.flg & mCSTL) && (ABSI(dCOL) > 1 || ABSI(dROW) > 1))
+            if(!(m.flg & mCSTL))
+            {
+                if((ABSI(dCOL) > 1 || ABSI(dROW) > 1))
+                    return false;
+                else
+                    return true;
+            }
+            if(ABSI(dCOL) != 2 || ABSI(dROW) != 0)
+                return false;
+            if(b[XY2SQ(COL(m.to), ROW(fr))] != __)
+                return false;
+            if(b[XY2SQ((COL(m.to)+COL(fr))/2, ROW(fr))] != __)
                 return false;
             break;
     }
