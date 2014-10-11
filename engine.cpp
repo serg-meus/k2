@@ -793,7 +793,7 @@ void InitTime()                                                         // too c
     if(timeBase == 0)
         movsRemain = 1;
 
-    if(!spentExactTime && (movsRemain <= 5
+    if(!spentExactTime && (movsRemain <= 8
     || (timeInc == 0 && movesPerSession == 0
     && timeRemains < timeBase / 4)))
     {
