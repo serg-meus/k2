@@ -80,10 +80,6 @@ short Search(int depth, short alpha, short beta, int lmr_)
         CheckForInterrupt();
 
 #ifndef DONT_USE_NULL_MOVE
-/*    if(in_hash && entry.avoid_null_move
-    && entry.bound_type == hUPPER && -entry.value <= alpha)
-        ply = ply;
-    else */
     if(beta - alpha == 1 && NullMove(depth, beta, in_check, lmr_))
         return beta;
 #endif // DONT_USE_NULL_MOVE
@@ -118,11 +114,6 @@ short Search(int depth, short alpha, short beta, int lmr_)
             UnMove(m);
             continue;
         }
-#ifdef NDEBUG
-        if(depth > 5 && legals == 0
-        && beta != alpha + 1 && m.scr < PV_FOLLOW)
-            ply = ply;
-#endif // NDEBUG
         FastEval(m);
 
 #ifndef DONT_USE_LMR
@@ -1148,12 +1139,13 @@ void MkMove(Move m)
 
     doneHashKeys[FIFTY_MOVES + ply - 1] = hash_key;
     MoveHashKey(m, fr, specialMove);
-/*#ifndef NDEBUG
+#ifndef NDEBUG
         UQ tmp_key = InitHashKey() ^ -1ULL;
         if(tmp_key != hash_key)
             ply = ply;
+        assert(tmp_key == hash_key)
 #endif //NDEBUG
-*/
+
 #ifndef DONT_USE_PAWN_STRUCT
     MovePawnStruct(b[m.to], fr, m);
 #endif // DONT_USE_PAWN_STRUCT
@@ -1479,6 +1471,7 @@ bool PseudoLegal(Move m, bool stm)
     if((b[fr]/2) != _p/2 && ((!DARK(pt, stm) && (m.flg & mCAPT))
     || (pt != __ && !(m.flg & mCAPT))))
         return false;
+    bool long_move;
     switch(b[fr]/2)
     {
         case _p/2 :
@@ -1489,11 +1482,26 @@ bool PseudoLegal(Move m, bool stm)
             || (stm && dROW != 1) || (!stm && dROW != -1)
             || (!(m.flg & mENPS) && !DARK(pt, stm))))
                 return false;
-            if((m.flg & mENPS) && pt != __)
+            if((m.flg & mENPS)
+            && (pt != __ || boardState[prev_states + ply].ep == 0))
                 return false;
+            if(!(m.flg & mCAPT))
+            {
+                if(!stm)
+                    dROW = -dROW;
+                if(pt != __ || dCOL != 0
+                || (stm && dROW <= 0))
+                    return false;
+                long_move = (ROW(fr) == (stm ? 1 : 6));
+                if(long_move ? dROW > 2 : dROW != 1)
+                    return false;
+            }
+
             break;
         case _n/2 :
             if(ABSI(dCOL) + ABSI(dROW) != 3)
+                return false;
+            if(ABSI(dCOL) != 1 && ABSI(dROW) != 1)
                 return false;
             break;
         case _b/2 :
@@ -1513,9 +1521,20 @@ bool PseudoLegal(Move m, bool stm)
             }
             if(ABSI(dCOL) != 2 || ABSI(dROW) != 0)
                 return false;
+            if(COL(fr) != 4 || ROW(fr) != stm ? 0 : 7)
+                return false;
+            if((boardState[prev_states + ply].cstl &
+            (m.flg >> 3 >> (2*stm))) == 0)
+                return false;
             if(b[XY2SQ(COL(m.to), ROW(fr))] != __)
                 return false;
             if(b[XY2SQ((COL(m.to)+COL(fr))/2, ROW(fr))] != __)
+                return false;
+            if((m.flg &mCS_K)
+            && (b[XY2SQ(7, ROW(fr))] & ~white) != _r)
+                return false;
+            if((m.flg &mCS_Q)
+            && (b[XY2SQ(0, ROW(fr))] & ~white) != _r)
                 return false;
             break;
     }
@@ -1543,7 +1562,20 @@ Move Next(Move *list, unsigned cur, unsigned *max_moves,
         else
         {
             ans = entry.best_move;
-            if(PseudoLegal(ans, stm))
+
+            bool pseudo_legal = PseudoLegal(ans, stm);
+#ifndef NDEBUG
+            int mx_ = GenMoves(list, APPRICE_NONE, nullptr);
+            int i = 0;
+            for(; i < mx_; ++i)
+                if(list[i] == ans)
+                    break;
+            bool tt_move_found = i < mx_;
+            if(tt_move_found != pseudo_legal)
+                PseudoLegal(ans, stm);
+            assert(tt_move_found == pseudo_legal);
+#endif
+            if(pseudo_legal)
             {
                 ans.scr = PV_FOLLOW;
                 return ans;
@@ -1781,4 +1813,5 @@ rn1qkbnr/1b3ppp/p3p3/1pppP3/5P2/2NB1N2/PPPP2PP/R1BQK2R w KQkq d6 0 7 am 0-0
 8/6p1/8/6P1/K7/8/1kB5/8 w - - 0 1 bm Bb1
 8/5kp1/1p1P3p/7P/P7/PK2r3/8/3R4 w - - 3 56 search explosion
 8/3K4/BbP5/p5p1/8/5k2/8/8 w - - 4 67 am c7
+set 6r1/4P3/4K3/8/6k1/3P4/8/8 b - - bm Ra8; PseudoLegal() test failed
 */
