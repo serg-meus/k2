@@ -55,7 +55,7 @@ cmdStruct commands[]
     {"ucinewgame",  NewCommand},
     {"stop",        StopCommand},
     {"ponderhit",   PonderhitCommand},
-
+    {"setvalue",    SetvalueCommand},
 };
 
 bool force  = false;
@@ -71,16 +71,8 @@ bool ponder = false;
 //--------------------------------
 int main(int argc, char* argv[])
 {
-#ifdef TUNE_PARAMETERS
-    for(int i = 1; i < 5; ++i)
-        if(i < argc)
-            param.push_back(atof(argv[i]));
-        else
-            param.push_back(0.);
-#else
     UNUSED(argc);
     UNUSED(argv);
-#endif // TUNE_PARAMETERS
 
     InitEngine();
 
@@ -696,4 +688,20 @@ void ExitCommand(std::string in)
 {
     StopCommand(in);
     analyze = false;
+}
+
+//--------------------------------
+void SetvalueCommand(std::string in)
+{
+#ifdef TUNE_PARAMETERS
+    std::string arg1, arg2;
+    GetFirstArg(in, &arg1, &arg2);
+    if(arg1 == "KnightValueEnding")
+    {
+        param.push_back(atof(arg2.c_str()));
+        InitEngine();
+    }
+#else
+    UNUSED(in);
+#endif
 }

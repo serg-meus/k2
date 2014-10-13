@@ -22,6 +22,10 @@ void InitEval()
             kingDist[i] = MAXI(8 - COL(i), ROW(i) + 1);
         else
             kingDist[i] = MAXI(COL(i), ROW(i));
+#ifdef TUNE_PARAMETERS
+    if(param.size() > 0)
+        MatArrEnd[5] = param.at(0);
+#endif
 }
 
 //-----------------------------

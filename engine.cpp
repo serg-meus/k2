@@ -1143,7 +1143,7 @@ void MkMove(Move m)
         UQ tmp_key = InitHashKey() ^ -1ULL;
         if(tmp_key != hash_key)
             ply = ply;
-        assert(tmp_key == hash_key)
+        assert(tmp_key == hash_key);
 #endif //NDEBUG
 
 #ifndef DONT_USE_PAWN_STRUCT

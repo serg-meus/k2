@@ -76,3 +76,4 @@ void PonderhitCommand(std::string in);
 void MemoryCommand(std::string in);
 void AnalyzeCommand(std::string in);
 void ExitCommand(std::string in);
+void SetvalueCommand(std::string in);
