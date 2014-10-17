@@ -8,7 +8,7 @@
 #define MAXI(X, Y)       ((X) > (Y) ? (X) : (Y))
 
 //--------------------------------
-//#define TUNE_PARAMETERS
+#define TUNE_PARAMETERS
 //#define CHECK_PREDICTED_VALUE
 //#define EVAL_KING_TROPISM
 

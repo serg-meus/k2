@@ -694,13 +694,18 @@ void ExitCommand(std::string in)
 void SetvalueCommand(std::string in)
 {
 #ifdef TUNE_PARAMETERS
+    for(int i = 0; i < 3; ++i)
+        param.push_back(0);
     std::string arg1, arg2;
     GetFirstArg(in, &arg1, &arg2);
-    if(arg1 == "KnightValueEnding")
-    {
-        param.push_back(atof(arg2.c_str()));
-        InitEngine();
-    }
+    if(arg1 == "VeryNearOrQR")
+        param.at(0) = atof(arg2.c_str());
+    else if(arg1 == "TropismFactor")
+        param.at(1) = atof(arg2.c_str());
+    else if(arg1 == "OnePieceNear")
+        param.at(2) = atof(arg2.c_str());
+
+    InitEngine();
 #else
     UNUSED(in);
 #endif

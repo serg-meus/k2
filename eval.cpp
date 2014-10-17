@@ -22,10 +22,6 @@ void InitEval()
             kingDist[i] = MAXI(8 - COL(i), ROW(i) + 1);
         else
             kingDist[i] = MAXI(COL(i), ROW(i));
-#ifdef TUNE_PARAMETERS
-    if(param.size() > 0)
-        MatArrEnd[5] = param.at(0);
-#endif
 }
 
 //-----------------------------
@@ -425,7 +421,7 @@ void KingSafety(UC stm)
     int sh  = KingShieldFactor(stm);
     ans +=  material[!stm]*(1 - sh)/3;
 
-    int occ_cr = 0, pieces_near = 0;
+    float occ_cr = 0, pieces_near = 0;
     auto rit = coords[!stm].rbegin();
     ++rit;
     for(; rit != coords[!stm].rend(); ++rit)
@@ -438,15 +434,15 @@ void KingSafety(UC stm)
             continue;
         pieces_near++;
         if(dist < 3 && pt != _b && pt != _n)
-            occ_cr += 2;
-        else occ_cr++;
+            occ_cr += param.at(0);
+        else
+            occ_cr++;
     }
 
-    short tropism = 40*occ_cr*occ_cr;
+    float tropism = param.at(1)*occ_cr*occ_cr;
     if(pieces_near == 1)
-        tropism /= 2;
+        tropism /= param.at(2);
     ans -= tropism;
-
 
     valOpn += stm ? ans : -ans;
 }
