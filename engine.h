@@ -61,7 +61,7 @@ void ShowFen();
 void ReHash(int size_mb);
 bool HashProbe(int depth, short alpha, short beta,
                tt_entry *entry, bool *best_move_hashed);
-bool PseudoLegal(Move m, bool stm);
+bool PseudoLegal(Move &m, bool stm);
 Move Next(Move *max_moves, unsigned cur, unsigned *top,
           bool *best_move_hashed, tt_entry entry,
           UC stm, bool captures_only);

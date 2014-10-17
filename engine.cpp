@@ -1449,7 +1449,7 @@ bool HashProbe(int depth, short alpha, short beta,
 }
 
 //-----------------------------
-bool PseudoLegal(Move m, bool stm)
+bool PseudoLegal(Move &m, bool stm)
 {
     if(m.flg == 0xFF)
         return false;
@@ -1485,6 +1485,9 @@ bool PseudoLegal(Move m, bool stm)
             if((m.flg & mENPS)
             && (pt != __ || boardState[prev_states + ply].ep == 0))
                 return false;
+            if(ROW(m.to) == (stm ? 7 : 0)
+            && !(m.flg & mPROM))
+                return false;
             if(!(m.flg & mCAPT))
             {
                 if(!stm)
@@ -1495,10 +1498,14 @@ bool PseudoLegal(Move m, bool stm)
                 long_move = (ROW(fr) == (stm ? 1 : 6));
                 if(long_move ? dROW > 2 : dROW != 1)
                     return false;
+                if(long_move && dROW == 2
+                && b[XY2SQ(COL(fr), (ROW(fr) + ROW(m.to))/2)] != __)
+                    return false;
             }
 
             break;
         case _n/2 :
+            m.flg &= mCAPT;
             if(ABSI(dCOL) + ABSI(dROW) != 3)
                 return false;
             if(ABSI(dCOL) != 1 && ABSI(dROW) != 1)
@@ -1507,6 +1514,7 @@ bool PseudoLegal(Move m, bool stm)
         case _b/2 :
         case _r/2 :
         case _q/2 :
+            m.flg &= mCAPT;
             if(!(attacks[120 + m.to - fr] & (1 << (b[fr]/2)))
             || !SliderAttack(m.to, fr))
                 return false;
@@ -1813,5 +1821,8 @@ rn1qkbnr/1b3ppp/p3p3/1pppP3/5P2/2NB1N2/PPPP2PP/R1BQK2R w KQkq d6 0 7 am 0-0
 8/6p1/8/6P1/K7/8/1kB5/8 w - - 0 1 bm Bb1
 8/5kp1/1p1P3p/7P/P7/PK2r3/8/3R4 w - - 3 56 search explosion
 8/3K4/BbP5/p5p1/8/5k2/8/8 w - - 4 67 am c7
-set 6r1/4P3/4K3/8/6k1/3P4/8/8 b - - bm Ra8; PseudoLegal() test failed
+6r1/4P3/4K3/8/6k1/3P4/8/8 b - - bm Ra8; PseudoLegal() fixed
+8/8/2R1pq2/3pk2P/5P2/5Q2/5P1K/8 b - - 0 77; PseudoLegal() fixed
+8/7p/8/7P/1p6/1p5P/1P2Q1pk/1K6 w - - 0 1; search explosion, PseudoLegal() fixed
+r3kb1r/npqbpp1p/p3n1p1/P3P3/6N1/3B1NB1/1PP3PP/R3QRK1 w kq - 0 1 PseudoLegal() issue
 */
