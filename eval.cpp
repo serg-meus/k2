@@ -421,7 +421,38 @@ void KingSafety(UC stm)
     int sh  = KingShieldFactor(stm);
     ans +=  material[!stm]*(1 - sh)/3;
 
+#ifdef TUNE_PARAMETERS
     float occ_cr = 0, pieces_near = 0;
+    auto rit = coords[!stm].rbegin();
+    ++rit;
+    bool no_queen = (b[*rit] & ~white) != _q;
+    for(; rit != coords[!stm].rend(); ++rit)
+    {
+        UC pt = b[*rit] & ~white;
+        if(pt == _p)
+            break;
+        int dist = kingDist[ABSI(k - *rit)];
+        if(dist >= 4)
+            continue;
+        pieces_near++;
+        occ_cr++;
+
+        if(pt == _q)
+            occ_cr += param.at(0);
+        if(dist < 3)
+            occ_cr += param.at(1);
+    }
+    if(no_queen)
+        occ_cr /= param.at(2);
+    float tropism = param.at(3)*occ_cr*occ_cr;
+    if(pieces_near == 1)
+        tropism /= param.at(4);
+    ans -= tropism;
+#else
+    int sh  = KingShieldFactor(stm);
+    ans +=  material[!stm]*(1 - sh)/3;
+
+    int occ_cr = 0, pieces_near = 0;
     auto rit = coords[!stm].rbegin();
     ++rit;
     for(; rit != coords[!stm].rend(); ++rit)
@@ -434,15 +465,15 @@ void KingSafety(UC stm)
             continue;
         pieces_near++;
         if(dist < 3 && pt != _b && pt != _n)
-            occ_cr += param.at(0);
-        else
-            occ_cr++;
+            occ_cr += 2;
+        else occ_cr++;
     }
 
-    float tropism = param.at(1)*occ_cr*occ_cr;
+    short tropism = 40*occ_cr*occ_cr;
     if(pieces_near == 1)
-        tropism /= param.at(2);
+        tropism /= 2;
     ans -= tropism;
+#endif
 
     valOpn += stm ? ans : -ans;
 }
