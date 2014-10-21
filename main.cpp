@@ -700,16 +700,12 @@ void SetvalueCommand(std::string in)
 #ifdef TUNE_PARAMETERS
     std::string arg1, arg2;
     GetFirstArg(in, &arg1, &arg2);
-    if(arg1 == "QNear")                                                 // -1..5
+    if(arg1 == "RNear")                                                 // -1..5                                        // -1..5
         param.at(0) = atof(arg2.c_str());
-    else if(arg1 == "DistLow")                                          // -1..5
+    else if(arg1 == "NoQueen")                                          // 0.5..50 gamma
         param.at(1) = atof(arg2.c_str());
-    else if(arg1 == "NoQueen")                                          // 0.5..5
+    else if(arg1 == "OnlyOneIsNear")                                    // 0.5..50 gamma
         param.at(2) = atof(arg2.c_str());
-    else if(arg1 == "MainFactor")                                       // -10..100
-        param.at(3) = atof(arg2.c_str());
-    else if(arg1 == "OnlyOneIsNear")                                    // 0.5..5
-        param.at(4) = atof(arg2.c_str());
 
     InitEngine();
 #else

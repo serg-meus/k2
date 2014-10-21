@@ -438,15 +438,17 @@ void KingSafety(UC stm)
         occ_cr++;
 
         if(pt == _q)
+            occ_cr += 0.75;
+        else if(pt == _r)
             occ_cr += param.at(0);
         if(dist < 3)
-            occ_cr += param.at(1);
+            occ_cr += 0.64;
     }
     if(no_queen)
-        occ_cr /= param.at(2);
-    float tropism = param.at(3)*occ_cr*occ_cr;
+        occ_cr /= param.at(1);
+    float tropism = 36*occ_cr*occ_cr;
     if(pieces_near == 1)
-        tropism /= param.at(4);
+        tropism /= param.at(2);
     ans -= tropism;
 #else
     int sh  = KingShieldFactor(stm);

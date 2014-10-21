@@ -9,7 +9,7 @@
 
 //--------------------------------
 #define TUNE_PARAMETERS
-#define NPARAMS 5
+#define NPARAMS 3
 //#define CHECK_PREDICTED_VALUE
 //#define EVAL_KING_TROPISM
 
