@@ -232,35 +232,36 @@ void EvalPawns(bool stm)
             ansO -= 1;
         }
 
+#ifdef TUNE_PARAMETERS
+        if(i > 0 && i < 7
+        && pmax[i + 1][stm] < pmin[i + 0][stm]
+        && pmax[i + 1][stm] < pmin[i + 2][stm])
+        {
+            ansO -= param.at(0);
+            ansE -= param.at(1);        }
+#endif
         promo = false;
         if(mx >= 7 - pmin[i + 1][!stm]
         && mx >= 7 - pmin[i - 0][!stm]
         && mx >= 7 - pmin[i + 2][!stm])
             promo = true;
 
-        if(promo)
+        if(!promo)
+            continue;
+
+        short delta = 16*mx - 16;
+        ansE += delta;
+        ansO += -delta/4;
+
+        if(oppHasOnlyPawns)
         {
-//            if(i > 0 && prevPromo && mx >= 5
-//            && pmax[i - 0][stm] >= 5)
-//                ansE += DBL_PROMO_P*MAXI(mx, pmax[i - 0][stm]);
-
-//            prevPromo = true;
-            short delta = 16*mx - 16;
-            ansE += delta;
-            ansO += -delta/4;
-
-            if(oppHasOnlyPawns)
+            if(TestUnstoppable(i, 7 - pmax[i + 1][stm], stm))
             {
-                if(TestUnstoppable(i, 7 - pmax[i + 1][stm], stm))
-                {
-                    ansO += 120*mx + 350;
-                    ansE += 120*mx + 350;
-                }
+                ansO += 120*mx + 350;
+                ansE += 120*mx + 350;
             }
+        }
 
-        }// if promo
-//        else
-//            prevPromo = false;
     }// for i
 
     valOpn += stm ? ansO : -ansO;
@@ -411,7 +412,6 @@ void KingSafety(UC stm)
     if(COL(k) == 3 || COL(k) == 4)
         ans -= 75;
 
-
     if(boardState[prev_states + ply].cstl & (0x0C >> 2*stm))       // able to castle
     {
         valOpn += stm ? ans : -ans;
@@ -421,8 +421,7 @@ void KingSafety(UC stm)
     int sh  = KingShieldFactor(stm);
     ans +=  material[!stm]*(1 - sh)/3;
 
-#ifdef TUNE_PARAMETERS
-    float occ_cr = 0, pieces_near = 0;
+    int occ_cr = 0, pieces_near = 0;
     auto rit = coords[!stm].rbegin();
     ++rit;
     bool no_queen = (b[*rit] & ~white) != _q;
@@ -435,47 +434,22 @@ void KingSafety(UC stm)
         if(dist >= 4)
             continue;
         pieces_near++;
-        occ_cr++;
+        occ_cr += 10;
 
         if(pt == _q)
-            occ_cr += 0.75;
+            occ_cr += 75;
         else if(pt == _r)
-            occ_cr += param.at(0);
+            occ_cr += 110;
         if(dist < 3)
-            occ_cr += 0.64;
+            occ_cr += 64;
     }
     if(no_queen)
-        occ_cr /= param.at(1);
-    float tropism = 36*occ_cr*occ_cr;
+        occ_cr = occ_cr * 2 / 7;
+    occ_cr /= 10;
+    int tropism = 36*occ_cr*occ_cr;
     if(pieces_near == 1)
-        tropism /= param.at(2);
+        tropism /= 7;                                                   //<< not sure at all
     ans -= tropism;
-#else
-    int sh  = KingShieldFactor(stm);
-    ans +=  material[!stm]*(1 - sh)/3;
-
-    int occ_cr = 0, pieces_near = 0;
-    auto rit = coords[!stm].rbegin();
-    ++rit;
-    for(; rit != coords[!stm].rend(); ++rit)
-    {
-        UC pt = b[*rit] & ~white;
-        if(pt == _p)
-            break;
-        int dist = kingDist[ABSI(k - *rit)];
-        if(dist >= 4)
-            continue;
-        pieces_near++;
-        if(dist < 3 && pt != _b && pt != _n)
-            occ_cr += 2;
-        else occ_cr++;
-    }
-
-    short tropism = 40*occ_cr*occ_cr;
-    if(pieces_near == 1)
-        tropism /= 2;
-    ans -= tropism;
-#endif
 
     valOpn += stm ? ans : -ans;
 }
