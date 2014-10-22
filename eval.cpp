@@ -434,7 +434,7 @@ void KingSafety(UC stm)
         if(dist >= 4)
             continue;
         pieces_near++;
-        occ_cr += 10;
+        occ_cr += 100;
 
         if(pt == _q)
             occ_cr += 75;
@@ -445,7 +445,7 @@ void KingSafety(UC stm)
     }
     if(no_queen)
         occ_cr = occ_cr * 2 / 7;
-    occ_cr /= 10;
+    occ_cr /= 100;
     int tropism = 36*occ_cr*occ_cr;
     if(pieces_near == 1)
         tropism /= 7;                                                   //<< not sure at all
