@@ -232,14 +232,19 @@ void EvalPawns(bool stm)
             ansO -= 1;
         }
 
-#ifdef TUNE_PARAMETERS
         if(i > 0 && i < 7
-        && pmax[i + 1][stm] < pmin[i + 0][stm]
-        && pmax[i + 1][stm] < pmin[i + 2][stm])
+        && mx < pmin[i + 0][stm] && mx < pmin[i + 2][stm])
         {
-            ansO -= param.at(0);
-            ansE -= param.at(1);        }
-#endif
+            int y_coord = stm ? mx + 1 : 7 - mx - 1;
+            UC op_piece = b[XY2SQ(i, y_coord)];
+            bool occupied = DARK(op_piece, stm)
+                    && (op_piece & ~white) != _p;
+            if(occupied)
+                ansO -= param.at(0);
+            else
+                ansO -= param.at(1);
+        }
+
         promo = false;
         if(mx >= 7 - pmin[i + 1][!stm]
         && mx >= 7 - pmin[i - 0][!stm]
