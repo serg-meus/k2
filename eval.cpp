@@ -240,9 +240,7 @@ void EvalPawns(bool stm)
             bool occupied = DARK(op_piece, stm)
                     && (op_piece & ~white) != _p;
             if(occupied)
-                ansO -= param.at(0);
-            else
-                ansO -= param.at(1);
+                ansO -= 65;
         }
 
         promo = false;
