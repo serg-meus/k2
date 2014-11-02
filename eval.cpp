@@ -255,25 +255,14 @@ void EvalPawns(bool stm)
             continue;
         }
 
-        short delta = param.at(0)*(mx - 1);
+        short delta = 25*(mx - 1);
         ansE += delta;
         ansO += -delta/4;
 
         if(promo && prev_promo && ABSI(mx - pmax[i + 0][stm]) <= 1)
         {
-            bool next_promo = false;
-            int nx = pmax[stm][i + 2];
-            if(ABSI(nx - mx) <= 1 && nx >= 7 - pmin[i + 1][!stm]
-            && nx >= 7 - pmin[i + 2][!stm] && nx >= 7 - pmin[i + 3][!stm])
-                next_promo = true;
             int mmx = std::max(pmax[i + 0][stm], mx);
-            if(next_promo)
-            {
-                mmx = std::max(nx, mmx);
-                ansE += mmx * param.at(2);
-            }
-            else
-                ansE += mmx * param.at(1);
+            ansE += 17*mmx;
         }
         prev_promo = true;
 
