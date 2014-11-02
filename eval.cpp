@@ -201,7 +201,7 @@ bool TestPromo(int col, UC stm)
 void EvalPawns(bool stm)
 {
     short ansO = 0, ansE = 0;
-	bool promo;//, prevPromo = false;
+    bool promo, prev_promo = false;
     bool oppHasOnlyPawns = material[!stm] == pieces[!stm] - 1;
 
     for(int i = 0; i < 8; i++)
@@ -234,7 +234,7 @@ void EvalPawns(bool stm)
 
         if(i > 0 && i < 7
         && mx < pmin[i + 0][stm] && mx < pmin[i + 2][stm])
-        {
+        {   // pawn holes occupied by enemy pieces
             int y_coord = stm ? mx + 1 : 7 - mx - 1;
             UC op_piece = b[XY2SQ(i, y_coord)];
             bool occupied = DARK(op_piece, stm)
@@ -250,11 +250,32 @@ void EvalPawns(bool stm)
             promo = true;
 
         if(!promo)
+        {
+            prev_promo = false;
             continue;
+        }
 
-        short delta = 16*mx - 16;
+        short delta = param.at(0)*(mx - 1);
         ansE += delta;
         ansO += -delta/4;
+
+        if(promo && prev_promo && ABSI(mx - pmax[i + 0][stm]) <= 1)
+        {
+            bool next_promo = false;
+            int nx = pmax[stm][i + 2];
+            if(ABSI(nx - mx) <= 1 && nx >= 7 - pmin[i + 1][!stm]
+            && nx >= 7 - pmin[i + 2][!stm] && nx >= 7 - pmin[i + 3][!stm])
+                next_promo = true;
+            int mmx = std::max(pmax[i + 0][stm], mx);
+            if(next_promo)
+            {
+                mmx = std::max(nx, mmx);
+                ansE += mmx * param.at(2);
+            }
+            else
+                ansE += mmx * param.at(1);
+        }
+        prev_promo = true;
 
         if(oppHasOnlyPawns)
         {

@@ -700,10 +700,12 @@ void SetvalueCommand(std::string in)
 #ifdef TUNE_PARAMETERS
     std::string arg1, arg2;
     GetFirstArg(in, &arg1, &arg2);
-    if(arg1 == "WeakPawnOccOpn")                                                 // -1..5                                        // -1..5
+    if(arg1 == "PromoEnd")
         param.at(0) = atof(arg2.c_str());
-    else if(arg1 == "WeakPawnOpn")                                          // 0.5..50 gamma
+    else if(arg1 == "DblPromoEnd")
         param.at(1) = atof(arg2.c_str());
+    else if(arg1 == "TriPromoEnd")
+        param.at(2) = atof(arg2.c_str());
 
     InitEngine();
 #else
