@@ -702,7 +702,7 @@ void SetvalueCommand(std::string in)
     GetFirstArg(in, &arg1, &arg2);
     if(arg1 == "PawnEnd")
         param.at(0) = atof(arg2.c_str());
-    else if(arg1 == "BishopEnd")
+    else if(arg1 == "KnightEnd")
         param.at(1) = atof(arg2.c_str());
     else if(arg1 == "RookEnd")
         param.at(2) = atof(arg2.c_str());
