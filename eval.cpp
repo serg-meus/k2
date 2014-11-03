@@ -22,6 +22,10 @@ void InitEval()
             kingDist[i] = MAXI(8 - COL(i), ROW(i) + 1);
         else
             kingDist[i] = MAXI(COL(i), ROW(i));
+
+     MatArrEnd[_p/2] = param.at(0);
+     MatArrEnd[_b/2] = param.at(1);
+     MatArrEnd[_r/2] = param.at(2);
 }
 
 //-----------------------------
