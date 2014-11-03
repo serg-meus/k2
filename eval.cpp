@@ -57,10 +57,34 @@ short Eval(/*short alpha, short beta*/)
     int X, Y;
     X = material[0] + 1 + material[1] + 1 - pieces[0] - pieces[1];
 
-    if(X == 3
-    && (material[0] == 4 || material[1] == 4)
-    && (pieces[0] + pieces[1] == 3))                // KNk, KBk, Kkn, Kkb
-        return 0;
+    if(X == 3 && (material[0] == 4 || material[1] == 4))
+    {
+        if(pieces[0] + pieces[1] == 3)                                  // KNk, KBk, Kkn, Kkb
+            return 0;
+        if(material[1] == 1 && material[0] == 4)                        // KPkn, KPkb
+            valEnd += B_VAL_END + P_VAL_END/4;
+        if(material[0] == 1 && material[1] == 4)                        // KNkp, KBkp
+            valEnd -= B_VAL_END + P_VAL_END/4;
+    }
+    if(X == 6)                                                          // KNNk, Kknn
+    {
+        bool two_knights_white = false, two_knights_black = false;
+        if(material[0] == 8 && pieces[0] == 3
+        && material[1] == 0)
+            two_knights_black = true;
+        if(material[1] == 8 && pieces[1] == 3
+        && material[0] == 0)
+            two_knights_white = true;
+
+        if(two_knights_black || two_knights_white)
+        {
+            auto rit = coords[two_knights_white ? white : black].rbegin();
+            ++rit;
+            if((b[*rit] & ~white) == _n
+            && (b[*(++rit)] & ~white) == _n)
+                return 0;
+        }
+    }
 
     Y = ((valOpn - valEnd)*X + 80*valEnd)/80;
 
@@ -257,7 +281,7 @@ void EvalPawns(bool stm)
 
         short delta = 25*(mx - 1);
         ansE += delta;
-        ansO += -delta/4;
+//        ansO += -delta/4;
 
         if(promo && prev_promo && ABSI(mx - pmax[i + 0][stm]) <= 1)
         {

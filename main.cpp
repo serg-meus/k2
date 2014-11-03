@@ -704,8 +704,6 @@ void SetvalueCommand(std::string in)
         param.at(0) = atof(arg2.c_str());
     else if(arg1 == "DblPromoEnd")
         param.at(1) = atof(arg2.c_str());
-    else if(arg1 == "TriPromoEnd")
-        param.at(2) = atof(arg2.c_str());
 
     InitEngine();
 #else
