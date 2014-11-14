@@ -16,6 +16,7 @@ SC shifts[6][8] = {{ 0,  0,  0,  0,  0,  0,  0,  0},
                     {18, 33, 31, 14,-18,-33,-31,-14}};
 UC  pc_streng[7]    =  {0, 12, 6, 4, 4, 1};
 short streng[7]     = {0, 15000, 120, 60, 40, 40, 10};
+short sort_streng[7] = {0, 15000, 120, 60, 41, 39, 10};
 UC  slider[7]       = {0, 0, 1, 1, 1, 0, 0};
 int material[2], pieces[2];
 BrdState  boardState[prev_states + max_ply];
@@ -528,5 +529,5 @@ void InitPawnStruct()
 //-----------------------------
 bool PieceListCompare(UC men1, UC men2)
 {
-    return streng[b[men1]/2] > streng[b[men2]/2];
+    return sort_streng[b[men1]/2] > sort_streng[b[men2]/2];
 }

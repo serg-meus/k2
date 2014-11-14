@@ -700,12 +700,11 @@ void SetvalueCommand(std::string in)
 #ifdef TUNE_PARAMETERS
     std::string arg1, arg2;
     GetFirstArg(in, &arg1, &arg2);
-    if(arg1 == "PawnEnd")
+    if(arg1 == "TwoBishops")
         param.at(0) = atof(arg2.c_str());
-    else if(arg1 == "KnightEnd")
-        param.at(1) = atof(arg2.c_str());
-    else if(arg1 == "RookEnd")
-        param.at(2) = atof(arg2.c_str());
+    else
+        std::cout << "error: wrong parameter name" << std ::endl
+                     << "resign" << std::endl;
 
     InitEngine();
 #else

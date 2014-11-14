@@ -87,9 +87,16 @@ short Eval(/*short alpha, short beta*/)
         }
     }
 
-
-
-
+    if(HowManyPieces(_B) == 2)
+    {
+        valOpn += 50;
+        valEnd += 50;
+    }
+    if(HowManyPieces(_b) == 2)
+    {
+        valOpn -= 50;
+        valEnd -= 50;
+    }
     Y = ((valOpn - valEnd)*X + 80*valEnd)/80;
 
     valOpn = boardState[prev_states + ply].valOpn;
@@ -97,7 +104,6 @@ short Eval(/*short alpha, short beta*/)
 
     return wtm ? (short)(-Y) : (short)Y;
 }
-
 
 //-----------------------------
 void FastEval(Move m)
@@ -285,7 +291,7 @@ void EvalPawns(bool stm)
 
         short delta = 25*(mx - 1);
         ansE += delta;
-//        ansO += -delta/4;
+        ansO += delta/3;
 
         if(promo && prev_promo && ABSI(mx - pmax[i + 0][stm]) <= 1)
         {
@@ -493,4 +499,23 @@ void KingSafety(UC stm)
     ans -= tropism;
 
     valOpn += stm ? ans : -ans;
+}
+
+//-----------------------------
+int HowManyPieces(UC pc)
+{
+    UC stm = pc & white;
+    auto rit = coords[stm].rbegin();
+    rit++;
+    for(; rit != coords[stm].rend(); ++rit)
+        if(b[*rit] == pc)
+            break;
+    if(rit == coords[stm].rend())
+        return 0;
+    ++rit;
+    if(rit == coords[stm].rend())
+        return 1;
+    if(b[*rit] == pc)
+        return 2;
+    return 1;
 }
