@@ -700,8 +700,16 @@ void SetvalueCommand(std::string in)
 #ifdef TUNE_PARAMETERS
     std::string arg1, arg2;
     GetFirstArg(in, &arg1, &arg2);
-    if(arg1 == "TwoBishops")
+    if(arg1 == "PasserMin")
         param.at(0) = atof(arg2.c_str());
+    else if(arg1 == "PasserMid")
+        param.at(1) = atof(arg2.c_str());
+    else if(arg1 == "PasserMax")
+        param.at(2) = atof(arg2.c_str());
+    else if(arg1 == "PasserBlock")
+        param.at(3) = atof(arg2.c_str());
+    else if(arg1 == "DblPasser")
+        param.at(4) = atof(arg2.c_str());
     else
         std::cout << "error: wrong parameter name" << std ::endl
                      << "resign" << std::endl;

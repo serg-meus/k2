@@ -288,15 +288,39 @@ void EvalPawns(bool stm)
             prev_promo = false;
             continue;
         }
+        float y_min = param.at(0);
+        float y_mid = param.at(1);
+        float y_max = param.at(2);
+        float x1, x2, y1, y2;
 
-        short delta = 25*(mx - 1);
-        ansE += delta;
-        ansO += delta/3;
+        if(mx < 4)
+        {
+            x1 = 1;
+            x2 = 3.5;
+            y1 = y_min;
+            y2 = y_mid;
+        }
+        else
+        {
+            x1 = 3.5;
+            x2 = 6;
+            y1 = y_mid;
+            y2 = y_max;
+        }
+
+        float A = (y1 - y2) / (x1 - x2);
+        float B = y1 -A*x1;
+
+        float y = A*mx + B;
+        if(mx == 6 && b[XY2SQ(i, stm ? 7 : 0)] != __)
+            y /= param.at(3);
+        ansE += y;
+        ansO += y/3;
 
         if(promo && prev_promo && ABSI(mx - pmax[i + 0][stm]) <= 1)
         {
             int mmx = std::max(pmax[i + 0][stm], mx);
-            ansE += 17*mmx;
+            ansE += param.at(4)*mmx;
         }
         prev_promo = true;
 
