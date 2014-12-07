@@ -474,6 +474,7 @@ void KingSafety(UC stm)
     if(COL(k) == 3 || COL(k) == 4)
         ans -= 75;
 
+
     if(boardState[prev_states + ply].cstl & (0x0C >> 2*stm))       // able to castle
     {
         valOpn += stm ? ans : -ans;
@@ -486,7 +487,6 @@ void KingSafety(UC stm)
     int occ_cr = 0, pieces_near = 0;
     auto rit = coords[!stm].rbegin();
     ++rit;
-    bool no_queen = (b[*rit] & ~white) != _q;
     for(; rit != coords[!stm].rend(); ++rit)
     {
         UC pt = b[*rit] & ~white;
@@ -496,22 +496,16 @@ void KingSafety(UC stm)
         if(dist >= 4)
             continue;
         pieces_near++;
-        occ_cr += 100;
-
-        if(pt == _q)
-            occ_cr += 75;
-        else if(pt == _r)
-            occ_cr += 110;
-        if(dist < 3)
-            occ_cr += 64;
+        if(dist < 3 && pt != _b && pt != _n)
+            occ_cr += 2;
+        else occ_cr++;
     }
-    if(no_queen)
-        occ_cr = occ_cr * 2 / 7;
-    occ_cr /= 100;
-    int tropism = 36*occ_cr*occ_cr;
+
+    short tropism = 40*occ_cr*occ_cr;
     if(pieces_near == 1)
-        tropism /= 7;                                                   //<< not sure at all
+        tropism /= 2;
     ans -= tropism;
+
 
     valOpn += stm ? ans : -ans;
 }
