@@ -1826,4 +1826,6 @@ rn1qkbnr/1b3ppp/p3p3/1pppP3/5P2/2NB1N2/PPPP2PP/R1BQK2R w KQkq d6 0 7 am 0-0
 8/7p/8/7P/1p6/1p5P/1P2Q1pk/1K6 w - - 0 1; search explosion, PseudoLegal() fixed
 r3kb1r/npqbpp1p/p3n1p1/P3P3/6N1/3B1NB1/1PP3PP/R3QRK1 w kq - 0 1 PseudoLegal() issue
 r1q3kr/p4p1p/1p1B2pn/2pQ2N1/8/8/PPP2PPP/4R1K1 w - - 0 21 search explosion @ply 14
+8/8/8/3r4/2K2p2/5N1P/5k2/8 w - - 0 58 search explosion @ply 17
+8/6n1/1RBp1kp1/1P1P4/3r4/5p2/P4P2/5K2 w - - 0 32 am Ke1 @ply13
 */

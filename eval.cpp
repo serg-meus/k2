@@ -22,7 +22,6 @@ void InitEval()
             kingDist[i] = MAXI(8 - COL(i), ROW(i) + 1);
         else
             kingDist[i] = MAXI(COL(i), ROW(i));
-
 }
 
 //-----------------------------
@@ -97,6 +96,7 @@ short Eval(/*short alpha, short beta*/)
         valOpn -= 50;
         valEnd -= 50;
     }
+
     Y = ((valOpn - valEnd)*X + 80*valEnd)/80;
 
     valOpn = boardState[prev_states + ply].valOpn;
@@ -277,6 +277,7 @@ void EvalPawns(bool stm)
                 ansO -= 30;
         }
 
+        // test for passer
         promo = false;
         if(mx >= 7 - pmin[i + 1][!stm]
         && mx >= 7 - pmin[i - 0][!stm]
@@ -313,8 +314,8 @@ void EvalPawns(bool stm)
             continue;
         }
 
+        // passer pawn evaluation
         int A, B;
-
         if(mx < 4)
         {
             A = 21;
@@ -498,17 +499,17 @@ void KingSafety(UC stm)
     if(COL(k) == 3 || COL(k) == 4)
         ans -= 75;
 
-
-    if(boardState[prev_states + ply].cstl & (0x0C >> 2*stm))       // able to castle
+/*   if(boardState[prev_states + ply].cstl & (0x0C >> 2*stm))       // able to castle
     {
         valOpn += stm ? ans : -ans;
         return;
     }
-
+*/
     int sh  = KingShieldFactor(stm);
     ans +=  material[!stm]*(1 - sh)/3;
 
-    int occ_cr = 0, pieces_near = 0;
+    int occ_cr = 0/*, occ_cr_qr = 0*/;
+    int pieces_near = 0;
     auto rit = coords[!stm].rbegin();
     ++rit;
     for(; rit != coords[!stm].rend(); ++rit)
@@ -521,15 +522,19 @@ void KingSafety(UC stm)
             continue;
         pieces_near++;
         if(dist < 3 && pt != _b && pt != _n)
+        {
             occ_cr += 2;
+//            occ_cr_qr++;
+        }
         else occ_cr++;
     }
-
     short tropism = 40*occ_cr*occ_cr;
     if(pieces_near == 1)
         tropism /= 2;
-    ans -= tropism;
+//    if(occ_cr > 1 && occ_cr_qr == 0)
+//        tropism /= 2;
 
+    ans -= tropism;
 
     valOpn += stm ? ans : -ans;
 }
