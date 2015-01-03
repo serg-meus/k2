@@ -283,6 +283,30 @@ void EvalPawns(bool stm)
         && mx >= 7 - pmin[i + 2][!stm])
             promo = true;
 
+
+//        backward = false;
+//        if(mx < 5 && !isolany
+//        && mx < pmin[i - 0][stm] && mx < pmin[i + 2][stm])
+
+        short k = *king_coord[stm];
+        short opp_k = *king_coord[!stm];
+        short pawn_coord = XY2SQ(i, stm ? mx + 1 : 7 - mx - 1);
+        short k_dist = kingDist[ABSI(k - pawn_coord)];
+        short opp_k_dist = kingDist[ABSI(opp_k - pawn_coord)];
+
+        // king pawn tropism
+        if(promo)
+        {
+            if(k_dist <= 1)
+                ansE += 75;
+            else if(k_dist == 2)
+                ansE += 15;
+            if(opp_k_dist <= 1)
+                ansE -= 75;
+            else if(opp_k_dist == 2)
+                ansE -= 15;
+        }
+
         if(!promo)
         {
             prev_promo = false;
