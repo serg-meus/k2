@@ -274,7 +274,7 @@ void EvalPawns(bool stm)
             bool occupied = DARK(op_piece, stm)
                     && (op_piece & ~white) != _p;
             if(occupied)
-                ansO -= 65;
+                ansO -= 30;
         }
 
         promo = false;
