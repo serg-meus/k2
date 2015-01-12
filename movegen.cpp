@@ -407,7 +407,7 @@ void AppriceMoves(Move *list, int moveCr, Move *bestMove)
     for(int i = 0; i < moveCr; i++)
     {
         Move m = list[i];
-        if(m.scr >= MOVE_FROM_PV
+        if(m.scr >= std::min(MOVE_FROM_PV, SECOND_KILLER)
         || (m.flg & mCAPT))
             continue;
         it      = m.pc;

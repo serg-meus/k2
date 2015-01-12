@@ -9,7 +9,7 @@
 #define DARK(X, s2m)    ((X) && (((X) & white) != (s2m)))
 
 
-#define MOVE_FROM_PV    197
+#define MOVE_FROM_PV    200
 #define SECOND_KILLER   198
 #define FIRST_KILLER    199
 #define PV_FOLLOW       255
