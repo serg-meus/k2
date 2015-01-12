@@ -54,8 +54,8 @@ short Search(int depth, short alpha, short beta, int lmr_)
     short x, _alpha = alpha;
     bool in_hash = false;
     tt_entry entry;
-    if(depth > 0 && HashProbe(depth, alpha, beta, &entry, &in_hash))
-        return -entry.value;
+    if(depth > 0 && HashProbe(depth, &alpha, beta, &entry, &in_hash))
+        return -alpha;
 
     if(depth <= 0)
     {
@@ -1432,7 +1432,7 @@ void ReHash(int size_mb)
 }
 
 //--------------------------------
-bool HashProbe(int depth, short alpha, short beta,
+bool HashProbe(int depth, short *alpha, short beta,
                tt_entry *entry,
                bool *in_hash)
 {
@@ -1450,14 +1450,20 @@ bool HashProbe(int depth, short alpha, short beta,
 #endif // DONT_USE_ONLY_MOVE_EXTENTION
     {
         short hval = entry->value;
+        if(hval > mate_score && hval != INF)
+            hval += entry->depth - ply;
+        else if(hval < -mate_score && hval != -INF)
+            hval -= entry->depth - ply;
+
         if( hbnd == hEXACT
-        || (hbnd == hUPPER && hval >= -alpha)                       // -alpha is beta for parent node
+        || (hbnd == hUPPER && hval >= -*alpha)                      // -alpha is beta for parent node
         || (hbnd == hLOWER && hval <= -beta) )                      // -beta is alpha for parent node
         {
 #ifndef DONT_SHOW_STATISTICS
             hashCutCr++;
-#endif //DONT_SHOW_STATISTICS
+#endif //DONT_SHOW_STATISTICShashp
             pv[ply][0].flg = 0;
+            *alpha = hval;
             return true;
         }// if(bnd
     }// if(entry.depth >= depth
@@ -1654,11 +1660,28 @@ void StoreResultInHash(int depth, short _alpha, short alpha,            // save 
                        bool beta_cutoff, Move best_move)
 {
     if(beta_cutoff)
+    {
+        if(beta > mate_score && beta != INF)
+            beta += ply - depth - 1;
+        else if(beta < -mate_score && beta != -INF)
+            beta -= ply - depth - 1;
         tt.add(hash_key, -beta, best_move, depth, hLOWER);
+
+    }
     else if(alpha > _alpha && pv[ply][0].flg > 0)
+    {
+        if(alpha > mate_score && alpha != INF)
+            alpha += ply - depth;
+        else if(alpha < - mate_score && alpha != -INF)
+            alpha -= ply - depth;
         tt.add(hash_key, -alpha, pv[ply][1], depth, hEXACT);
+    }
     else if(alpha <= _alpha)
     {
+        if(_alpha > mate_score && _alpha != INF)
+            _alpha += ply - depth;
+        else if(_alpha < -mate_score && _alpha != -INF)
+            _alpha -= ply - depth;
         Move no_move;
         no_move.flg = 0xFF;
         tt.add(hash_key, -_alpha, legals > 0 ? best_move : no_move, depth, hUPPER);
