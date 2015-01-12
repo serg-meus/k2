@@ -5,7 +5,7 @@ short valOpn, valEnd;
 short MatArrOpn[] = {  0, 0, Q_VAL_OPN, R_VAL_OPN, B_VAL_OPN, N_VAL_OPN, P_VAL_OPN};
 short MatArrEnd[] = {  0, 0, Q_VAL_END, R_VAL_END, B_VAL_END, N_VAL_END, P_VAL_END};
 
-char  kingDist[120];
+char  king_dist[120];
 
 #ifdef TUNE_PARAMETERS
     std::vector <float> param;
@@ -19,9 +19,9 @@ void InitEval()
     InitMoveGen();
     for(int i = 0; i < 120; i++)
         if(i & 8)
-            kingDist[i] = MAXI(8 - COL(i), ROW(i) + 1);
+            king_dist[i] = MAXI(8 - COL(i), ROW(i) + 1);
         else
-            kingDist[i] = MAXI(COL(i), ROW(i));
+            king_dist[i] = MAXI(COL(i), ROW(i));
 }
 
 //-----------------------------
@@ -292,8 +292,8 @@ void EvalPawns(bool stm)
         short k = *king_coord[stm];
         short opp_k = *king_coord[!stm];
         short pawn_coord = XY2SQ(i, stm ? mx + 1 : 7 - mx - 1);
-        short k_dist = kingDist[ABSI(k - pawn_coord)];
-        short opp_k_dist = kingDist[ABSI(opp_k - pawn_coord)];
+        short k_dist = king_dist[ABSI(k - pawn_coord)];
+        short opp_k_dist = king_dist[ABSI(opp_k - pawn_coord)];
 
         // king pawn tropism
         if(promo)
@@ -417,9 +417,9 @@ bool TestUnstoppable(int x, int y, UC stm)
     if(y > 5)
         y = 5;
     int psq = XY2SQ(x, stm ? 7 : 0);
-    int d = kingDist[ABSI(k - psq)];
+    int d = king_dist[ABSI(k - psq)];
     if(COL(*king_coord[stm]) == x
-    && kingDist[ABSI(*king_coord[stm] - psq)] <= y)
+    && king_dist[ABSI(*king_coord[stm] - psq)] <= y)
         y++;
     return d - (stm != wtm) > y;
 }
@@ -517,7 +517,7 @@ void KingSafety(UC stm)
         UC pt = b[*rit] & ~white;
         if(pt == _p)
             break;
-        int dist = kingDist[ABSI(k - *rit)];
+        int dist = king_dist[ABSI(k - *rit)];
         if(dist >= 4)
             continue;
         pieces_near++;
