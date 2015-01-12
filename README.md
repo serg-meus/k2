@@ -1,6 +1,8 @@
-K2 v0.67
+K2
 ==
-The chess engine. 
+The chess engine
+Version number: 0.71
+Download link: https://yadi.sk/d/OcnaK2IbdtMKG
 
 . Main features:
 - supports both UCI and Xboard interface;
