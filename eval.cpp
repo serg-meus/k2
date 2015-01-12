@@ -507,12 +507,6 @@ void KingSafety(UC stm)
     if(COL(k) == 3 || COL(k) == 4)
         ans -= 75;
 
-/*   if(boardState[prev_states + ply].cstl & (0x0C >> 2*stm))       // able to castle
-    {
-        valOpn += stm ? ans : -ans;
-        return;
-    }
-*/
     int sh  = KingShieldFactor(stm);
     ans +=  material[!stm]*(1 - sh)/3;
 
@@ -541,6 +535,14 @@ void KingSafety(UC stm)
         tropism /= 2;
 //    if(occ_cr > 1 && occ_cr_qr == 0)
 //        tropism /= 2;
+
+    if(boardState[prev_states + ply].cstl & (0x0C >> 2*stm))       // able to castle
+     {
+        if(pieces_near == 1)
+            tropism = 0;
+        else
+            tropism /= 2;
+     }
 
     ans -= tropism;
 
