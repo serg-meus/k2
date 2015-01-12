@@ -45,14 +45,14 @@ short Eval(/*short alpha, short beta*/)
 #endif // DONT_USE_PAWN_STRUCT
 
 
-#ifndef CHECK_PREDICTED_VALUE
+/*#ifndef CHECK_PREDICTED_VALUE
    if(reversibleMoves > ply)
     {
         valOpn = (int)valOpn * (FIFTY_MOVES - reversibleMoves) / FIFTY_MOVES;
         valEnd = (int)valEnd * (FIFTY_MOVES - reversibleMoves) / FIFTY_MOVES;
     }
 #endif
-
+*/
 
     int X, Y;
     X = material[0] + 1 + material[1] + 1 - pieces[0] - pieces[1];
