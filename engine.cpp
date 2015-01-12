@@ -1,4 +1,4 @@
-#include "engine.h"
+﻿#include "engine.h"
 
 //--------------------------------
 char        stop_str[] = "";
@@ -37,16 +37,16 @@ short Search(int depth, short alpha, short beta, int lmr_)
         depth += 1 + lmr_;
 
 #ifndef DONT_USE_MATE_DISTANCE_PRUNING
-    short mate_score = (short)(K_VAL - ply);
-    if(alpha >= mate_score)
+    short mate_sc = (short)(K_VAL - ply);
+    if(alpha >= mate_sc)
        return alpha;
-    if(beta <= -mate_score)
+    if(beta <= -mate_sc)
         return beta;
 #endif  // DONT_USE_MATE_DISTANCE_PRUNING
 
 #ifndef DONT_USE_FUTILITY
     if(depth <= 1 && depth >= 0 && !in_check
-    && beta < (short)(K_VAL - max_ply)
+    && beta < mate_score
     && Futility(depth, beta))
         return beta;
 #endif // DONT_USE_FUTILITY
@@ -74,14 +74,15 @@ short Search(int depth, short alpha, short beta, int lmr_)
         return x;
     }
 
-
     nodes++;
     if((nodes & 511) == 511)
         CheckForInterrupt();
 
 #ifndef DONT_USE_NULL_MOVE
-    if(beta - alpha == 1 && NullMove(depth, beta, in_check, lmr_))
+    if(beta - alpha == 1
+    && NullMove(depth, beta, in_check, lmr_))
         return beta;
+
 #endif // DONT_USE_NULL_MOVE
 
 #ifndef DONT_USE_ONLY_MOVE_EXTENSION
@@ -96,7 +97,7 @@ short Search(int depth, short alpha, short beta, int lmr_)
     boardState[prev_states + ply].valOpn = valOpn;
     boardState[prev_states + ply].valEnd = valEnd;
 
-//    bool mateFound = alpha >= (short)(K_VAL - max_ply + 1);
+//    bool mateFound = alpha > mate_score;
 
     for(; move_cr < max_moves && !stop/* && !mateFound*/; move_cr++)
     {
@@ -114,16 +115,33 @@ short Search(int depth, short alpha, short beta, int lmr_)
             UnMove(m);
             continue;
         }
+/*
+#ifndef DONT_USE_IID
+    if(depth > 5 && legals == 0
+    && m.scr < std::min(MOVE_FROM_PV, SECOND_KILLER))
+    {
+        ply = ply;
+//        UnMove(m);
+//        Search(depth - 1 - 2, alpha - 30, beta + 30, 0);
+//        in_hash = true;
+//        tt.count(hash_key, &entry);
+    }
+#endif //DONT_USE_IID
+*/
         FastEval(m);
 
 #ifndef DONT_USE_LMR
         int lmr = 1;
         if(depth < 3 || m.flg || in_check)
             lmr = 0;
-        else if(legals < 4/* || m.scr > 80*/)
+        else if(legals < 4/* || m.scr >= 160*/)
             lmr = 0;
         else if((b[m.to] & ~white) == _p && TestPromo(COL(m.to), !wtm))
             lmr = 0;
+//        else if(king_dist[ABSI(m.to - *king_coord[wtm])] < 2)
+//            lmr = 0;
+//        else if(depth > 4 && legals > 20)
+//            lmr = 2;
 #else
         int lmr = 0;
 #endif  // DONT_USE_LMR
@@ -146,6 +164,8 @@ short Search(int depth, short alpha, short beta, int lmr_)
 
         if(x >= beta)
         {
+//            if(legals == 2)
+//                ply = ply;
             beta_cutoff = true;
             UnMove(m);
             break;
@@ -158,7 +178,7 @@ short Search(int depth, short alpha, short beta, int lmr_)
         UnMove(m);
     }// for move_cr
 
-    if(!legals && _alpha < (short)(K_VAL - max_ply + 1))
+    if(!legals && _alpha <= mate_score)
     {
         pv[ply][0].flg = 0;
         return in_check ? -K_VAL + ply : 0;
@@ -370,7 +390,7 @@ void MainSearch()
         {
             if(timeSpent > timeToThink && !timeMaxNodes)
                 break;
-            if(ABSI(sc) > (short)(K_VAL - max_ply) && !stop)
+            if(ABSI(sc) > mate_score && !stop)
                 break;
             if(rootTop == 1 && rootPly >= 8)
                 break;
@@ -390,7 +410,7 @@ void MainSearch()
     else
         resignCr = 0;
 
-    if((!stop && !analyze && sc < short(-K_VAL + max_ply))
+    if((!stop && !analyze && sc < -mate_score)
     || (!analyze && sc < -RESIGN_VALUE && resignCr > RESIGN_MOVES))
     {
         std::cout << "resign" << std::endl;
@@ -427,7 +447,7 @@ short RootSearch(int depth, short alpha, short beta)
     Move  m;
     bool beta_cutoff = false;
 
-    for(; rootMoveCr < rootTop/* && alpha < K_VAL - 99*/ && !stop; rootMoveCr++)
+    for(; rootMoveCr < rootTop/* && alpha < mate_score*/ && !stop; rootMoveCr++)
     {
         m = rootMoveList[rootMoveCr];
 
@@ -748,7 +768,7 @@ void PlyOutput(short sc)
         {
             cout << "info depth " << rootPly;
 
-            if(ABSI(sc) < (short)(K_VAL - max_ply))
+            if(ABSI(sc) < mate_score)
                 cout << " score cp " << sc;
             else
             {
@@ -1827,5 +1847,17 @@ rn1qkbnr/1b3ppp/p3p3/1pppP3/5P2/2NB1N2/PPPP2PP/R1BQK2R w KQkq d6 0 7 am 0-0
 r3kb1r/npqbpp1p/p3n1p1/P3P3/6N1/3B1NB1/1PP3PP/R3QRK1 w kq - 0 1 PseudoLegal() issue
 r1q3kr/p4p1p/1p1B2pn/2pQ2N1/8/8/PPP2PPP/4R1K1 w - - 0 21 search explosion @ply 14
 8/8/8/3r4/2K2p2/5N1P/5k2/8 w - - 0 58 search explosion @ply 17
-8/6n1/1RBp1kp1/1P1P4/3r4/5p2/P4P2/5K2 w - - 0 32 am Ke1 @ply13
+8/6n1/1RBp1kp1/1P1P4/3r4/5p2/P4P2 /5K2 w - - 0 32 am Ke1 @ply13
+5B2/6P1/1p6/8/1N6/kP6/2K5/8 w - - error after g7g8n (fixed)
+6rk/3R2p1/p1q4p/5Q1R/2P5/1Pr5/P4K1P/8 w - - 6 27 KS eval - white is worse
+3r2k1/pq3ppp/R4n2/4N1Q1/1P3P2/P5PP/8/3r1RK1 w - - 3 24  KS eval - white is worse
+r3r3/6b1/7p/2pkpPp1/P3R1P1/2B5/7P/4R1K1 w - - 0 20 KS eval - wrong advantage for white
+4q1k1/2p2r1p/4NnpQ/3nB3/b2P2P1/5B1P/2p2P2/R5K1 w - - 1 31 KS eval - wrong advantage for white
+4r1k1/1p3p2/pQ1p2pp/2p5/2P1q1b1/2P1rN2/P3BRPP/4R1K1 w - - 2 18 KS eval - wrong advantage for black
+6k1/5ppp/r3p3/2bpP1P1/5K2/2P1B2P/p3bP2/RR6 b - - 0 33 KS eval - wrong advantage for black
+8/p3b2p/4k3/1pp1P1p1/4b3/1PB1NrPP/P3KP2/2R5 b - - 1 22 KS eval - wrong advantage for black
+8/2p5/3p4/5K2/3k4/2n5/3N2PP/8 b - - 2 46 king end tropism eval - white king's better
+2k1r2r/p4q1P/2p5/5p2/1bb4Q/1N2pP2/PPP1N3/1K1R3R w - - 5 19 KS eval - black is worse
+1r1q1rk1/1b1n1ppp/p1pQp3/3p4/4P3/2N2B2/PPP2PPP/R3R1K1 w - - 3 8 am e5
+
 */
