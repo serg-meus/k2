@@ -60,7 +60,10 @@ short Eval(/*short alpha, short beta*/)
     if(X == 3 && (material[0] == 4 || material[1] == 4))
     {
         if(pieces[0] + pieces[1] == 3)                                  // KNk, KBk, Kkn, Kkb
-            return 0;
+        {
+            valOpn = 0;
+            valEnd = 0;
+        }
         if(material[1] == 1 && material[0] == 4)                        // KPkn, KPkb
             valEnd += B_VAL_END + P_VAL_END/4;
         if(material[0] == 1 && material[1] == 4)                        // KNkp, KBkp
@@ -82,7 +85,10 @@ short Eval(/*short alpha, short beta*/)
             ++rit;
             if((b[*rit] & ~white) == _n
             && (b[*(++rit)] & ~white) == _n)
-                return 0;
+            {
+                valOpn = 0;
+                valEnd = 0;
+            }
         }
     }
 
