@@ -470,7 +470,7 @@ void UciCommand(std::string in)
     uci = true;
     std::cout << "id name K2 v." ENGINE_VERSION << std::endl;
     std::cout << "id author Sergey Meus" << std::endl;
-    std::cout << "option name Hash type spin default 64 min 2 max 1024" << std::endl;
+    std::cout << "option name Hash type spin default 64 min 0 max 2048" << std::endl;
     std::cout << "uciok" << std::endl;
 }
 
