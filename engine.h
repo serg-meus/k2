@@ -5,7 +5,7 @@
 #include "Timer.h"
 
 //--------------------------------
-#define ENGINE_VERSION "069x"
+#define ENGINE_VERSION "071"
 //--------------------------------
 //#define DONT_SHOW_STATISTICS
 //#define DONT_USE_FUTILITY
@@ -16,7 +16,7 @@
 #define DONT_USE_ONLY_MOVE_EXTENSION
 //#define DONT_USE_MATE_DISTANCE_PRUNING
 //#define DONT_USE_PVS_IN_ROOT
-
+//#define DONT_USE_IID
 //--------------------------------
 #define UNUSED(x) (void)(x)
 
@@ -25,7 +25,7 @@
 #define RESIGN_MOVES    3
 
 #define MOVE_IS_NULL 0xFF
-
+const int mate_score = K_VAL - (short)max_ply;
 //--------------------------------
 
 void InitEngine();
@@ -59,7 +59,7 @@ bool Futility(int depth, short beta);
 bool DrawByRepetition();
 void ShowFen();
 void ReHash(int size_mb);
-bool HashProbe(int depth, short alpha, short beta,
+bool HashProbe(int depth, short *alpha, short beta,
                tt_entry *entry, bool *best_move_hashed);
 bool PseudoLegal(Move &m, bool stm);
 Move Next(Move *max_moves, unsigned cur, unsigned *top,

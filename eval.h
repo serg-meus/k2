@@ -2,13 +2,14 @@
 #include <fstream>                  // to work with files (ifstream, getline())
 #include <cstdlib>                  // to convert strings to floats (atof())
 #include <iostream>
+#include "extern.h"
 
 //--------------------------------
 #define FIFTY_MOVES 101       // because last 50th move can be a mate
 #define MAXI(X, Y)       ((X) > (Y) ? (X) : (Y))
 
 //--------------------------------
-#define TUNE_PARAMETERS
+//#define TUNE_PARAMETERS
 #define NPARAMS 5
 //#define CHECK_PREDICTED_VALUE
 //#define EVAL_KING_TROPISM

@@ -34,4 +34,5 @@ extern short    streng[7];
 extern UQ       tmpCr;
 extern short_list<UC, lst_sz>::iterator king_coord[2];
 extern bool     ponder;
+extern char     king_dist[120];
 #endif
