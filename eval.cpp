@@ -333,10 +333,12 @@ void EvalPawns(bool stm)
         ansE += delta;
         ansO += delta/3;
 
-        if(promo && prev_promo && ABSI(mx - pmax[i + 0][stm]) <= 1)     // two connected passers
+
+        if(promo && prev_promo && ABSI(mx - pmax[i + 0][stm]) <= 1)      // two connected passers)
         {
             int mmx = std::max(pmax[i + 0][stm], mx);
-            ansE += 28*mmx;
+            if(mmx > 4)
+                ansE += 28*mmx;
         }
         prev_promo = true;
 
