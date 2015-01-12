@@ -141,10 +141,10 @@ void FastEval(Move m)
                             deltaScoreEnd += MatArrEnd[_r/2] + pst[_r/2 - 1][1][y0][x0];
                             break;
             case mPR_B :    deltaScoreOpn += MatArrOpn[_b/2] + pst[_b/2 - 1][0][y0][x0];
-                            deltaScoreEnd += MatArrOpn[_b/2] + pst[_b/2 - 1][1][y0][x0];
+                            deltaScoreEnd += MatArrEnd[_b/2] + pst[_b/2 - 1][1][y0][x0];
                             break;
             case mPR_N :    deltaScoreOpn += MatArrOpn[_n/2] + pst[_n/2 - 1][0][y0][x0];
-                            deltaScoreEnd += MatArrOpn[_n/2] + pst[_n/2 - 1][1][y0][x0];
+                            deltaScoreEnd += MatArrEnd[_n/2] + pst[_n/2 - 1][1][y0][x0];
                             break;
         }
     }
