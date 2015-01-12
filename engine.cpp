@@ -1511,6 +1511,8 @@ bool PseudoLegal(Move &m, bool stm)
     if((b[fr]/2) != _p/2 && ((!DARK(pt, stm) && (m.flg & mCAPT))
     || (pt != __ && !(m.flg & mCAPT))))
         return false;
+    if((b[fr]/2) != _p/2 && (m.flg & mPROM))
+        return false;
     bool long_move;
     switch(b[fr]/2)
     {
