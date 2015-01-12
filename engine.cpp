@@ -662,8 +662,12 @@ void InitSearch()
     std::cout   << "Ply Value  Time    Nodes        Principal Variation" << std::endl;
     }
 
-    tt.clear();
-
+//    tt.clear();
+/*
+    double time1 = timer.getElapsedTimeInMicroSec();
+    timeSpent = time1 - time0;
+    std::cout << timeSpent << std::endl;
+*/
 #ifndef DONT_USE_HISTORY
     memset(history, 0, sizeof(history));
 #endif // DONT_USE_HISTORY
@@ -1033,6 +1037,8 @@ void InitEngine()
     finalyMadeMoves = 0;
     resignCr        = 0;
     timeSpent       = 0;
+
+    tt.clear();
 }
 
 //--------------------------------
