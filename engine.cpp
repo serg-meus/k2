@@ -1093,6 +1093,14 @@ void CheckForInterrupt()
         if(timeSpent >= timeToThink - 50000)
             stop = true;
     }
+    else if((nodes & 8191) == 8191)
+    {
+        double time1 = timer.getElapsedTimeInMicroSec();
+        timeSpent = time1 - time0;
+        if(timeSpent >= 10*timeToThink - 50000)
+            stop = true;
+    }
+
 }
 
 //--------------------------------
