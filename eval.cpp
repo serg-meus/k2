@@ -1,9 +1,9 @@
 #include "eval.h"
 
-short valOpn, valEnd;
+short val_opn, val_end;
 
-short MatArrOpn[] = {  0, 0, Q_VAL_OPN, R_VAL_OPN, B_VAL_OPN, N_VAL_OPN, P_VAL_OPN};
-short MatArrEnd[] = {  0, 0, Q_VAL_END, R_VAL_END, B_VAL_END, N_VAL_END, P_VAL_END};
+short material_values_opn[] = {  0, 0, Q_VAL_OPN, R_VAL_OPN, B_VAL_OPN, N_VAL_OPN, P_VAL_OPN};
+short material_values_end[] = {  0, 0, Q_VAL_END, R_VAL_END, B_VAL_END, N_VAL_END, P_VAL_END};
 
 char  king_dist[120];
 
@@ -14,8 +14,8 @@ char  king_dist[120];
 //-----------------------------
 void InitEval()
 {
-    valOpn = 0;
-    valEnd = 0;
+    val_opn = 0;
+    val_end = 0;
     InitMoveGen();
     for(int i = 0; i < 120; i++)
         if(i & 8)
@@ -28,8 +28,8 @@ void InitEval()
 short Eval(/*short alpha, short beta*/)
 {
 
-    boardState[prev_states + ply].valOpn = valOpn;
-    boardState[prev_states + ply].valEnd = valEnd;
+    b_state[prev_states + ply].val_opn = val_opn;
+    b_state[prev_states + ply].val_end = val_end;
 
 #ifndef DONT_USE_PAWN_STRUCT
     EvalPawns((bool)white);
@@ -46,10 +46,10 @@ short Eval(/*short alpha, short beta*/)
 
 
 /*#ifndef CHECK_PREDICTED_VALUE
-   if(reversibleMoves > ply)
+   if(reversible_moves > ply)
     {
-        valOpn = (int)valOpn * (FIFTY_MOVES - reversibleMoves) / FIFTY_MOVES;
-        valEnd = (int)valEnd * (FIFTY_MOVES - reversibleMoves) / FIFTY_MOVES;
+        val_opn = (int)val_opn * (FIFTY_MOVES - reversible_moves) / FIFTY_MOVES;
+        val_end = (int)val_end * (FIFTY_MOVES - reversible_moves) / FIFTY_MOVES;
     }
 #endif
 */
@@ -61,13 +61,13 @@ short Eval(/*short alpha, short beta*/)
     {
         if(pieces[0] + pieces[1] == 3)                                  // KNk, KBk, Kkn, Kkb
         {
-            valOpn = 0;
-            valEnd = 0;
+            val_opn = 0;
+            val_end = 0;
         }
         if(material[1] == 1 && material[0] == 4)                        // KPkn, KPkb
-            valEnd += B_VAL_END + P_VAL_END/4;
+            val_end += B_VAL_END + P_VAL_END/4;
         if(material[0] == 1 && material[1] == 4)                        // KNkp, KBkp
-            valEnd -= B_VAL_END + P_VAL_END/4;
+            val_end -= B_VAL_END + P_VAL_END/4;
     }
     if(X == 6)                                                          // KNNk, Kknn
     {
@@ -86,27 +86,27 @@ short Eval(/*short alpha, short beta*/)
             if((b[*rit] & ~white) == _n
             && (b[*(++rit)] & ~white) == _n)
             {
-                valOpn = 0;
-                valEnd = 0;
+                val_opn = 0;
+                val_end = 0;
             }
         }
     }
 
     if(HowManyPieces(_B) == 2)
     {
-        valOpn += 50;
-        valEnd += 50;
+        val_opn += 50;
+        val_end += 50;
     }
     if(HowManyPieces(_b) == 2)
     {
-        valOpn -= 50;
-        valEnd -= 50;
+        val_opn -= 50;
+        val_end -= 50;
     }
 
-    Y = ((valOpn - valEnd)*X + 80*valEnd)/80;
+    Y = ((val_opn - val_end)*X + 80*val_end)/80;
 
-    valOpn = boardState[prev_states + ply].valOpn;
-    valEnd = boardState[prev_states + ply].valEnd;
+    val_opn = b_state[prev_states + ply].val_opn;
+    val_end = b_state[prev_states + ply].val_end;
 
     return wtm ? (short)(-Y) : (short)Y;
 }
@@ -114,12 +114,12 @@ short Eval(/*short alpha, short beta*/)
 //-----------------------------
 void FastEval(Move m)
 {
-    short deltaScoreOpn = 0, deltaScoreEnd = 0;
+    short delta_opn = 0, delta_end = 0;
 
     int x  = COL(m.to);
     int y  = ROW(m.to);
-    int x0 = COL(boardState[prev_states + ply].fr);
-    int y0 = ROW(boardState[prev_states + ply].fr);
+    int x0 = COL(b_state[prev_states + ply].fr);
+    int y0 = ROW(b_state[prev_states + ply].fr);
     UC pt  = b[m.to]/2;
 
     if(!wtm)
@@ -130,70 +130,70 @@ void FastEval(Move m)
 
     if(m.flg & mPROM)
     {
-        deltaScoreOpn -= MatArrOpn[_p/2] + pst[_p/2 - 1][0][y0][x0];
-        deltaScoreEnd -= MatArrEnd[_p/2] + pst[_p/2 - 1][1][y0][x0];
+        delta_opn -= material_values_opn[_p/2] + pst[_p/2 - 1][0][y0][x0];
+        delta_end -= material_values_end[_p/2] + pst[_p/2 - 1][1][y0][x0];
         switch(m.flg & mPROM)
         {
-            case mPR_Q :    deltaScoreOpn += MatArrOpn[_q/2] + pst[_q/2 - 1][0][y0][x0];
-                            deltaScoreEnd += MatArrEnd[_q/2] + pst[_q/2 - 1][1][y0][x0];
+            case mPR_Q :    delta_opn += material_values_opn[_q/2] + pst[_q/2 - 1][0][y0][x0];
+                            delta_end += material_values_end[_q/2] + pst[_q/2 - 1][1][y0][x0];
                             break;
-            case mPR_R :    deltaScoreOpn += MatArrOpn[_r/2] + pst[_r/2 - 1][0][y0][x0];
-                            deltaScoreEnd += MatArrEnd[_r/2] + pst[_r/2 - 1][1][y0][x0];
+            case mPR_R :    delta_opn += material_values_opn[_r/2] + pst[_r/2 - 1][0][y0][x0];
+                            delta_end += material_values_end[_r/2] + pst[_r/2 - 1][1][y0][x0];
                             break;
-            case mPR_B :    deltaScoreOpn += MatArrOpn[_b/2] + pst[_b/2 - 1][0][y0][x0];
-                            deltaScoreEnd += MatArrEnd[_b/2] + pst[_b/2 - 1][1][y0][x0];
+            case mPR_B :    delta_opn += material_values_opn[_b/2] + pst[_b/2 - 1][0][y0][x0];
+                            delta_end += material_values_end[_b/2] + pst[_b/2 - 1][1][y0][x0];
                             break;
-            case mPR_N :    deltaScoreOpn += MatArrOpn[_n/2] + pst[_n/2 - 1][0][y0][x0];
-                            deltaScoreEnd += MatArrEnd[_n/2] + pst[_n/2 - 1][1][y0][x0];
+            case mPR_N :    delta_opn += material_values_opn[_n/2] + pst[_n/2 - 1][0][y0][x0];
+                            delta_end += material_values_end[_n/2] + pst[_n/2 - 1][1][y0][x0];
                             break;
         }
     }
 
     if(m.flg & mCAPT)
     {
-        UC capt = boardState[prev_states + ply].capt & ~white;
+        UC capt = b_state[prev_states + ply].capt & ~white;
         if(m.flg & mENPS)
         {
-            deltaScoreOpn +=  MatArrOpn[_p/2] + pst[_p/2 - 1][0][7 - y0][x];
-            deltaScoreEnd +=  MatArrEnd[_p/2] + pst[_p/2 - 1][1][7 - y0][x];
+            delta_opn +=  material_values_opn[_p/2] + pst[_p/2 - 1][0][7 - y0][x];
+            delta_end +=  material_values_end[_p/2] + pst[_p/2 - 1][1][7 - y0][x];
         }
         else
         {
-            deltaScoreOpn +=  MatArrOpn[capt/2] + pst[capt/2 - 1][0][7 - y][x];
-            deltaScoreEnd +=  MatArrEnd[capt/2] + pst[capt/2 - 1][1][7 - y][x];
+            delta_opn +=  material_values_opn[capt/2] + pst[capt/2 - 1][0][7 - y][x];
+            delta_end +=  material_values_end[capt/2] + pst[capt/2 - 1][1][7 - y][x];
         }
     }
     else if(m.flg & mCS_K)
     {
-        deltaScoreOpn += pst[_r/2 - 1][0][7][5] - pst[_r/2 - 1][0][7][7];
-        deltaScoreEnd += pst[_r/2 - 1][1][7][5] - pst[_r/2 - 1][1][7][7];
+        delta_opn += pst[_r/2 - 1][0][7][5] - pst[_r/2 - 1][0][7][7];
+        delta_end += pst[_r/2 - 1][1][7][5] - pst[_r/2 - 1][1][7][7];
     }
     else if(m.flg & mCS_Q)
     {
-        deltaScoreOpn += pst[_r/2 - 1][0][7][3] - pst[_r/2 - 1][0][7][0];
-        deltaScoreEnd += pst[_r/2 - 1][1][7][3] - pst[_r/2 - 1][1][7][0];
+        delta_opn += pst[_r/2 - 1][0][7][3] - pst[_r/2 - 1][0][7][0];
+        delta_end += pst[_r/2 - 1][1][7][3] - pst[_r/2 - 1][1][7][0];
     }
 
-    deltaScoreOpn += pst[pt - 1][0][y][x] - pst[pt - 1][0][y0][x0];
-    deltaScoreEnd += pst[pt - 1][1][y][x] - pst[pt - 1][1][y0][x0];
+    delta_opn += pst[pt - 1][0][y][x] - pst[pt - 1][0][y0][x0];
+    delta_end += pst[pt - 1][1][y][x] - pst[pt - 1][1][y0][x0];
 
     if(wtm)
     {
-        valOpn -= deltaScoreOpn;
-        valEnd -= deltaScoreEnd;
+        val_opn -= delta_opn;
+        val_end -= delta_end;
     }
     else
     {
-        valOpn += deltaScoreOpn;
-        valEnd += deltaScoreEnd;
+        val_opn += delta_opn;
+        val_end += delta_end;
     }
 }
 
 //-----------------------------
 void EvalAllMaterialAndPST()
 {
-    valOpn = 0;
-    valEnd = 0;
+    val_opn = 0;
+    val_end = 0;
     for(unsigned i = 0; i < sizeof(b)/sizeof(*b); ++i)
     {
         if(!ONBRD(i))
@@ -206,18 +206,18 @@ void EvalAllMaterialAndPST()
         if(pt & white)
             y0 = 7 - y0;
 
-        short tmpOpn = MatArrOpn[pt/2] + pst[(pt/2) - 1][0][y0][x0];
-        short tmpEnd = MatArrEnd[pt/2] + pst[(pt/2) - 1][1][y0][x0];
+        short tmpOpn = material_values_opn[pt/2] + pst[(pt/2) - 1][0][y0][x0];
+        short tmpEnd = material_values_end[pt/2] + pst[(pt/2) - 1][1][y0][x0];
 
         if(pt & white)
         {
-            valOpn += tmpOpn;
-            valEnd += tmpEnd;
+            val_opn += tmpOpn;
+            val_end += tmpEnd;
         }
         else
         {
-            valOpn -= tmpOpn;
-            valEnd -= tmpEnd;
+            val_opn -= tmpOpn;
+            val_end -= tmpEnd;
         }
     }
 }
@@ -242,7 +242,7 @@ void EvalPawns(bool stm)
 {
     short ansO = 0, ansE = 0;
     bool promo, prev_promo = false;
-    bool oppHasOnlyPawns = material[!stm] == pieces[!stm] - 1;
+    bool opp_only_pawns = material[!stm] == pieces[!stm] - 1;
 
     for(int i = 0; i < 8; i++)
     {
@@ -340,7 +340,7 @@ void EvalPawns(bool stm)
         ansO += delta/3;
 
 
-        if(promo && prev_promo && ABSI(mx - pmax[i + 0][stm]) <= 1)      // two connected passers)
+        if(promo && prev_promo && ABSI(mx - pmax[i + 0][stm]) <= 1)      // two connected passers
         {
             int mmx = std::max(pmax[i + 0][stm], mx);
             if(mmx > 4)
@@ -348,7 +348,7 @@ void EvalPawns(bool stm)
         }
         prev_promo = true;
 
-        if(oppHasOnlyPawns)
+        if(opp_only_pawns)
         {
             if(TestUnstoppable(i, 7 - pmax[i + 1][stm], stm))
             {
@@ -359,8 +359,8 @@ void EvalPawns(bool stm)
 
     }// for i
 
-    valOpn += stm ? ansO : -ansO;
-    valEnd += stm ? ansE : -ansE;
+    val_opn += stm ? ansO : -ansO;
+    val_end += stm ? ansE : -ansE;
 }
 
 //-----------------------------
@@ -371,47 +371,47 @@ void ClampedRook(UC stm)
     if(stm)
     {
         if(k == 0x06 && b[0x07] == _R && pmax[7 + 1][1])
-            valOpn -= CLAMPED_R;
+            val_opn -= CLAMPED_R;
         else if(k == 0x05)
         {
             if(pmax[7 + 1][1] && b[0x07] == _R)
-                valOpn -= CLAMPED_R;
+                val_opn -= CLAMPED_R;
             else
             if(pmax[6 + 1][1] && b[0x06] == _R)
-                valOpn -= CLAMPED_R;
+                val_opn -= CLAMPED_R;
         }
         else if(k == 0x01 && b[0x00] == _R && pmax[0 + 1][1])
-            valOpn -= CLAMPED_R;
+            val_opn -= CLAMPED_R;
         else if(k == 0x02)
         {
             if(pmax[0 + 1][1] && b[0x00] == _R)
-                valOpn -= CLAMPED_R;
+                val_opn -= CLAMPED_R;
             else
             if(pmax[1 + 1][1] && b[0x01] == _R)
-                valOpn -= CLAMPED_R;
+                val_opn -= CLAMPED_R;
         }
      }
      else
      {
         if(k == 0x76 && b[0x77] == _r && pmax[7 + 1][0])
-            valOpn += CLAMPED_R;
+            val_opn += CLAMPED_R;
         else if(k == 0x75)
         {
             if(pmax[7 + 1][0] && b[0x77] == _r)
-                valOpn += CLAMPED_R;
+                val_opn += CLAMPED_R;
             else
             if(pmax[6 + 1][0] && b[0x76] == _r)
-                valOpn += CLAMPED_R;
+                val_opn += CLAMPED_R;
         }
         else if(k == 0x71 && b[0x70] == _r && pmax[0 + 1][0])
-            valOpn += CLAMPED_R;
+            val_opn += CLAMPED_R;
         else if(k == 0x72)
         {
             if(pmax[0 + 1][0] && b[0x70] == _r)
-                valOpn += CLAMPED_R;
+                val_opn += CLAMPED_R;
             else
             if(pmax[1 + 1][0] && b[0x71] == _r)
-                valOpn += CLAMPED_R;
+                val_opn += CLAMPED_R;
         }
      }
 }
@@ -503,7 +503,7 @@ void KingSafety(UC stm)
 
     short ans = 0;
 
-    UC k = *king_coord[stm];                                              //
+    UC k = *king_coord[stm];
     if(COL(k) == 3 || COL(k) == 4)
         ans -= 75;
 
@@ -526,7 +526,6 @@ void KingSafety(UC stm)
         if(dist < 3 && pt != _b && pt != _n)
         {
             occ_cr += 2;
-//            occ_cr_qr++;
         }
         else occ_cr++;
     }
@@ -536,7 +535,7 @@ void KingSafety(UC stm)
 //    if(occ_cr > 1 && occ_cr_qr == 0)
 //        tropism /= 2;
 
-    if(boardState[prev_states + ply].cstl & (0x0C >> 2*stm))       // able to castle
+    if(b_state[prev_states + ply].cstl & (0x0C >> 2*stm))       // able to castle
      {
         if(pieces_near == 1)
             tropism = 0;
@@ -546,7 +545,7 @@ void KingSafety(UC stm)
 
     ans -= tropism;
 
-    valOpn += stm ? ans : -ans;
+    val_opn += stm ? ans : -ans;
 }
 
 //-----------------------------

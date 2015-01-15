@@ -14,18 +14,18 @@
 #endif
 
 //--------------------------------
-extern double timeRemains;
-extern double timeBase;
-extern unsigned movesPerSession;
-extern double timeInc;
-extern unsigned timeMaxNodes;
-extern unsigned timeMaxPly;
+extern double time_remains;
+extern double time_base;
+extern unsigned moves_per_session;
+extern double time_inc;
+extern unsigned max_nodes_to_search;
+extern unsigned max_search_depth;
 extern bool stop;
 extern bool _abort_;
 extern bool busy;
-extern UQ totalNodes;
-extern double totalTimeSpent;
-extern bool timeCommandSent;
+extern UQ total_nodes;
+extern double total_time_spent;
+extern bool time_command_sent;
 
 #ifdef TUNE_PARAMETERS
     extern std::vector <float> param;

@@ -47,7 +47,7 @@ UQ InitHashKey()
 
     if(!wtm)
         ans ^= (UQ)-1;
-    BrdState &f = boardState[prev_states + ply];
+    BrdState &f = b_state[prev_states + ply];
     ans ^= zorb_en_passant[f.ep] ^ zorb_castling[f.cstl];
 
     return ans;
@@ -57,8 +57,8 @@ UQ InitHashKey()
 void MoveHashKey(Move m, UC fr, int special)
 {
     UC pt   = b[m.to];
-    BrdState &f = boardState[prev_states + ply],
-            &_f = boardState[prev_states + ply - 1];
+    BrdState &f = b_state[prev_states + ply],
+            &_f = b_state[prev_states + ply - 1];
 
     hash_key ^= zorb[MEN_TO_ZORB(pt)][COL(fr)][ROW(fr)]
            ^ zorb[MEN_TO_ZORB(pt)][COL(m.to)][ROW(m.to)];

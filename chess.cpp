@@ -19,23 +19,23 @@ short streng[7]     = {0, 15000, 120, 60, 40, 40, 10};
 short sort_streng[7] = {0, 15000, 120, 60, 41, 39, 10};
 UC  slider[7]       = {0, 0, 1, 1, 1, 0, 0};
 int material[2], pieces[2];
-BrdState  boardState[prev_states + max_ply];
+BrdState  b_state[prev_states + max_ply];
 unsigned wtm, ply;
 UQ nodes, tmpCr;
 char *cv;
-US reversibleMoves;
+US reversible_moves;
 
 #ifndef DONT_USE_PAWN_STRUCT
     int pmax[10][2], pmin[10][2];
 #endif
 UQ hash_key;
-char curVar[5*max_ply];
+char cur_moves[5*max_ply];
 
 short_list<UC, lst_sz>::iterator king_coord[2];
 //--------------------------------
 void InitChess()
 {
-    cv = curVar;
+    cv = cur_moves;
     InitBrd();
 
     pmax[1 - 1][0] = 0;
@@ -74,9 +74,9 @@ void InitBrd()
         coords[black].push_back(XY2SQ(crd[i], 7));
     }
 
-    boardState[prev_states + 0].capt    = 0;
-    boardState[prev_states + 0].cstl    = 0x0F;
-    boardState[prev_states + 0].ep      = 0;
+    b_state[prev_states + 0].capt    = 0;
+    b_state[prev_states + 0].cstl    = 0x0F;
+    b_state[prev_states + 0].ep      = 0;
     wtm             = white;
     ply             = 0;
     nodes           = 0;
@@ -86,7 +86,7 @@ void InitBrd()
     material[black] = 48;
     material[white] = 48;
 
-    reversibleMoves     = 0;
+    reversible_moves     = 0;
 #ifndef DONT_USE_PAWN_STRUCT
     InitPawnStruct();
 #endif // DONT_USE_PAWN_STRUCT
@@ -157,7 +157,7 @@ bool FenToBoard(char *p)
     material[white] = 0;
     pieces[black]   = 0;
     pieces[white]   = 0;
-    reversibleMoves = 0;
+    reversible_moves = 0;
 
     for(int row = 7; row >= 0; row--)
         for(int col = 0; col <= 7; col++)
@@ -193,13 +193,13 @@ bool FenToBoard(char *p)
                 material[i >= 6]  += mtr[i];
                 pieces[i >= 6]++;
                 p++;
-            }// else
+            }
         }// for( col
 
 
     BoardToMen();
 
-    boardState[prev_states + 0].ep   = 0;
+    b_state[prev_states + 0].ep   = 0;
     wtm = (*(++p) == 'b') ? black : white;
 
     UC cstl = 0;
@@ -229,7 +229,7 @@ bool FenToBoard(char *p)
     && (b[XY2SQ(4, 7)] != _k || b[XY2SQ(0, 7 )] != _r))
         cstl &= ~0x08;
 
-    boardState[prev_states + 0].cstl = cstl;
+    b_state[prev_states + 0].cstl = cstl;
 
     p++;
     if(*p != '-')
@@ -239,13 +239,13 @@ bool FenToBoard(char *p)
         int s = wtm ? -1 : 1;
         UC pawn = wtm ? _P : _p;
         if(b[XY2SQ(col-1, row+s)] == pawn || b[XY2SQ(col+1, row+s)] == pawn)
-            boardState[prev_states + 0].ep = col + 1;
+            b_state[prev_states + 0].ep = col + 1;
     }
     if(*(++p) && *(++p))
         while(*p >= '0' && *p <= '9')
         {
-            reversibleMoves *= 10;
-            reversibleMoves += (*p++ - '0');
+            reversible_moves *= 10;
+            reversible_moves += (*p++ - '0');
         }
 
 #ifndef DONT_USE_PAWN_STRUCT
@@ -261,7 +261,7 @@ bool FenToBoard(char *p)
 //--------------------------------
 void ShowMove(UC fr, UC to)
 {
-    char *cv = curVar + 5*(ply - 1);
+    char *cv = cur_moves + 5*(ply - 1);
     *(cv++) = COL(fr) + 'a';
     *(cv++) = ROW(fr) + '1';
     *(cv++) = COL(to) + 'a';
@@ -273,28 +273,28 @@ void ShowMove(UC fr, UC to)
 //--------------------------------
 bool MakeCastle(Move m, UC fr)
 {
-    UC cs = boardState[prev_states + ply].cstl;
+    UC cs = b_state[prev_states + ply].cstl;
     if(m.pc == king_coord[wtm])                     // K moves
-        boardState[prev_states + ply].cstl &= wtm ? 0xFC : 0xF3;
+        b_state[prev_states + ply].cstl &= wtm ? 0xFC : 0xF3;
     if(king_coord[wtm] != --coords[wtm].end())
         ply = ply;
     else if(b[fr] == (_r ^ wtm))        // R moves
     {
         if((wtm && fr == 0x07) || (!wtm && fr == 0x77))
-            boardState[prev_states + ply].cstl &= wtm ? 0xFE : 0xFB;
+            b_state[prev_states + ply].cstl &= wtm ? 0xFE : 0xFB;
         else if((wtm && fr == 0x00) || (!wtm && fr == 0x70))
-            boardState[prev_states + ply].cstl &= wtm ? 0xFD : 0xF7;
+            b_state[prev_states + ply].cstl &= wtm ? 0xFD : 0xF7;
     }
     if(b[m.to] == (_R ^ wtm))           // R is taken
     {
         if((wtm && m.to == 0x77) || (!wtm && m.to == 0x07))
-            boardState[prev_states + ply].cstl &= wtm ? 0xFB : 0xFE;
+            b_state[prev_states + ply].cstl &= wtm ? 0xFB : 0xFE;
         else if((wtm && m.to == 0x70) || (!wtm && m.to == 0x00))
-            boardState[prev_states + ply].cstl &= wtm ? 0xF7 : 0xFD;
+            b_state[prev_states + ply].cstl &= wtm ? 0xF7 : 0xFD;
     }
-    bool castleRightsChanged = (cs != boardState[prev_states + ply].cstl);
+    bool castleRightsChanged = (cs != b_state[prev_states + ply].cstl);
     if(castleRightsChanged)
-        reversibleMoves = 0;
+        reversible_moves = 0;
 
     if(!(m.flg & mCSTL))
         return castleRightsChanged;
@@ -320,12 +320,12 @@ bool MakeCastle(Move m, UC fr)
         if(*it == rFr)
             break;
 
-    boardState[prev_states + ply].castled_rook_it = it;
+    b_state[prev_states + ply].castled_rook_it = it;
     b[rTo] = b[rFr];
     b[rFr] = __;
     *it = rTo;
 
-    reversibleMoves = 0;
+    reversible_moves = 0;
 
     return false;
 }
@@ -334,7 +334,7 @@ bool MakeCastle(Move m, UC fr)
 void UnMakeCastle(Move m)
 {
     auto rMen = coords[wtm].begin();
-    rMen = boardState[prev_states + ply].castled_rook_it;
+    rMen = b_state[prev_states + ply].castled_rook_it;
     UC rFr =*rMen;
     UC rTo = rFr + (m.flg == mCS_K ? 2 : -3);
     b[rTo] = b[rFr];
@@ -350,7 +350,7 @@ bool MakeEP(Move m, UC fr)
     if(ABSI(delta) == 0x20
     && (b[m.to + 1] == (_P ^ wtm) || b[to - 1] == (_P ^ wtm)))
     {
-        boardState[prev_states + ply].ep = (to & 0x07) + 1;
+        b_state[prev_states + ply].ep = (to & 0x07) + 1;
         return true;
     }
     if(m.flg & mENPS)
@@ -377,7 +377,7 @@ bool Attack(UC to, int xtm)
 {
     if((!xtm && (b[to+15] == _p || b[to+17] == _p))
     ||  (xtm && ((to >= 15 && b[to-15] == _P)
-        || (to >= 17 && b[to-17] == _P))))
+    || (to >= 17 && b[to-17] == _P))))
 
         return true;
 
@@ -428,7 +428,7 @@ bool Legal(Move m, bool ic)
 {
     if(ic || (b[m.to] & ~white) == _k)
         return !Attack(*king_coord[!wtm], wtm);
-    UC fr = boardState[prev_states + ply].fr;
+    UC fr = b_state[prev_states + ply].fr;
     UC to = *king_coord[!wtm];
     assert(120 + to - fr >= 0);
     assert(120 + to - fr < 240);
@@ -480,7 +480,7 @@ void MovePawnStruct(UC movedPiece, UC fr, Move m)
         if(m.flg)
             SetPawnStruct(COL(fr));
     }
-    if(boardState[prev_states + ply].capt/2 == _p/2
+    if(b_state[prev_states + ply].capt/2 == _p/2
     || (m.flg & mENPS))                                    // mENPS not needed
     {
         wtm ^= white;

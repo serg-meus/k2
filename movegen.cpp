@@ -2,9 +2,9 @@
 
 //--------------------------------
 Move pv[max_ply][max_ply + 1];          // the 'flg' property of first element in a row is length of PV at that depth
-Move kil[max_ply][2];
-unsigned history [2][6][128];
-unsigned minHistory, maxHistory;
+Move killers[max_ply][2];
+unsigned history[2][6][128];
+unsigned min_history, max_history;
 
 //--------------------------------
 void InitMoveGen()
@@ -13,23 +13,23 @@ void InitMoveGen()
 }
 
 //--------------------------------
-void PushMove(Move *list, int *movCr, short_list<UC, lst_sz>::iterator it, UC to, UC flg)
+void PushMove(Move *move_array, int *movCr, short_list<UC, lst_sz>::iterator it, UC to, UC flg)
 {
     Move    m;
     m.pc    = it;
     m.to    = to;
     m.flg   = flg;
 
-    list[(*movCr)++] = m;
+    move_array[(*movCr)++] = m;
 }
 
 //--------------------------------
-int GenMoves(Move *list, int apprice, Move *best_move)
+int GenMoves(Move *move_array, int apprice, Move *best_move)
 {
     int i, to, ray;
     int moveCr = 0;
 
-    GenCastles(list, &moveCr);
+    GenCastles(move_array, &moveCr);
 
     auto it = coords[wtm].begin();
     for(;it != coords[wtm].end(); ++it)
@@ -38,7 +38,7 @@ int GenMoves(Move *list, int apprice, Move *best_move)
         UC at = b[fr]/2;
         if(at == _p/2)
         {
-            GenPawn(list, &moveCr, it);
+            GenPawn(move_array, &moveCr, it);
             continue;
         }
 
@@ -48,9 +48,8 @@ int GenMoves(Move *list, int apprice, Move *best_move)
             {
                 to = fr + shifts[at][ray];
                 if(ONBRD(to) && !LIGHT(b[to], wtm))
-                    PushMove(list, &moveCr, it, to, b[to] ? mCAPT : 0);
+                    PushMove(move_array, &moveCr, it, to, b[to] ? mCAPT : 0);
             }
-
             continue;
         }
 
@@ -65,25 +64,25 @@ int GenMoves(Move *list, int apprice, Move *best_move)
                 UC tt = b[to];
                 if(!tt)
                 {
-                    PushMove(list, &moveCr, it, to, 0);
+                    PushMove(move_array, &moveCr, it, to, 0);
                     continue;
                 }
                 if(DARK(b[to], wtm))
-                    PushMove(list, &moveCr, it, to, mCAPT);
+                    PushMove(move_array, &moveCr, it, to, mCAPT);
                 break;
             }// for(i
         }// for(ray
     }// for(it
     if(apprice == APPRICE_ALL)
-        AppriceMoves(list, moveCr, best_move);
+        AppriceMoves(move_array, moveCr, best_move);
     else if(apprice == APPRICE_CAPT)
-        AppriceQuiesceMoves(list, moveCr);
+        AppriceQuiesceMoves(move_array, moveCr);
 
     return moveCr;
 }
 
 //--------------------------------
-void GenPawn(Move *list,
+void GenPawn(Move *move_array,
              int *moveCr,
              short_list<UC, lst_sz>::iterator it)
 {
@@ -92,7 +91,7 @@ void GenPawn(Move *list,
     if((wtm && ROW(fr) == 6) || (!wtm && ROW(fr) == 1))
     {
         pBeg = mPR_Q;
-        pEnd = mPR_B;   //>> ply <= 2 ? mPR_B : mPR_Q;
+        pEnd = mPR_B;
     }
     else
     {
@@ -104,42 +103,42 @@ void GenPawn(Move *list,
         {
             to = fr + 17;
             if(ONBRD(to) && DARK(b[to], wtm))
-                PushMove(list, moveCr, it, to, mCAPT | i);
+                PushMove(move_array, moveCr, it, to, mCAPT | i);
             to = fr + 15;
             if(ONBRD(to) && DARK(b[to], wtm))
-                PushMove(list, moveCr, it, to, mCAPT | i);
+                PushMove(move_array, moveCr, it, to, mCAPT | i);
             to = fr + 16;
             if(ONBRD(to) && !b[to])                 // ONBRD not needed
-                PushMove(list, moveCr, it, to, i);
+                PushMove(move_array, moveCr, it, to, i);
             if(ROW(fr) == 1 && !b[fr + 16] && !b[fr + 32])
-                PushMove(list, moveCr, it, fr + 32, 0);
-            int ep = boardState[prev_states + ply].ep;
+                PushMove(move_array, moveCr, it, fr + 32, 0);
+            int ep = b_state[prev_states + ply].ep;
             int delta = ep - 1 - COL(fr);
             if(ep && ABSI(delta) == 1 && ROW(fr) == 4)
-                PushMove(list, moveCr, it, fr + 16 + delta, mCAPT | mENPS);
+                PushMove(move_array, moveCr, it, fr + 16 + delta, mCAPT | mENPS);
         }
         else
         {
             to = fr - 17;
             if(ONBRD(to) && DARK(b[to], wtm))
-                PushMove(list, moveCr, it, to, mCAPT | i);
+                PushMove(move_array, moveCr, it, to, mCAPT | i);
             to = fr - 15;
             if(ONBRD(to) && DARK(b[to], wtm))
-                PushMove(list, moveCr, it, to, mCAPT | i);
+                PushMove(move_array, moveCr, it, to, mCAPT | i);
             to = fr - 16;
             if(ONBRD(to) && !b[to])                  // ONBRD not needed
-                PushMove(list, moveCr, it, to, i);
+                PushMove(move_array, moveCr, it, to, i);
             if(ROW(fr) == 6 && !b[fr - 16] && !b[fr - 32])
-                PushMove(list, moveCr, it, fr - 32, 0);
-            int ep = boardState[prev_states + ply].ep;
+                PushMove(move_array, moveCr, it, fr - 32, 0);
+            int ep = b_state[prev_states + ply].ep;
             int delta = ep - 1 - COL(fr);
             if(ep && ABSI(delta) == 1 && ROW(fr) == 3)
-                PushMove(list, moveCr, it, fr - 16 + delta, mCAPT | mENPS);
+                PushMove(move_array, moveCr, it, fr - 16 + delta, mCAPT | mENPS);
         }
 }
 
 //--------------------------------
-void GenPawnCap(Move *list,
+void GenPawnCap(Move *move_array,
                 int *moveCr,
                 short_list<UC, lst_sz>::iterator it)
 {
@@ -160,41 +159,41 @@ void GenPawnCap(Move *list,
         {
             to = fr + 17;
             if(ONBRD(to) && DARK(b[to], wtm))
-                PushMove(list, moveCr, it, to, mCAPT | i);
+                PushMove(move_array, moveCr, it, to, mCAPT | i);
             to = fr + 15;
             if(ONBRD(to) && DARK(b[to], wtm))
-                PushMove(list, moveCr, it, to, mCAPT | i);
+                PushMove(move_array, moveCr, it, to, mCAPT | i);
             to = fr + 16;
             if(pBeg && !b[to])
-                PushMove(list, moveCr, it, to, i);
-            int ep = boardState[prev_states + ply].ep;
+                PushMove(move_array, moveCr, it, to, i);
+            int ep = b_state[prev_states + ply].ep;
             int delta = ep - 1 - COL(fr);
             if(ep && ABSI(delta) == 1 && ROW(fr) == 4)
-                PushMove(list, moveCr, it, fr + 16 + delta, mCAPT | mENPS);
+                PushMove(move_array, moveCr, it, fr + 16 + delta, mCAPT | mENPS);
         }
         else
         {
             to = fr - 17;
             if(ONBRD(to) && DARK(b[to], wtm))
-                PushMove(list, moveCr, it, to, mCAPT | i);
+                PushMove(move_array, moveCr, it, to, mCAPT | i);
             to = fr - 15;
             if(ONBRD(to) && DARK(b[to], wtm))
-                PushMove(list, moveCr, it, to, mCAPT | i);
+                PushMove(move_array, moveCr, it, to, mCAPT | i);
             to = fr - 16;
             if(pBeg && !b[to])
-                PushMove(list, moveCr, it, to, i);
-            int ep = boardState[prev_states + ply].ep;
+                PushMove(move_array, moveCr, it, to, i);
+            int ep = b_state[prev_states + ply].ep;
             int delta = ep - 1 - COL(fr);
             if(ep && ABSI(delta) == 1 && ROW(fr) == 3)
-                PushMove(list, moveCr, it, fr - 16 + delta, mCAPT | mENPS);
+                PushMove(move_array, moveCr, it, fr - 16 + delta, mCAPT | mENPS);
         }
 }
 
 //--------------------------------
-void GenCastles(Move *list, int *moveCr)
+void GenCastles(Move *move_array, int *moveCr)
 {
     UC msk = wtm ? 0x03 : 0x0C;
-    UC cst = boardState[prev_states + ply].cstl & msk;
+    UC cst = b_state[prev_states + ply].cstl & msk;
     int check = -1;
     if(!cst)
         return;
@@ -204,7 +203,7 @@ void GenCastles(Move *list, int *moveCr)
         {
             check = Attack(0x04, black);
             if(!check && !Attack(0x05, black) && !Attack(0x06, black))
-                PushMove(list, moveCr,
+                PushMove(move_array, moveCr,
                          king_coord[white], 0x06, mCS_K);
         }
         if((cst & 2) && !b[0x03] && !b[0x02] && !b[0x01])
@@ -212,7 +211,7 @@ void GenCastles(Move *list, int *moveCr)
             if(check == -1)
                 check = Attack(0x04, black);
             if(!check && !Attack(0x03, black) && !Attack(0x02, black))
-                PushMove(list, moveCr,
+                PushMove(move_array, moveCr,
                          king_coord[white], 0x02, mCS_Q);
         }
     }
@@ -222,7 +221,7 @@ void GenCastles(Move *list, int *moveCr)
         {
             check = Attack(0x74, white);
             if(!check && !Attack(0x75, white) && !Attack(0x76, white))
-                PushMove(list, moveCr,
+                PushMove(move_array, moveCr,
                          king_coord[black], 0x76, mCS_K);
         }
         if((cst & 8) && !b[0x73] && !b[0x72] && !b[0x71])
@@ -230,14 +229,14 @@ void GenCastles(Move *list, int *moveCr)
             if(check == -1)
                 check = Attack(0x74, white);
             if(!check && !Attack(0x73, white) && !Attack(0x72, white))
-                PushMove(list, moveCr,
+                PushMove(move_array, moveCr,
                          king_coord[black], 0x72, mCS_Q);
         }
     }
 }
 
 //--------------------------------
-int GenCaptures(Move *list)
+int GenCaptures(Move *move_array)
 {
     int i, to, ray;
     int moveCr = 0;
@@ -248,7 +247,7 @@ int GenCaptures(Move *list)
         UC at = b[fr]/2;
         if(at == _p/2)
         {
-            GenPawnCap(list, &moveCr, it);
+            GenPawnCap(move_array, &moveCr, it);
             continue;
         }
         if(!slider[at])
@@ -257,7 +256,7 @@ int GenCaptures(Move *list)
             {
                 to = fr + shifts[at][ray];
                 if(ONBRD(to) && DARK(b[to], wtm))
-                    PushMove(list, &moveCr, it, to, mCAPT);
+                    PushMove(move_array, &moveCr, it, to, mCAPT);
             }
             continue;
         }
@@ -274,57 +273,57 @@ int GenCaptures(Move *list)
                 if(!tt)
                     continue;
                 if(DARK(tt, wtm))
-                    PushMove(list, &moveCr, it, to, mCAPT);
+                    PushMove(move_array, &moveCr, it, to, mCAPT);
                 break;
             }// for(i
         }// for(ray
     }// for(pc
-    AppriceQuiesceMoves(list, moveCr);
+    AppriceQuiesceMoves(move_array, moveCr);
     return moveCr;
 }
 
 //--------------------------------
-void AppriceMoves(Move *list, int moveCr, Move *bestMove)
+void AppriceMoves(Move *move_array, int moveCr, Move *bestMove)
 {
 #ifndef DONT_USE_HISTORY
-    minHistory = UINT_MAX;
-    maxHistory = 0;
+    min_history = UINT_MAX;
+    max_history = 0;
 #endif
 
     auto it = coords[wtm].begin();
-    Move bm = *list;
+    Move bm = *move_array;
     if(bestMove == nullptr)
         bm.flg = 0xFF;
     else
         bm = *bestMove;
     for(int i = 0; i < moveCr; i++)
     {
-        Move m = list[i];
+        Move m = move_array[i];
 
         it = m.pc;
         UC fr_pc = b[*it];
         UC to_pc = b[m.to];
 
         if(m == bm)
-            list[i].scr = PV_FOLLOW;
+            move_array[i].scr = PV_FOLLOW;
         else
         if(to_pc == __ && !(m.flg & mPROM))
         {
-            if(m == kil[ply][0])
-                list[i].scr = FIRST_KILLER;
-            else if(m == kil[ply][1])
-                list[i].scr = SECOND_KILLER;
+            if(m == killers[ply][0])
+                move_array[i].scr = FIRST_KILLER;
+            else if(m == killers[ply][1])
+                move_array[i].scr = SECOND_KILLER;
             else if(m == pv[ply][1])
-                list[i].scr = MOVE_FROM_PV;
+                move_array[i].scr = MOVE_FROM_PV;
             else
             {
 #ifndef DONT_USE_HISTORY
                 UC fr = *it;
                 unsigned h = history[wtm][b[fr]/2 - 1][m.to];
-                if(h > maxHistory)
-                    maxHistory = h;
-                if(h < minHistory)
-                    minHistory = h;
+                if(h > max_history)
+                    max_history = h;
+                if(h < min_history)
+                    min_history = h;
 #endif // DONT_USE_HISTORY
                 int y   = ROW(m.to);
                 int x   = COL(m.to);
@@ -337,7 +336,7 @@ void AppriceMoves(Move *list, int moveCr, Move *bestMove)
                 }
                 int pstVal  = pst[fr_pc/2 - 1][0][y][x] - pst[fr_pc/2 - 1][0][y0][x0];
                 pstVal      = 96 + pstVal/2;
-                list[i].scr = pstVal;
+                move_array[i].scr = pstVal;
             } // else (ordinary move)
         }// if(to_pc == __ &&
         else
@@ -359,14 +358,14 @@ void AppriceMoves(Move *list, int moveCr, Move *bestMove)
 #else
             if(src > 120)
             {
-                list[i].scr = EQUAL_CAPTURE;
+                move_array[i].scr = EQUAL_CAPTURE;
                 continue;
             }
             else
 #endif // DONT_USE_SEE_SORTING
             if(dst > 120)
             {
-                list[i].scr = 0;
+                move_array[i].scr = 0;
                 continue;
             }
 
@@ -383,7 +382,7 @@ void AppriceMoves(Move *list, int moveCr, Move *bestMove)
             {
                 assert(200 + ans/32 > FIRST_KILLER);
                 assert(200 + ans/32 <= 250);
-                list[i].scr = (200 + ans/32);
+                move_array[i].scr = (200 + ans/32);
             }
             else
             {
@@ -391,13 +390,13 @@ void AppriceMoves(Move *list, int moveCr, Move *bestMove)
                 {
                     assert(-ans/2 >= 0);
                     assert(-ans/2 <= BAD_CAPTURES);
-                    list[i].scr = -ans/2;
+                    move_array[i].scr = -ans/2;
                 }
                 else
                 {
                     assert(dst/10 >= 0);
                     assert(dst/10 <= BAD_CAPTURES);
-                    list[i].scr = dst/10;
+                    move_array[i].scr = dst/10;
                 }
             }
        }// else on captures
@@ -406,7 +405,7 @@ void AppriceMoves(Move *list, int moveCr, Move *bestMove)
 #ifndef DONT_USE_HISTORY
     for(int i = 0; i < moveCr; i++)
     {
-        Move m = list[i];
+        Move m = move_array[i];
         if(m.scr >= std::min(MOVE_FROM_PV, SECOND_KILLER)
         || (m.flg & mCAPT))
             continue;
@@ -415,10 +414,10 @@ void AppriceMoves(Move *list, int moveCr, Move *bestMove)
         unsigned h = history[wtm][b[fr]/2 - 1][m.to];
         if(h > 3)
         {
-            h -= minHistory;
-            h = 64*h / (maxHistory - minHistory + 1);
+            h -= min_history;
+            h = 64*h / (max_history - min_history + 1);
             h += 128;
-            list[i].scr = h;
+            move_array[i].scr = h;
             continue;
         }
     }// for(int i
@@ -426,12 +425,12 @@ void AppriceMoves(Move *list, int moveCr, Move *bestMove)
 }
 
 //--------------------------------
-void AppriceQuiesceMoves(Move *list, int moveCr)
+void AppriceQuiesceMoves(Move *move_array, int moveCr)
 {
     auto it = coords[wtm].begin();
     for(int i = 0; i < moveCr; i++)
     {
-        Move m = list[i];
+        Move m = move_array[i];
 
         it = m.pc;
         UC fr = b[*it];
@@ -442,7 +441,7 @@ void AppriceQuiesceMoves(Move *list, int moveCr)
 
         if(dst > 120)
         {
-            list[i].scr = KING_CAPTURE;
+            move_array[i].scr = KING_CAPTURE;
             return;
         }
 
@@ -460,7 +459,7 @@ void AppriceQuiesceMoves(Move *list, int moveCr)
         {
             assert(200 + ans/32 > FIRST_KILLER);
             assert(200 + ans/32 <= 250);
-            list[i].scr = (200 + ans/32);
+            move_array[i].scr = (200 + ans/32);
         }
         else
         {
@@ -468,13 +467,13 @@ void AppriceQuiesceMoves(Move *list, int moveCr)
             {
                 assert(-ans/2 >= 0);
                 assert(-ans/2 <= BAD_CAPTURES);
-                list[i].scr = -ans/2;
+                move_array[i].scr = -ans/2;
             }
             else
             {
                 assert(dst/10 >= 0);
                 assert(dst/10 <= BAD_CAPTURES);
-                list[i].scr = dst/10;
+                move_array[i].scr = dst/10;
             }
         }
     }

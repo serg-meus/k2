@@ -62,7 +62,7 @@ bool force  = false;
 bool quit   = false;
 bool xboard = false;
 bool uci    = false;
-bool ponder = false;
+bool pondering_in_process = false;
 
 #ifdef USE_THREAD_FOR_INPUT
     std::thread t;                                                      // for compilers with C++11 support
@@ -80,13 +80,13 @@ int main(int argc, char* argv[])
 #endif
     InitEngine();
 
-    timeMaxPly      = max_ply;
-    timeRemains     = 300000000;
-    timeBase        = 300000000;
-    timeInc         = 0;
-    movesPerSession = 0;
-    timeMaxNodes    = 0;
-    timeCommandSent = false;
+    max_search_depth      = max_ply;
+    time_remains     = 300000000;
+    time_base        = 300000000;
+    time_inc         = 0;
+    moves_per_session = 0;
+    max_nodes_to_search    = 0;
+    time_command_sent = false;
 
     char in[0x4000];
     while(!quit)
@@ -126,9 +126,6 @@ bool CmdProcess(std::string in)
     std::string firstWord, remains;
 
     GetFirstArg(in, &firstWord, &remains);
-
-//    std::cout << firstWord << std::endl;
-//    std::cout << remains << std::endl;
 
     unsigned i;
     for(i = 0; i < sizeof(commands) / sizeof(cmdStruct); ++i)
@@ -195,14 +192,14 @@ void NewCommand(std::string in)
     if(busy)
         StopEngine();
     force = false;
-    ponder = false;
+    pondering_in_process = false;
     if(!xboard && !uci)
     {
         std::cout
-                << "( Total node count: " << totalNodes
-                << ", total time spent: " << totalTimeSpent / 1000000.0
+                << "( Total node count: " << total_nodes
+                << ", total time spent: " << total_time_spent / 1000000.0
                 << " )" << std::endl
-                << "( MNPS = " << totalNodes / (totalTimeSpent + 1e-5)
+                << "( MNPS = " << total_nodes / (total_time_spent + 1e-5)
                 << " )" << std::endl;
     }
     InitEngine();
@@ -219,7 +216,7 @@ void SetboardCommand(std::string in)
 
     if(!FenStringToEngine((char *)in.c_str()))
         std::cout << "Illegal position" << std::endl;
-    else if(analyze && xboard)
+    else if(infinite_analyze && xboard)
         AnalyzeCommand(in);
 }
 
@@ -246,9 +243,9 @@ void PerftCommand(std::string in)
     tick1 = t.getElapsedTimeInMicroSec();
 
     nodes = 0;
-    timeMaxPly = atoi(in.c_str());
-    Perft(timeMaxPly);
-    timeMaxPly = max_ply;
+    max_search_depth = atoi(in.c_str());
+    Perft(max_search_depth);
+    max_search_depth = max_ply;
     tick2 = t.getElapsedTimeInMicroSec();
     deltaTick = tick2 - tick1;
 
@@ -308,12 +305,12 @@ void LevelCommand(std::string in)
 
     inc = atof(arg3.c_str());
 
-    timeBase        = 60*1000000.*base;
-    timeInc         = 1000000*inc;
-    movesPerSession         = mps;
-    timeRemains     = timeBase;
-    timeMaxNodes    = 0;
-    timeMaxPly      = max_ply;
+    time_base        = 60*1000000.*base;
+    time_inc         = 1000000*inc;
+    moves_per_session         = mps;
+    time_remains     = time_base;
+    max_nodes_to_search    = 0;
+    max_search_depth      = max_ply;
 }
 
 //--------------------------------
@@ -330,11 +327,11 @@ void SetNodesCommand(std::string in)
 {
     if(busy)
         return;
-    timeBase     = 0;
-    movesPerSession      = 0;
-    timeInc      = 0;
-    timeMaxNodes = atoi(in.c_str());
-    timeMaxPly   = max_ply;
+    time_base     = 0;
+    moves_per_session      = 0;
+    time_inc      = 0;
+    max_nodes_to_search = atoi(in.c_str());
+    max_search_depth   = max_ply;
 }
 
 //--------------------------------
@@ -342,12 +339,12 @@ void SetTimeCommand(std::string in)             //<< NB: wrong
 {
     if(busy)
         return;
-    timeBase     = 0;
-    movesPerSession      = 1;
-    timeInc      = atof(in.c_str())*1000000.;
-    timeMaxNodes = 0;
-    timeMaxPly   = max_ply;
-    timeRemains  = 0;
+    time_base     = 0;
+    moves_per_session      = 1;
+    time_inc      = atof(in.c_str())*1000000.;
+    max_nodes_to_search = 0;
+    max_search_depth   = max_ply;
+    time_remains  = 0;
 }
 
 //--------------------------------
@@ -355,7 +352,7 @@ void SetDepthCommand(std::string in)
 {
     if(busy)
         return;
-    timeMaxPly   = atoi(in.c_str());
+    max_search_depth   = atoi(in.c_str());
 }
 
 //--------------------------------
@@ -412,10 +409,9 @@ void TimeCommand(std::string in)
         std::cout << "telluser time command recieved while engine is busy" << std::endl;
         return;
     }
-//    std::cout << "telluser " << in << std::endl;
     double tb = atof(in.c_str()) * 10000;
-    timeRemains = tb;
-    timeCommandSent = true;
+    time_remains = tb;
+    time_command_sent = true;
 }
 
 //--------------------------------
@@ -424,8 +420,8 @@ void EvalCommand(std::string in)
     UNUSED(in);
     if(busy)
         return;
-    std::cout << "Fast eval: " << valOpn << " / "
-        << valEnd << std::endl;
+    std::cout << "Fast eval: " << val_opn << " / "
+        << val_end << std::endl;
     short x = Eval(/*-INF, INF*/);
     std::cout << "Eval: " << (wtm ? -x : x) << std::endl;
     std::cout << "(positive is white advantage)" << std::endl;
@@ -523,7 +519,7 @@ void PositionCommand(std::string in)
             std::cout << "Illegal position" << std::endl;
             return;
         }
-    }// if(arg1 == "fen"
+    }
     else
         InitEngine();
 
@@ -548,7 +544,6 @@ void ProcessMoveSequence(std::string in)
         GetFirstArg(arg1, &arg1, &arg2);
         if(arg1.empty())
             break;
-//        std::cout << arg1 << std::endl;
         if(!MakeMoveFinaly((char *)arg1.c_str()))
             break;
         arg1 = arg2;
@@ -558,18 +553,17 @@ void ProcessMoveSequence(std::string in)
 //--------------------------------
 void UciGoCommand(std::string in)
 {
-    ponder = false;
+    pondering_in_process = false;
     std::string arg1, arg2;
     arg1 = in;
     while(true)
     {
         GetFirstArg(arg1, &arg1, &arg2);
-//        std::cout << arg1 << std::endl;
         if(arg1.empty())
             break;
         if(arg1 == "infinite")
         {
-            analyze = true;
+            infinite_analyze = true;
             break;
         }
 
@@ -579,11 +573,11 @@ void UciGoCommand(std::string in)
             GetFirstArg(arg2, &arg1, &arg2);
             if((clr == 'w' && wtm) || (clr == 'b' && !wtm))
             {
-                timeBase        = 1000.*atof(arg1.c_str());
-                timeRemains     = timeBase;
-                timeMaxNodes    = 0;
-                timeMaxPly      = max_ply;
-                timeCommandSent = true;                                 // crutch: engine must know that time changed by GUI
+                time_base        = 1000.*atof(arg1.c_str());
+                time_remains     = time_base;
+                max_nodes_to_search    = 0;
+                max_search_depth      = max_ply;
+                time_command_sent = true;                                 // crutch: engine must know that time changed by GUI
             }
             arg1 = arg2;
         }
@@ -592,49 +586,49 @@ void UciGoCommand(std::string in)
             char clr = arg1[0];
             GetFirstArg(arg2, &arg1, &arg2);
             if((clr == 'w' && wtm) || (clr == 'b' && !wtm))
-                timeInc         = 1000.*atof(arg1.c_str());
+                time_inc         = 1000.*atof(arg1.c_str());
             arg1 = arg2;
         }
         else if(arg1 == "movestogo")
         {
             GetFirstArg(arg2, &arg1, &arg2);
-            movesPerSession = atoi(arg1.c_str());
+            moves_per_session = atoi(arg1.c_str());
             arg1 = arg2;
         }
         else if(arg1 == "movetime")
         {
             GetFirstArg(arg2, &arg1, &arg2);
-            timeBase     = 0;
-            movesPerSession      = 1;
-            timeInc      = atof(arg1.c_str())*1000;
-            timeMaxNodes = 0;
-            timeMaxPly   = max_ply;
+            time_base     = 0;
+            moves_per_session      = 1;
+            time_inc      = atof(arg1.c_str())*1000;
+            max_nodes_to_search = 0;
+            max_search_depth   = max_ply;
 
             arg1 = arg2;
         }
         else if(arg1 == "depth")
         {
             GetFirstArg(arg2, &arg1, &arg2);
-            timeMaxPly = atoi(arg1.c_str());
-            timeBase        = INFINITY;
-            timeRemains     = timeBase;
-            timeMaxNodes    = 0;
+            max_search_depth = atoi(arg1.c_str());
+            time_base        = INFINITY;
+            time_remains     = time_base;
+            max_nodes_to_search    = 0;
 
             arg1 = arg2;
         }
         else if(arg1 == "nodes")
         {
             GetFirstArg(arg2, &arg1, &arg2);
-            timeBase        = INFINITY;
-            timeRemains     = timeBase;
-            timeMaxNodes    = atoi(arg1.c_str());
-            timeMaxPly      = max_ply;
+            time_base        = INFINITY;
+            time_remains     = time_base;
+            max_nodes_to_search    = atoi(arg1.c_str());
+            max_search_depth      = max_ply;
 
             arg1 = arg2;
         }
         else if(arg1 == "ponder")
         {
-            ponder = true;
+            pondering_in_process = true;
             arg1 = arg2;
         }
     }//while(true
@@ -644,14 +638,12 @@ void UciGoCommand(std::string in)
 void EasyCommand(std::string in)
 {
     UNUSED(in);
-//    ponder  = false;
 }
 
 //--------------------------------
 void HardCommand(std::string in)
 {
     UNUSED(in);
-//    ponder  = true;
 }
 
 //--------------------------------
@@ -676,7 +668,7 @@ void AnalyzeCommand(std::string in)
 {
     UNUSED(in);
     force = false;
-    analyze = true;
+    infinite_analyze = true;
 
     #ifdef USE_THREAD_FOR_INPUT
     if(t.joinable())
@@ -691,7 +683,7 @@ void AnalyzeCommand(std::string in)
 void ExitCommand(std::string in)
 {
     StopCommand(in);
-    analyze = false;
+    infinite_analyze = false;
 }
 
 //--------------------------------

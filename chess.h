@@ -73,8 +73,8 @@ struct BrdState
     short_list<UC, lst_sz>::iterator_entity nprom;                      // number of next piece for promoted pawn, 6 bits
     US reversibleCr;                                                    // reversible halfmove counter
     UC to;                                                              // to point, 7 bits (for simple repetition draw detection)
-    short valOpn;                                                       // store material and PST value considered all material is on the board
-    short valEnd;                                                       // store material and PST value considered deep endgame (kings and pawns only)
+    short val_opn;                                                       // store material and PST value considered all material is on the board
+    short val_end;                                                       // store material and PST value considered deep endgame (kings and pawns only)
 };
 
 //--------------------------------
