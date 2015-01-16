@@ -1074,7 +1074,9 @@ void CheckForInterrupt()
         if(nodes >= max_nodes_to_search - 512)
             stop = true;
     }
-    else if(spent_exact_time)
+    if(infinite_analyze || pondering_in_process)
+        return;
+    if(spent_exact_time)
     {
         double time1 = timer.getElapsedTimeInMicroSec();
         time_spent = time1 - time0;
