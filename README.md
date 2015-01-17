@@ -1,13 +1,13 @@
 K2
 ==
 
-The chess engine
+The chess engine.
 
-Version number: 0.71 (01/11/2015)
+Version number: 0.71 (01/11/2015).
 
-[Link for download](https://yadi.sk/d/OcnaK2IbdtMKG) Win32 executable
+[Link](https://yadi.sk/d/OcnaK2IbdtMKG) for download Win32 executable
 
-. Main features:
+Main features:
 - supports both UCI and Xboard interface;
 - chess board presented as 120-byte array (so-called 0x88 move generator);
 - simple search function with null move, PVS, LMR, futility pruning and transposition table;
