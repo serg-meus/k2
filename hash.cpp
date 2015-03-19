@@ -226,7 +226,7 @@ unsigned transposition_table::count(UQ key)
 }
 
 //--------------------------------
-unsigned transposition_table::count(UQ key, tt_entry *entry)
+unsigned transposition_table::count(UQ key, tt_entry **entry)
 {
     unsigned i, ans = 0, last_index = 0;
     tt_entry *bucket = data[key & mask];
@@ -238,7 +238,7 @@ unsigned transposition_table::count(UQ key, tt_entry *entry)
 //            break;
         }
     assert(ans <= 1);
-    *entry = bucket[last_index];
+    *entry = &bucket[last_index];
     return ans;
 }
 

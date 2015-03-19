@@ -40,7 +40,7 @@ public:
 
     bool set_size(unsigned size_mb);
     unsigned count(UQ key);
-    unsigned count(UQ key, tt_entry *entry);
+    unsigned count(UQ key, tt_entry **entry);
     void add(UQ key, short value, Move best, UI depth, UI bound_type);
     void clear();
     tt_entry& operator [](UQ key);

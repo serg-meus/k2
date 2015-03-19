@@ -26,7 +26,7 @@ transposition_table tt;
 UQ  doneHashKeys[FIFTY_MOVES + max_ply];
 
 //--------------------------------
-short Search(int depth, short alpha, short beta, int lmr_)
+short Search(int depth, short alpha, short beta, int lmr_parent)
 {
     if(ply >= max_ply - 1 || DrawDetect())
     {
@@ -35,7 +35,7 @@ short Search(int depth, short alpha, short beta, int lmr_)
     }
     bool in_check = Attack(*king_coord[wtm], !wtm);
     if(in_check)
-        depth += 1 + lmr_;
+        depth += 1 + lmr_parent;
 
 #ifndef DONT_USE_MATE_DISTANCE_PRUNING
     short mate_sc = (short)(K_VAL - ply);
@@ -54,7 +54,7 @@ short Search(int depth, short alpha, short beta, int lmr_)
 
     short x, _alpha = alpha;
     bool in_hash = false;
-    tt_entry entry;
+    tt_entry *entry = nullptr;
     if(depth > 0 && HashProbe(depth, &alpha, beta, &entry, &in_hash))
         return -alpha;
 
@@ -81,13 +81,13 @@ short Search(int depth, short alpha, short beta, int lmr_)
 
 #ifndef DONT_USE_NULL_MOVE
     if(beta - alpha == 1
-    && NullMove(depth, beta, in_check, lmr_))
+    && NullMove(depth, beta, in_check, lmr_parent))
         return beta;
 
 #endif // DONT_USE_NULL_MOVE
 
 #ifndef DONT_USE_ONLY_MOVE_EXTENSION
-    if(in_hash && entry.only_move)
+    if(in_hash && entry->only_move && depth < 4)
         depth += 1;
 #endif // DONT_USE_ONLY_MOVE_EXTENSION
 
@@ -191,11 +191,17 @@ short Search(int depth, short alpha, short beta, int lmr_)
         StoreResultInHash(depth, _alpha, alpha, beta, legals,
                           beta_cutoff, (beta_cutoff ? m : move_array[0]));
 #ifndef DONT_USE_ONLY_MOVE_EXTENSION
-        if(legals == 1 && !in_hash && hash_table.size() < hashMaxSize)
+        if(legals == 1 && !in_hash)
         {
             bool om = DetectOnlyMove(beta_cutoff, in_check,
                                      move_cr, max_moves, move_array);
-            hash_table[hash_key].only_move = om;
+            if(om)
+            {
+                tt_entry *e;
+                tt.count(hash_key, &e);
+                e->only_move = true;
+                tt.count(hash_key, &entry);
+            }
         }
 #endif // DONT_USE_ONLY_MOVE_EXTENSION
     }
@@ -241,7 +247,7 @@ short Quiesce(short alpha, short beta)
 
     for(; move_cr < max_moves && !stop; move_cr++)
     {
-        tt_entry hs;
+        tt_entry *hs = nullptr;
         bool bm_not_hashed = false;
         Move m = Next(move_array, move_cr, &max_moves, &bm_not_hashed, hs, wtm, true);
         if(max_moves <= 0)
@@ -596,7 +602,7 @@ void RootMoveGen(bool in_check)
     b_state[prev_states + ply].val_end = val_end;
     for(unsigned move_cr = 0; move_cr < max_moves; move_cr++)
     {
-        tt_entry hs;
+        tt_entry *hs = nullptr;
         bool bm_not_hashed = false;
         m = Next(move_array, move_cr, &max_moves, &bm_not_hashed, hs, wtm, false);
     }
@@ -1443,7 +1449,7 @@ void ReHash(int size_mb)
 
 //--------------------------------
 bool HashProbe(int depth, short *alpha, short beta,
-               tt_entry *entry,
+               tt_entry **entry,
                bool *in_hash)
 {
     if(tt.count(hash_key, entry) == 0 || stop)
@@ -1452,18 +1458,18 @@ bool HashProbe(int depth, short *alpha, short beta,
 #ifndef DONT_SHOW_STATISTICS
     hash_probe_cr++;
 #endif //DONT_SHOW_STATISTICS
-    UC hbnd = entry->bound_type;
+    UC hbnd = (*entry)->bound_type;
 #ifndef DONT_USE_ONLY_MOVE_EXTENTION
-    if(entry->depth >= depth)
+    if((*entry)->depth >= depth)
 #else
-    if(entry->depth >= depth + entry->only_move)
+    if((*entry)->depth >= depth + (*entry)->only_move)
 #endif // DONT_USE_ONLY_MOVE_EXTENTION
     {
-        short hval = entry->value;
+        short hval = (*entry)->value;
         if(hval > mate_score && hval != INF)
-            hval += entry->depth - ply;
+            hval += (*entry)->depth - ply;
         else if(hval < -mate_score && hval != -INF)
-            hval -= entry->depth - ply;
+            hval -= (*entry)->depth - ply;
 
         if( hbnd == hEXACT
         || (hbnd == hUPPER && hval >= -*alpha)                      // -alpha is beta for parent node
@@ -1476,7 +1482,7 @@ bool HashProbe(int depth, short *alpha, short beta,
             *alpha = hval;
             return true;
         }// if(bnd
-    }// if(entry.depth >= depth
+    }// if((*entry).depth >= depth
 #ifndef DONT_SHOW_STATISTICS
     hash_hit_cr++;
 #endif //DONT_SHOW_STATISTICS
@@ -1589,7 +1595,7 @@ bool PseudoLegal(Move &m, bool stm)
 
 //--------------------------------
 Move Next(Move *list, unsigned cur, unsigned *max_moves,
-          bool *in_hash, tt_entry entry,
+          bool *in_hash, tt_entry *entry,
           UC stm, bool only_captures)
 {
     Move ans;
@@ -1607,7 +1613,7 @@ Move Next(Move *list, unsigned cur, unsigned *max_moves,
         }
         else
         {
-            ans = entry.best_move;
+            ans = entry->best_move;
 
             bool pseudo_legal = PseudoLegal(ans, stm);
 #ifndef NDEBUG
@@ -1635,7 +1641,7 @@ Move Next(Move *list, unsigned cur, unsigned *max_moves,
     }
     else if(cur == 1 && *in_hash)
     {
-        *max_moves = GenMoves(list, APPRICE_ALL, &entry.best_move);
+        *max_moves = GenMoves(list, APPRICE_ALL, &entry->best_move);
         for(unsigned i = cur; i < *max_moves; i++)
             if(list[i].scr == PV_FOLLOW && i != 0)
             {
@@ -1698,10 +1704,6 @@ void StoreResultInHash(int depth, short _alpha, short alpha,            // save 
         no_move.flg = 0xFF;
         tt.add(hash_key, -_alpha, legals > 0 ? best_move : no_move, depth, hUPPER);
     }
-#ifndef DONT_USE_ONLY_MOVE_EXTENSION
-    if(!in_hash)
-        hs.only_move = false;
-#endif // DONT_USE_ONLY_MOVE_EXTENSION
 }
 
 //-----------------------------
@@ -1719,7 +1721,7 @@ bool DetectOnlyMove(bool beta_cutoff, bool in_check,
         tt_entry hs;
         hs.best_move.flg = 0xFF;
         Move tmp = Next(move_array, cr, &max_moves,
-                 &nh, hs, wtm, false);
+                 &nh, &hs, wtm, false);
         MkMove(tmp);
         if(Legal(tmp, in_check))
         {
@@ -1827,5 +1829,8 @@ r3r3/6b1/7p/2pkpPp1/P3R1P1/2B5/7P/4R1K1 w - - 0 20 KS eval - wrong advantage for
 2k1r2r/p4q1P/2p5/5p2/1bb4Q/1N2pP2/PPP1N3/1K1R3R w - - 5 19 KS eval - black is worse
 3r1rk1/1p3ppp/pnq5/4p1P1/6Q1/1BP1R3/PP3PP1/2K4R b - - 0 17 KS eval - white is better
 1r1q1rk1/1b1n1ppp/p1pQp3/3p4/4P3/2N2B2/PPP2PPP/R3R1K1 w - - 3 8 am e5
+
+r3kb1r/1b1n1p1p/pq2Np2/1p2p2Q/5P2/2N5/PPP3PP/2KR1B1R w kq - 0 1 bm Rxd7 low value of first move cuts in QS
+r4rk1/pb3ppp/1p3q2/1Nbp4/2P1nP2/P4BP1/1PQ4P/R1B2R1K b - - 0 1 Qg6 is the best?
 
 */

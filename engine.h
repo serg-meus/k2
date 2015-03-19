@@ -16,7 +16,7 @@
 #define DONT_USE_ONLY_MOVE_EXTENSION
 //#define DONT_USE_MATE_DISTANCE_PRUNING
 //#define DONT_USE_PVS_IN_ROOT
-//#define DONT_USE_IID
+#define DONT_USE_IID
 //--------------------------------
 #define UNUSED(x) (void)(x)
 
@@ -30,7 +30,7 @@ const int mate_score = K_VAL - (short)max_ply;
 
 void InitEngine();
 void Perft(int depth);
-short Search(int depth, short alpha, short beta, int lmr);
+short Search(int depth, short alpha, short beta, int lmr_parent);
 short Quiesce(short alpha, short beta);
 void StorePV(Move m);
 void UpdateStatistics(Move m, int dpt, unsigned i);
@@ -60,10 +60,10 @@ bool DrawByRepetition();
 void ShowFen();
 void ReHash(int size_mb);
 bool HashProbe(int depth, short *alpha, short beta,
-               tt_entry *entry, bool *best_move_hashed);
+               tt_entry **entry, bool *best_move_hashed);
 bool PseudoLegal(Move &m, bool stm);
 Move Next(Move *max_moves, unsigned cur, unsigned *top,
-          bool *best_move_hashed, tt_entry entry,
+          bool *best_move_hashed, tt_entry *entry,
           UC stm, bool captures_only);
 void StoreResultInHash(int depth, short _alpha, short alpha, short beta,
                        unsigned legals,
