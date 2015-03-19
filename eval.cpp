@@ -147,6 +147,7 @@ short Eval(/*short alpha, short beta*/)
     }
 
     Y = ((val_opn - val_end)*X + 80*val_end)/80;
+    Y += wtm ? 8 : 8;
 
     val_opn = b_state[prev_states + ply].val_opn;
     val_end = b_state[prev_states + ply].val_end;
@@ -321,7 +322,7 @@ void EvalPawns(bool stm)
             int y_coord = stm ? mx + 1 : 7 - mx - 1;
             UC op_piece = b[XY2SQ(i, y_coord)];
             bool occupied = DARK(op_piece, stm)
-                    && (op_piece & ~white) != _p;
+            && (op_piece & ~white) != _p;
             if(occupied)
                 ansO -= 30;
         }
@@ -528,6 +529,7 @@ void ClampedRook(UC stm)
         }
      }
 }
+
 //#endif // USE_PAWN_STRUCT
 
 //-----------------------------
