@@ -114,19 +114,25 @@ short Search(int depth, short alpha, short beta, int lmr_)
             UnMove(m);
             continue;
         }
-/*
+
 #ifndef DONT_USE_IID
-    if(depth > 5 && legals == 0
-    && m.scr < std::min(MOVE_FROM_PV, SECOND_KILLER))
+    if(depth > 4 && legals == 0
+    && m.scr < PV_FOLLOW)
     {
-        ply = ply;
-//        UnMove(m);
-//        Search(depth - 1 - 2, alpha - 30, beta + 30, 0);
-//        in_hash = true;
-//        tt.count(hash_key, &entry);
+        UnMove(m);
+        x = Search(depth/2, beta - 30 , beta + 30, 0);
+        in_hash = true;
+        m = Next(move_array, move_cr, &max_moves,
+                 &in_hash, entry, wtm, false);
+        MkMove(m);
+        if(!Legal(m, in_check))
+        {
+            UnMove(m);
+            continue;
+        }
     }
 #endif //DONT_USE_IID
-*/
+
         FastEval(m);
 
 #ifndef DONT_USE_LMR
