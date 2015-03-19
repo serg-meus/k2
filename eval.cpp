@@ -287,7 +287,7 @@ void EvalPawns(bool stm)
 
     for(int i = 0; i < 8; i++)
     {
-        bool doubled = false, isolany = false;
+        bool doubled = false, isolany = false/*, backward*/;
 
         int mx = pmax[i + 1][stm];
         if(mx == 0)
@@ -331,11 +331,21 @@ void EvalPawns(bool stm)
         && mx >= 7 - pmin[i + 2][!stm])
             promo = true;
 
-
-//        backward = false;
-//        if(mx < 5 && !isolany
-//        && mx < pmin[i - 0][stm] && mx < pmin[i + 2][stm])
-
+/*
+        backward = false;
+        if(mx < 5 && !isolany
+        && mx < pmin[i - 0][stm] && mx < pmin[i + 2][stm])
+        {
+            if(pmax[i + 1][!stm] == 6 - mx)
+                backward = true;
+            else if(pmax[i - 0][!stm] == 5 - mx)
+                backward = true;
+            else if(pmax[i + 2][!stm] == 5 - mx)
+                backward = true;
+        }
+        if(backward)
+            ansE -= 20;
+*/
         short k = *king_coord[stm];
         short opp_k = *king_coord[!stm];
         short pawn_coord = XY2SQ(i, stm ? mx + 1 : 7 - mx - 1);
@@ -354,7 +364,18 @@ void EvalPawns(bool stm)
             else if(opp_k_dist == 2)
                 ansE -= 15;
         }
-
+/*        else if(backward)
+        {
+            if(k_dist <= 1)
+                ansE += 15;
+            else if(k_dist == 2)
+                ansE += 3;
+            if(opp_k_dist <= 1)
+                ansE -= 15;
+            else if(opp_k_dist == 2)
+                ansE -= 3;
+        }
+*/
         if(!promo)
         {
             prev_promo = false;
