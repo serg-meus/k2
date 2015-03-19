@@ -84,6 +84,8 @@ short Eval(/*short alpha, short beta*/)
     ClampedRook(white);
     ClampedRook(black);
 #endif // DONT_USE_PAWN_STRUCT
+//    ClampedBishop(white);
+//    ClampedBishop(black);
 
 
 /*#ifndef CHECK_PREDICTED_VALUE
@@ -423,6 +425,55 @@ void EvalPawns(bool stm)
 
     val_opn += stm ? ansO : -ansO;
     val_end += stm ? ansE : -ansE;
+}
+
+//-----------------------------
+int BishopOccupied(UC coord)
+{
+    int occupied = 0;
+    SC shifts[] = {17, 15, -15, -17};
+    UC pt;
+    for(int ray = 0; ray < 4; ++ray)
+        for(int i = 0; i < 3; ++i)
+        {
+            pt = coord + shifts[ray];
+            if(!ONBRD(pt) || b[pt] != __)
+                break;
+            else
+                occupied++;
+    }
+
+    return occupied;
+}
+
+//------------------------------
+void ClampedBishop(UC stm)
+{
+//    short mobility_penalty[] = {-12, -11, -10, -9, -8, -7, -6, -5, -4, -3, -2, -1, 0};
+    short ans = 0, mp;
+    auto rit = coords[stm].rbegin();
+
+    while(rit != coords[stm].rend()
+    && (b[*rit] & ~white) != _b)
+        ++rit;
+    if(rit == coords[stm].rend())
+        return;
+    mp = BishopOccupied(*rit);
+    mp = 12 - mp;
+    ans += param.at(0)*(mp*mp + mp) / 10;
+
+    ++rit;
+    if(rit == coords[stm].rend())
+        return;
+    if((b[*rit] & ~white) != _b)
+        return;
+
+    mp = BishopOccupied(*rit) / 10;
+    mp = 12 - mp;
+    ans += param.at(0)*(mp*mp + mp) / 10;
+
+    val_opn += stm ? ans : -ans;
+    val_end += stm ? ans : -ans;
 }
 
 //-----------------------------
