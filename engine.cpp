@@ -46,7 +46,7 @@ short Search(int depth, short alpha, short beta, int lmr_parent)
 #endif  // DONT_USE_MATE_DISTANCE_PRUNING
 
 #ifndef DONT_USE_FUTILITY
-    if(depth <= 1 && depth >= 0 && !in_check
+    if(depth <= 2 && depth >= 0 && !in_check
     && beta < mate_score
     && Futility(depth, beta))
         return beta;
@@ -1344,7 +1344,8 @@ bool Futility(int depth, short beta)
 #ifndef DONT_SHOW_STATISTICS
             futility_probes++;
 #endif // DONT_SHOW_STATISTICS
-        short margin = depth == 0 ? 350 : 550;
+//        short margin = depth == 0 ? 350 : 550;
+        short margin = depth < 2 ? 110 : 310;
         margin += beta;
         if((wtm  &&  val_opn > margin &&  val_end > margin)
         || (!wtm && -val_opn > margin && -val_end > margin))
@@ -1832,5 +1833,5 @@ r3r3/6b1/7p/2pkpPp1/P3R1P1/2B5/7P/4R1K1 w - - 0 20 KS eval - wrong advantage for
 
 r3kb1r/1b1n1p1p/pq2Np2/1p2p2Q/5P2/2N5/PPP3PP/2KR1B1R w kq - 0 1 bm Rxd7 low value of first move cuts in QS
 r4rk1/pb3ppp/1p3q2/1Nbp4/2P1nP2/P4BP1/1PQ4P/R1B2R1K b - - 0 1 Qg6 is the best?
-
+8/p5p1/p3k3/6PP/3NK3/8/Pb6/8 b - - 2 48 am Bxd4
 */
