@@ -35,4 +35,5 @@ extern UQ       tmpCr;
 extern short_list<UC, lst_sz>::iterator king_coord[2];
 extern bool     pondering_in_process;
 extern char     king_dist[120];
+extern float    pst_gain[6][2];
 #endif

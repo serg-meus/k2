@@ -63,6 +63,7 @@ bool quit   = false;
 bool xboard = false;
 bool uci    = false;
 bool pondering_in_process = false;
+bool pondering_enabled = false;
 
 #ifdef USE_THREAD_FOR_INPUT
     std::thread t;                                                      // for compilers with C++11 support
@@ -450,7 +451,9 @@ void XboardCommand(std::string in)
     UNUSED(in);
     xboard  = true;
     uci     = false;
-    std::cout << "( build date: " << __DATE__ << " )" << std::endl;
+    std::cout << "( build time: "
+              << __DATE__ << " " << __TIME__
+              << " )" << std::endl;
 }
 
 //--------------------------------
@@ -638,12 +641,14 @@ void UciGoCommand(std::string in)
 void EasyCommand(std::string in)
 {
     UNUSED(in);
+    pondering_enabled = false;
 }
 
 //--------------------------------
 void HardCommand(std::string in)
 {
     UNUSED(in);
+    pondering_enabled = true;
 }
 
 //--------------------------------
@@ -692,8 +697,10 @@ void SetvalueCommand(std::string in)
 #ifdef TUNE_PARAMETERS
     std::string arg1, arg2;
     GetFirstArg(in, &arg1, &arg2);
-    if(arg1 == "KingEndTropism")
+    if(arg1 == "ClampedRook")
+    {
         param.at(0) = atof(arg2.c_str());
+    }
     else
         std::cout << "error: wrong parameter name" << std ::endl
                      << "resign" << std::endl;
