@@ -620,7 +620,7 @@ void KingSafety(UC stm)
 
     UC k = *king_coord[stm];
     if(COL(k) == 3 || COL(k) == 4)
-        ans -= 75;
+        ans -= 42;
 
     int sh  = KingShieldFactor(stm);
     ans +=  material[!stm]*(1 - sh)/3;
