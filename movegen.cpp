@@ -436,8 +436,8 @@ void AppriceQuiesceMoves(Move *move_array, int moveCr)
         UC fr = b[*it];
         UC pt = b[m.to];
 
-        int src = streng[fr/2];
-        int dst = (m.flg & mCAPT) ? streng[pt/2] : 0;
+        int src = sort_streng[fr/2];
+        int dst = (m.flg & mCAPT) ? sort_streng[pt/2] : 0;
 
         if(dst > 120)
         {
