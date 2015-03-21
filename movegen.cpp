@@ -279,6 +279,7 @@ int GenCaptures(Move *move_array)
         }// for(ray
     }// for(pc
     AppriceQuiesceMoves(move_array, moveCr);
+    SortQuiesceMoves(move_array, moveCr);
     return moveCr;
 }
 
@@ -568,4 +569,25 @@ short SEE_main(Move m)
     coords[wtm].restore(storeMen);
     b[*storeMen] = storeBrd;
     return see_score;
+}
+
+//--------------------------------
+void SortQuiesceMoves(Move *move_array, int moveCr)
+{
+    if(moveCr <= 1)
+        return;
+    for(int i = 0; i < moveCr; ++i)
+    {
+        bool swoped_around = false;
+        for(int j = i; j < moveCr - 1; ++j)
+        {
+            if(move_array[j + 1].scr > move_array[j].scr)
+            {
+                std::swap(move_array[j], move_array[j + 1]);
+                swoped_around = true;
+            }
+            if(!swoped_around)
+                break;
+        }
+    }
 }

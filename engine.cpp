@@ -1595,7 +1595,7 @@ bool PseudoLegal(Move &m, bool stm)
 }
 
 //--------------------------------
-Move Next(Move *list, unsigned cur, unsigned *max_moves,
+Move Next(Move *move_array, unsigned cur, unsigned *max_moves,
           bool *in_hash, tt_entry *entry,
           UC stm, bool only_captures)
 {
@@ -1605,11 +1605,12 @@ Move Next(Move *list, unsigned cur, unsigned *max_moves,
         if(!*in_hash)
         {
             if(!only_captures)
-                *max_moves = GenMoves(list, APPRICE_ALL, nullptr);
+                *max_moves = GenMoves(move_array, APPRICE_ALL, nullptr);
             else
             {
-                *max_moves = GenCaptures(list);
-                AppriceQuiesceMoves(list, *max_moves);
+                *max_moves = GenCaptures(move_array);
+                if(*max_moves > 0 && move_array[0].scr == move_array[1].scr)
+                    ply = ply;
             }
         }
         else
@@ -1618,10 +1619,10 @@ Move Next(Move *list, unsigned cur, unsigned *max_moves,
 
             bool pseudo_legal = PseudoLegal(ans, stm);
 #ifndef NDEBUG
-            int mx_ = GenMoves(list, APPRICE_NONE, nullptr);
+            int mx_ = GenMoves(move_array, APPRICE_NONE, nullptr);
             int i = 0;
             for(; i < mx_; ++i)
-                if(list[i] == ans)
+                if(move_array[i] == ans)
                     break;
             bool tt_move_found = i < mx_;
             if(tt_move_found != pseudo_legal)
@@ -1636,39 +1637,43 @@ Move Next(Move *list, unsigned cur, unsigned *max_moves,
             else
             {
                 *in_hash = false;
-                *max_moves = GenMoves(list, APPRICE_ALL, nullptr);
+                *max_moves = GenMoves(move_array, APPRICE_ALL, nullptr);
             }
-        }
-    }
+        }// else (if *in_hash)
+    }// if cur == 0
     else if(cur == 1 && *in_hash)
     {
-        *max_moves = GenMoves(list, APPRICE_ALL, &entry->best_move);
+        *max_moves = GenMoves(move_array, APPRICE_ALL, &entry->best_move);
         for(unsigned i = cur; i < *max_moves; i++)
-            if(list[i].scr == PV_FOLLOW && i != 0)
+            if(move_array[i].scr == PV_FOLLOW && i != 0)
             {
-                ans = list[0];
-                list[0] = list[i];
-                list[i] = ans;
+                ans = move_array[0];
+                move_array[0] = move_array[i];
+                move_array[i] = ans;
                 break;
             }
     }
+
+    if(only_captures)                                                   // already sorted
+        return move_array[cur];
+
     int max = -32000;
     unsigned imx = cur;
 
     for(unsigned i = cur; i < *max_moves; i++)
     {
-        UC sc = list[i].scr;
+        UC sc = move_array[i].scr;
         if(sc > max)
         {
             max = sc;
             imx = i;
         }
     }
-    ans = list[imx];
+    ans = move_array[imx];
     if(imx != cur)
     {
-        list[imx] = list[cur];
-        list[cur] = ans;
+        move_array[imx] = move_array[cur];
+        move_array[cur] = ans;
     }
     return ans;
 }

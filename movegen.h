@@ -33,4 +33,5 @@ void    AppriceQuiesceMoves(Move *list, int moveCr);
 short   SEE(UC to, short frStreng, short val, bool stm);
 short_list<UC, lst_sz>::iterator SeeMinAttacker(UC to);
 short   SEE_main(Move m);
+void    SortQuiesceMoves(Move *move_array, int moveCr);
 //--------------------------------

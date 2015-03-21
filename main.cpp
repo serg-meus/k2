@@ -77,7 +77,7 @@ int main(int argc, char* argv[])
 
 #ifdef TUNE_PARAMETERS
     for(int i = 0; i < NPARAMS; ++i)
-        param.push_back(0);
+        param.push_back(1);
 #endif
     InitEngine();
 
@@ -697,13 +697,22 @@ void SetvalueCommand(std::string in)
 #ifdef TUNE_PARAMETERS
     std::string arg1, arg2;
     GetFirstArg(in, &arg1, &arg2);
-    if(arg1 == "ClampedRook")
+    if(arg1 == "clmp_bshp")
     {
         param.at(0) = atof(arg2.c_str());
     }
+/*
+    else if(arg1 == "dbl_end")
+    {
+        param.at(1) = atof(arg2.c_str());
+    }
+*/
     else
+    {
         std::cout << "error: wrong parameter name" << std ::endl
                      << "resign" << std::endl;
+        param.clear();
+    }
 
     InitEngine();
 #else
