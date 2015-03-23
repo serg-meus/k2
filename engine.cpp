@@ -1609,8 +1609,9 @@ Move Next(Move *move_array, unsigned cur, unsigned *max_moves,
             else
             {
                 *max_moves = GenCaptures(move_array);
-                if(*max_moves > 0 && move_array[0].scr == move_array[1].scr)
-                    ply = ply;
+                if(*max_moves > 1 && move_array[0].scr == move_array[1].scr)
+                    if(SEE_main(move_array[0]) < SEE_main(move_array[1]))
+                        std::swap(move_array[0], move_array[1]);
             }
         }
         else
