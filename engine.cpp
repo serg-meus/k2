@@ -717,48 +717,66 @@ void PrintSearchResult()
 
     if(xboard || uci)
         return;
-
-#ifndef DONT_SHOW_STATISTICS
+ifndef DONT_SHOW_STATISTICS
     std::cout << "( nodes = " << nodes
               << ", cuts = [";
+    if(cut_cr == 0)
+        cut_cr = 1;
     for(unsigned i = 0; i < sizeof(cut_num_cr)/sizeof(*cut_num_cr); i++)
-        std::cout  << (int)(cut_num_cr[i]/(cut_cr/100 + 1)) << " ";
+        std::cout  << std::setprecision(1) << std::fixed
+                   << 100.*cut_num_cr[i]/cut_cr << " ";
     std::cout << "]% )" << std::endl;
 
     std::cout << "( q_nodes = " << q_nodes
               << ", q_cuts = [";
+    if(q_cut_cr == 0)
+        q_cut_cr = 1;
     for(unsigned i = 0; i < sizeof(q_cut_num_cr)/sizeof(*q_cut_num_cr); i++)
-        std::cout  << (int)(q_cut_num_cr[i]/(q_cut_cr/100 + 1)) << " ";
+        std::cout  << std::setprecision(1) << std::fixed
+                   << 100.*q_cut_num_cr[i]/q_cut_cr << " ";
     std::cout << "]%, ";
-
-    std::cout << "q/n = " << (int)(q_nodes/(nodes/100 + 1))
+    if(nodes == 0)
+        nodes = 1;
+    std::cout << "q/n = " << std::setprecision(1) << std::fixed
+              << 100.*q_nodes/nodes
               << "% )" << std::endl;
 
+    if(hash_probe_cr == 0)
+        hash_probe_cr = 1;
+    if(hash_hit_cr == 0)
+        hash_hit_cr = 1;
     std::cout   << "( hash probes = " << hash_probe_cr
-                << ", cutoffs by value = "
-                << (int)(hash_cut_cr/(hash_probe_cr/100 + 1)) << "%, "
-                << "cutoffs by best move = "
-                << (int)(hash_cutoff_by_best_move_cr/(hash_hit_cr/100 + 1)) << "% )"
+                << ", cuts by val = "
+                << std::setprecision(1) << std::fixed
+                << 100.*hash_cut_cr/hash_probe_cr << "%, "
+                << "cuts by best move = "
+                << 100.*hash_cutoff_by_best_move_cr/hash_hit_cr << "% )"
                 << std::endl
                 << "( hash full = " << (int)100*tt.size()/tt.max_size()
                 << "% (" << tt.size()/sizeof(tt_entry)
                 << "/" << tt.max_size()/sizeof(tt_entry)
                 << " entries )" << std::endl;
 #ifndef DONT_USE_NULL_MOVE
+    if(null_probe_cr == 0)
+        null_probe_cr = 1;
     std::cout   << "( null move probes = " << hash_probe_cr
                 << ", cutoffs = "
-                << (int)(null_cut_cr/(null_probe_cr/100 + 1)) << "% )"
+                << std::setprecision(1) << std::fixed
+                << 100.*null_cut_cr/null_probe_cr << "% )"
                 << std::endl;
 #endif // DONT_USE_NULL_MOVE
 
 #ifndef DONT_USE_FUTILITY
+    if(futility_probes == 0)
+        futility_probes = 1;
     std::cout << "( futility probes = " << futility_probes
-              << ", hits = " << (int)(futility_hits/(futility_probes/100 + 1))
+              << ", hits = " << std::setprecision(1) << std::fixed
+              << 100.*futility_hits/futility_probes
               << "% )" << std::endl;
 #endif //DONT_USE_FUTILITY
-    std::cout   << "( tSpent=" << time_spent/1e6
+    std::cout   << "( tSpent=" << time_spent/1.e6
                 << " )" << std::endl;
-#endif
+#endif //DONT_SHOW_STATISTICS
 }
 
 //--------------------------------
@@ -1785,7 +1803,7 @@ r4rk1/1b3p1p/pq2pQp1/n5N1/P7/2RBP3/5PPP/3R2K1 w - - 0 1 bm Nxh7;   speed test po
 1B6/3k4/p7/1p4b1/1P1PK1p1/P7/8/8 w - - 2 59 am Bf4;                speed test position
 
 3r4/3P1p2/p4Pk1/4r1p1/1p4Kp/3R4/8/8 b - - 0 1 bm e7 ?
-4n3/3N4/4P3/3P2p1/p1K5/7k/8/8 w - - 0 58 wrong connected promos eval
+4n3/3N4/4P3/3P2p1/p1K5/7k/8/8 w - - 0 58 wrong connected passers eval
 8/7p/5k2/5p2/p1p2P2/Pr1pPK2/1P1R3P/8 b - - 0 1 bm Rxb2; id "WAC.002";
 r1b2rk1/ppq3pp/2nb1n2/3pp3/3P3B/3B1N2/PP2NPPP/R2Q1RK1 w - - 0 1 low value of first move cuts in QS
 8/6k1/8/6pn/pQ6/Pp3P1K/1P3P1P/6r1 w - - 2 31 draw due to perpetual check
@@ -1840,4 +1858,5 @@ r3r3/6b1/7p/2pkpPp1/P3R1P1/2B5/7P/4R1K1 w - - 0 20 KS eval - wrong advantage for
 r3kb1r/1b1n1p1p/pq2Np2/1p2p2Q/5P2/2N5/PPP3PP/2KR1B1R w kq - 0 1 bm Rxd7 low value of first move cuts in QS
 r4rk1/pb3ppp/1p3q2/1Nbp4/2P1nP2/P4BP1/1PQ4P/R1B2R1K b - - 0 1 Qg6 is the best?
 8/p5p1/p3k3/6PP/3NK3/8/Pb6/8 b - - 2 48 am Bxd4
+r1bqkb1r/pp1n1pp1/2p1pn1p/6N1/3P4/3B1N2/PPP2PPP/R1BQK2R w KQkq - 0 1 bm Nxd6 Deep Blue
 */

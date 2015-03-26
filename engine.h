@@ -26,6 +26,10 @@
 
 #define MOVE_IS_NULL 0xFF
 const int mate_score = K_VAL - (short)max_ply;
+
+#ifdef TUNE_PARAMETERS
+extern std::vector <float> param;
+#endif
 //--------------------------------
 
 void InitEngine();
