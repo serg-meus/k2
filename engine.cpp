@@ -717,7 +717,7 @@ void PrintSearchResult()
 
     if(xboard || uci)
         return;
-ifndef DONT_SHOW_STATISTICS
+#ifndef DONT_SHOW_STATISTICS
     std::cout << "( nodes = " << nodes
               << ", cuts = [";
     if(cut_cr == 0)
