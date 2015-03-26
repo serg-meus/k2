@@ -81,7 +81,7 @@ short Search(int depth, short alpha, short beta,
         CheckForInterrupt();
 
 #ifndef DONT_USE_NULL_MOVE
-    if(beta - alpha == 1
+    if(node_type != all_node
     && NullMove(depth, beta, in_check, lmr_parent))
         return beta;
 
