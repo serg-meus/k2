@@ -117,11 +117,12 @@ short Search(int depth, short alpha, short beta,
         }
 
 #ifndef DONT_USE_IID
-    if(depth > 4 && legals == 0
-    && m.scr < PV_FOLLOW)
+    if(node_type != all_node
+    && depth > 4 && legals == 0                                         // first move and
+    && m.scr < PV_FOLLOW)                                               // no move from hash table
     {
         UnMove(m);
-        x = Search(depth/2, beta - 30 , beta + 30, node_type, no_lmr);
+        x = Search(depth - 2, beta - 10 , beta + 0, node_type, no_lmr);
         in_hash = true;
         m = Next(move_array, move_cr, &max_moves,
                  &in_hash, entry, wtm, false);
