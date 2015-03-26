@@ -31,11 +31,15 @@ const int no_lmr = 0;
 #ifdef TUNE_PARAMETERS
 extern std::vector <float> param;
 #endif
+
 //--------------------------------
 
+enum {all_node = -1, pv_node = 0, cut_node = 1};
+
+//--------------------------------
 void InitEngine();
 void Perft(int depth);
-short Search(int depth, short alpha, short beta, int lmr_parent);
+short Search(int depth, short alpha, short beta, signed char node_type, int lmr_parent);
 short Quiesce(short alpha, short beta);
 void StorePV(Move m);
 void UpdateStatistics(Move m, int dpt, unsigned i);
