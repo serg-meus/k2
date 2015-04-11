@@ -586,8 +586,8 @@ void SortQuiesceMoves(Move *move_array, int moveCr)
                 std::swap(move_array[j], move_array[j + 1]);
                 swoped_around = true;
             }
-            if(!swoped_around)
-                break;
         }
+        if(!swoped_around)
+            break;
     }
 }
