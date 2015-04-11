@@ -618,6 +618,14 @@ void RootMoveGen(bool in_check)
         UnMove(m);
     }
 
+    std::srand(std::time(0));
+    const unsigned max_moves_to_shuffle = 4;
+    unsigned moves_to_shuffle = std::min(root_moves, max_moves_to_shuffle);
+    for(unsigned i = 0; i < moves_to_shuffle; ++i)
+    {
+        int rand_ix = std::rand() % moves_to_shuffle;
+        std::swap(root_move_array[i], root_move_array[rand_ix]);
+    }
     pv[0][1] = root_move_array[0];
 }
 
