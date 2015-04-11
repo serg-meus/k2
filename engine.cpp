@@ -626,6 +626,7 @@ void RootMoveGen(bool in_check)
         int rand_ix = std::rand() % moves_to_shuffle;
         std::swap(root_move_array[i], root_move_array[rand_ix]);
     }
+
     pv[0][1] = root_move_array[0];
 }
 

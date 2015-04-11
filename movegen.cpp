@@ -579,7 +579,7 @@ void SortQuiesceMoves(Move *move_array, int moveCr)
     for(int i = 0; i < moveCr; ++i)
     {
         bool swoped_around = false;
-        for(int j = i; j < moveCr - 1; ++j)
+        for(int j = 0; j < moveCr - i - 1; ++j)
         {
             if(move_array[j + 1].scr > move_array[j].scr)
             {
@@ -591,3 +591,5 @@ void SortQuiesceMoves(Move *move_array, int moveCr)
             break;
     }
 }
+
+
