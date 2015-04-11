@@ -13,10 +13,10 @@
 //#define DONT_USE_DELTA_PRUNING
 //#define DONT_USE_HISTORY
 //#define DONT_USE_LMR
-#define DONT_USE_ONLY_MOVE_EXTENSION
 //#define DONT_USE_MATE_DISTANCE_PRUNING
 //#define DONT_USE_PVS_IN_ROOT
-//#define DONT_USE_IID
+#define DONT_USE_ONLY_MOVE_EXTENSION
+#define DONT_USE_IID
 //--------------------------------
 #define UNUSED(x) (void)(x)
 
