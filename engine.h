@@ -25,9 +25,11 @@
 #define RESIGN_MOVES    3
 
 #define MOVE_IS_NULL 0xFF
+
 const int mate_score = K_VAL - (short)max_ply;
 const int no_lmr = 0;
-
+const bool all_moves = false;
+const bool captures_only = true;
 #ifdef TUNE_PARAMETERS
 extern std::vector <float> param;
 #endif
@@ -35,6 +37,7 @@ extern std::vector <float> param;
 //--------------------------------
 
 enum {all_node = -1, pv_node = 0, cut_node = 1};
+extern std::vector <float> param;
 
 //--------------------------------
 void InitEngine();
@@ -71,7 +74,7 @@ void ReHash(int size_mb);
 bool HashProbe(int depth, short *alpha, short beta,
                tt_entry **entry, bool *best_move_hashed);
 bool PseudoLegal(Move &m, bool stm);
-Move Next(Move *max_moves, unsigned cur, unsigned *top,
+Move Next(Move *move_array, unsigned cur, unsigned *top,
           bool *best_move_hashed, tt_entry *entry,
           UC stm, bool captures_only);
 void StoreResultInHash(int depth, short _alpha, short alpha, short beta,

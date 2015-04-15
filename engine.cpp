@@ -102,7 +102,7 @@ short Search(int depth, short alpha, short beta,
     for(; move_cr < max_moves && !stop; move_cr++)
     {
         m = Next(move_array, move_cr, &max_moves,
-                 &in_hash, entry, wtm, false);
+                 &in_hash, entry, wtm, all_moves);
         if(max_moves <= 0)
             break;
         MkMove(m);
@@ -125,7 +125,7 @@ short Search(int depth, short alpha, short beta,
         x = Search(depth - 2, alpha - 10, beta + 10, node_type, no_lmr);
         in_hash = true;
         m = Next(move_array, move_cr, &max_moves,
-                 &in_hash, entry, wtm, false);
+                 &in_hash, entry, wtm, all_moves);
         MkMove(m);
         if(!Legal(m, in_check))
         {
@@ -154,8 +154,8 @@ short Search(int depth, short alpha, short beta,
 #endif  // DONT_USE_LMR
 
         if(legals == 0)
-            x = -Search(depth - 1, -beta, -alpha, 
-						node_type == pv_node ? pv_node : -node_type, no_lmr);
+            x = -Search(depth - 1, -beta, -alpha,
+                        node_type == pv_node ? pv_node : -node_type , no_lmr);
         else if(beta - alpha > 1)
         {
             x = -Search(depth - 1 - lmr, -alpha - 1, -alpha, cut_node, lmr);
@@ -252,7 +252,8 @@ short Quiesce(short alpha, short beta)
     {
         tt_entry *hs = nullptr;
         bool bm_not_hashed = false;
-        Move m = Next(move_array, move_cr, &max_moves, &bm_not_hashed, hs, wtm, true);
+        Move m = Next(move_array, move_cr, &max_moves,
+                      &bm_not_hashed, hs, wtm, captures_only);
         if(max_moves <= 0)
             break;
 
@@ -607,7 +608,8 @@ void RootMoveGen(bool in_check)
     {
         tt_entry *hs = nullptr;
         bool bm_not_hashed = false;
-        m = Next(move_array, move_cr, &max_moves, &bm_not_hashed, hs, wtm, false);
+        m = Next(move_array, move_cr, &max_moves,
+                 &bm_not_hashed, hs, wtm, all_moves);
     }
     for(unsigned move_cr = 0; move_cr < max_moves; move_cr++)
     {
@@ -729,6 +731,7 @@ void PrintSearchResult()
 
     if(xboard || uci)
         return;
+
 #ifndef DONT_SHOW_STATISTICS
     std::cout << "( nodes = " << nodes
               << ", cuts = [";
@@ -1759,7 +1762,7 @@ bool DetectOnlyMove(bool beta_cutoff, bool in_check,
         tt_entry hs;
         hs.best_move.flg = 0xFF;
         Move tmp = Next(move_array, cr, &max_moves,
-                 &nh, &hs, wtm, false);
+                 &nh, &hs, wtm, all_moves);
         MkMove(tmp);
         if(Legal(tmp, in_check))
         {
