@@ -454,7 +454,11 @@ void AppriceQuiesceMoves(Move *move_array, int moveCr)
         if(dst >= src)
             ans = dst - src/16;
         else
-            ans = dst - src;
+        {
+            dst = SEE_main(move_array[i]);
+            src = 0;
+            ans = dst - dst >= src ? src/16 : src;
+        }
 
         if(dst - src >= 0)
         {

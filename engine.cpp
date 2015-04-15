@@ -257,8 +257,8 @@ short Quiesce(short alpha, short beta)
             break;
 
 #ifndef DONT_USE_SEE_CUTOFF
-        if(m.scr <= BAD_CAPTURES && SEE_main(m) < 0)
-            continue;
+        if(m.scr <= BAD_CAPTURES /* && SEE_main(m) < 0*/)
+            break;
 #endif
 #ifndef DONT_USE_DELTA_PRUNING
         if(material[0] + material[1] > 24
@@ -1639,7 +1639,8 @@ Move Next(Move *move_array, unsigned cur, unsigned *max_moves,
             else
             {
                 *max_moves = GenCaptures(move_array);
-                if(*max_moves > 1 && move_array[0].scr == move_array[1].scr)
+                if(*max_moves > 1 && move_array[0].scr > BAD_CAPTURES
+                && move_array[0].scr == move_array[1].scr)
                     if(SEE_main(move_array[0]) < SEE_main(move_array[1]))
                         std::swap(move_array[0], move_array[1]);
             }
