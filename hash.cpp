@@ -228,17 +228,15 @@ unsigned transposition_table::count(UQ key)
 //--------------------------------
 unsigned transposition_table::count(UQ key, tt_entry **entry)
 {
-    unsigned i, ans = 0, last_index = 0;
+    unsigned i, ans = 0;
     tt_entry *bucket = data[key & mask];
-    for(i = 0; i < entries_in_a_bucket; ++i)
-        if(bucket[i].key == key >> 32)
+    for(i = 0; i < entries_in_a_bucket; ++i, ++bucket)
+        if(bucket->key == key >> 32)
         {
             ans++;
-            last_index = i;
-//            break;
+            break;
         }
-    assert(ans <= 1);
-    *entry = &bucket[last_index];
+    *entry = bucket;
     return ans;
 }
 
