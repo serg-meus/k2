@@ -66,6 +66,16 @@ void InitEval()
 }
 
 //-----------------------------
+short ReturnEval(UC stm)
+{
+    int X, Y;
+    X = material[0] + 1 + material[1] + 1 - pieces[0] - pieces[1];
+
+    Y = ((val_opn - val_end)*X + 80*val_end)/80;
+    return stm ? (short)(Y) : (short)(-Y);
+}
+
+//-----------------------------
 short Eval(/*short alpha, short beta*/)
 {
 
@@ -97,7 +107,7 @@ short Eval(/*short alpha, short beta*/)
 #endif
 */
 
-    int X, Y;
+    int X;
     X = material[0] + 1 + material[1] + 1 - pieces[0] - pieces[1];
 
     if(X == 3 && (material[0] == 4 || material[1] == 4))
@@ -146,13 +156,12 @@ short Eval(/*short alpha, short beta*/)
         val_end -= 50;
     }
 
-    Y = ((val_opn - val_end)*X + 80*val_end)/80;
-    Y += wtm ? 8 : 8;
+    short ans = -ReturnEval(wtm);
 
     val_opn = b_state[prev_states + ply].val_opn;
     val_end = b_state[prev_states + ply].val_end;
 
-    return wtm ? (short)(-Y) : (short)Y;
+    return ans;
 }
 
 //-----------------------------
