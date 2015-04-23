@@ -237,6 +237,10 @@ short Quiesce(short alpha, short beta)
     b_state[prev_states + ply].val_opn = val_opn;
     b_state[prev_states + ply].val_end = val_end;
 
+    if(material[0] + material[1] > 24
+    && ReturnEval(wtm) > beta + 250)
+        return beta;
+
     short x = Eval(/*alpha, beta*/);
 
     if(-x >= beta)
