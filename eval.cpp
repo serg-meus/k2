@@ -307,8 +307,8 @@ void EvalPawns(bool stm)
         }
         else if(isolany)
         {
-            ansE -= 10;
-            ansO -= 10;
+            ansE -= 25;
+            ansO -= 15;
         }
         else if(doubled)
         {
