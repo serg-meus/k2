@@ -1338,7 +1338,7 @@ bool NullMove(int depth, short beta, bool in_check, int lmr_)
 #endif // DONT_SHOW_STATISTICS
 
     if(b_state[prev_states + ply - 1].to == MOVE_IS_NULL
-//    && b_state[prev_states + ply - 2].to == MOVE_IS_NULL
+    && b_state[prev_states + ply - 2].to == MOVE_IS_NULL
       )
         return false;
 
