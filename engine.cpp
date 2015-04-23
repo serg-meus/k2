@@ -88,7 +88,7 @@ short Search(int depth, short alpha, short beta,
 #endif // DONT_USE_NULL_MOVE
 
 #ifndef DONT_USE_ONLY_MOVE_EXTENSION
-    if(in_hash && entry->only_move && depth < 4)
+    if(in_hash && entry->only_move)
         depth += 1;
 #endif // DONT_USE_ONLY_MOVE_EXTENSION
 
@@ -191,19 +191,21 @@ short Search(int depth, short alpha, short beta,
     }
     else if(legals)
     {
+#ifndef DONT_USE_ONLY_MOVE_EXTENSION
+        bool om = in_hash && entry->only_move;
+#endif // DONT_USE_ONLY_MOVE_EXTENSION
         StoreResultInHash(depth, _alpha, alpha, beta, legals,
                           beta_cutoff, (beta_cutoff ? m : move_array[0]));
 #ifndef DONT_USE_ONLY_MOVE_EXTENSION
-        if(legals == 1 && !in_hash)
+        entry->only_move = om;
+        if(legals == 1 && !in_hash && (depth > 1 || !beta_cutoff))
         {
-            bool om = DetectOnlyMove(beta_cutoff, in_check,
+            om = DetectOnlyMove(beta_cutoff, in_check,
                                      move_cr, max_moves, move_array);
             if(om)
             {
-                tt_entry *e;
-                tt.count(hash_key, &e);
-                e->only_move = true;
                 tt.count(hash_key, &entry);
+                entry->only_move = true;
             }
         }
 #endif // DONT_USE_ONLY_MOVE_EXTENSION
@@ -1493,10 +1495,10 @@ bool HashProbe(int depth, short *alpha, short beta,
     hash_probe_cr++;
 #endif //DONT_SHOW_STATISTICS
     UC hbnd = (*entry)->bound_type;
-#ifndef DONT_USE_ONLY_MOVE_EXTENTION
-    if((*entry)->depth >= depth)
-#else
+#ifndef DONT_USE_ONLY_MOVE_EXTENSION
     if((*entry)->depth >= depth + (*entry)->only_move)
+#else
+    if((*entry)->depth >= depth)
 #endif // DONT_USE_ONLY_MOVE_EXTENTION
     {
         short hval = (*entry)->value;
@@ -1875,4 +1877,7 @@ r3kb1r/1b1n1p1p/pq2Np2/1p2p2Q/5P2/2N5/PPP3PP/2KR1B1R w kq - 0 1 bm Rxd7 low valu
 r4rk1/pb3ppp/1p3q2/1Nbp4/2P1nP2/P4BP1/1PQ4P/R1B2R1K b - - 0 1 Qg6 is the best?
 8/p5p1/p3k3/6PP/3NK3/8/Pb6/8 b - - 2 48 am Bxd4
 r1bqkb1r/pp1n1pp1/2p1pn1p/6N1/3P4/3B1N2/PPP2PPP/R1BQK2R w KQkq - 0 1 bm Nxd6 Deep Blue
+1rq2b1r/2N1k1pp/1pQp4/4n3/2P5/8/PP4PP/4RRK1 w - - 0 1 bm Rxe5
+5rk1/pq2nbp1/1p5p/2n2P2/4P1Q1/1PN4N/PB6/5K1R w - - 0 1 bm Qxg7
+2q2r2/3n1p2/p2p2k1/3PpRp1/P1n1P3/2P2QB1/1rB1R1P1/6K1 w - - bm Rxg5+; id "arasan16.3";
 */
