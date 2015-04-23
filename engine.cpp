@@ -35,6 +35,7 @@ short Search(int depth, short alpha, short beta,
         return 0;
     }
     bool in_check = Attack(*king_coord[wtm], !wtm);
+
     if(in_check)
         depth += 1 + lmr_parent;
 
@@ -84,7 +85,6 @@ short Search(int depth, short alpha, short beta,
     if(node_type != all_node
     && NullMove(depth, beta, in_check, lmr_parent))
         return beta;
-
 #endif // DONT_USE_NULL_MOVE
 
 #ifndef DONT_USE_ONLY_MOVE_EXTENSION
@@ -155,8 +155,8 @@ short Search(int depth, short alpha, short beta,
 
         if(legals == 0)
             x = -Search(depth - 1, -beta, -alpha,
-                        node_type == pv_node ? pv_node : -node_type , no_lmr);
-        else if(beta - alpha > 1)
+                        node_type == -node_type , no_lmr);
+        else if(beta > alpha + 1)
         {
             x = -Search(depth - 1 - lmr, -alpha - 1, -alpha, cut_node, lmr);
             if(x > alpha/* && x < beta*/)
@@ -621,7 +621,7 @@ void RootMoveGen(bool in_check)
             root_move_array[root_moves++] = m;
         UnMove(m);
     }
-
+#if (!defined(NDEBUG) || !defined(DONT_USE_RANDOMNESS))
     std::srand(std::time(0));
     const unsigned max_moves_to_shuffle = 4;
     unsigned moves_to_shuffle = std::min(root_moves, max_moves_to_shuffle);
@@ -630,7 +630,7 @@ void RootMoveGen(bool in_check)
         int rand_ix = std::rand() % moves_to_shuffle;
         std::swap(root_move_array[i], root_move_array[rand_ix]);
     }
-
+#endif // NDEBUG, RANDOMNESS
     pv[0][1] = root_move_array[0];
 }
 

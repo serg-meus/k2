@@ -460,7 +460,7 @@ void AppriceQuiesceMoves(Move *move_array, int moveCr)
             ans = dst - dst >= src ? src/16 : src;
         }
 
-        if(dst - src >= 0)
+        if(dst >= src)
         {
             assert(200 + ans/32 > FIRST_KILLER);
             assert(200 + ans/32 <= 250);

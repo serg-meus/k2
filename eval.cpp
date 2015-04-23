@@ -269,11 +269,11 @@ void EvalAllMaterialAndPST()
 //--------------------------------
 bool TestPromo(int col, UC stm)
 {
-    int mx = pmax[col + 1][stm];
+    int mx = pawn_max[col + 1][stm];
 
-    if(mx >= 7 - pmin[col + 1][!stm]
-    && mx >= 7 - pmin[col - 0][!stm]
-    && mx >= 7 - pmin[col + 2][!stm])
+    if(mx >= 7 - pawn_min[col + 1][!stm]
+    && mx >= 7 - pawn_min[col - 0][!stm]
+    && mx >= 7 - pawn_min[col + 2][!stm])
         return true;
     else
         return false;
@@ -292,13 +292,13 @@ void EvalPawns(bool stm)
     {
         bool doubled = false, isolany = false/*, backward*/;
 
-        int mx = pmax[i + 1][stm];
+        int mx = pawn_max[i + 1][stm];
         if(mx == 0)
             continue;
 
-        if(pmin[i + 1][stm] != mx)
+        if(pawn_min[i + 1][stm] != mx)
             doubled = true;
-        if(pmax[i - 0][stm] == 0 && pmax[i + 2][stm] == 0)
+        if(pawn_max[i - 0][stm] == 0 && pawn_max[i + 2][stm] == 0)
             isolany = true;
         if(doubled && isolany)
         {
@@ -317,7 +317,7 @@ void EvalPawns(bool stm)
         }
 
         if(i > 0 && i < 7
-        && mx < pmin[i + 0][stm] && mx < pmin[i + 2][stm])
+        && mx < pawn_min[i + 0][stm] && mx < pawn_min[i + 2][stm])
         {   // pawn holes occupied by enemy pieces
             int y_coord = stm ? mx + 1 : 7 - mx - 1;
             UC op_piece = b[XY2SQ(i, y_coord)];
@@ -329,21 +329,21 @@ void EvalPawns(bool stm)
 
         // test for passer
         promo = false;
-        if(mx >= 7 - pmin[i + 1][!stm]
-        && mx >= 7 - pmin[i - 0][!stm]
-        && mx >= 7 - pmin[i + 2][!stm])
+        if(mx >= 7 - pawn_min[i + 1][!stm]
+        && mx >= 7 - pawn_min[i - 0][!stm]
+        && mx >= 7 - pawn_min[i + 2][!stm])
             promo = true;
 
 /*
         backward = false;
         if(mx < 5 && !isolany
-        && mx < pmin[i - 0][stm] && mx < pmin[i + 2][stm])
+        && mx < pawn_min[i - 0][stm] && mx < pawn_min[i + 2][stm])
         {
-            if(pmax[i + 1][!stm] == 6 - mx)
+            if(pawn_max[i + 1][!stm] == 6 - mx)
                 backward = true;
-            else if(pmax[i - 0][!stm] == 5 - mx)
+            else if(pawn_max[i - 0][!stm] == 5 - mx)
                 backward = true;
-            else if(pmax[i + 2][!stm] == 5 - mx)
+            else if(pawn_max[i + 2][!stm] == 5 - mx)
                 backward = true;
         }
         if(backward)
@@ -405,9 +405,9 @@ void EvalPawns(bool stm)
         ansO += delta/3;
 
 
-        if(promo && prev_promo && ABSI(mx - pmax[i + 0][stm]) <= 1)      // two connected passers
+        if(promo && prev_promo && ABSI(mx - pawn_max[i + 0][stm]) <= 1)      // two connected passers
         {
-            int mmx = std::max(pmax[i + 0][stm], mx);
+            int mmx = std::max(pawn_max[i + 0][stm], mx);
             if(mmx > 4)
                 ansE += 28*mmx;
         }
@@ -415,7 +415,7 @@ void EvalPawns(bool stm)
 
         if(opp_only_pawns)
         {
-            if(TestUnstoppable(i, 7 - pmax[i + 1][stm], stm))
+            if(TestUnstoppable(i, 7 - pawn_max[i + 1][stm], stm))
             {
                 ansO += 120*mx + 350;
                 ansE += 120*mx + 350;
@@ -484,47 +484,47 @@ void ClampedRook(UC stm)
 
     if(stm)
     {
-        if(k == 0x06 && b[0x07] == _R && pmax[7 + 1][1])
+        if(k == 0x06 && b[0x07] == _R && pawn_max[7 + 1][1])
             val_opn -= CLAMPED_R;
         else if(k == 0x05)
         {
-            if(pmax[7 + 1][1] && b[0x07] == _R)
+            if(pawn_max[7 + 1][1] && b[0x07] == _R)
                 val_opn -= CLAMPED_R;
             else
-            if(pmax[6 + 1][1] && b[0x06] == _R)
+            if(pawn_max[6 + 1][1] && b[0x06] == _R)
                 val_opn -= CLAMPED_R;
         }
-        else if(k == 0x01 && b[0x00] == _R && pmax[0 + 1][1])
+        else if(k == 0x01 && b[0x00] == _R && pawn_max[0 + 1][1])
             val_opn -= CLAMPED_R;
         else if(k == 0x02)
         {
-            if(pmax[0 + 1][1] && b[0x00] == _R)
+            if(pawn_max[0 + 1][1] && b[0x00] == _R)
                 val_opn -= CLAMPED_R;
             else
-            if(pmax[1 + 1][1] && b[0x01] == _R)
+            if(pawn_max[1 + 1][1] && b[0x01] == _R)
                 val_opn -= CLAMPED_R;
         }
      }
      else
      {
-        if(k == 0x76 && b[0x77] == _r && pmax[7 + 1][0])
+        if(k == 0x76 && b[0x77] == _r && pawn_max[7 + 1][0])
             val_opn += CLAMPED_R;
         else if(k == 0x75)
         {
-            if(pmax[7 + 1][0] && b[0x77] == _r)
+            if(pawn_max[7 + 1][0] && b[0x77] == _r)
                 val_opn += CLAMPED_R;
             else
-            if(pmax[6 + 1][0] && b[0x76] == _r)
+            if(pawn_max[6 + 1][0] && b[0x76] == _r)
                 val_opn += CLAMPED_R;
         }
-        else if(k == 0x71 && b[0x70] == _r && pmax[0 + 1][0])
+        else if(k == 0x71 && b[0x70] == _r && pawn_max[0 + 1][0])
             val_opn += CLAMPED_R;
         else if(k == 0x72)
         {
-            if(pmax[0 + 1][0] && b[0x70] == _r)
+            if(pawn_max[0 + 1][0] && b[0x70] == _r)
                 val_opn += CLAMPED_R;
             else
-            if(pmax[1 + 1][0] && b[0x71] == _r)
+            if(pawn_max[1 + 1][0] && b[0x71] == _r)
                 val_opn += CLAMPED_R;
         }
      }

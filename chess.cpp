@@ -26,7 +26,7 @@ char *cv;
 US reversible_moves;
 
 #ifndef DONT_USE_PAWN_STRUCT
-    int pmax[10][2], pmin[10][2];
+    int pawn_max[10][2], pawn_min[10][2];
 #endif
 UQ hash_key;
 char cur_moves[5*max_ply];
@@ -38,14 +38,14 @@ void InitChess()
     cv = cur_moves;
     InitBrd();
 
-    pmax[1 - 1][0] = 0;
-    pmax[1 - 1][1] = 0;
-    pmin[1 - 1][0] = 7;
-    pmin[1 - 1][1] = 7;
-    pmax[8 + 1][0]  = 0;
-    pmax[8 + 1][1]  = 0;
-    pmin[8 + 1][0]  = 7;
-    pmin[8 + 1][1]  = 7;
+    pawn_max[1 - 1][0] = 0;
+    pawn_max[1 - 1][1] = 0;
+    pawn_min[1 - 1][0] = 7;
+    pawn_min[1 - 1][1] = 7;
+    pawn_max[8 + 1][0]  = 0;
+    pawn_max[8 + 1][1]  = 0;
+    pawn_min[8 + 1][0]  = 7;
+    pawn_min[8 + 1][1]  = 7;
 }
 
 //--------------------------------
@@ -450,24 +450,24 @@ void SetPawnStruct(int x)
         y = 1;
         while(b[XY2SQ(x, 7 - y)] != _p && y < 7)
             y++;
-        pmin[x + 1][0] = y;
+        pawn_min[x + 1][0] = y;
 
         y = 6;
         while(b[XY2SQ(x, 7 - y)] != _p && y > 0)
             y--;
-        pmax[x + 1][0] = y;
+        pawn_max[x + 1][0] = y;
     }
     else
     {
         y = 1;
         while(b[XY2SQ(x, y)] != _P && y < 7)
             y++;
-        pmin[x + 1][1] = y;
+        pawn_min[x + 1][1] = y;
 
         y = 6;
         while(b[XY2SQ(x, y)] != _P && y > 0)
             y--;
-        pmax[x + 1][1] = y;
+        pawn_max[x + 1][1] = y;
     }
 }
 
@@ -495,32 +495,32 @@ void InitPawnStruct()
     int x, y;
     for(x = 0; x < 8; x++)
     {
-        pmax[x + 1][0] = 0;
-        pmax[x + 1][1] = 0;
-        pmin[x + 1][0] = 7;
-        pmin[x + 1][1] = 7;
+        pawn_max[x + 1][0] = 0;
+        pawn_max[x + 1][1] = 0;
+        pawn_min[x + 1][0] = 7;
+        pawn_min[x + 1][1] = 7;
         for(y = 1; y < 7; y++)
             if(b[XY2SQ(x, y)] == _P)
             {
-                pmin[x + 1][1] = y;
+                pawn_min[x + 1][1] = y;
                 break;
             }
         for(y = 6; y >= 1; y--)
             if(b[XY2SQ(x, y)] == _P)
             {
-                pmax[x + 1][1] = y;
+                pawn_max[x + 1][1] = y;
                 break;
             }
         for(y = 6; y >= 1; y--)
             if(b[XY2SQ(x, y)] == _p)
             {
-                pmin[x + 1][0] = 7 - y;
+                pawn_min[x + 1][0] = 7 - y;
                 break;
             }
          for(y = 1; y < 7; y++)
             if(b[XY2SQ(x, y)] == _p)
             {
-                pmax[x + 1][0] = 7 - y;
+                pawn_max[x + 1][0] = 7 - y;
                 break;
             }
     }
