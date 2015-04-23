@@ -178,7 +178,7 @@ void transposition_table::clear()
 
 //--------------------------------
 void transposition_table::add(UQ key, short value, Move best,
-                              UI depth, UI bound_type)
+                              UI depth, UI bound_type, UI age)
 {
     unsigned i;
     tt_entry *bucket = data[key & mask];                                // looking for already existed entries for the same position
@@ -186,7 +186,7 @@ void transposition_table::add(UQ key, short value, Move best,
         if(bucket[i].key == (key >> 32))
             break;
 
-    if(i == entries_in_a_bucket)
+    if(i >= entries_in_a_bucket)
     {
         for(i = 0; i < entries_in_a_bucket; ++i)                        // looking for empty entries
             if(bucket[i].key == 0 && bucket[i].depth == 0)
@@ -195,14 +195,19 @@ void transposition_table::add(UQ key, short value, Move best,
                 break;
             }
 
-        if(i == entries_in_a_bucket)
+        if(i >= entries_in_a_bucket)
         {
-            for(i = 1; i < entries_in_a_bucket; ++i)                    // looking for entries with lower depth
-                if(bucket[i].depth < depth)
+            age = age & 3;
+            int bckt_age = bucket[i].age;
+            if(bckt_age > (int)age)
+                bckt_age -= 3;
+            for(i = 0; i < entries_in_a_bucket; ++i)                    // looking for entries with lower depth
+                if(bucket[i].depth + bckt_age < int(depth + age))
                     break;
 
-            if(i == entries_in_a_bucket)                                        // if not found anything, rewrite first entry in a bucket
-                i = 0;
+            if(i >= entries_in_a_bucket)                                // if not found anything, rewrite random entry in a bucket
+                i = (unsigned)(nodes ^ key)
+                        & (entries_in_a_bucket - 1);
         }
     }
 
@@ -211,6 +216,10 @@ void transposition_table::add(UQ key, short value, Move best,
     bucket[i].depth         = depth;
     bucket[i].bound_type    = bound_type;
     bucket[i].value         = value;
+#ifndef DONT_USE_ONLY_MOVE_EXTENSION
+    bucket[i].only_move     = false;
+#endif // DONT_USE_ONLY_MOVE_EXTENSION
+    bucket[i].age = age & 0x03;
 }
 
 //--------------------------------

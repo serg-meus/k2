@@ -1731,7 +1731,8 @@ void StoreResultInHash(int depth, short _alpha, short alpha,            // save 
             beta += ply - depth - 1;
         else if(beta < -mate_score && beta != -INF)
             beta -= ply - depth - 1;
-        tt.add(hash_key, -beta, best_move, depth, hLOWER);
+        tt.add(hash_key, -beta, best_move, depth,
+               hLOWER, finaly_made_moves/2);
 
     }
     else if(alpha > _alpha && pv[ply][0].flg > 0)
@@ -1740,7 +1741,8 @@ void StoreResultInHash(int depth, short _alpha, short alpha,            // save 
             alpha += ply - depth;
         else if(alpha < - mate_score && alpha != -INF)
             alpha -= ply - depth;
-        tt.add(hash_key, -alpha, pv[ply][1], depth, hEXACT);
+        tt.add(hash_key, -alpha, pv[ply][1], depth,
+                hEXACT, finaly_made_moves/2);
     }
     else if(alpha <= _alpha)
     {
@@ -1750,7 +1752,9 @@ void StoreResultInHash(int depth, short _alpha, short alpha,            // save 
             _alpha -= ply - depth;
         Move no_move;
         no_move.flg = 0xFF;
-        tt.add(hash_key, -_alpha, legals > 0 ? best_move : no_move, depth, hUPPER);
+        tt.add(hash_key, -_alpha,
+               legals > 0 ? best_move : no_move, depth,
+               hUPPER, finaly_made_moves/2);
     }
 }
 
