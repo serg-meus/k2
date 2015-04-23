@@ -1645,12 +1645,14 @@ Move Next(Move *move_array, unsigned cur, unsigned *max_moves,
             if(!only_captures)
                 *max_moves = GenMoves(move_array, APPRICE_ALL, nullptr);
             else
-            {
                 *max_moves = GenCaptures(move_array);
-                if(*max_moves > 1 && move_array[0].scr > BAD_CAPTURES
-                && move_array[0].scr == move_array[1].scr)
-                    if(SEE_main(move_array[0]) < SEE_main(move_array[1]))
-                        std::swap(move_array[0], move_array[1]);
+
+            if(*max_moves > 1
+            && move_array[0].scr > BAD_CAPTURES
+            && move_array[0].scr == move_array[1].scr)
+            {
+                if(SEE_main(move_array[0]) < SEE_main(move_array[1]))
+                    std::swap(move_array[0], move_array[1]);
             }
         }
         else
