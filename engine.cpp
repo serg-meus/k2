@@ -1383,10 +1383,9 @@ bool Futility(int depth, short beta)
             futility_probes++;
 #endif // DONT_SHOW_STATISTICS
 //        short margin = depth == 0 ? 350 : 550;
-        short margin = depth < 2 ? 110 : 310;
+        short margin = depth < 2 ? 185 : 255;
         margin += beta;
-        if((wtm  &&  val_opn > margin &&  val_end > margin)
-        || (!wtm && -val_opn > margin && -val_end > margin))
+        if(ReturnEval(wtm) > margin)
         {
 #ifndef DONT_SHOW_STATISTICS
             futility_hits++;
