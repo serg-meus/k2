@@ -229,13 +229,8 @@ short Quiesce(short alpha, short beta)
 {
     if(ply >= max_ply - 1)
         return 0;
-    nodes++;
-    q_nodes++;
-    if((nodes & 511) == 511)
-        CheckForInterrupt();
 
     pv[ply][0].flg = 0;
-
     b_state[prev_states + ply].val_opn = val_opn;
     b_state[prev_states + ply].val_end = val_end;
 
@@ -245,6 +240,11 @@ short Quiesce(short alpha, short beta)
         return beta;
     else if(-x > alpha)
         alpha = -x;
+
+    nodes++;
+    q_nodes++;
+    if((nodes & 511) == 511)
+        CheckForInterrupt();
 
     Move move_array[MAX_MOVES];
     unsigned move_cr = 0, max_moves = 999, legals = 0;
