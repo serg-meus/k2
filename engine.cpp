@@ -1354,7 +1354,7 @@ bool NullMove(int depth, short beta, bool in_check, int lmr_)
     int r = depth > 6 ? 3 : 2;
     if(lmr_ > 0 && depth - r - 1 <= 0)
         r--;
-    short x = -Search(depth - r - 1, -beta, -beta + 1, cut_node, no_lmr);
+    short x = -Search(depth - r - 1, -beta, -beta + 1, all_node, no_lmr);
 
     UnMakeNullMove();
     b_state[prev_states + ply].to    = store_to;
