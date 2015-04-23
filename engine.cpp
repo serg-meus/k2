@@ -93,7 +93,7 @@ short Search(int depth, short alpha, short beta,
 #endif // DONT_USE_ONLY_MOVE_EXTENSION
 
     Move move_array[MAX_MOVES], m, m_best;
-    unsigned move_cr = 0, legals = 0, max_moves = 999;
+    unsigned move_cr = 0, legals = 0, max_moves = 999, first_legal = 0;
     bool beta_cutoff = false;
 
     b_state[prev_states + ply].val_opn = val_opn;
@@ -168,6 +168,8 @@ short Search(int depth, short alpha, short beta,
             if(lmr && x > alpha)
                 x = -Search(depth - 1, -beta, -alpha, pv_node, no_lmr);
         }
+        if(legals == 0)
+            first_legal = move_cr;
         legals++;
 
         if(x >= beta)
@@ -195,7 +197,8 @@ short Search(int depth, short alpha, short beta,
         bool om = in_hash && entry->only_move;
 #endif // DONT_USE_ONLY_MOVE_EXTENSION
         StoreResultInHash(depth, _alpha, alpha, beta, legals,
-                          beta_cutoff, (beta_cutoff ? m : move_array[0]));
+                          beta_cutoff,
+                          (beta_cutoff ? m : move_array[first_legal]));
 #ifndef DONT_USE_ONLY_MOVE_EXTENSION
         entry->only_move = om;
         if(legals == 1 && !in_hash && (depth > 1 || !beta_cutoff))
