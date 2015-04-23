@@ -551,7 +551,7 @@ short RootSearch(int depth, short alpha, short beta)
             UnMove(m);
 
             if(depth > 3 && x != -INF
-            && !(stop && root_move_cr < 2))
+            && !stop)
                 PlyOutput(x);
             if(root_move_cr != 0)
             {
