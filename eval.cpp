@@ -157,6 +157,7 @@ short Eval(/*short alpha, short beta*/)
     }
 
     short ans = -ReturnEval(wtm);
+    ans -= 8;
 
     val_opn = b_state[prev_states + ply].val_opn;
     val_end = b_state[prev_states + ply].val_end;
