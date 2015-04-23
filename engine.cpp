@@ -268,8 +268,8 @@ short Quiesce(short alpha, short beta)
 #endif
 #ifndef DONT_USE_DELTA_PRUNING
         if(material[0] + material[1] > 24
-        && (wtm ? val_opn : -val_opn)
-        + 100*pc_streng[b[m.to]/2] < alpha - 350)
+        && ReturnEval(wtm)
+        + 100*pc_streng[b[m.to]/2] < alpha - 700)
             continue;
 #endif
         MkMove(m);
