@@ -441,10 +441,14 @@ void EvalPawns(bool stm)
 //------------------------------
 void ClampedBishop(UC stm)
 {
+    if(material[stm] - pieces[stm] < 20)
+        return;
 
     short ans = 0;
-    int left = stm ? 15 : -15;
-    int right = stm ? 17 : -17;
+    int left_shift = stm ? 15 : -15;
+    int right_shift = stm ? 17 : -17;
+    bool clamped_left, clamped_right;
+
     auto rit = coords[stm].rbegin();
 
     while(rit != coords[stm].rend()
@@ -453,8 +457,25 @@ void ClampedBishop(UC stm)
     if(rit == coords[stm].rend())
         return;
 
-    if(b[*rit + left] != __ && b[*rit + right] != __)
+    UC col = COL(*rit);
+    UC lft = b[*rit + left_shift];
+    UC rgt = b[*rit + right_shift];
+
+    clamped_left  = (col == 0 || LIGHT(lft, stm));
+    clamped_right = (col == 7 || LIGHT(rgt, stm));
+
+    if(clamped_left && clamped_right)
         ans -= 40;
+    else if(clamped_left || clamped_right)
+    {
+        int clmp_crd = *rit + 2*(clamped_left ? right_shift : left_shift);
+        if(!ONBRD(clmp_crd))
+            ans -= 15;
+        else if(b[clmp_crd] == (_p ^ !stm))
+            ans -= 40;
+        else if(b[clmp_crd] != __)
+            ans -= 15;
+    }
 
     ++rit;
     if(rit == coords[stm].rend())
@@ -462,8 +483,25 @@ void ClampedBishop(UC stm)
     if((b[*rit] & ~white) != _b)
         return;
 
-    if(b[*rit + left] != __ && b[*rit + right] != __)
+    col = COL(*rit);
+    lft = b[*rit + left_shift];
+    rgt = b[*rit + right_shift];
+
+    clamped_left  = (col == 0 || LIGHT(lft, stm));
+    clamped_right = (col == 7 || LIGHT(rgt, stm));
+
+    if(clamped_left && clamped_right)
         ans -= 40;
+    else if(clamped_left || clamped_right)
+    {
+        int clmp_crd = *rit + 2*(clamped_left ? right_shift : left_shift);
+        if(!ONBRD(clmp_crd))
+            ans -= 15;
+        else if(b[clmp_crd] == (_p ^ !stm))
+            ans -= 40;
+        else if(b[clmp_crd] != __)
+            ans -= 15;
+    }
 
     val_opn += stm ? ans : -ans;
     val_end += stm ? ans : -ans;
