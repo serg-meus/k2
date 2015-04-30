@@ -15,6 +15,7 @@ UQ          q_nodes, cut_cr, cut_num_cr[5], q_cut_cr, q_cut_num_cr[5];
 UQ          null_probe_cr, null_cut_cr, hash_probe_cr;
 UQ          hash_hit_cr, hash_cut_cr, hash_cutoff_by_best_move_cr;
 UQ          total_nodes, futility_probes, futility_hits;
+UQ          killer1_probes, killer1_hits, killer2_probes, killer2_hits;
 double      time_base, time_inc, time_remains, total_time_spent;
 unsigned    moves_per_session;
 int         finaly_made_moves, moves_remains;
@@ -217,8 +218,15 @@ short Search(int depth, short alpha, short beta,
     if(beta_cutoff)
     {
 #ifndef DONT_SHOW_STATISTICS
-        if(in_hash && legals == 1)
-            hash_cutoff_by_best_move_cr++;
+        if(legals == 1)
+        {
+            if(in_hash)
+                hash_cutoff_by_best_move_cr++;
+            else if(m.scr == FIRST_KILLER)
+                killer1_hits++;
+            else if(m.scr == SECOND_KILLER)
+                killer2_hits++;
+        }
 #endif //DONT_SHOW_STATISTICS
         assert(legals > 0);
         UpdateStatistics(m, depth, legals - 1);
@@ -366,6 +374,10 @@ void UpdateStatistics(Move m, int dpt, unsigned move_cr)
         cut_cr++;
         if(move_cr < sizeof(cut_num_cr)/sizeof(*cut_num_cr))
             cut_num_cr[move_cr]++;
+        if(m.scr == FIRST_KILLER)
+            killer1_probes++;
+        if(m.scr == SECOND_KILLER)
+            killer2_probes++;
 #else
     UNUSED(move_cr);
 #endif // DONT_SHOW_STATISTICS
@@ -798,6 +810,18 @@ void PrintSearchResult()
               << 100.*futility_hits/futility_probes
               << "% )" << std::endl;
 #endif //DONT_USE_FUTILITY
+    if(killer1_probes == 0)
+        killer1_probes = 1;
+    std::cout << "( killer1 probes = " << killer1_probes
+              << ", hits = " << std::setprecision(1) << std::fixed
+              << 100.*killer1_hits/killer1_probes
+              << "% )" << std::endl;
+    if(killer1_probes == 0)
+        killer1_probes = 1;
+    std::cout << "( killer2 probes = " << killer2_probes
+              << ", hits = " << std::setprecision(1) << std::fixed
+              << 100.*killer2_hits/killer2_probes
+              << "% )" << std::endl;
     std::cout   << "( tSpent=" << time_spent/1.e6
                 << " )" << std::endl;
 #endif //DONT_SHOW_STATISTICS
