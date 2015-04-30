@@ -34,13 +34,11 @@ const bool captures_only = true;
 #ifdef TUNE_PARAMETERS
 extern std::vector <float> param;
 #endif
-
 //--------------------------------
 
 enum {all_node = -1, pv_node = 0, cut_node = 1};
-extern std::vector <float> param;
 
-//--------------------------------
+
 void InitEngine();
 void Perft(int depth);
 short Search(int depth, short alpha, short beta, signed char node_type, int lmr_parent);

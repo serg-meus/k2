@@ -93,11 +93,6 @@ void InitBrd()
 
     king_coord[white] = --coords[white].end();
     king_coord[black] = --coords[black].end();
-
-    auto it = coords[white].begin();
-    for(; it != coords[black].end(); ++it)
-        if(b[*it] != _P)
-            break;
 }
 
 //--------------------------------
