@@ -196,11 +196,14 @@ void NewCommand(std::string in)
     pondering_in_process = false;
     if(!xboard && !uci)
     {
+        if(total_time_spent == 0)
+            total_time_spent = 1e-5;
         std::cout
                 << "( Total node count: " << total_nodes
                 << ", total time spent: " << total_time_spent / 1000000.0
                 << " )" << std::endl
-                << "( MNPS = " << total_nodes / (total_time_spent + 1e-5)
+                << std::setprecision(4) << std::fixed
+                << "( MNPS = " << total_nodes / total_time_spent
                 << " )" << std::endl;
     }
     InitEngine();
@@ -426,10 +429,6 @@ void EvalCommand(std::string in)
     short x = Eval(/*-INF, INF*/);
     std::cout << "Eval: " << (wtm ? -x : x) << std::endl;
     std::cout << "(positive is white advantage)" << std::endl;
-#ifndef DONT_USE_HASH_TABLE
-    std::cout << "hash key = 0x" << std::hex << hash_key << std::dec << std::endl;
-#endif // DONT_USE_HASH_TABLE
-
 }
 
 //--------------------------------

@@ -1,4 +1,4 @@
-﻿#include "engine.h"
+#include "engine.h"
 
 //--------------------------------
 char        stop_str[] = "";
@@ -1120,9 +1120,7 @@ bool FenStringToEngine(char *fen)
     time_remains = time_base;
     finaly_made_moves = 0;
     hash_key = InitHashKey();
-    std::cout << "( " << "hash_key = "
-              << std::hex << hash_key
-              << std::dec << " )" << std::endl;
+
     return true;
 }
 
