@@ -314,8 +314,8 @@ void AppriceMoves(Move *move_array, int moveCr, Move *bestMove)
                 move_array[i].scr = FIRST_KILLER;
             else if(m == killers[ply][1])
                 move_array[i].scr = SECOND_KILLER;
-            else if(m == pv[ply][1])
-                move_array[i].scr = MOVE_FROM_PV;
+//            else if(m == pv[ply][1])
+//                move_array[i].scr = MOVE_FROM_PV;
             else
             {
 #ifndef DONT_USE_HISTORY
