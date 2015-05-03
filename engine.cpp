@@ -148,8 +148,8 @@ short Search(int depth, short alpha, short beta,
             lmr = 0;
 //        else if(king_dist[ABSI(m.to - *king_coord[wtm])] < 2)
 //            lmr = 0;
-//        else if(depth > 4 && legals > 20)
-//            lmr = 2;
+        else if(depth <= 4 && legals > 8)
+            lmr = 2;
 #else
         int lmr = 0;
 #endif  // DONT_USE_LMR
