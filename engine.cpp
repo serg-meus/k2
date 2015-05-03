@@ -28,7 +28,7 @@ UQ  doneHashKeys[FIFTY_MOVES + max_ply];
 
 //--------------------------------
 short Search(int depth, short alpha, short beta,
-             signed char node_type)
+             signed char node_type, int lmr_parent)
 {
     if(ply >= max_ply - 1 || DrawDetect())
     {
@@ -38,7 +38,7 @@ short Search(int depth, short alpha, short beta,
     bool in_check = Attack(*king_coord[wtm], !wtm);
 
     if(in_check)
-        depth++;
+        depth += 1 + lmr_parent;
 
 #ifndef DONT_USE_MATE_DISTANCE_PRUNING
     short mate_sc = (short)(K_VAL - ply);
@@ -123,7 +123,7 @@ short Search(int depth, short alpha, short beta,
     && m.scr < PV_FOLLOW)                                               // no move from hash table
     {
         UnMove(m);
-        x = Search(depth - 2, alpha - 10, beta + 10, node_type);
+        x = Search(depth - 2, alpha - 10, beta + 10, node_type, no_lmr);
         in_hash = true;
         m = Next(move_array, move_cr, &max_moves,
                  &in_hash, entry, wtm, all_moves);
@@ -156,18 +156,18 @@ short Search(int depth, short alpha, short beta,
 
         if(legals == 0)
             x = -Search(depth - 1, -beta, -alpha,
-                        node_type == -node_type);
+                        node_type == -node_type, no_lmr);
         else if(beta > alpha + 1)
         {
-            x = -Search(depth - 1 - lmr, -alpha - 1, -alpha, cut_node);
+            x = -Search(depth - 1 - lmr, -alpha - 1, -alpha, cut_node, lmr);
             if(x > alpha/* && x < beta*/)
-                x = -Search(depth - 1, -beta, -alpha, pv_node);
+                x = -Search(depth - 1, -beta, -alpha, pv_node, no_lmr);
         }
         else
         {
-            x = -Search(depth - 1 - lmr, -beta, -alpha, cut_node);
+            x = -Search(depth - 1 - lmr, -beta, -alpha, cut_node, lmr);
             if(lmr && x > alpha)
-                x = -Search(depth - 1, -beta, -alpha, pv_node);
+                x = -Search(depth - 1, -beta, -alpha, pv_node, no_lmr);
         }
         if(legals == 0)
             first_legal = move_cr;
@@ -508,13 +508,13 @@ short RootSearch(int depth, short alpha, short beta)
 #ifndef DONT_USE_PVS_IN_ROOT
             if(root_move_cr == 0 || pv_stable_cr < 2)
             {
-                x = -Search(depth - 1, -beta, -alpha, pv_node);
+                x = -Search(depth - 1, -beta, -alpha, pv_node, no_lmr);
                 if(stop)
                     x = -INF;
             }
             else
             {
-                x = -Search(depth - 1, -alpha - 1, -alpha, cut_node);
+                x = -Search(depth - 1, -alpha - 1, -alpha, cut_node, no_lmr);
                 if(stop)
                     x = -INF;
                 if(!stop && x > alpha)
@@ -522,7 +522,7 @@ short RootSearch(int depth, short alpha, short beta)
                     pv_stable_cr = 0;
                     ShowPVfailHigh(m, x);
 
-                    short x_ = -Search(depth - 1, -beta, -alpha, pv_node);
+                    short x_ = -Search(depth - 1, -beta, -alpha, pv_node, no_lmr);
                     if(stop)
                         ply = ply;
                     if(!stop)
@@ -535,7 +535,7 @@ short RootSearch(int depth, short alpha, short beta)
                 }
             }
 #else
-        x = -Search(depth - 1, -beta, -alpha, pv_node);
+        x = -Search(depth - 1, -beta, -alpha, pv_node, no_lmr);
         if(stop)
             x = -INF;
 #endif // DONT_USE_PVS_IN_ROOT
@@ -1379,7 +1379,7 @@ bool NullMove(int depth, short beta, bool in_check)
 
     int r = depth > 6 ? 3 : 2;
 
-    short x = -Search(depth - r - 1, -beta, -beta + 1, all_node);
+    short x = -Search(depth - r - 1, -beta, -beta + 1, all_node, no_lmr);
 
     UnMakeNullMove();
     b_state[prev_states + ply].to    = store_to;
