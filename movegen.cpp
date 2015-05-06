@@ -347,7 +347,7 @@ void AppriceMoves(Move *move_array, int moveCr, Move *bestMove)
             int dst = (m.flg & mCAPT) ? streng[to_pc/2] : 0;
 
 #ifndef DONT_USE_SEE_SORTING
-            if(dst && dst - src < 0)
+            if(dst && dst - src <= 0)
             {
                 short tmp = SEE_main(m);
                 if(tmp > 0)
@@ -451,7 +451,7 @@ void AppriceQuiesceMoves(Move *move_array, int moveCr)
             dst += prms[m.flg & mPROM];
 
         int ans;
-        if(dst >= src)
+        if(dst > src)
             ans = dst - src/16;
         else
         {
