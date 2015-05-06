@@ -27,7 +27,7 @@ enum PriceList
     R_VAL_OPN   = 600,
     Q_VAL_OPN   = 1200,
 
-    P_VAL_END   = 115,
+    P_VAL_END   = 128,
     N_VAL_END   = 369,
     B_VAL_END   = 405,
     R_VAL_END   = 640,
