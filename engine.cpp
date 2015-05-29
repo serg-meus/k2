@@ -1103,7 +1103,7 @@ void InitEngine()
     resign_cr        = 0;
     time_spent       = 0;
 
-    tt.clear();
+//    tt.clear();
 }
 
 //--------------------------------

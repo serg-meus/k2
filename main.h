@@ -26,6 +26,7 @@ extern bool busy;
 extern UQ total_nodes;
 extern double total_time_spent;
 extern bool time_command_sent;
+extern transposition_table tt;
 
 #ifdef TUNE_PARAMETERS
     extern std::vector <float> param;
