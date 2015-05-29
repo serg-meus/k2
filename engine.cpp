@@ -155,8 +155,7 @@ short Search(int depth, short alpha, short beta,
 #endif  // DONT_USE_LMR
 
         if(legals == 0)
-            x = -Search(depth - 1, -beta, -alpha,
-                        node_type == -node_type, no_lmr);
+            x = -Search(depth - 1, -beta, -alpha, -node_type, no_lmr);
         else if(beta > alpha + 1)
         {
             x = -Search(depth - 1 - lmr, -alpha - 1, -alpha, cut_node, lmr);
