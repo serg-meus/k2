@@ -197,20 +197,20 @@ void transposition_table::add(UQ key, short value, Move best,
 
         if(i >= entries_in_a_bucket)
         {
-            age = age & 3;
-            int bckt_age = bucket[i].age;
-            if(bckt_age > (int)age)
-                bckt_age -= 3;
             for(i = 0; i < entries_in_a_bucket; ++i)                    // looking for entries with lower depth
+            {
+                int bckt_age = bucket[i].age;
+                if(bckt_age > (int)(age & 0x03))
+                    bckt_age -= 3;
                 if(bucket[i].depth + bckt_age < int(depth + age))
                     break;
+            }
 
             if(i >= entries_in_a_bucket)                                // if not found anything, rewrite random entry in a bucket
                 i = (unsigned)(nodes ^ key)
                         & (entries_in_a_bucket - 1);
         }
     }
-
     bucket[i].key           = key >> 32;
     bucket[i].best_move     = best;
     bucket[i].depth         = depth;
