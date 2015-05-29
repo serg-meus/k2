@@ -428,7 +428,7 @@ void EvalCommand(std::string in)
         return;
     std::cout << "Fast eval: " << val_opn << " / "
         << val_end << std::endl;
-    short x = Eval(/*-INF, INF*/);
+    short x = Eval();
     std::cout << "Eval: " << (wtm ? -x : x) << std::endl;
     std::cout << "(positive is white advantage)" << std::endl;
 }
@@ -498,11 +498,6 @@ void SetOptionCommand(std::string in)
 void IsReadyCommand(std::string in)
 {
     UNUSED(in);
-/*    while(busy)
-    {
-        // Do Nothing
-    }
-*/
     std::cout << "readyok" << std::endl;
 }
 

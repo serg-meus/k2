@@ -17,8 +17,6 @@ void InitEval()
 
     if(king_dist[59] != 5)      // run for the first time
     {
-//        float pst_gain[6][2] = {{1.5, 0}, {1, 1}, {1, 1}, {4.63, 0.54}, {2.06, 0.44}, {1.25, 0.35}};
-//        float pst_gain[6][2] = {{1.5, 1}, {1, 1}, {1, 1}, {1.5, 1}, {1.5, 1}, {1, 1}};
         float pst_gain[6][2] = {{1, 1}, {1, 1}, {1, 1}, {1, 1}, {1, 1}, {1, 1}};
         for(int pc = 0; pc < 6; ++pc)
             for(int clr = 0; clr < 1; ++clr)
@@ -76,7 +74,7 @@ short ReturnEval(UC stm)
 }
 
 //-----------------------------
-short Eval(/*short alpha, short beta*/)
+short Eval()
 {
 
     b_state[prev_states + ply].val_opn = val_opn;
@@ -290,7 +288,6 @@ bool TestPromo(int col, UC stm)
 
 }
 
-//#ifdef USE_PAWN_STRUCT
 //--------------------------------
 void EvalPawns(bool stm)
 {
@@ -560,8 +557,6 @@ void ClampedRook(UC stm)
      }
 }
 
-//#endif // USE_PAWN_STRUCT
-
 //-----------------------------
 bool TestUnstoppable(int x, int y, UC stm)
 {
@@ -655,7 +650,7 @@ void KingSafety(UC stm)
     int sh  = KingShieldFactor(stm);
     ans +=  material[!stm]*(1 - sh)/3;
 
-    int occ_cr = 0/*, occ_cr_qr = 0*/;
+    int occ_cr = 0;
     int pieces_near = 0;
     auto rit = coords[!stm].rbegin();
     ++rit;
@@ -677,8 +672,6 @@ void KingSafety(UC stm)
     short tropism = 40*occ_cr*occ_cr;
     if(pieces_near == 1)
         tropism /= 2;
-//    if(occ_cr > 1 && occ_cr_qr == 0)
-//        tropism /= 2;
 
     if(b_state[prev_states + ply].cstl & (0x0C >> 2*stm))       // able to castle
      {

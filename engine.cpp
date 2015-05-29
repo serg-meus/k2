@@ -248,7 +248,7 @@ short Quiesce(short alpha, short beta)
     && ReturnEval(wtm) > beta + 250)
         return beta;
 
-    short x = Eval(/*alpha, beta*/);
+    short x = Eval();
 
     if(-x >= beta)
         return beta;
@@ -274,7 +274,7 @@ short Quiesce(short alpha, short beta)
             break;
 
 #ifndef DONT_USE_SEE_CUTOFF
-        if(m.scr <= BAD_CAPTURES /* && SEE_main(m) < 0*/)
+        if(m.scr <= BAD_CAPTURES)
             break;
 #endif
 #ifndef DONT_USE_DELTA_PRUNING
@@ -480,7 +480,7 @@ short RootSearch(int depth, short alpha, short beta)
     Move  m;
     bool beta_cutoff = false;
 
-    for(; root_move_cr < root_moves/* && alpha < mate_score*/ && !stop; root_move_cr++)
+    for(; root_move_cr < root_moves && !stop; root_move_cr++)
     {
         m = root_move_array[root_move_cr];
 
@@ -639,7 +639,7 @@ void RootMoveGen(bool in_check)
             root_move_array[root_moves++] = m;
         UnMove(m);
     }
-#if (!defined(NDEBUG) || !defined(DONT_USE_RANDOMNESS))
+#if (!defined(DONT_USE_RANDOMNESS) && defined(NDEBUG))
     std::srand(std::time(0));
     const unsigned max_moves_to_shuffle = 4;
     unsigned moves_to_shuffle = std::min(root_moves, max_moves_to_shuffle);
@@ -659,36 +659,27 @@ void InitSearch()
     timer.start();
     time0 = timer.getElapsedTimeInMicroSec();
 
-    nodes   = 0;
-    q_nodes  = 0;
-    cut_cr   = 0;
-    q_cut_cr  = 0;
-    futility_probes   = 0;
-    null_cut_cr   = 0;
-    null_probe_cr = 0;
-    hash_cut_cr   = 0;
-    hash_probe_cr = 0;
-    hash_hit_cr   = 0;
+    nodes           = 0;
+    q_nodes         = 0;
+    cut_cr          = 0;
+    q_cut_cr        = 0;
+    futility_probes = 0;
+    null_cut_cr     = 0;
+    null_probe_cr   = 0;
+    hash_cut_cr     = 0;
+    hash_probe_cr   = 0;
+    hash_hit_cr     = 0;
     hash_cutoff_by_best_move_cr = 0;
-    futility_hits     = 0;
+    futility_hits   = 0;
+    killer1_probes  = 0;
+    killer2_probes  = 0;
+    killer1_hits    = 0;
+    killer2_hits    = 0;
 
-    unsigned i, j;
-    for(i = 0; i < sizeof(cut_num_cr)/sizeof(*cut_num_cr); i++)
-        cut_num_cr[i] = 0;
-    for(i = 0; i < sizeof(q_cut_num_cr)/sizeof(*q_cut_num_cr); i++)
-        q_cut_num_cr[i] = 0;
-    for(i = 0; i < max_ply; i ++)
-        for(j = 0; j < max_ply + 1; j++)
-        {
-            pv[i][j].to = 0;
-            pv[i][j].flg = 0;
-            pv[i][j].scr = 0;
-        }
-    for(i = 0; i < max_ply; i++)
-    {
-        killers[i][0].flg =  0xFF;                                              //>> NB
-        killers[i][1].flg =  0xFF;
-    }
+    memset(q_cut_num_cr, 0, sizeof(cut_num_cr));
+    memset(cut_num_cr, 0, sizeof(cut_num_cr));
+    memset(pv, 0, sizeof(pv));
+    memset(killers, 0, sizeof(killers));
 
     stop = false;
 
@@ -700,8 +691,6 @@ void InitSearch()
                 << " )" << std::endl;
     std::cout   << "Ply Value  Time    Nodes        Principal Variation" << std::endl;
     }
-
-//    tt.clear();
 
 #ifndef DONT_USE_HISTORY
     memset(history, 0, sizeof(history));
@@ -1104,6 +1093,10 @@ void InitEngine()
     time_spent       = 0;
 
 //    tt.clear();
+#ifndef DONT_USE_HISTORY
+    memset(history, 0, sizeof(history));
+#endif // DONT_USE_HISTORY
+//    memset(doneHashKeys, 0, sizeof(doneHashKeys));  
 }
 
 //--------------------------------
@@ -1406,7 +1399,6 @@ bool Futility(int depth, short beta)
 #ifndef DONT_SHOW_STATISTICS
             futility_probes++;
 #endif // DONT_SHOW_STATISTICS
-//        short margin = depth == 0 ? 350 : 550;
         short margin = depth < 2 ? 185 : 255;
         margin += beta;
         if(ReturnEval(wtm) > margin)
@@ -1912,4 +1904,5 @@ r1bqkb1r/pp1n1pp1/2p1pn1p/6N1/3P4/3B1N2/PPP2PPP/R1BQK2R w KQkq - 0 1 bm Nxd6 Dee
 1rq2b1r/2N1k1pp/1pQp4/4n3/2P5/8/PP4PP/4RRK1 w - - 0 1 bm Rxe5
 5rk1/pq2nbp1/1p5p/2n2P2/4P1Q1/1PN4N/PB6/5K1R w - - 0 1 bm Qxg7
 2q2r2/3n1p2/p2p2k1/3PpRp1/P1n1P3/2P2QB1/1rB1R1P1/6K1 w - - bm Rxg5+; id "arasan16.3";
+r3r1k1/3q1ppp/p4n2/1p1P4/2P2bb1/5N1P/PR1NBPP1/3Q1RK1 b - - 0 21 bm Bxh3
 */
