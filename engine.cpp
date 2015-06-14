@@ -1740,6 +1740,8 @@ void StoreResultInHash(int depth, short _alpha, short alpha,            // save 
                        short beta, unsigned legals,                     // note that this result is for 'parent' node (negative score, alpha = -beta, etc)
                        bool beta_cutoff, Move best_move)
 {
+    if(stop)
+        return;
     if(beta_cutoff)
     {
         if(beta > mate_score && beta != INF)
@@ -1905,4 +1907,6 @@ r1bqkb1r/pp1n1pp1/2p1pn1p/6N1/3P4/3B1N2/PPP2PPP/R1BQK2R w KQkq - 0 1 bm Nxd6 Dee
 5rk1/pq2nbp1/1p5p/2n2P2/4P1Q1/1PN4N/PB6/5K1R w - - 0 1 bm Qxg7
 2q2r2/3n1p2/p2p2k1/3PpRp1/P1n1P3/2P2QB1/1rB1R1P1/6K1 w - - bm Rxg5+; id "arasan16.3";
 r3r1k1/3q1ppp/p4n2/1p1P4/2P2bb1/5N1P/PR1NBPP1/3Q1RK1 b - - 0 21 bm Bxh3
+6R1/p2r4/1p1p1b2/1P1P1p1k/1K1PpB2/4P2P/8/8 b - - 51 72 am Rd8
+2r3k1/p6p/q4p2/r1p1pP2/2PpP3/BR1Qb2P/P5P1/1R5K b - - 0 31 am Kg7
 */
