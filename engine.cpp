@@ -106,6 +106,7 @@ short Search(int depth, short alpha, short beta,
                  &in_hash, entry, wtm, all_moves);
         if(max_moves <= 0)
             break;
+
         MkMove(m);
 #ifndef NDEBUG
         if((!stop_ply || root_ply == stop_ply) && strcmp(stop_str, cv) == 0)
@@ -213,7 +214,6 @@ short Search(int depth, short alpha, short beta,
         }
 #endif // DONT_USE_ONLY_MOVE_EXTENSION
     }
-
     if(beta_cutoff)
     {
 #ifndef DONT_SHOW_STATISTICS
@@ -1176,6 +1176,7 @@ void MkMove(Move m)
     b_state[prev_states + ply].to = targ;
     b_state[prev_states + ply].reversibleCr = reversible_moves;
     reversible_moves++;
+
     if(m.flg & mCAPT)
     {
         if (m.flg & mENPS)
@@ -1195,7 +1196,6 @@ void MkMove(Move m)
         assert(it_cap != it_end);
         b_state[prev_states + ply].captured_it = it_cap;
         coords[!wtm].erase(it_cap);
-
         pieces[!wtm]--;
         reversible_moves = 0;
     }// if capture
@@ -1238,9 +1238,8 @@ void MkMove(Move m)
         assert(tmp_key == hash_key);
 #endif //NDEBUG
 
-#ifndef DONT_USE_PAWN_STRUCT
     MovePawnStruct(b[m.to], fr, m);
-#endif // DONT_USE_PAWN_STRUCT
+
     wtm ^= white;
 }
 
@@ -1302,9 +1301,7 @@ void UnMove(Move m)
     if(m.flg & mCSTL)
         UnMakeCastle(m);
 
-#ifndef DONT_USE_PAWN_STRUCT
     MovePawnStruct(b[fr], fr, m);
-#endif // DONT_USE_PAWN_STRUCT
 
     ply--;
     val_opn = b_state[prev_states + ply].val_opn;

@@ -14,18 +14,6 @@ char  king_dist[120];
 //-----------------------------
 void InitEval()
 {
-
-    if(king_dist[59] != 5)      // run for the first time
-    {
-        float pst_gain[6][2] = {{1, 1}, {1, 1}, {1, 1}, {1, 1}, {1, 1}, {1, 1}};
-        for(int pc = 0; pc < 6; ++pc)
-            for(int clr = 0; clr < 1; ++clr)
-                for(int i = 0; i < 8; ++i)
-                    for(int j = 0; j < 8; ++j)
-                        pst[pc][clr][i][j] *= pst_gain[pc][clr];
-    }
-
-
     val_opn = 0;
     val_end = 0;
     InitMoveGen();
@@ -34,33 +22,6 @@ void InitEval()
             king_dist[i] = MAXI(8 - COL(i), ROW(i) + 1);
         else
             king_dist[i] = MAXI(COL(i), ROW(i));
-
-/*    if(param.at(0) != 0 && param.at(1) == 0)
-        for(int i = 0; i < 8; ++i)
-            for(int j = 0; j < 8; ++j)
-            {
-                int tmp;
-                tmp = (float)pst[_p/2 - 1][ 0][i][j] * param.at(0);
-                if(tmp < -128)
-                    tmp = -128;
-                else if(tmp > 127)
-                    tmp = 127;
-                pst[_p/2 - 1][0][i][j] = tmp;
-            }
-
-    if(param.at(1) != 0 && param.at(0) == 0)
-        for(int i = 0; i < 8; ++i)
-            for(int j = 0; j < 8; ++j)
-            {
-                int tmp = (float)pst[_p/2 - 1][1][i][j] * param.at(1);
-                if(tmp < -128)
-                    tmp = -128;
-                else if(tmp > 127)
-                    tmp = 127;
-                pst[_p/2 - 1][1][i][j] = tmp;
-
-            }
-*/
 }
 
 //-----------------------------
@@ -80,18 +41,14 @@ short Eval()
     b_state[prev_states + ply].val_opn = val_opn;
     b_state[prev_states + ply].val_end = val_end;
 
-#ifndef DONT_USE_PAWN_STRUCT
     EvalPawns((bool)white);
     EvalPawns((bool)black);
-#endif // DONT_USE_PAWN_STRUCT
 
     KingSafety(white);
     KingSafety(black);
 
-#ifndef DONT_USE_PAWN_STRUCT
     ClampedRook(white);
     ClampedRook(black);
-#endif // DONT_USE_PAWN_STRUCT
     ClampedBishop(white);
     ClampedBishop(black);
 
@@ -155,7 +112,7 @@ short Eval()
     }
 
     short ans = -ReturnEval(wtm);
-    ans -= 8;
+    ans -= 8;                                                           // bonus for side to move
 
     val_opn = b_state[prev_states + ply].val_opn;
     val_end = b_state[prev_states + ply].val_end;

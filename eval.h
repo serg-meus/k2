@@ -9,10 +9,8 @@
 #define MAXI(X, Y)       ((X) > (Y) ? (X) : (Y))
 
 //--------------------------------
-#define TUNE_PARAMETERS
+//#define TUNE_PARAMETERS
 #define NPARAMS 1
-//#define CHECK_PREDICTED_VALUE
-//#define EVAL_KING_TROPISM
 
 #ifdef TUNE_PARAMETERS
     #include <vector>
@@ -43,9 +41,6 @@ enum PriceList
     OPP_NEAR_K  = 20,
 
 };
-
-//--------------------------------
-
 
 //--------------------------------
 void InitEval();
