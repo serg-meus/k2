@@ -1193,10 +1193,14 @@ void MkMove(Move m)
         {
             targ += wtm ? -16 : 16;
             material[!wtm]--;
+            quantity[!wtm][_p/2]--;
         }
         else
+        {
             material[!wtm] -=
                     pc_streng[b_state[prev_states + ply].capt/2 - 1];
+            quantity[!wtm][b_state[prev_states + ply].capt/2]--;
+        }
 
         auto it_cap = coords[!wtm].begin();
         auto it_end = coords[!wtm].end();
@@ -1232,6 +1236,8 @@ void MkMove(Move m)
     {
         b[m.to] = prPc[prIx] ^ wtm;
         material[wtm] += pc_streng[prPc[prIx]/2 - 1] - 1;
+        quantity[wtm][_p/2]--;
+        quantity[wtm][prPc[prIx]/2]++;
         b_state[prev_states + ply].nprom = ++it;
         --it;
         coords[wtm].move_element(king_coord[wtm], it);
@@ -1277,6 +1283,7 @@ void UnMove(Move m)
         if(m.flg & mENPS)
         {
             material[!wtm]++;
+            quantity[!wtm][_p/2]++;
             if(wtm)
             {
                 b[m.to - 16] = _p;
@@ -1289,8 +1296,11 @@ void UnMove(Move m)
             }
         }// if en_pass
         else
+        {
             material[!wtm]
                 += pc_streng[b_state[prev_states + ply].capt/2 - 1];
+            quantity[!wtm][b_state[prev_states + ply].capt/2]++;
+        }
 
         coords[!wtm].restore(it_cap);
         pieces[!wtm]++;
@@ -1306,6 +1316,8 @@ void UnMove(Move m)
         --before_king;
         coords[wtm].move_element(it_prom, before_king);
         material[wtm] -= pc_streng[prPc[prIx]/2 - 1] - 1;
+        quantity[wtm][_p/2]++;
+        quantity[wtm][prPc[prIx]/2]--;
     }
 
     if(m.flg & mCSTL)

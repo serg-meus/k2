@@ -4,7 +4,6 @@
 #include <assert.h>
 #include "short_list.h"
 
-//#define DONT_USE_PAWN_STRUCT
 //--------------------------------
 #define UC unsigned char
 #define SC int8_t

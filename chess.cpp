@@ -25,13 +25,13 @@ UQ nodes, tmpCr;
 char *cv;
 US reversible_moves;
 
-#ifndef DONT_USE_PAWN_STRUCT
-    int pawn_max[10][2], pawn_min[10][2];
-#endif
+int pawn_max[10][2], pawn_min[10][2];
+
 UQ hash_key;
 char cur_moves[5*max_ply];
 
 short_list<UC, lst_sz>::iterator king_coord[2];
+UC quantity[2][6 + 1];
 //--------------------------------
 void InitChess()
 {
@@ -87,12 +87,22 @@ void InitBrd()
     material[white] = 48;
 
     reversible_moves     = 0;
-#ifndef DONT_USE_PAWN_STRUCT
+
     InitPawnStruct();
-#endif // DONT_USE_PAWN_STRUCT
 
     king_coord[white] = --coords[white].end();
     king_coord[black] = --coords[black].end();
+
+    for(UC clr = 0; clr <= 1; clr++)
+    {
+        quantity[clr][_k/2] = 1;
+        quantity[clr][_q/2] = 1;
+        quantity[clr][_r/2] = 2;
+        quantity[clr][_b/2] = 2;
+        quantity[clr][_n/2] = 2;
+        quantity[clr][_p/2] = 8;
+    }
+
 }
 
 //--------------------------------
@@ -133,6 +143,7 @@ bool BoardToMen()
         if(!ONBRD(i) || b[i] == __)
             continue;
         coords[b[i] & white].push_back(i);
+        quantity[b[i] & white][(b[i] & ~white)/2]++;
     }
 
     coords[black].sort(PieceListCompare);
@@ -153,6 +164,7 @@ bool FenToBoard(char *p)
     pieces[black]   = 0;
     pieces[white]   = 0;
     reversible_moves = 0;
+    memset(quantity, 0, sizeof(quantity));
 
     for(int row = 7; row >= 0; row--)
         for(int col = 0; col <= 7; col++)
@@ -243,9 +255,8 @@ bool FenToBoard(char *p)
             reversible_moves += (*p++ - '0');
         }
 
-#ifndef DONT_USE_PAWN_STRUCT
+
     InitPawnStruct();
-#endif // DONT_USE_PAWN_STRUCT
 
     king_coord[white] = --coords[white].end();
     king_coord[black] = --coords[black].end();
