@@ -49,67 +49,11 @@ short Eval()
 
     ClampedRook(white);
     ClampedRook(black);
+
     ClampedBishop(white);
     ClampedBishop(black);
 
-
-/*#ifndef CHECK_PREDICTED_VALUE
-   if(reversible_moves > ply)
-    {
-        val_opn = (int)val_opn * (FIFTY_MOVES - reversible_moves) / FIFTY_MOVES;
-        val_end = (int)val_end * (FIFTY_MOVES - reversible_moves) / FIFTY_MOVES;
-    }
-#endif
-*/
-
-    int X;
-    X = material[0] + 1 + material[1] + 1 - pieces[0] - pieces[1];
-
-    if(X == 3 && (material[0] == 4 || material[1] == 4))
-    {
-        if(pieces[0] + pieces[1] == 3)                                  // KNk, KBk, Kkn, Kkb
-        {
-            val_opn = 0;
-            val_end = 0;
-        }
-        if(material[1] == 1 && material[0] == 4)                        // KPkn, KPkb
-            val_end += B_VAL_END + P_VAL_END/4;
-        if(material[0] == 1 && material[1] == 4)                        // KNkp, KBkp
-            val_end -= B_VAL_END + P_VAL_END/4;
-    }
-    if(X == 6)                                                          // KNNk, Kknn
-    {
-        bool two_knights_white = false, two_knights_black = false;
-        if(material[0] == 8 && pieces[0] == 3
-        && material[1] == 0)
-            two_knights_black = true;
-        if(material[1] == 8 && pieces[1] == 3
-        && material[0] == 0)
-            two_knights_white = true;
-
-        if(two_knights_black || two_knights_white)
-        {
-            auto rit = coords[two_knights_white ? white : black].rbegin();
-            ++rit;
-            if((b[*rit] & ~white) == _n
-            && (b[*(++rit)] & ~white) == _n)
-            {
-                val_opn = 0;
-                val_end = 0;
-            }
-        }
-    }
-
-    if(HowManyPieces(_B) == 2)
-    {
-        val_opn += 50;
-        val_end += 50;
-    }
-    if(HowManyPieces(_b) == 2)
-    {
-        val_opn -= 50;
-        val_end -= 50;
-    }
+    MaterialImbalances();
 
     short ans = -ReturnEval(wtm);
     ans -= 8;                                                           // bonus for side to move
@@ -644,20 +588,43 @@ void KingSafety(UC stm)
 }
 
 //-----------------------------
-int HowManyPieces(UC pc)
+void MaterialImbalances()
 {
-    UC stm = pc & white;
-    auto rit = coords[stm].rbegin();
-    rit++;
-    for(; rit != coords[stm].rend(); ++rit)
-        if(b[*rit] == pc)
-            break;
-    if(rit == coords[stm].rend())
-        return 0;
-    ++rit;
-    if(rit == coords[stm].rend())
-        return 1;
-    if(b[*rit] == pc)
-        return 2;
-    return 1;
+    int X = material[black] + 1 + material[white] + 1
+            - pieces[black] - pieces[white];
+
+    if(X == 3 && (material[black] == 4 || material[white] == 4))
+    {
+        if(pieces[black] + pieces[white] == 3)                          // KNk, KBk, Kkn, Kkb
+        {
+            val_opn = 0;
+            val_end = 0;
+        }
+        if(material[black] == 1 && material[white] == 4)                // KPkn, KPkb
+            val_end += B_VAL_END + P_VAL_END/4;
+        if(material[black] == 1 && material[white] == 4)                // KNkp, KBkp
+            val_end -= B_VAL_END + P_VAL_END/4;
+    }
+    else if(X == 6)                                                     // KNNk, Kknn
+    {
+        if(quantity[white][_n/2] == 2
+        || quantity[black][_n/2] == 2)
+        {
+            val_opn = 0;
+            val_end = 0;
+        }
+    }
+
+    // two bishops
+    if(quantity[white][_b/2] == 2)
+    {
+        val_opn += 50;
+        val_end += 50;
+    }
+    if(quantity[black][_b/2] == 2)
+    {
+        val_opn -= 50;
+        val_end -= 50;
+    }
+
 }

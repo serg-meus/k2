@@ -57,6 +57,6 @@ short EvalAllKingDist(UC stm, UC king_coord);
 void KingSafety(UC stm);
 int KingAttacks(UC stm);
 bool TestPromo(int col, UC stm);
-int HowManyPieces(UC pc);
 void ClampedBishop(UC stm);
 short ReturnEval(UC stm);
+void MaterialImbalances();
