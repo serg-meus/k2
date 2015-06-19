@@ -632,4 +632,33 @@ void MaterialImbalances()
     && material[white] != 0 && material[black] != 0)
         val_end /= 3;
 
+    // multicoloured bishops
+    if(quantity[white][_b/2] == 1 && quantity[black][_b/2] == 1)
+    {
+        auto w_it = coords[white].rbegin();
+        while(w_it != coords[white].rend()
+        && b[*w_it] != _B)
+            ++w_it;
+        assert(w_it != coords[white].rend());
+
+        auto b_it = coords[black].rbegin();
+        while(b_it != coords[black].rend()
+        && b[*b_it] != _b)
+            ++b_it;
+        assert(b_it != coords[white].rend());
+
+        int sum_coord_w = COL(*w_it) + ROW(*w_it);
+        int sum_coord_b = COL(*b_it) + ROW(*b_it);
+
+        if((sum_coord_w & 1) != (sum_coord_b & 1))
+        {
+            if(material[white] - pieces[white] == 4 - 2
+            && material[black] - pieces[black] == 4 - 2)
+                val_end /= 2;
+            else
+                val_end = val_end*4/5;
+
+        }
+    }
+
 }
