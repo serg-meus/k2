@@ -13,7 +13,8 @@ bool        stop, infinite_analyze, busy;
 Move        root_move_array[MAX_MOVES];
 UQ          q_nodes, cut_cr, cut_num_cr[5], q_cut_cr, q_cut_num_cr[5];
 UQ          null_probe_cr, null_cut_cr, hash_probe_cr;
-UQ          hash_hit_cr, hash_cut_cr, hash_cutoff_by_best_move_cr;
+UQ          hash_hit_cr, hash_cut_cr;
+UQ          hash_best_move_cr, hash_cutoff_by_best_move_cr;
 UQ          total_nodes, futility_probes, futility_hits;
 UQ          killer1_probes, killer1_hits, killer2_probes, killer2_hits;
 double      time_base, time_inc, time_remains, total_time_spent;
@@ -217,9 +218,11 @@ short Search(int depth, short alpha, short beta,
     if(beta_cutoff)
     {
 #ifndef DONT_SHOW_STATISTICS
+        if(in_hash && entry->best_move.flg != 0xFF)
+            hash_best_move_cr++;
         if(legals == 1)
         {
-            if(in_hash)
+            if(in_hash && entry->best_move.flg != 0xFF)
                 hash_cutoff_by_best_move_cr++;
             else if(m.scr == FIRST_KILLER)
                 killer1_hits++;
@@ -670,6 +673,7 @@ void InitSearch()
     hash_probe_cr   = 0;
     hash_hit_cr     = 0;
     hash_cutoff_by_best_move_cr = 0;
+    hash_best_move_cr = 0;
     futility_hits   = 0;
     killer1_probes  = 0;
     killer2_probes  = 0;
@@ -769,12 +773,14 @@ void PrintSearchResult()
         hash_probe_cr = 1;
     if(hash_hit_cr == 0)
         hash_hit_cr = 1;
+    if(hash_best_move_cr == 0)
+        hash_best_move_cr = 1;
     std::cout   << "( hash probes = " << hash_probe_cr
                 << ", cuts by val = "
                 << std::setprecision(1) << std::fixed
                 << 100.*hash_cut_cr/hash_probe_cr << "%, "
                 << "cuts by best move = "
-                << 100.*hash_cutoff_by_best_move_cr/hash_hit_cr << "% )"
+                << 100.*hash_cutoff_by_best_move_cr/hash_best_move_cr << "% )"
                 << std::endl
                 << "( hash full = " << (int)100*tt.size()/tt.max_size()
                 << "% (" << tt.size()/sizeof(tt_entry)
