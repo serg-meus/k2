@@ -627,4 +627,9 @@ void MaterialImbalances()
         val_end -= 50;
     }
 
+    // pawn absense for both sides
+    if(quantity[white][_p/2] == 0 && quantity[black][_p/2] == 0
+    && material[white] != 0 && material[black] != 0)
+        val_end /= 3;
+
 }
