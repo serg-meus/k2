@@ -613,6 +613,31 @@ void MaterialImbalances()
             val_opn = 0;
             val_end = 0;
         }
+        // many code for mating with only bishop and knight
+        else if((quantity[white][_n/2] == 1 && quantity[white][_b/2] == 1)
+             || (quantity[black][_n/2] == 1 && quantity[black][_b/2] == 1))
+        {
+            UC stm = quantity[white][_n/2] == 1 ? 1 : 0;
+            auto rit = coords[stm].begin();
+            ++rit;
+            assert(b[*rit] == (_b & ~white));
+
+            short ans = 0;
+            auto ok = *king_coord[!stm];
+            if(ok == 0x06 || ok == 0x07 || ok == 0x17
+            || ok == 0x70 || ok == 0x71 || ok == 0x60)
+                ans = 200;
+            if(ok == 0x00 || ok == 0x01 || ok == 0x10
+            || ok == 0x77 || ok == 0x76 || ok == 0x67)
+                ans = -200;
+
+            bool bishop_on_light_square = ((COL(*rit)) + ROW(*rit)) & 1;
+            if(!bishop_on_light_square)
+                ans = -ans;
+            if(!stm)
+                ans = -ans;
+            val_end += ans;
+        }
     }
 
     // two bishops
