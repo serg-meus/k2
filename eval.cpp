@@ -600,7 +600,7 @@ void MaterialImbalances()
             val_opn = 0;
             val_end = 0;
         }
-        if(material[black] == 1 && material[white] == 4)                // KPkn, KPkb
+        if(material[white] == 1 && material[black] == 4)                // KPkn, KPkb
             val_end += B_VAL_END + P_VAL_END/4;
         if(material[black] == 1 && material[white] == 4)                // KNkp, KBkp
             val_end -= B_VAL_END + P_VAL_END/4;
