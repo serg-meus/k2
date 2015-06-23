@@ -60,3 +60,4 @@ bool TestPromo(int col, UC stm);
 void ClampedBishop(UC stm);
 short ReturnEval(UC stm);
 void MaterialImbalances();
+short EvalDebug();

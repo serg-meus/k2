@@ -687,3 +687,101 @@ void MaterialImbalances()
     }
 
 }
+
+//-----------------------------
+short EvalDebug()
+{
+    b_state[prev_states + ply].val_opn = val_opn;
+    b_state[prev_states + ply].val_end = val_end;
+
+    short store_vo, store_ve, store_sum;
+
+    store_vo = val_opn;
+    store_ve = val_end;
+    store_sum = ReturnEval(white);
+    std::cout << "\t\t\tMID\tEND\tSUM" << std::endl;
+    std::cout << "Fast Eval:\t\t";
+    std::cout << val_opn << '\t' << val_end << '\t'
+              << store_sum << std::endl;
+
+    EvalPawns((bool)white);
+    std::cout << "White pawns:\t\t";
+    std::cout << val_opn - store_vo << '\t' << val_end - store_ve << '\t'
+              << ReturnEval(white) - store_sum << std::endl;
+    store_vo = val_opn;
+    store_ve = val_end;
+    store_sum = ReturnEval(white);
+    EvalPawns((bool)black);
+    std::cout << "Black pawns:\t\t";
+    std::cout << val_opn - store_vo << '\t' << val_end - store_ve << '\t'
+              << ReturnEval(white) - store_sum << std::endl;
+    store_vo = val_opn;
+    store_ve = val_end;
+    store_sum = ReturnEval(white);
+
+    KingSafety(white);
+    std::cout << "King safety white:\t";
+    std::cout << val_opn - store_vo << '\t' << val_end - store_ve << '\t'
+              << ReturnEval(white) - store_sum << std::endl;
+    store_vo = val_opn;
+    store_ve = val_end;
+    store_sum = ReturnEval(white);
+    KingSafety(black);
+    std::cout << "King safety black:\t";
+    std::cout << val_opn - store_vo << '\t' << val_end - store_ve << '\t'
+              << ReturnEval(white) - store_sum << std::endl;
+    store_vo = val_opn;
+    store_ve = val_end;
+    store_sum = ReturnEval(white);
+
+    ClampedRook(white);
+    std::cout << "White rooks:\t\t";
+    std::cout << val_opn - store_vo << '\t' << val_end - store_ve << '\t'
+              << ReturnEval(white) - store_sum << std::endl;
+    store_vo = val_opn;
+    store_ve = val_end;
+    store_sum = ReturnEval(white);
+    ClampedRook(black);
+    std::cout << "Black rooks:\t\t";
+    std::cout << val_opn - store_vo << '\t' << val_end - store_ve << '\t'
+              << ReturnEval(white) - store_sum << std::endl;
+    store_vo = val_opn;
+    store_ve = val_end;
+    store_sum = ReturnEval(white);
+
+    ClampedBishop(white);
+    std::cout << "White bishops:\t\t";
+    std::cout << val_opn - store_vo << '\t' << val_end - store_ve << '\t'
+              << ReturnEval(white) - store_sum << std::endl;
+    store_vo = val_opn;
+    store_ve = val_end;
+    store_sum = ReturnEval(white);
+    ClampedBishop(black);
+    std::cout << "Black bishops:\t\t";
+    std::cout << val_opn - store_vo << '\t' << val_end - store_ve << '\t'
+              << ReturnEval(white) - store_sum << std::endl;
+    store_vo = val_opn;
+    store_ve = val_end;
+    store_sum = ReturnEval(white);
+
+    MaterialImbalances();
+    std::cout << "Imbalances summary:\t";
+    std::cout << val_opn - store_vo << '\t' << val_end - store_ve << '\t'
+              << ReturnEval(white) - store_sum << std::endl;
+    store_vo = val_opn;
+    store_ve = val_end;
+    store_sum = ReturnEval(white);
+
+    short ans = -ReturnEval(wtm);
+    ans -= 8;                                                           // bonus for side to move
+    std::cout << "Bonus for side to move:\t\t\t";
+    std::cout <<  (wtm ? 8 : -8) << std::endl << std::endl;
+
+    val_opn = b_state[prev_states + ply].val_opn;
+    val_end = b_state[prev_states + ply].val_end;
+
+    std::cout << "Eval summary: " << (wtm ? -ans : ans) << std::endl;
+    std::cout << "(positive is white advantage)" << std::endl;
+
+    return ans;
+}

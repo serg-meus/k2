@@ -426,11 +426,8 @@ void EvalCommand(std::string in)
     UNUSED(in);
     if(busy)
         return;
-    std::cout << "Fast eval: " << val_opn << " / "
-        << val_end << std::endl;
-    short x = Eval();
-    std::cout << "Eval: " << (wtm ? -x : x) << std::endl;
-    std::cout << "(positive is white advantage)" << std::endl;
+
+    EvalDebug();
 }
 
 //--------------------------------
