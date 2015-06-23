@@ -619,8 +619,10 @@ void MaterialImbalances()
         {
             UC stm = quantity[white][_n/2] == 1 ? 1 : 0;
             auto rit = coords[stm].begin();
-            ++rit;
-            assert(b[*rit] == (_b & ~white));
+            for(; rit != coords[stm].end(); ++rit)
+                if((b[*rit] & ~white) == _b)
+                    break;
+            assert((b[*rit] & ~white) == _b);
 
             short ans = 0;
             auto ok = *king_coord[!stm];
