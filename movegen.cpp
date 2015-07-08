@@ -563,14 +563,17 @@ short SEE_main(Move m)
     it = m.pc;
     UC fr_pc = b[*it];
     UC to_pc = b[m.to];
-    int src = streng[fr_pc/2];
-    int dst = (m.flg & mCAPT) ? streng[to_pc/2] : 0;
+    short src = streng[fr_pc/2];
+    short dst = (m.flg & mCAPT) ? streng[to_pc/2] : 0;
     auto storeMen = coords[wtm].begin();
     storeMen = m.pc;
     UC storeBrd = b[*storeMen];
     coords[wtm].erase(storeMen);
     b[*storeMen] = __;
+
     short see_score = -SEE(m.to, src, dst, wtm);
+    see_score = std::min(dst, see_score);
+
     coords[wtm].restore(storeMen);
     b[*storeMen] = storeBrd;
     return see_score;
