@@ -348,11 +348,8 @@ void AppriceMoves(Move *move_array, int moveCr, Move *bestMove)
             if(dst && dst - src <= 0)
             {
                 short tmp = SEE_main(m);
-                if(tmp > 0)
-                {
-                    dst = tmp;
-                    src = 0;
-                }
+                dst = tmp;
+                src = 0;
             }
 #else
             if(src > 120)
@@ -368,8 +365,8 @@ void AppriceMoves(Move *move_array, int moveCr, Move *bestMove)
                 continue;
             }
 
-            short prms[] = {0, 1200, 400, 600, 400};
-            if(dst <= 1200 && (m.flg & mPROM))
+            short prms[] = {0, 120, 40, 60, 40};
+            if(dst <= 120 && (m.flg & mPROM))
                 dst += prms[m.flg & mPROM];
 
             if(dst >= src)
@@ -379,9 +376,9 @@ void AppriceMoves(Move *move_array, int moveCr, Move *bestMove)
 
             if(dst - src >= 0)
             {
-                assert(200 + ans/32 > FIRST_KILLER);
-                assert(200 + ans/32 <= 250);
-                move_array[i].scr = (200 + ans/32);
+                assert(200 + ans/8 > FIRST_KILLER);
+                assert(200 + ans/8 <= 250);
+                move_array[i].scr = (200 + ans/8);
             }
             else
             {
@@ -444,8 +441,8 @@ void AppriceQuiesceMoves(Move *move_array, int moveCr)
             return;
         }
 
-        short prms[] = {0, 1200, 400, 600, 400};
-        if(dst <= 1200 && (m.flg & mPROM))
+        short prms[] = {0, 120, 40, 60, 40};
+        if(dst <= 120 && (m.flg & mPROM))
             dst += prms[m.flg & mPROM];
 
         int ans;
@@ -455,7 +452,7 @@ void AppriceQuiesceMoves(Move *move_array, int moveCr)
         {
             dst = SEE_main(move_array[i]);
             src = 0;
-            ans = dst - (dst >= src ? src/16 : src);
+            ans = dst;
 
         }
         if(dst > 120)
@@ -466,9 +463,9 @@ void AppriceQuiesceMoves(Move *move_array, int moveCr)
 
         if(dst >= src)
         {
-            assert(200 + ans/32 > FIRST_KILLER);
-            assert(200 + ans/32 <= 250);
-            move_array[i].scr = (200 + ans/32);
+            assert(200 + ans/8 > FIRST_KILLER);
+            assert(200 + ans/8 <= 250);
+            move_array[i].scr = (200 + ans/8);
         }
         else
         {
