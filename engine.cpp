@@ -120,9 +120,9 @@ short Search(int depth, short alpha, short beta,
         }
 
 #ifndef DONT_USE_IID
-    if(node_type == pv_node
-    && depth > 4 && legals == 0                                         // first move and
-    && m.scr < PV_FOLLOW)                                               // no move from hash table
+    if(node_type != all_node
+    && depth >= 4 && legals == 0                                         // first move and
+    && m.scr <= FIRST_KILLER)                                               // no move from hash table
     {
         UnMove(m);
         short iid_low_bound  = alpha <= -mate_score ? alpha : alpha - 10;
