@@ -54,7 +54,7 @@ public:
 protected:
     tt_entry **data;
 
-    const unsigned entries_in_a_bucket = 4;
+    const unsigned entries_in_a_bucket;
     unsigned buckets;
     UQ mask;
     UQ _size;

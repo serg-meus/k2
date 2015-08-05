@@ -107,13 +107,13 @@ void MoveHashKey(Move m, UC fr, int special)
 }
 
 //--------------------------------
-transposition_table::transposition_table()
+transposition_table::transposition_table() : entries_in_a_bucket(4)
 {
     set_size(64);
 }
 
 //--------------------------------
-transposition_table::transposition_table(unsigned size_mb)
+transposition_table::transposition_table(unsigned size_mb) : entries_in_a_bucket(4)
 {
     set_size(size_mb);
 }
