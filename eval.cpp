@@ -533,48 +533,51 @@ short KingShieldFactor(UC stm)
             return 5;
         else
             return 7;
+
     }
 }
 
 //-----------------------------
-void KingSafety(UC stm)
+void KingSafety(UC king_color)
 {
-    if(material[!stm] - pieces[!stm] < 8)
+    if(material[!king_color] - pieces[!king_color] < 8)
         return;
 
     short ans = 0;
 
-    UC k = *king_coord[stm];
+    UC k = *king_coord[king_color];
     if(COL(k) == 3 || COL(k) == 4)
         ans -= 42;
 
-    int sh  = KingShieldFactor(stm);
-    ans +=  material[!stm]*(1 - sh)/3;
+    int shield_badness  = KingShieldFactor(king_color);
+    ans +=  material[!king_color]*(1 - shield_badness)/3;
 
+    static UC influence_factor[2][7] =
+    {
+        {0, 0, 10, 10, 10, 10, 0},
+        {0, 0, 20, 20, 10, 10, 0}
+    };
     int occ_cr = 0;
     int pieces_near = 0;
-    auto rit = coords[!stm].rbegin();
+    auto rit = coords[!king_color].rbegin();
     ++rit;
-    for(; rit != coords[!stm].rend(); ++rit)
+    for(; rit != coords[!king_color].rend(); ++rit)
     {
         UC pt = b[*rit] & ~white;
-        if(pt == _p)
-            break;
+//        if(pt == _p)
+//            break;
         int dist = king_dist[ABSI(k - *rit)];
         if(dist >= 4)
             continue;
         pieces_near++;
-        if(dist < 3 && pt != _b && pt != _n)
-        {
-            occ_cr += 2;
-        }
-        else occ_cr++;
+        occ_cr += influence_factor[dist < 3][pt/2];
     }
-    short tropism = 40*occ_cr*occ_cr;
+    int tropism = occ_cr*occ_cr*(4 + shield_badness)/50;
+
     if(pieces_near == 1)
         tropism /= 2;
 
-    if(b_state[prev_states + ply].cstl & (0x0C >> 2*stm))       // able to castle
+    if(b_state[prev_states + ply].cstl & (0x0C >> 2*king_color))       // able to castle
      {
         if(pieces_near == 1)
             tropism = 0;
@@ -584,7 +587,7 @@ void KingSafety(UC stm)
 
     ans -= tropism;
 
-    val_opn += stm ? ans : -ans;
+    val_opn += king_color ? ans : -ans;
 }
 
 //-----------------------------
