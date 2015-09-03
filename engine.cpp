@@ -1928,4 +1928,7 @@ r1bqkb1r/pp1n1pp1/2p1pn1p/6N1/3P4/3B1N2/PPP2PPP/R1BQK2R w KQkq - 0 1 bm Nxd6 Dee
 r3r1k1/3q1ppp/p4n2/1p1P4/2P2bb1/5N1P/PR1NBPP1/3Q1RK1 b - - 0 21 bm Bxh3
 6R1/p2r4/1p1p1b2/1P1P1p1k/1K1PpB2/4P2P/8/8 b - - 51 72 am Rd8
 2r3k1/p6p/q4p2/r1p1pP2/2PpP3/BR1Qb2P/P5P1/1R5K b - - 0 31 am Kg7
+
+2r3k1/3b1pp1/p3p2p/q2pB2P/1brP4/2NRQP2/1PPK2P1/1R6 b - - 1 16 KS eval
+8/4B2k/2p3pp/4P3/6P1/2K5/5P1P/1r6 w - - 0 45 eval for material and PST
 */

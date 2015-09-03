@@ -3,7 +3,7 @@
 // K2, the chess engine
 // Author: Sergey Meus (serg_meus@mail.ru)
 // Krasnoyarsk Kray, Russia
-// Copyright 2012-2014
+// Copyright 2012-2015
 //--------------------------------
 
 cmdStruct commands[]
