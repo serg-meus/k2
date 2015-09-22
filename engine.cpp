@@ -80,7 +80,7 @@ short Search(int depth, short alpha, short beta,
     }
 
     nodes++;
-    if((nodes & 511) == 511)
+    if((nodes & nodes_to_check_stop) == nodes_to_check_stop)
         CheckForInterrupt();
 
 #ifndef DONT_USE_NULL_MOVE
@@ -264,7 +264,7 @@ short Quiesce(short alpha, short beta)
 
     nodes++;
     q_nodes++;
-    if((nodes & 511) == 511)
+    if((nodes & nodes_to_check_stop) == nodes_to_check_stop)
         CheckForInterrupt();
 
     Move move_array[MAX_MOVES];
@@ -1154,6 +1154,9 @@ void CheckForInterrupt()
     }
     if(infinite_analyze || pondering_in_process)
         return;
+
+    const unsigned nodes_to_check_stop2 =
+            (16*(nodes_to_check_stop + 1) - 1);
     if(spent_exact_time)
     {
         double time1 = timer.getElapsedTimeInMicroSec();
@@ -1161,7 +1164,8 @@ void CheckForInterrupt()
         if(time_spent >= time_to_think - 50000)
             stop = true;
     }
-    else if((nodes & 8191) == 8191)
+    else if((nodes & nodes_to_check_stop2)
+             == nodes_to_check_stop2)
     {
         double time1 = timer.getElapsedTimeInMicroSec();
         time_spent = time1 - time0;
