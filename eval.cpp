@@ -6,10 +6,13 @@ short material_values_opn[] = {  0, 0, Q_VAL_OPN, R_VAL_OPN, B_VAL_OPN, N_VAL_OP
 short material_values_end[] = {  0, 0, Q_VAL_END, R_VAL_END, B_VAL_END, N_VAL_END, P_VAL_END};
 
 char  king_dist[120];
+UC    attack_near_king[240];
 
 #ifdef TUNE_PARAMETERS
     std::vector <float> param;
 #endif // TUNE_PARAMETERS
+
+SC king_safety_shifts[] = {15, 16, 17, 1, -1, -17, -16, -15, 31, 32, 33};
 
 //-----------------------------
 void InitEval()
@@ -22,6 +25,13 @@ void InitEval()
             king_dist[i] = MAXI(8 - COL(i), ROW(i) + 1);
         else
             king_dist[i] = MAXI(COL(i), ROW(i));
+
+    InitKingSafetyTable();
+
+#ifndef NDEBUG
+//    if(!TestKingZoneAttacked())
+//        std::cout << "King safety unit test failed" << std::endl;
+#endif
 }
 
 //-----------------------------
@@ -538,7 +548,60 @@ short KingShieldFactor(UC stm)
 }
 
 //-----------------------------
-void KingSafety(UC king_color)
+void KingSafety(UC stm)
+{
+    if(material[!stm] - pieces[!stm] < 8)
+        return;
+
+    short ans = 0;
+
+    UC k = *king_coord[stm];
+    if(COL(k) == 3 || COL(k) == 4)
+        ans -= 42;
+
+    int sh  = KingShieldFactor(stm);
+    ans +=  material[!stm]*(1 - sh)/3;
+
+    int occ_cr = 0/*, occ_cr_qr = 0*/;
+    int pieces_near = 0;
+    auto rit = coords[!stm].rbegin();
+    ++rit;
+    for(; rit != coords[!stm].rend(); ++rit)
+    {
+        UC pt = b[*rit] & ~white;
+        if(pt == _p)
+            break;
+        int dist = king_dist[ABSI(k - *rit)];
+        if(dist >= 4)
+            continue;
+        pieces_near++;
+        if(dist < 3 && pt != _b && pt != _n)
+        {
+            occ_cr += 2;
+        }
+        else occ_cr++;
+    }
+    short tropism = 40*occ_cr*occ_cr;
+    if(pieces_near == 1)
+        tropism /= 2;
+//    if(occ_cr > 1 && occ_cr_qr == 0)
+//        tropism /= 2;
+
+    if(b_state[prev_states + ply].cstl & (0x0C >> 2*stm))       // able to castle
+     {
+        if(pieces_near == 1)
+            tropism = 0;
+        else
+            tropism /= 2;
+     }
+
+    ans -= tropism;
+
+    val_opn += stm ? ans : -ans;
+}
+
+//-----------------------------
+void KingSafety2(UC king_color)
 {
     if(material[!king_color] - pieces[!king_color] < 8)
         return;
@@ -557,6 +620,8 @@ void KingSafety(UC king_color)
         {0, 0, 10, 10, 10, 10, 0},
         {0, 0, 20, 20, 10, 10, 0}
     };
+
+
     int occ_cr = 0;
     int pieces_near = 0;
     auto rit = coords[!king_color].rbegin();
@@ -564,8 +629,8 @@ void KingSafety(UC king_color)
     for(; rit != coords[!king_color].rend(); ++rit)
     {
         UC pt = b[*rit] & ~white;
-//        if(pt == _p)
-//            break;
+        if(pt == _p)
+            break;
         int dist = king_dist[ABSI(k - *rit)];
         if(dist >= 4)
             continue;
@@ -785,8 +850,191 @@ short EvalDebug()
     val_opn = b_state[prev_states + ply].val_opn;
     val_end = b_state[prev_states + ply].val_end;
 
+/*    std::cout << "King zone attacks (with X-rays):" << std::endl;
+    std::cout << "- on white king: ";
+
+    unsigned attackers, attacked_squares = 0, sum_attacks = 0;
+    const unsigned max_attack_counters = sizeof(king_safety_shifts) /
+            sizeof(*king_safety_shifts);
+    UC attack_counters[max_attack_counters];
+    memset(attack_counters, 0, sizeof(attack_counters));
+
+    attackers = KingZoneAttackLoop(white, attack_counters);
+    for(UI i = 0; i < max_attack_counters; ++i)
+        if(attack_counters[i])
+        {
+            attacked_squares++;
+            sum_attacks += attack_counters[i];
+        }
+    std::cout << attackers << " attackers, " << attacked_squares
+              << " attacked squares, " << sum_attacks
+              << " attacks total" << std::endl;
+
+    std::cout << "- on black king: ";
+    attacked_squares = 0;
+    sum_attacks = 0;
+    memset(attack_counters, 0, sizeof(attack_counters));
+
+    attackers = KingZoneAttackLoop(black, attack_counters);
+    for(UI i = 0; i < max_attack_counters; ++i)
+        if(attack_counters[i])
+        {
+            attacked_squares++;
+            sum_attacks += attack_counters[i];
+        }
+    std::cout << attackers << " attackers, " << attacked_squares
+              << " attacked squares, " << sum_attacks
+              << " attacks total" << std::endl;
+
+
+    std::cout << std::endl << std::endl;
+*/
     std::cout << "Eval summary: " << (wtm ? -ans : ans) << std::endl;
     std::cout << "(all positives are advantage for white)" << std::endl;
 
     return ans;
+}
+
+//-----------------------------
+void InitKingSafetyTable()
+{
+    unsigned piece_cr, j, k, shft_cr;
+
+    size_t max_shft_cr = sizeof(king_safety_shifts)
+            / sizeof(*king_safety_shifts);
+    for(shft_cr = 0; shft_cr < max_shft_cr; ++shft_cr)
+        for(piece_cr = _k/2; piece_cr < _p/2; ++piece_cr)
+        {
+            if(!slider[piece_cr])
+            {
+                for(j = 0; j < rays[piece_cr]; j++)
+                    attack_near_king[120 + shifts[piece_cr][j]
+                            + king_safety_shifts[shft_cr]]
+                            |= (1 << piece_cr);
+            }
+            else
+            {
+                const int sz = (int)(sizeof(attack_near_king)
+                                     / sizeof(*attack_near_king));
+                for(j = 0; j < rays[piece_cr]; j++)
+                    for(k = 1; k < 8; k++)
+                    {
+                        int to = 120 + k*shifts[piece_cr][j]
+                                + king_safety_shifts[shft_cr];
+                        if(to >= 0 && to < sz)
+                            attack_near_king[to] |= (1 << piece_cr);
+                    }
+            }
+        }
+}
+
+//-----------------------------
+bool KingZoneAttacked(UC king_coord, UC attacker_coord,
+                      UC king_color, int &attacked_coord)
+{
+    bool is_attacked = false;
+    unsigned i;
+    const unsigned max_i = sizeof(king_safety_shifts) / 
+            sizeof(*king_safety_shifts);
+    for(i = 0; i < max_i; ++i)
+    {
+        attacked_coord = king_coord + king_safety_shifts[i];
+        if(!ONBRD(attacked_coord))
+            continue;
+        if(LIGHT(b[attacked_coord], !king_color))
+            continue;
+
+        UC piece_type = b[attacker_coord]/2;
+        if(!(attacks[120 + (int)attacker_coord - attacked_coord]
+        & (1 << piece_type)))
+            continue;
+        if(!slider[piece_type]
+        || SliderAttackWithXRays(attacker_coord, attacked_coord, !king_color))
+        {
+            is_attacked = true;
+            break;
+        }
+    }
+    return is_attacked;
+}
+
+//-----------------------------
+float KingZoneAttackLoop(UC king_color, UC &return_attackers)
+{
+    float influence_factor[] = {0, 0, 5, 15, 10, 15};
+
+    return_attackers = 0;
+    float attack_influence = 0;
+
+    int k_coord = *king_coord[king_color];
+
+    if(COL(k_coord) == 0)
+        k_coord++;
+    else if(COL(k_coord) == 7)
+        k_coord--;
+
+//    bool attacked_by_queen = false/* ,direct_q_attack = false*/;
+    int attacked_coord;
+    auto rit = coords[!king_color].rbegin();
+    ++rit;
+    for(; rit != coords[!king_color].rend(); ++rit)
+    {
+        int candid_coord = *rit;
+        if(b[candid_coord]/2 == _p/2)
+            break;
+
+        UC kza = KingZoneAttacked(k_coord, candid_coord,
+                                  king_color, attacked_coord);
+
+        if(b[candid_coord]/2 == _q/2 && !kza)
+            break;
+        if(kza)
+        {
+            return_attackers++;
+            short delta_influence = influence_factor[b[candid_coord]/2];
+            UC dist = king_dist[ABSI(k_coord - candid_coord)];
+            if(dist <= 2)
+                delta_influence *= 2;
+            if(ABSI((int)k_coord - ABSI(attacked_coord)) > 30)
+                delta_influence /= 2;
+            attack_influence += delta_influence;
+
+/*            if(b[candid_coord]/2 == _q/2)
+            {
+                attacked_by_queen = true;
+//                if(SliderAttack(candid_coord, attacked_coord))
+//                    direct_q_attack = true;
+            }
+*/
+        }
+    }
+
+//    if(!attacked_by_queen)
+//        attack_influence /= 2;
+
+    return attack_influence;
+}
+
+//-----------------------------
+void KingSafety3(UC king_color)
+{
+    if(material[!king_color] - pieces[!king_color] < 8)
+        return;
+    if(quantity[!king_color][_q/2] == 0/* && quantity[!king_color][_r/2] < 2*/)
+        return;
+
+    short ans = 0;
+    int attackers_score;
+    int shield_badness  = KingShieldFactor(king_color);
+
+    UC not_used;
+    attackers_score = KingZoneAttackLoop(king_color, not_used);
+
+    float shield_score = material[!king_color]*(1 - shield_badness)/3;
+
+    float sq = attackers_score*attackers_score;
+    ans -= sq*(8 + shield_badness)/50 - shield_score;
+
+
+    val_opn += king_color ? ans : -ans;
 }

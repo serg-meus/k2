@@ -95,3 +95,4 @@ void SetPawnStruct(int x);
 void MovePawnStruct(UC pt, UC fr, Move m);
 void InitPawnStruct();
 bool PieceListCompare(UC men1, UC men2);
+bool SliderAttackWithXRays(UC fr, UC to, unsigned char stm);

@@ -39,7 +39,6 @@ enum PriceList
     UNSTOP_P    = 650,
     DBL_PROMO_P = 65,
     OPP_NEAR_K  = 20,
-
 };
 
 //--------------------------------
@@ -54,10 +53,17 @@ void SimpleKingNearOpp(UC stm);
 bool TestUnstoppable(int x, int y, UC stm);
 short SimpleKingDist(UC stm);
 short EvalAllKingDist(UC stm, UC king_coord);
-void KingSafety(UC stm);
-int KingAttacks(UC stm);
+void KingSafety(UC king_color);
 bool TestPromo(int col, UC stm);
 void ClampedBishop(UC stm);
 short ReturnEval(UC stm);
 void MaterialImbalances();
 short EvalDebug();
+bool KingZoneAttacked(UC king_coord, UC attacker_coord,
+                      UC king_color, int &attacked_coord);
+void KingSafety2(UC king_color);
+void KingSafety3(UC king_color);
+void InitKingSafetyTable();
+float KingZoneAttackLoop(UC stm, UC *squares);
+
+
