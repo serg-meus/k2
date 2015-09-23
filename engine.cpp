@@ -10,7 +10,6 @@ double      time_spent, time_to_think;
 unsigned    max_nodes_to_search, max_search_depth;
 unsigned    root_ply, root_moves, root_move_cr;
 bool        stop, infinite_analyze, busy;
-Move        root_move_array[MAX_MOVES];
 UQ          q_nodes, cut_cr, cut_num_cr[5], q_cut_cr, q_cut_num_cr[5];
 UQ          null_probe_cr, null_cut_cr, hash_probe_cr;
 UQ          hash_hit_cr, hash_cut_cr;
@@ -23,6 +22,8 @@ int         finaly_made_moves, moves_remains;
 bool        spent_exact_time;
 unsigned    resign_cr, pv_stable_cr;
 bool        time_command_sent;
+
+std::vector<std::pair<UQ, Move> > root_moves;
 
 transposition_table tt;
 UQ  doneHashKeys[FIFTY_MOVES + max_ply];
@@ -481,15 +482,14 @@ short RootSearch(int depth, short alpha, short beta)
 
     root_move_cr = 0;
 
-    UQ prevDeltaNodes = 0;
-
     short x;
     Move  m;
     bool beta_cutoff = false;
+    const UQ unconfirmed_fail_high = -1, max_root_move_priority = -2;
 
     for(; root_move_cr < root_moves && !stop; root_move_cr++)
     {
-        m = root_move_array[root_move_cr];
+        m = root_moves.at(root_move_cr).second;
 
         MkMove(m);
 
@@ -538,6 +538,8 @@ short RootSearch(int depth, short alpha, short beta)
                         pv[0][0].flg    = 1;
                         pv[0][1]        = m;
                     }
+                    else
+                        root_moves.at(root_move_cr).first = unconfirmed_fail_high;
                 }
             }
 #else
@@ -549,14 +551,10 @@ short RootSearch(int depth, short alpha, short beta)
 
         UQ dn = nodes - _nodes;
 
-        if(x <= alpha && root_move_cr > 2 && dn > prevDeltaNodes && depth > 2)
-        {
-            Move tmp = root_move_array[root_move_cr];
-            root_move_array[root_move_cr] =
-                root_move_array[root_move_cr - 1];
-            root_move_array[root_move_cr - 1] = tmp;
-        }
-        prevDeltaNodes = dn;
+        if(root_moves.at(root_move_cr).first != unconfirmed_fail_high)
+            root_moves.at(root_move_cr).first = dn;
+        else
+            root_moves.at(root_move_cr).first = max_root_move_priority;
 
         if(x >= beta)
         {
@@ -576,17 +574,16 @@ short RootSearch(int depth, short alpha, short beta)
             && !stop)
                 PlyOutput(x);
             if(root_move_cr != 0)
-            {
-                Move tmp = root_move_array[root_move_cr];
-                memmove(&root_move_array[1], &root_move_array[0],
-                        sizeof(Move)*root_move_cr);
-                root_move_array[0] = tmp;
-            }
+                std::swap(root_moves.at(root_move_cr),
+                          root_moves.at(0));
         }
         else
             UnMove(m);
 
     }// for(; root_move_cr < root_moves
+
+//    root_move_vector.at(0).first = -1;                                  // give maximum value to PV
+    std::sort(root_moves.rbegin(), root_moves.rend() - 1);
 
     pv_stable_cr++;
     if(depth <= 3 && root_moves)
@@ -638,12 +635,16 @@ void RootMoveGen(bool in_check)
         m = Next(move_array, move_cr, &max_moves,
                  &bm_not_hashed, hs, wtm, all_moves);
     }
+    root_moves.clear();
     for(unsigned move_cr = 0; move_cr < max_moves; move_cr++)
     {
         m = move_array[move_cr];
         MkMove(m);
         if(Legal(m, in_check))
-            root_move_array[root_moves++] = m;
+        {
+            root_moves.push_back(std::pair<UQ, Move>(0, m));
+            root_moves++;
+        }
         UnMove(m);
     }
 #if (!defined(DONT_USE_RANDOMNESS) && defined(NDEBUG))
@@ -653,10 +654,10 @@ void RootMoveGen(bool in_check)
     for(unsigned i = 0; i < moves_to_shuffle; ++i)
     {
         int rand_ix = std::rand() % moves_to_shuffle;
-        std::swap(root_move_array[i], root_move_array[rand_ix]);
+        std::swap(root_moves.at(i), root_moves.at(rand_ix));
     }
 #endif // NDEBUG, RANDOMNESS
-    pv[0][1] = root_move_array[0];
+    pv[0][1] = (*root_moves.begin()).second;
 }
 
 //--------------------------------
@@ -1040,7 +1041,7 @@ bool MakeMoveFinaly(char *mov)
     char proms[] = {'?', 'q', 'n', 'r', 'b'};
     for(unsigned i = 0; i < root_moves; ++i)
     {
-        Move m  = root_move_array[i];
+        Move m  = root_moves.at(i).second;
         auto it = coords[wtm].begin();
         it = m.pc;
         rMov[0] = COL(*it) + 'a';
@@ -1836,7 +1837,7 @@ void ShowCurrentUciInfo()
     std::cout << "info nodes " << nodes
         << " nps " << (int)(1000000 * nodes / (t - time0 + 1));
 
-    Move m = root_move_array[root_move_cr];
+    Move m = root_moves.at(root_move_cr).second;
     UC fr = b_state[prev_states + 1].fr;
     std::cout << " currmove "
         << (char)(COL(fr) + 'a') << (char)(ROW(fr) + '1')

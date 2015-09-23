@@ -44,6 +44,7 @@ public:
 
     bool operator == (Move m)   {return to == m.to && pc == m.pc && flg == m.flg;}
     bool operator != (Move m)   {return to != m.to || pc != m.pc || flg != m.flg;}
+    bool operator < (const Move m) const {return scr < m.scr;}
 };
                                                                         // 'to' - coords for piece to move to (8 bit);
                                                                         // 'pc' - number of piece in 'men' array (8 bit);

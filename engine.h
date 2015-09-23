@@ -2,6 +2,7 @@
 #include "extern.h"
 #include <iomanip>
 #include <ctime>
+#include <algorithm>                // for sorting of vectors
 #include "Timer.h"
 
 //--------------------------------
