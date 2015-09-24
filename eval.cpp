@@ -466,6 +466,34 @@ void ClampedRook(UC stm)
                 val_opn += CLAMPED_R;
         }
      }
+    short ans = 0;
+    auto rit = coords[stm].rbegin();
+
+    while(rit != coords[stm].rend()
+    && (b[*rit] & ~white) != _r)
+        ++rit;
+    if(rit == coords[stm].rend())
+        return;
+
+    UC rook_on_7th_cr = 0;
+    UC row = stm ? 6 : 1;
+    if(ROW(*rit) == row)
+        rook_on_7th_cr++;
+    if(quantity[stm][_p/2] >= 4
+    && pawn_max[COL(*rit) + 1][!stm] == 0)
+        ans += (pawn_max[COL(*rit) + 1][stm] == 0 ? 54 : 10);
+    ++rit;
+    if(rit != coords[stm].rend() && (b[*rit] & ~white) == _r)
+    {
+        if(ROW(*rit) == row)
+            rook_on_7th_cr++;
+        if(quantity[stm][_p/2] >= 4
+        && pawn_max[COL(*rit) + 1][!stm] == 0)
+            ans += (pawn_max[COL(*rit) + 1][stm] == 0 ? 54 : 10);
+    }
+    ans += rook_on_7th_cr*47;
+    val_opn += (stm ? ans : -ans);
+
 }
 
 //-----------------------------
