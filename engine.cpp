@@ -414,7 +414,7 @@ void MainSearch()
     InitSearch();
 
     short sc = 0, sc_;
-    root_ply = 2;
+    root_ply = 1;
     max_root_moves = 0;
     pv_stable_cr = 0;
     for(; root_ply <= max_ply && !stop; ++root_ply)
@@ -429,9 +429,11 @@ void MainSearch()
 
         if(!infinite_analyze && !pondering_in_process)
         {
-            if(time_spent > time_to_think && !max_nodes_to_search)
+            if(time_spent > time_to_think
+            && !max_nodes_to_search
+            && root_ply >= 2)
                 break;
-            if(ABSI(sc) > mate_score && !stop)
+            if(ABSI(sc) > mate_score && !stop && root_ply >= 2)
                 break;
             if(max_root_moves == 1 && root_ply >= 8)
                 break;
@@ -1162,7 +1164,7 @@ void CheckForInterrupt()
     {
         double time1 = timer.getElapsedTimeInMicroSec();
         time_spent = time1 - time0;
-        if(time_spent >= time_to_think - 50000)
+        if(time_spent >= time_to_think - 50000 && root_ply > 2)
             stop = true;
     }
     else if((nodes & nodes_to_check_stop2)
@@ -1170,7 +1172,8 @@ void CheckForInterrupt()
     {
         double time1 = timer.getElapsedTimeInMicroSec();
         time_spent = time1 - time0;
-        if(time_spent >= 10*time_to_think - 50000)
+        if(time_spent >= 10*time_to_think - 50000
+        && root_ply > 2)
             stop = true;
     }
 
