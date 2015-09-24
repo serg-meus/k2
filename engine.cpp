@@ -52,6 +52,7 @@ short Search(int depth, short alpha, short beta,
 
 #ifndef DONT_USE_FUTILITY
     if(depth <= 2 && depth >= 0 && !in_check
+    && material[0] + material[1] > 24
     && beta < mate_score
     && Futility(depth, beta))
         return beta;
