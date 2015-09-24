@@ -8,7 +8,7 @@ Timer       timer;
 double      time0;
 double      time_spent, time_to_think;
 unsigned    max_nodes_to_search, max_search_depth;
-unsigned    root_ply, root_moves, root_move_cr;
+unsigned    root_ply, max_root_moves, root_move_cr;
 bool        stop, infinite_analyze, busy;
 UQ          q_nodes, cut_cr, cut_num_cr[5], q_cut_cr, q_cut_num_cr[5];
 UQ          null_probe_cr, null_cut_cr, hash_probe_cr;
@@ -415,7 +415,7 @@ void MainSearch()
 
     short sc = 0, sc_;
     root_ply = 2;
-    root_moves = 0;
+    max_root_moves = 0;
     pv_stable_cr = 0;
     for(; root_ply <= max_ply && !stop; ++root_ply)
     {
@@ -433,7 +433,7 @@ void MainSearch()
                 break;
             if(ABSI(sc) > mate_score && !stop)
                 break;
-            if(root_moves == 1 && root_ply >= 8)
+            if(max_root_moves == 1 && root_ply >= 8)
                 break;
         }
         if(root_ply >= max_search_depth)
@@ -477,7 +477,7 @@ short RootSearch(int depth, short alpha, short beta)
     bool in_check = Attack(*king_coord[wtm], !wtm);
     b_state[prev_states + ply].val_opn = val_opn;
     b_state[prev_states + ply].val_end = val_end;
-    if(!root_moves)
+    if(max_root_moves == 0)
         RootMoveGen(in_check);
 
     root_move_cr = 0;
@@ -487,7 +487,7 @@ short RootSearch(int depth, short alpha, short beta)
     bool beta_cutoff = false;
     const UQ unconfirmed_fail_high = -1, max_root_move_priority = -2;
 
-    for(; root_move_cr < root_moves && !stop; root_move_cr++)
+    for(; root_move_cr < max_root_moves && !stop; root_move_cr++)
     {
         m = root_moves.at(root_move_cr).second;
 
@@ -580,15 +580,15 @@ short RootSearch(int depth, short alpha, short beta)
         else
             UnMove(m);
 
-    }// for(; root_move_cr < root_moves
+    }// for(; root_move_cr < max_root_moves
 
 //    root_move_vector.at(0).first = -1;                                  // give maximum value to PV
     std::sort(root_moves.rbegin(), root_moves.rend() - 1);
 
     pv_stable_cr++;
-    if(depth <= 3 && root_moves)
+    if(depth <= 3 && max_root_moves != 0)
         PlyOutput(alpha);
-    if(!root_moves)
+    if(max_root_moves == 0)
     {
         pv[0][0].flg = 0;
         return in_check ? -K_VAL + ply : 0;
@@ -643,14 +643,14 @@ void RootMoveGen(bool in_check)
         if(Legal(m, in_check))
         {
             root_moves.push_back(std::pair<UQ, Move>(0, m));
-            root_moves++;
+            max_root_moves++;
         }
         UnMove(m);
     }
 #if (!defined(DONT_USE_RANDOMNESS) && defined(NDEBUG))
     std::srand(std::time(0));
     const unsigned max_moves_to_shuffle = 4;
-    unsigned moves_to_shuffle = std::min(root_moves, max_moves_to_shuffle);
+    unsigned moves_to_shuffle = std::min(max_root_moves, max_moves_to_shuffle);
     for(unsigned i = 0; i < moves_to_shuffle; ++i)
     {
         int rand_ix = std::rand() % moves_to_shuffle;
@@ -1034,12 +1034,12 @@ bool MakeMoveFinaly(char *mov)
     if(ln < 4 || ln > 5)
         return false;
     bool in_check = Attack(*king_coord[wtm], !wtm);
-    root_moves = 0;
+    max_root_moves = 0;
     RootMoveGen(in_check);
 
     char rMov[6];
     char proms[] = {'?', 'q', 'n', 'r', 'b'};
-    for(unsigned i = 0; i < root_moves; ++i)
+    for(unsigned i = 0; i < max_root_moves; ++i)
     {
         Move m  = root_moves.at(i).second;
         auto it = coords[wtm].begin();
