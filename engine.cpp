@@ -494,6 +494,7 @@ short RootSearch(int depth, short alpha, short beta)
         m = root_moves.at(root_move_cr).second;
 
         MkMove(m);
+        nodes++;
 
 #ifndef NDEBUG
         if(strcmp(stop_str, cv) == 0 && (!stop_ply || root_ply == stop_ply))
@@ -1420,15 +1421,15 @@ bool NullMove(int depth, short beta, bool in_check)
 bool Futility(int depth, short beta)
 {
     if(b_state[prev_states + ply].capt == 0
-    && b_state[prev_states + ply - 1].to   != 0xFF
+    && b_state[prev_states + ply - 1].to != MOVE_IS_NULL
     )
     {
 #ifndef DONT_SHOW_STATISTICS
             futility_probes++;
 #endif // DONT_SHOW_STATISTICS
         short margin = depth < 2 ? 185 : 255;
-        margin += beta;
-        if(ReturnEval(wtm) > margin)
+        short score = ReturnEval(wtm);
+        if(score > margin + beta)
         {
 #ifndef DONT_SHOW_STATISTICS
             futility_hits++;
@@ -1939,4 +1940,7 @@ r3r1k1/3q1ppp/p4n2/1p1P4/2P2bb1/5N1P/PR1NBPP1/3Q1RK1 b - - 0 21 bm Bxh3
 
 2r3k1/3b1pp1/p3p2p/q2pB2P/1brP4/2NRQP2/1PPK2P1/1R6 b - - 1 16 KS eval
 8/4B2k/2p3pp/4P3/6P1/2K5/5P1P/1r6 w - - 0 45 eval for material and PST
+8/6p1/1p1k2p1/8/7P/6P1/5P2/K7 b - - 0 35
+2R1n1k1/1p3ppp/p3p3/1q1p3N/3P2Q1/Pr2P3/1P3PPP/6K1 b - - 3 16 sd 4
+rn3rk1/p3qppp/bp3n2/2bp4/N7/1P3NP1/P1QBPPBP/R3K2R w KQ - 6 5 sd 4 am Nxc5
 */
