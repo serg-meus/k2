@@ -60,8 +60,8 @@ short Eval()
     ClampedRook(white);
     ClampedRook(black);
 
-    ClampedBishop(white);
-    ClampedBishop(black);
+    BishopMobility(white);
+    BishopMobility(black);
 
     MaterialImbalances();
 
@@ -347,15 +347,13 @@ void EvalPawns(bool stm)
 }
 
 //------------------------------
-void ClampedBishop(UC stm)
+void BishopMobility(UC stm)
 {
-    if(material[stm] - pieces[stm] < 20)
-        return;
+    short nonlin[] = {0, 8, 12, 15, 18, 20, 23, 25, 27, 28, 30, 32, 34, 35, 37, 38};
+//    if(material[stm] - pieces[stm] < 20)
+//        return;
 
-    short ans = 0;
-    int left_shift = stm ? 15 : -15;
-    int right_shift = stm ? 17 : -17;
-    bool clamped_left, clamped_right;
+    short ans = 0, cr;
 
     auto rit = coords[stm].rbegin();
 
@@ -365,51 +363,43 @@ void ClampedBishop(UC stm)
     if(rit == coords[stm].rend())
         return;
 
-    UC col = COL(*rit);
-    UC lft = b[*rit + left_shift];
-    UC rgt = b[*rit + right_shift];
-
-    clamped_left  = (col == 0 || LIGHT(lft, stm));
-    clamped_right = (col == 7 || LIGHT(rgt, stm));
-
-    if(clamped_left && clamped_right)
-        ans -= 40;
-    else if(clamped_left || clamped_right)
+    UC at;
+    cr = 0;
+    for(UC ray = 0; ray < 4; ++ray)
     {
-        int clmp_crd = *rit + 2*(clamped_left ? right_shift : left_shift);
-        if(!ONBRD(clmp_crd))
-            ans -= 15;
-        else if(b[clmp_crd] == (_p ^ !stm))
-            ans -= 40;
-        else if(b[clmp_crd] != __)
-            ans -= 15;
+        at = *rit;
+        for(UC i = 0; i < 8; ++i)
+        {
+            at += shifts[_b/2][ray];
+            if(!ONBRD(at) || b[at]/2 == _p/2)
+                break;
+            cr++;
+        }
     }
+    ans += 2*nonlin[cr] - 20;
 
     ++rit;
-    if(rit == coords[stm].rend())
+    if(rit == coords[stm].rend() || (b[*rit] & ~white) != _b)
+{
+        val_opn += stm ? ans : -ans;
+        val_end += stm ? ans : -ans;
         return;
-    if((b[*rit] & ~white) != _b)
-        return;
+}
 
-    col = COL(*rit);
-    lft = b[*rit + left_shift];
-    rgt = b[*rit + right_shift];
-
-    clamped_left  = (col == 0 || LIGHT(lft, stm));
-    clamped_right = (col == 7 || LIGHT(rgt, stm));
-
-    if(clamped_left && clamped_right)
-        ans -= 40;
-    else if(clamped_left || clamped_right)
+    cr = 0;
+    for(UC ray = 0; ray < 4; ++ray)
     {
-        int clmp_crd = *rit + 2*(clamped_left ? right_shift : left_shift);
-        if(!ONBRD(clmp_crd))
-            ans -= 15;
-        else if(b[clmp_crd] == (_p ^ !stm))
-            ans -= 40;
-        else if(b[clmp_crd] != __)
-            ans -= 15;
+        at = *rit;
+        for(UC i = 0; i < 8; ++i)
+        {
+            at += shifts[_b/2][ray];
+            if(!ONBRD(at) || b[at]/2 == _p/2)
+                break;
+            cr++;
+        }
     }
+    ans += 2*nonlin[cr] - 20;
+
 
     val_opn += stm ? ans : -ans;
     val_end += stm ? ans : -ans;
@@ -847,14 +837,14 @@ short EvalDebug()
     store_ve = val_end;
     store_sum = ReturnEval(white);
 
-    ClampedBishop(white);
+    BishopMobility(white);
     std::cout << "White bishops\t\t";
     std::cout << val_opn - store_vo << '\t' << val_end - store_ve << '\t'
               << ReturnEval(white) - store_sum << std::endl;
     store_vo = val_opn;
     store_ve = val_end;
     store_sum = ReturnEval(white);
-    ClampedBishop(black);
+    BishopMobility(black);
     std::cout << "Black bishops\t\t";
     std::cout << val_opn - store_vo << '\t' << val_end - store_ve << '\t'
               << ReturnEval(white) - store_sum << std::endl;

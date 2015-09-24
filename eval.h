@@ -55,7 +55,7 @@ short SimpleKingDist(UC stm);
 short EvalAllKingDist(UC stm, UC king_coord);
 void KingSafety(UC king_color);
 bool TestPromo(int col, UC stm);
-void ClampedBishop(UC stm);
+void BishopMobility(UC stm);
 short ReturnEval(UC stm);
 void MaterialImbalances();
 short EvalDebug();
