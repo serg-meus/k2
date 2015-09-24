@@ -527,7 +527,6 @@ short RootSearch(int depth, short alpha, short beta)
                     x = -INF;
                 if(!stop && x > alpha)
                 {
-                    pv_stable_cr = 0;
                     ShowPVfailHigh(m, x);
 
                     short x_ = -Search(depth - 1, -beta, -alpha, pv_node, no_lmr);
@@ -537,6 +536,7 @@ short RootSearch(int depth, short alpha, short beta)
                         x = x_;
                     if(x > alpha)
                     {
+                        pv_stable_cr = 0;
                         pv[0][0].flg    = 1;
                         pv[0][1]        = m;
                     }
