@@ -691,7 +691,7 @@ void MaterialImbalances()
         if(material[black] == 1 && material[white] == 4)                // KNkp, KBkp
             val_end -= B_VAL_END + P_VAL_END/4;
     }
-    else if(X == 6)                                                     // KNNk, Kknn
+    else if(X == 6 && (material[0] == 0 || material[1] == 0))           // KNNk, KBNk, KBBk, etc
     {
         if(quantity[white][_n/2] == 2
         || quantity[black][_n/2] == 2)
