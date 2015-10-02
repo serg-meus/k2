@@ -54,8 +54,8 @@ short Eval()
     EvalPawns((bool)white);
     EvalPawns((bool)black);
 
-    KingSafety(white);
-    KingSafety(black);
+    KingSafety2(white);
+    KingSafety2(black);
 
     ClampedRook(white);
     ClampedRook(black);
@@ -807,14 +807,14 @@ short EvalDebug()
     store_ve = val_end;
     store_sum = ReturnEval(white);
 
-    KingSafety(white);
+    KingSafety2(white);
     std::cout << "King safety white\t";
     std::cout << val_opn - store_vo << '\t' << val_end - store_ve << '\t'
               << ReturnEval(white) - store_sum << std::endl;
     store_vo = val_opn;
     store_ve = val_end;
     store_sum = ReturnEval(white);
-    KingSafety(black);
+    KingSafety2(black);
     std::cout << "King safety black\t";
     std::cout << val_opn - store_vo << '\t' << val_end - store_ve << '\t'
               << ReturnEval(white) - store_sum << std::endl;
