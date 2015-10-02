@@ -212,7 +212,10 @@ void EvalPawns(bool stm)
 
         int mx = pawn_max[i + 1][stm];
         if(mx == 0)
+        {
+            prev_promo = false;
             continue;
+        }
 
         if(pawn_min[i + 1][stm] != mx)
             doubled = true;
@@ -267,15 +270,16 @@ void EvalPawns(bool stm)
         if(backward)
             ansE -= 20;
 */
-        short k = *king_coord[stm];
-        short opp_k = *king_coord[!stm];
-        short pawn_coord = XY2SQ(i, stm ? mx + 1 : 7 - mx - 1);
-        short k_dist = king_dist[ABSI(k - pawn_coord)];
-        short opp_k_dist = king_dist[ABSI(opp_k - pawn_coord)];
 
         // king pawn tropism
         if(promo)
         {
+            short k = *king_coord[stm];
+            short opp_k = *king_coord[!stm];
+            short pawn_coord = XY2SQ(i, stm ? mx + 1 : 7 - mx - 1);
+            short k_dist = king_dist[ABSI(k - pawn_coord)];
+            short opp_k_dist = king_dist[ABSI(opp_k - pawn_coord)];
+
             if(k_dist <= 1)
                 ansE += 75;
             else if(k_dist == 2)
