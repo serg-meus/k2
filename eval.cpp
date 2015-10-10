@@ -470,8 +470,7 @@ void ClampedRook(UC stm)
         return;
 
     UC rook_on_7th_cr = 0;
-    UC row = stm ? 6 : 1;
-    if(ROW(*rit) == row)
+    if((stm && ROW(*rit) >= 6) || (!stm && ROW(*rit) <= 1))
         rook_on_7th_cr++;
     if(quantity[stm][_p/2] >= 4
     && pawn_max[COL(*rit) + 1][!stm] == 0)
@@ -479,7 +478,7 @@ void ClampedRook(UC stm)
     ++rit;
     if(rit != coords[stm].rend() && (b[*rit] & ~white) == _r)
     {
-        if(ROW(*rit) == row)
+        if((stm && ROW(*rit) >= 6) || (!stm && ROW(*rit) <= 1))
             rook_on_7th_cr++;
         if(quantity[stm][_p/2] >= 4
         && pawn_max[COL(*rit) + 1][!stm] == 0)
