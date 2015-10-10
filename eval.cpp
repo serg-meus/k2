@@ -871,47 +871,27 @@ short EvalDebug()
     val_opn = b_state[prev_states + ply].val_opn;
     val_end = b_state[prev_states + ply].val_end;
 
-/*    std::cout << "King zone attacks (with X-rays):" << std::endl;
-    std::cout << "- on white king: ";
+    std::cout << "King zone attacks:" << std::endl;
 
-    unsigned attackers, attacked_squares = 0, sum_attacks = 0;
-    const unsigned max_attack_counters = sizeof(king_safety_shifts) /
-            sizeof(*king_safety_shifts);
-    UC attack_counters[max_attack_counters];
-    memset(attack_counters, 0, sizeof(attack_counters));
+    for(UC i = 0; i <= 1; ++i)
+    {
+        std::cout << "- on " << (i ? "black" : "white")
+                  << " king:" << std::endl;
 
-    attackers = KingZoneAttackLoop(white, attack_counters);
-    for(UI i = 0; i < max_attack_counters; ++i)
-        if(attack_counters[i])
-        {
-            attacked_squares++;
-            sum_attacks += attack_counters[i];
-        }
-    std::cout << attackers << " attackers, " << attacked_squares
-              << " attacked squares, " << sum_attacks
-              << " attacks total" << std::endl;
+        int attackers = 0, num_attacks = 0;
 
-    std::cout << "- on black king: ";
-    attacked_squares = 0;
-    sum_attacks = 0;
-    memset(attack_counters, 0, sizeof(attack_counters));
+        KingZoneAttackLoop(i ? black : white, attackers,
+                           num_attacks);
 
-    attackers = KingZoneAttackLoop(black, attack_counters);
-    for(UI i = 0; i < max_attack_counters; ++i)
-        if(attack_counters[i])
-        {
-            attacked_squares++;
-            sum_attacks += attack_counters[i];
-        }
-    std::cout << attackers << " attackers, " << attacked_squares
-              << " attacked squares, " << sum_attacks
-              << " attacks total" << std::endl;
+        std::cout << attackers << " attackers, " << num_attacks
+                  << " attacked squares, " << std::endl;
+    }
 
 
     std::cout << std::endl << std::endl;
-*/
+
     std::cout << "Eval summary: " << (wtm ? -ans : ans) << std::endl;
-    std::cout << "(all positives are advantage for white)" << std::endl;
+    std::cout << "(positive values means advantage for white)" << std::endl;
 
     return ans;
 }
