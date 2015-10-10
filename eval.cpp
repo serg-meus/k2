@@ -12,7 +12,7 @@ UC    attack_near_king[240];
     std::vector <float> param;
 #endif // TUNE_PARAMETERS
 
-SC king_safety_shifts[] = {15, 16, 17, 1, -1, -17, -16, -15, 31, 32, 33};
+SC king_safety_shifts[] = {15, 16, 17, 1, -1, -17, -16, -15};//, 31, 32, 33};
 
 //-----------------------------
 void InitEval()
@@ -27,11 +27,6 @@ void InitEval()
             king_dist[i] = MAXI(COL(i), ROW(i));
 
     InitKingSafetyTable();
-
-#ifndef NDEBUG
-//    if(!TestKingZoneAttacked())
-//        std::cout << "King safety unit test failed" << std::endl;
-#endif
 }
 
 //-----------------------------
@@ -930,11 +925,12 @@ void InitKingSafetyTable()
 }
 
 //-----------------------------
-bool KingZoneAttacked(UC king_coord, UC attacker_coord,
-                      UC king_color, int &attacked_coord)
+bool KingZoneAttacked(int king_coord, int attacker_coord,
+                      UC king_color, int &num_attacks)
 {
     bool is_attacked = false;
     unsigned i;
+    int attacked_coord;
     const unsigned max_i = sizeof(king_safety_shifts) / 
             sizeof(*king_safety_shifts);
     for(i = 0; i < max_i; ++i)
@@ -942,30 +938,47 @@ bool KingZoneAttacked(UC king_coord, UC attacker_coord,
         attacked_coord = king_coord + king_safety_shifts[i];
         if(!ONBRD(attacked_coord))
             continue;
-        if(LIGHT(b[attacked_coord], !king_color))
-            continue;
+//        if(LIGHT(b[attacked_coord], !king_color))
+//            continue;
 
         UC piece_type = b[attacker_coord]/2;
         if(!(attacks[120 + (int)attacker_coord - attacked_coord]
         & (1 << piece_type)))
             continue;
-        if(!slider[piece_type]
-        || SliderAttackWithXRays(attacker_coord, attacked_coord, !king_color))
+
+        if(!slider[piece_type])
         {
             is_attacked = true;
-            break;
+            num_attacks++;
+        }
+        else
+        {
+            bool sl_attack = false;
+            if(piece_type == _q/2
+            && (COL(attacker_coord ) == COL(attacked_coord)
+            || ROW(attacker_coord) == ROW(attacked_coord)))
+                sl_attack = SliderAttackWithXRays(attacker_coord, attacked_coord, !king_color);
+            else
+                sl_attack = SliderAttack(attacker_coord, attacked_coord);
+
+            if(sl_attack)
+            {
+                is_attacked = true;
+                num_attacks++;
+            }
         }
     }
     return is_attacked;
 }
 
 //-----------------------------
-float KingZoneAttackLoop(UC king_color, UC &return_attackers)
+int KingZoneAttackLoop(UC king_color, int &attackers,
+                         int &num_attacks)
 {
-    float influence_factor[] = {0, 0, 5, 15, 10, 15};
+    int attack_weight[] = {0, 0, 5, 20, 12, 10};
 
-    return_attackers = 0;
-    float attack_influence = 0;
+    attackers = 0;
+    int attack_influence = 0;
 
     int k_coord = *king_coord[king_color];
 
@@ -974,8 +987,6 @@ float KingZoneAttackLoop(UC king_color, UC &return_attackers)
     else if(COL(k_coord) == 7)
         k_coord--;
 
-//    bool attacked_by_queen = false/* ,direct_q_attack = false*/;
-    int attacked_coord;
     auto rit = coords[!king_color].rbegin();
     ++rit;
     for(; rit != coords[!king_color].rend(); ++rit)
@@ -985,33 +996,18 @@ float KingZoneAttackLoop(UC king_color, UC &return_attackers)
             break;
 
         UC kza = KingZoneAttacked(k_coord, candid_coord,
-                                  king_color, attacked_coord);
+                                  king_color, num_attacks);
 
-        if(b[candid_coord]/2 == _q/2 && !kza)
-            break;
-        if(kza)
-        {
-            return_attackers++;
-            short delta_influence = influence_factor[b[candid_coord]/2];
-            UC dist = king_dist[ABSI(k_coord - candid_coord)];
-            if(dist <= 2)
-                delta_influence *= 2;
-            if(ABSI((int)k_coord - ABSI(attacked_coord)) > 30)
-                delta_influence /= 2;
-            attack_influence += delta_influence;
+        if(!kza)
+            continue;
 
-/*            if(b[candid_coord]/2 == _q/2)
-            {
-                attacked_by_queen = true;
-//                if(SliderAttack(candid_coord, attacked_coord))
-//                    direct_q_attack = true;
-            }
-*/
-        }
+        attackers++;
+        short delta_influence = attack_weight[b[candid_coord]/2];
+//        UC dist = king_dist[ABSI(k_coord - candid_coord)];
+//        if(dist <= 2)
+//            delta_influence = delta_influence*2;
+        attack_influence += num_attacks*delta_influence;
     }
-
-//    if(!attacked_by_queen)
-//        attack_influence /= 2;
 
     return attack_influence;
 }
@@ -1019,22 +1015,24 @@ float KingZoneAttackLoop(UC king_color, UC &return_attackers)
 //-----------------------------
 void KingSafety3(UC king_color)
 {
-    if(material[!king_color] - pieces[!king_color] < 8)
-        return;
     if(quantity[!king_color][_q/2] == 0/* && quantity[!king_color][_r/2] < 2*/)
         return;
 
     short ans = 0;
-    int attackers_score;
+    int sum_attacks;
+    int attackers = 0, num_attacks = 0;
     int shield_badness  = KingShieldFactor(king_color);
 
-    UC not_used;
-    attackers_score = KingZoneAttackLoop(king_color, not_used);
+    sum_attacks = KingZoneAttackLoop(king_color,
+                                         attackers,
+                                         num_attacks);
 
-    float shield_score = material[!king_color]*(1 - shield_badness)/3;
+    int shield_score = material[!king_color]*(1 - shield_badness)/3;
 
-    float sq = attackers_score*attackers_score;
-    ans -= sq*(8 + shield_badness)/50 - shield_score;
+    UC n_att[] = {0, 0, 45, 72, 85, 90, 93, 95, 96, 97, 98, 99, 100, 100, 100, 100};
+    int sq = n_att[attackers]*sum_attacks/24;
+
+    ans -= sq - shield_score;
 
 
     val_opn += king_color ? ans : -ans;
