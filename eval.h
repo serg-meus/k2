@@ -9,7 +9,7 @@
 #define MAXI(X, Y)       ((X) > (Y) ? (X) : (Y))
 
 //--------------------------------
-//#define TUNE_PARAMETERS
+#define TUNE_PARAMETERS
 #define NPARAMS 1
 
 #ifdef TUNE_PARAMETERS
@@ -59,11 +59,10 @@ void BishopMobility(UC stm);
 short ReturnEval(UC stm);
 void MaterialImbalances();
 short EvalDebug();
-bool KingZoneAttacked(UC king_coord, UC attacker_coord,
-                      UC king_color, int &attacked_coord);
+bool KingZoneAttacked(int king_coord, int attacker_coord,
+                      UC king_color, int &number_of_attacks);
 void KingSafety2(UC king_color);
 void KingSafety3(UC king_color);
 void InitKingSafetyTable();
-float KingZoneAttackLoop(UC stm, UC *squares);
-
-
+int KingZoneAttackLoop(UC king_color, int &attackers,
+                         int &attacks);
