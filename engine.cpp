@@ -1111,7 +1111,7 @@ void InitEngine()
 #ifndef DONT_USE_HISTORY
     memset(history, 0, sizeof(history));
 #endif // DONT_USE_HISTORY
-//    memset(doneHashKeys, 0, sizeof(doneHashKeys));  
+//    memset(doneHashKeys, 0, sizeof(doneHashKeys));
 }
 
 //--------------------------------
@@ -1944,4 +1944,6 @@ r3r1k1/3q1ppp/p4n2/1p1P4/2P2bb1/5N1P/PR1NBPP1/3Q1RK1 b - - 0 21 bm Bxh3
 8/6p1/1p1k2p1/8/7P/6P1/5P2/K7 b - - 0 35
 2R1n1k1/1p3ppp/p3p3/1q1p3N/3P2Q1/Pr2P3/1P3PPP/6K1 b - - 3 16 sd 4
 rn3rk1/p3qppp/bp3n2/2bp4/N7/1P3NP1/P1QBPPBP/R3K2R w KQ - 6 5 sd 4 am Nxc5
+8/8/4b3/b2p4/P4pkP/1R6/5B2/2K5 b - - 0 48 black pawns eval
+rr4k1/1pq2p1p/p2b2p1/2pPp3/P1P1P3/4N2P/1R2QPP1/1R4K1 b - - 1 28 am Ra7
 */

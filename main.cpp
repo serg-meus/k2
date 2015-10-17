@@ -690,7 +690,7 @@ void SetvalueCommand(std::string in)
 #ifdef TUNE_PARAMETERS
     std::string arg1, arg2;
     GetFirstArg(in, &arg1, &arg2);
-    if(arg1 == "iid_marg")
+    if(arg1 == "k_saf")
     {
         param.at(0) = atof(arg2.c_str());
     }
