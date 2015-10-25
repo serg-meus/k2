@@ -1182,47 +1182,76 @@ void CheckForInterrupt()
 }
 
 //--------------------------------
-void MkMove(Move m)
+void StoreCurrentBoardState(Move m, UC fr, UC targ)
 {
-    bool specialMove = false;
-    ply++;
-    b_state[prev_states + ply].cstl   = b_state[prev_states + ply - 1].cstl;
+    b_state[prev_states + ply].cstl  = b_state[prev_states + ply - 1].cstl;
     b_state[prev_states + ply].capt  = b[m.to];
-    auto it = coords[wtm].begin();
-    it      = m.pc;
-    UC fr   = *it;
-    UC targ = m.to;
+
     b_state[prev_states + ply].fr = fr;
     b_state[prev_states + ply].to = targ;
     b_state[prev_states + ply].reversibleCr = reversible_moves;
     reversible_moves++;
+}
+
+//--------------------------------
+void ProcessCapture(Move m, UC targ)
+{
+    if (m.flg & mENPS)
+    {
+        targ += wtm ? -16 : 16;
+        material[!wtm]--;
+        quantity[!wtm][_p/2]--;
+    }
+    else
+    {
+        material[!wtm] -=
+                pc_streng[b_state[prev_states + ply].capt/2 - 1];
+        quantity[!wtm][b_state[prev_states + ply].capt/2]--;
+    }
+
+    auto it_cap = coords[!wtm].begin();
+    auto it_end = coords[!wtm].end();
+    for(; it_cap != it_end; ++it_cap)
+        if(*it_cap == targ)
+            break;
+    assert(it_cap != it_end);
+    b_state[prev_states + ply].captured_it = it_cap;
+    coords[!wtm].erase(it_cap);
+    pieces[!wtm]--;
+    reversible_moves = 0;
+}
+
+//--------------------------------
+void ProcessPromotion(Move m, short_list<UC, lst_sz>::iterator it)
+{
+    int prIx = m.flg & mPROM;
+    UC prPc[] = {0, _q, _n, _r, _b};
+    if(prIx)
+    {
+        b[m.to] = prPc[prIx] ^ wtm;
+        material[wtm] += pc_streng[prPc[prIx]/2 - 1] - 1;
+        quantity[wtm][_p/2]--;
+        quantity[wtm][prPc[prIx]/2]++;
+        b_state[prev_states + ply].nprom = ++it;
+        --it;
+        coords[wtm].move_element(king_coord[wtm], it);
+        reversible_moves = 0;
+    }
+}
+
+//--------------------------------
+void MkMove(Move m)
+{
+    bool specialMove = false;
+    ply++;
+    auto it = coords[wtm].begin();
+    it      = m.pc;
+    UC fr   = *it;
+    UC targ = m.to;
+    StoreCurrentBoardState(m, fr, targ);
 
     if(m.flg & mCAPT)
-    {
-        if (m.flg & mENPS)
-        {
-            targ += wtm ? -16 : 16;
-            material[!wtm]--;
-            quantity[!wtm][_p/2]--;
-        }
-        else
-        {
-            material[!wtm] -=
-                    pc_streng[b_state[prev_states + ply].capt/2 - 1];
-            quantity[!wtm][b_state[prev_states + ply].capt/2]--;
-        }
-
-        auto it_cap = coords[!wtm].begin();
-        auto it_end = coords[!wtm].end();
-        for(; it_cap != it_end; ++it_cap)
-            if(*it_cap == targ)
-                break;
-        assert(it_cap != it_end);
-        b_state[prev_states + ply].captured_it = it_cap;
-        coords[!wtm].erase(it_cap);
-        pieces[!wtm]--;
-        reversible_moves = 0;
-    }// if capture
+        ProcessCapture(m, targ);
 
     if((b[fr] <= _R) || (m.flg & mCAPT))        // trick: fast exit if not K|Q|R moves, and no captures
         specialMove |= MakeCastle(m, fr);
@@ -1240,29 +1269,13 @@ void MkMove(Move m)
     b[m.to]     = b[fr];
     b[fr]       = __;
 
-    int prIx = m.flg & mPROM;
-    UC prPc[] = {0, _q, _n, _r, _b};
-    if(prIx)
-    {
-        b[m.to] = prPc[prIx] ^ wtm;
-        material[wtm] += pc_streng[prPc[prIx]/2 - 1] - 1;
-        quantity[wtm][_p/2]--;
-        quantity[wtm][prPc[prIx]/2]++;
-        b_state[prev_states + ply].nprom = ++it;
-        --it;
-        coords[wtm].move_element(king_coord[wtm], it);
-        reversible_moves = 0;
-    }
+    if(m.flg & mPROM)
+        ProcessPromotion(m, it);
+
     *it   = m.to;
 
     doneHashKeys[FIFTY_MOVES + ply - 1] = hash_key;
     MoveHashKey(m, fr, specialMove);
-#ifndef NDEBUG
-        UQ tmp_key = InitHashKey() ^ -1ULL;
-        if(tmp_key != hash_key)
-            ply = ply;
-        assert(tmp_key == hash_key);
-#endif //NDEBUG
 
     MovePawnStruct(b[m.to], fr, m);
 

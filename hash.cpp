@@ -98,12 +98,20 @@ void MoveHashKey(Move m, UC fr, int special)
                  ^  zorb_castling[f.cstl];
     }
     hash_key ^= -1L;
-    if(!special)
-        return;
-    if((pt & ~white) == _p && !f.capt)
-        hash_key ^= zorb_en_passant[f.ep];
-    else
-        hash_key ^= zorb_castling[_f.cstl] ^ zorb_castling[f.cstl];
+    if(special)
+    {
+        if((pt & ~white) == _p && !f.capt)
+            hash_key ^= zorb_en_passant[f.ep];
+        else
+            hash_key ^= zorb_castling[_f.cstl] ^ zorb_castling[f.cstl];
+    }
+
+#ifndef NDEBUG
+        UQ tmp_key = InitHashKey() ^ -1ULL;
+        if(tmp_key != hash_key)
+            ply = ply;
+        assert(tmp_key == hash_key);
+#endif //NDEBUG
 }
 
 //--------------------------------
