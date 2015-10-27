@@ -32,6 +32,8 @@ char cur_moves[5*max_ply];
 
 short_list<UC, lst_sz>::iterator king_coord[2];
 UC quantity[2][6 + 1];
+
+short val_opn, val_end;
 //--------------------------------
 void InitChess()
 {
@@ -554,4 +556,184 @@ bool SliderAttackWithXRays(UC fr, UC to, UC stm)
             return false;
     }
     return true;
+}
+
+//--------------------------------
+void StoreCurrentBoardState(Move m, UC fr, UC targ)
+{
+    b_state[prev_states + ply].cstl  = b_state[prev_states + ply - 1].cstl;
+    b_state[prev_states + ply].capt  = b[m.to];
+
+    b_state[prev_states + ply].fr = fr;
+    b_state[prev_states + ply].to = targ;
+    b_state[prev_states + ply].reversibleCr = reversible_moves;
+    reversible_moves++;
+}
+
+//--------------------------------
+void MakeCapture(Move m, UC targ)
+{
+    if (m.flg & mENPS)
+    {
+        targ += wtm ? -16 : 16;
+        material[!wtm]--;
+        quantity[!wtm][_p/2]--;
+    }
+    else
+    {
+        material[!wtm] -=
+                pc_streng[b_state[prev_states + ply].capt/2 - 1];
+        quantity[!wtm][b_state[prev_states + ply].capt/2]--;
+    }
+
+    auto it_cap = coords[!wtm].begin();
+    auto it_end = coords[!wtm].end();
+    for(; it_cap != it_end; ++it_cap)
+        if(*it_cap == targ)
+            break;
+    assert(it_cap != it_end);
+    b_state[prev_states + ply].captured_it = it_cap;
+    coords[!wtm].erase(it_cap);
+    pieces[!wtm]--;
+    reversible_moves = 0;
+}
+
+//--------------------------------
+void MakePromotion(Move m, short_list<UC, lst_sz>::iterator it)
+{
+    int prIx = m.flg & mPROM;
+    UC prPc[] = {0, _q, _n, _r, _b};
+    if(prIx)
+    {
+        b[m.to] = prPc[prIx] ^ wtm;
+        material[wtm] += pc_streng[prPc[prIx]/2 - 1] - 1;
+        quantity[wtm][_p/2]--;
+        quantity[wtm][prPc[prIx]/2]++;
+        b_state[prev_states + ply].nprom = ++it;
+        --it;
+        coords[wtm].move_element(king_coord[wtm], it);
+        reversible_moves = 0;
+    }
+}
+
+//--------------------------------
+bool MkMove(Move m)
+{
+    bool special_move = false;
+    ply++;
+    auto it = coords[wtm].begin();
+    it      = m.pc;
+    UC fr   = *it;
+    UC targ = m.to;
+    StoreCurrentBoardState(m, fr, targ);
+
+    if(m.flg & mCAPT)
+        MakeCapture(m, targ);
+
+    if((b[fr] <= _R) || (m.flg & mCAPT))        // trick: fast exit if not K|Q|R moves, and no captures
+        special_move |= MakeCastle(m, fr);
+
+    b_state[prev_states + ply].ep = 0;
+    if((b[fr] ^ wtm) == _p)
+    {
+        special_move     |= MakeEP(m, fr);
+        reversible_moves = 0;
+    }
+#ifndef NDEBUG
+    ShowMove(fr, m.to);
+#endif // NDEBUG
+
+    b[m.to]     = b[fr];
+    b[fr]       = __;
+
+    if(m.flg & mPROM)
+        MakePromotion(m, it);
+
+    *it   = m.to;
+
+    MovePawnStruct(b[m.to], fr, m);
+
+    wtm ^= white;
+    return special_move;
+}
+
+//--------------------------------
+void UnmakeCapture(Move m)
+{
+    auto it_cap = coords[!wtm].begin();
+    it_cap = b_state[prev_states + ply].captured_it;
+
+    if(m.flg & mENPS)
+    {
+        material[!wtm]++;
+        quantity[!wtm][_p/2]++;
+        if(wtm)
+        {
+            b[m.to - 16] = _p;
+            *it_cap = m.to - 16;
+        }
+        else
+        {
+            b[m.to + 16] = _P;
+            *it_cap = m.to + 16;
+        }
+    }// if en_pass
+    else
+    {
+        material[!wtm]
+            += pc_streng[b_state[prev_states + ply].capt/2 - 1];
+        quantity[!wtm][b_state[prev_states + ply].capt/2]++;
+    }
+
+    coords[!wtm].restore(it_cap);
+    pieces[!wtm]++;
+}
+//--------------------------------
+void UnmakePromotion(Move m)
+{
+    UC prPc[] = {0, _q, _n, _r, _b};
+
+    int prIx = m.flg & mPROM;
+
+    auto it_prom = coords[wtm].begin();
+    it_prom = b_state[prev_states + ply].nprom;
+    auto before_king = king_coord[wtm];
+    --before_king;
+    coords[wtm].move_element(it_prom, before_king);
+    material[wtm] -= pc_streng[prPc[prIx]/2 - 1] - 1;
+    quantity[wtm][_p/2]++;
+    quantity[wtm][prPc[prIx]/2]--;
+}
+//--------------------------------
+void UnMove(Move m)
+{
+    UC fr = b_state[prev_states + ply].fr;
+    auto it = coords[!wtm].begin();
+    it = m.pc;
+    *it = fr;
+    b[fr] = (m.flg & mPROM) ? _P ^ wtm : b[m.to];
+    b[m.to] = b_state[prev_states + ply].capt;
+
+    reversible_moves = b_state[prev_states + ply].reversibleCr;
+
+    wtm ^= white;
+
+    if(m.flg & mCAPT)
+        UnmakeCapture(m);
+
+    if(m.flg & mPROM)
+        UnmakePromotion(m);
+
+    if(m.flg & mCSTL)
+        UnMakeCastle(m);
+
+    MovePawnStruct(b[fr], fr, m);
+
+    ply--;
+    val_opn = b_state[prev_states + ply].val_opn;
+    val_end = b_state[prev_states + ply].val_end;
+
+#ifndef NDEBUG
+    cur_moves[5*ply] = '\0';
+#endif // NDEBUG
 }

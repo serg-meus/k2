@@ -62,8 +62,6 @@ bool FenStringToEngine(char *fen);
 bool DrawDetect();
 bool SimpleDrawByRepetition();
 void CheckForInterrupt();
-void MkMove(Move m);
-void UnMove(Move m);
 bool DrawByRepetitionInRoot(Move lastMove);
 void MakeNullMove();
 void UnMakeNullMove();

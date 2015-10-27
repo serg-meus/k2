@@ -4,11 +4,12 @@
 
 //--------------------------------
 #define MEN_TO_ZORB(X) ((X) - 2)
+#define FIFTY_MOVES 101       // because last 50th move can be a mate
 
 //--------------------------------
 bool    InitHashTable();
 UQ      InitHashKey();
-void    MoveHashKey(Move m, UC fr, int special);
+void    MoveHashKey(Move m, bool special);
 
 enum {hNONE, hEXACT, hUPPER, hLOWER};
 

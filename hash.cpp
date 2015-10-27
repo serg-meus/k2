@@ -5,6 +5,7 @@ UQ  zorb[12][8][8],
     zorb_en_passant[9],
     zorb_castling[16];
 
+UQ  doneHashKeys[FIFTY_MOVES + max_ply];
 //--------------------------------
 bool InitHashTable()
 {
@@ -54,8 +55,11 @@ UQ InitHashKey()
 }
 
 //--------------------------------
-void MoveHashKey(Move m, UC fr, int special)
+void MoveHashKey(Move m, bool special)
 {
+    doneHashKeys[FIFTY_MOVES + ply - 1] = hash_key;
+    UC fr = b_state[prev_states + ply].fr;
+
     UC pt   = b[m.to];
     BrdState &f = b_state[prev_states + ply],
             &_f = b_state[prev_states + ply - 1];
@@ -69,14 +73,14 @@ void MoveHashKey(Move m, UC fr, int special)
         hash_key ^= zorb_en_passant[_f.ep];
 
     if(m.flg & mPROM)
-        hash_key ^= zorb[MEN_TO_ZORB(_p ^ wtm)][COL(fr)][ROW(fr)]
+        hash_key ^= zorb[MEN_TO_ZORB(_P ^ wtm)][COL(fr)][ROW(fr)]
                ^ zorb[MEN_TO_ZORB(pt)][COL(fr)][ROW(fr)];
     else if(m.flg & mENPS)
-        hash_key ^= zorb[MEN_TO_ZORB(_P ^ wtm)][COL(m.to)]
-            [ROW(m.to) + (wtm ? -1 : 1)];
+        hash_key ^= zorb[MEN_TO_ZORB(_p ^ wtm)][COL(m.to)]
+            [ROW(m.to) + (wtm ? 1 : -1)];
     else if(m.flg & mCSTL)
     {
-        if(wtm)
+        if(!wtm)
         {
             if(m.flg & mCS_K)
                 hash_key ^= zorb[MEN_TO_ZORB(_R)][7][0]
@@ -107,10 +111,10 @@ void MoveHashKey(Move m, UC fr, int special)
     }
 
 #ifndef NDEBUG
-        UQ tmp_key = InitHashKey() ^ -1ULL;
-        if(tmp_key != hash_key)
-            ply = ply;
-        assert(tmp_key == hash_key);
+    UQ tmp_key = InitHashKey();
+    if(tmp_key != hash_key)
+        ply = ply;
+    assert(tmp_key == hash_key);
 #endif //NDEBUG
 }
 

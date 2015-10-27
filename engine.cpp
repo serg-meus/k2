@@ -26,7 +26,6 @@ bool        time_command_sent;
 std::vector<std::pair<UQ, Move> > root_moves;
 
 transposition_table tt;
-UQ  doneHashKeys[FIFTY_MOVES + max_ply];
 
 //--------------------------------
 short Search(int depth, short alpha, short beta,
@@ -110,7 +109,8 @@ short Search(int depth, short alpha, short beta,
         if(max_moves <= 0)
             break;
 
-        MkMove(m);
+        bool special_move = MkMove(m);
+        MoveHashKey(m, special_move);
 #ifndef NDEBUG
         if((!stop_ply || root_ply == stop_ply) && strcmp(stop_str, cv) == 0)
             ply = ply;
@@ -118,6 +118,7 @@ short Search(int depth, short alpha, short beta,
         if(!Legal(m, in_check))
         {
             UnMove(m);
+            hash_key = doneHashKeys[FIFTY_MOVES + ply];
             continue;
         }
 
@@ -127,6 +128,7 @@ short Search(int depth, short alpha, short beta,
     && m.scr <= FIRST_KILLER)                                               // no move from hash table
     {
         UnMove(m);
+        hash_key = doneHashKeys[FIFTY_MOVES + ply];
         short iid_low_bound  = alpha <= -mate_score ? alpha : alpha - 10;
         short iid_high_bound = beta  >=  mate_score ? beta  : beta  + 10;
         x = Search(depth - 2, iid_low_bound, iid_high_bound, node_type, no_lmr);
@@ -135,10 +137,12 @@ short Search(int depth, short alpha, short beta,
         in_hash = true;
         m = Next(move_array, move_cr, &max_moves,
                  &in_hash, entry, wtm, all_moves);
-        MkMove(m);
+        bool special_move = MkMove(m);
+        MoveHashKey(m, fr, specialMove);
         if(!Legal(m, in_check))
         {
             UnMove(m);
+            hash_key = doneHashKeys[FIFTY_MOVES + ply];
             continue;
         }
     }
@@ -184,6 +188,7 @@ short Search(int depth, short alpha, short beta,
         {
             beta_cutoff = true;
             UnMove(m);
+            hash_key = doneHashKeys[FIFTY_MOVES + ply];
             break;
         }
         else if(x > alpha)
@@ -192,6 +197,7 @@ short Search(int depth, short alpha, short beta,
             StorePV(m);
         }
         UnMove(m);
+        hash_key = doneHashKeys[FIFTY_MOVES + ply];
     }// for move_cr
 
     if(!legals && _alpha <= mate_score)
@@ -494,7 +500,8 @@ short RootSearch(int depth, short alpha, short beta)
     {
         m = root_moves.at(root_move_cr).second;
 
-        MkMove(m);
+        bool special_move = MkMove(m);
+        MoveHashKey(m, special_move);
         nodes++;
 
 #ifndef NDEBUG
@@ -564,6 +571,7 @@ short RootSearch(int depth, short alpha, short beta)
         {
             beta_cutoff = true;
             UnMove(m);
+            hash_key = doneHashKeys[FIFTY_MOVES + ply];
             break;
         }
         else if(x > alpha)
@@ -573,6 +581,7 @@ short RootSearch(int depth, short alpha, short beta)
             alpha = x;
             StorePV(m);
             UnMove(m);
+            hash_key = doneHashKeys[FIFTY_MOVES + ply];
 
             if(depth > 3 && x != -INF
             && !stop)
@@ -582,7 +591,10 @@ short RootSearch(int depth, short alpha, short beta)
                           root_moves.at(0));
         }
         else
+        {
             UnMove(m);
+            hash_key = doneHashKeys[FIFTY_MOVES + ply];
+        }
 
     }// for(; root_move_cr < max_root_moves
 
@@ -609,6 +621,7 @@ short RootSearch(int depth, short alpha, short beta)
 void ShowPVfailHigh(Move m, short x)
 {
     UnMove(m);
+    hash_key = doneHashKeys[FIFTY_MOVES + ply];
     char mstr[6];
     MoveToStr(m, wtm, mstr);
 
@@ -621,7 +634,8 @@ void ShowPVfailHigh(Move m, short x)
     pv[0][0].flg    = tmp0.flg;
     pv[0][1]        = tmp1;
 
-    MkMove(m);
+    bool special_move = MkMove(m);
+    MoveHashKey(m, special_move);
     FastEval(m);
 }
 
@@ -1060,7 +1074,8 @@ bool MakeMoveFinaly(char *mov)
             auto it = coords[wtm].begin();
             it = m.pc;
 
-            MkMove(m);
+            bool special_move = MkMove(m);
+            MoveHashKey(m, special_move);
 
             FastEval(m);
 
@@ -1179,182 +1194,6 @@ void CheckForInterrupt()
             stop = true;
     }
 
-}
-
-//--------------------------------
-void StoreCurrentBoardState(Move m, UC fr, UC targ)
-{
-    b_state[prev_states + ply].cstl  = b_state[prev_states + ply - 1].cstl;
-    b_state[prev_states + ply].capt  = b[m.to];
-
-    b_state[prev_states + ply].fr = fr;
-    b_state[prev_states + ply].to = targ;
-    b_state[prev_states + ply].reversibleCr = reversible_moves;
-    reversible_moves++;
-}
-
-//--------------------------------
-void ProcessCapture(Move m, UC targ)
-{
-    if (m.flg & mENPS)
-    {
-        targ += wtm ? -16 : 16;
-        material[!wtm]--;
-        quantity[!wtm][_p/2]--;
-    }
-    else
-    {
-        material[!wtm] -=
-                pc_streng[b_state[prev_states + ply].capt/2 - 1];
-        quantity[!wtm][b_state[prev_states + ply].capt/2]--;
-    }
-
-    auto it_cap = coords[!wtm].begin();
-    auto it_end = coords[!wtm].end();
-    for(; it_cap != it_end; ++it_cap)
-        if(*it_cap == targ)
-            break;
-    assert(it_cap != it_end);
-    b_state[prev_states + ply].captured_it = it_cap;
-    coords[!wtm].erase(it_cap);
-    pieces[!wtm]--;
-    reversible_moves = 0;
-}
-
-//--------------------------------
-void ProcessPromotion(Move m, short_list<UC, lst_sz>::iterator it)
-{
-    int prIx = m.flg & mPROM;
-    UC prPc[] = {0, _q, _n, _r, _b};
-    if(prIx)
-    {
-        b[m.to] = prPc[prIx] ^ wtm;
-        material[wtm] += pc_streng[prPc[prIx]/2 - 1] - 1;
-        quantity[wtm][_p/2]--;
-        quantity[wtm][prPc[prIx]/2]++;
-        b_state[prev_states + ply].nprom = ++it;
-        --it;
-        coords[wtm].move_element(king_coord[wtm], it);
-        reversible_moves = 0;
-    }
-}
-
-//--------------------------------
-void MkMove(Move m)
-{
-    bool specialMove = false;
-    ply++;
-    auto it = coords[wtm].begin();
-    it      = m.pc;
-    UC fr   = *it;
-    UC targ = m.to;
-    StoreCurrentBoardState(m, fr, targ);
-
-    if(m.flg & mCAPT)
-        ProcessCapture(m, targ);
-
-    if((b[fr] <= _R) || (m.flg & mCAPT))        // trick: fast exit if not K|Q|R moves, and no captures
-        specialMove |= MakeCastle(m, fr);
-
-    b_state[prev_states + ply].ep = 0;
-    if((b[fr] ^ wtm) == _p)
-    {
-        specialMove     |= MakeEP(m, fr);
-        reversible_moves = 0;
-    }
-#ifndef NDEBUG
-    ShowMove(fr, m.to);
-#endif // NDEBUG
-
-    b[m.to]     = b[fr];
-    b[fr]       = __;
-
-    if(m.flg & mPROM)
-        ProcessPromotion(m, it);
-
-    *it   = m.to;
-
-    doneHashKeys[FIFTY_MOVES + ply - 1] = hash_key;
-    MoveHashKey(m, fr, specialMove);
-
-    MovePawnStruct(b[m.to], fr, m);
-
-    wtm ^= white;
-}
-
-//--------------------------------
-void UnMove(Move m)
-{
-    UC fr = b_state[prev_states + ply].fr;
-    auto it = coords[!wtm].begin();
-    it = m.pc;
-    *it = fr;
-    b[fr] = (m.flg & mPROM) ? _P ^ wtm : b[m.to];
-    b[m.to] = b_state[prev_states + ply].capt;
-
-    reversible_moves = b_state[prev_states + ply].reversibleCr;
-
-    hash_key = doneHashKeys[FIFTY_MOVES + ply - 1];
-
-    wtm ^= white;
-
-    if(m.flg & mCAPT)
-    {
-        auto it_cap = coords[!wtm].begin();
-        it_cap = b_state[prev_states + ply].captured_it;
-
-        if(m.flg & mENPS)
-        {
-            material[!wtm]++;
-            quantity[!wtm][_p/2]++;
-            if(wtm)
-            {
-                b[m.to - 16] = _p;
-                *it_cap = m.to - 16;
-            }
-            else
-            {
-                b[m.to + 16] = _P;
-                *it_cap = m.to + 16;
-            }
-        }// if en_pass
-        else
-        {
-            material[!wtm]
-                += pc_streng[b_state[prev_states + ply].capt/2 - 1];
-            quantity[!wtm][b_state[prev_states + ply].capt/2]++;
-        }
-
-        coords[!wtm].restore(it_cap);
-        pieces[!wtm]++;
-    }// if capture
-
-    int prIx = m.flg & mPROM;
-    UC prPc[] = {0, _q, _n, _r, _b};
-    if(prIx)
-    {
-        auto it_prom = coords[wtm].begin();
-        it_prom = b_state[prev_states + ply].nprom;
-        auto before_king = king_coord[wtm];
-        --before_king;
-        coords[wtm].move_element(it_prom, before_king);
-        material[wtm] -= pc_streng[prPc[prIx]/2 - 1] - 1;
-        quantity[wtm][_p/2]++;
-        quantity[wtm][prPc[prIx]/2]--;
-    }
-
-    if(m.flg & mCSTL)
-        UnMakeCastle(m);
-
-    MovePawnStruct(b[fr], fr, m);
-
-    ply--;
-    val_opn = b_state[prev_states + ply].val_opn;
-    val_end = b_state[prev_states + ply].val_end;
-
-#ifndef NDEBUG
-    cur_moves[5*ply] = '\0';
-#endif // NDEBUG
 }
 
 //--------------------------------------

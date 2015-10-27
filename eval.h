@@ -5,7 +5,6 @@
 #include "extern.h"
 
 //--------------------------------
-#define FIFTY_MOVES 101       // because last 50th move can be a mate
 #define MAXI(X, Y)       ((X) > (Y) ? (X) : (Y))
 
 //--------------------------------

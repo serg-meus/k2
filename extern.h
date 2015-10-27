@@ -38,4 +38,5 @@ extern char     king_dist[120];
 extern float    pst_gain[6][2];
 extern short    sort_streng[7];
 extern UC       quantity[2][6 + 1];
+extern UQ       doneHashKeys[101 + max_ply];
 #endif
