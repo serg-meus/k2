@@ -133,9 +133,6 @@ transposition_table::transposition_table(unsigned size_mb) : entries_in_a_bucket
 //--------------------------------
 transposition_table::~transposition_table()
 {
-    for (UI i = 0; i < buckets; ++i)
-        delete[] data[i];
-
     delete[] data;
 }
 
@@ -152,12 +149,12 @@ bool transposition_table::set_size(unsigned size_mb)
         MSB_count++;
     sz = (1 << MSB_count);
 
-    if((data = new tt_entry*[sz]) == nullptr)
+    if((data = new tt_entry[entries_in_a_bucket*sz]) == nullptr)
+    {
+        std::cout << "error: can't allocate memory for hash table"
+                  << std::endl;
         ans = false;
-    if(ans)
-        for(unsigned i = 0; i < sz; ++i)
-            if((data[i] = new tt_entry[entries_in_a_bucket]) == nullptr)
-                ans = false;
+    }
 
     if(ans)
     {
@@ -170,10 +167,9 @@ bool transposition_table::set_size(unsigned size_mb)
     {
         buckets = 0;
         mask = 0;
-        data = new tt_entry*[1];
-        data[0] = new tt_entry[1];
+        data = new tt_entry[1];
 
-        memset(&data[0][0], 0, sizeof(tt_entry));
+        memset(data, 0, sizeof(tt_entry));
     }
 
     return ans;
@@ -183,9 +179,8 @@ bool transposition_table::set_size(unsigned size_mb)
 void transposition_table::clear()
 {
     _size = 0;
-    for(UI i = 0; i < buckets; ++i)
-        for(UI j = 0; j < entries_in_a_bucket; ++j)
-            memset(&data[i][j], 0, sizeof(tt_entry));
+    memset(data, 0,
+           sizeof(tt_entry)*buckets*entries_in_a_bucket);
 }
 
 //--------------------------------
@@ -193,7 +188,7 @@ void transposition_table::add(UQ key, short value, Move best,
                               UI depth, UI bound_type, UI age)
 {
     unsigned i;
-    tt_entry *bucket = data[key & mask];                                // looking for already existed entries for the same position
+    tt_entry *bucket = &data[entries_in_a_bucket*(key & mask)];          // looking for already existed entries for the same position
     for(i = 0; i < entries_in_a_bucket; ++i)
         if(bucket[i].key == (key >> 32))
             break;
@@ -238,7 +233,7 @@ void transposition_table::add(UQ key, short value, Move best,
 unsigned transposition_table::count(UQ key)
 {
     unsigned i, ans = 0;
-    tt_entry *bucket = data[key & mask];
+    tt_entry *bucket = &data[entries_in_a_bucket*(key & mask)];
     for(i = 0; i < entries_in_a_bucket; ++i)
         if(bucket[i].key == key >> 32)
             ans++;
@@ -250,7 +245,7 @@ unsigned transposition_table::count(UQ key)
 unsigned transposition_table::count(UQ key, tt_entry **entry)
 {
     unsigned i, ans = 0;
-    tt_entry *bucket = data[key & mask];
+    tt_entry *bucket = &data[entries_in_a_bucket*(key & mask)];
     for(i = 0; i < entries_in_a_bucket; ++i, ++bucket)
         if(bucket->key == key >> 32)
         {
@@ -265,7 +260,7 @@ unsigned transposition_table::count(UQ key, tt_entry **entry)
 tt_entry& transposition_table::operator [](UQ key)
 {
     unsigned i, ans = 0;
-    tt_entry *bucket = data[key & mask];
+    tt_entry *bucket = &data[entries_in_a_bucket*(key & mask)];
     for(i = 0; i < entries_in_a_bucket; ++i)
         if(bucket[i].key == key >> 32)
             ans++;
@@ -276,8 +271,6 @@ tt_entry& transposition_table::operator [](UQ key)
 //--------------------------------
 bool transposition_table::resize(unsigned size_mb)
 {
-    for (UI i = 0; i < buckets; ++i)
-        delete[] data[i];
     delete[] data;
 
     return set_size(size_mb);

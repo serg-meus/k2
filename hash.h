@@ -53,7 +53,7 @@ public:
 
 //////////
 protected:
-    tt_entry **data;
+    tt_entry *data;
 
     const unsigned entries_in_a_bucket;
     unsigned buckets;
