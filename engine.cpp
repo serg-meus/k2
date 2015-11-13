@@ -109,8 +109,7 @@ short Search(int depth, short alpha, short beta,
         if(max_moves <= 0)
             break;
 
-        bool special_move = MkMove(m);
-        MoveHashKey(m, special_move);
+        MoveHashKey(m, MkMove(m));
 #ifndef NDEBUG
         if((!stop_ply || root_ply == stop_ply) && strcmp(stop_str, cv) == 0)
             ply = ply;
@@ -137,8 +136,7 @@ short Search(int depth, short alpha, short beta,
         in_hash = true;
         m = Next(move_array, move_cr, &max_moves,
                  &in_hash, entry, wtm, all_moves);
-        bool special_move = MkMove(m);
-        MoveHashKey(m, fr, specialMove);
+        MoveHashKey(m, MkMove(m));
         if(!Legal(m, in_check))
         {
             UnMove(m);
@@ -500,8 +498,7 @@ short RootSearch(int depth, short alpha, short beta)
     {
         m = root_moves.at(root_move_cr).second;
 
-        bool special_move = MkMove(m);
-        MoveHashKey(m, special_move);
+        MoveHashKey(m, MkMove(m));
         nodes++;
 
 #ifndef NDEBUG
@@ -634,8 +631,7 @@ void ShowPVfailHigh(Move m, short x)
     pv[0][0].flg    = tmp0.flg;
     pv[0][1]        = tmp1;
 
-    bool special_move = MkMove(m);
-    MoveHashKey(m, special_move);
+    MoveHashKey(m, MkMove(m));
     FastEval(m);
 }
 
@@ -1074,9 +1070,7 @@ bool MakeMoveFinaly(char *mov)
             auto it = coords[wtm].begin();
             it = m.pc;
 
-            bool special_move = MkMove(m);
-            MoveHashKey(m, special_move);
-
+            MoveHashKey(m, MkMove(m));
             FastEval(m);
 
             short _valOpn_ = val_opn;
