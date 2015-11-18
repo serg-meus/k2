@@ -596,9 +596,10 @@ void UciGoCommand(std::string in)
             GetFirstArg(arg2, &arg1, &arg2);
             time_base     = 0;
             moves_per_session      = 1;
-            time_inc      = atof(arg1.c_str())*1000;
+            time_inc      = 1000.*atof(arg1.c_str());
             max_nodes_to_search = 0;
             max_search_depth   = max_ply;
+            time_remains = 0;
 
             arg1 = arg2;
         }
