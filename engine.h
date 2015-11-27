@@ -6,7 +6,7 @@
 #include "Timer.h"
 
 //--------------------------------
-#define ENGINE_VERSION "076x"
+#define ENGINE_VERSION "079"
 //--------------------------------
 //#define DONT_SHOW_STATISTICS
 //#define DONT_USE_FUTILITY
