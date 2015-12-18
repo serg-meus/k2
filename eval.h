@@ -33,11 +33,7 @@ enum PriceList
     K_VAL       = 32000,
     INF         = 32760,
 
-    SHIELD_K    = 30,
-    CLAMPED_R   = 250,
-    UNSTOP_P    = 650,
-    DBL_PROMO_P = 65,
-    OPP_NEAR_K  = 20,
+    CLAMPED_R   = 250
 };
 
 //--------------------------------

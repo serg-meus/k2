@@ -6,7 +6,7 @@
 #include "Timer.h"
 
 //--------------------------------
-#define ENGINE_VERSION "079"
+#define ENGINE_VERSION "080x"
 //--------------------------------
 //#define DONT_SHOW_STATISTICS
 //#define DONT_USE_FUTILITY
@@ -16,7 +16,7 @@
 //#define DONT_USE_LMR
 //#define DONT_USE_MATE_DISTANCE_PRUNING
 //#define DONT_USE_PVS_IN_ROOT
-#define DONT_USE_RANDOMNESS
+//#define DONT_USE_RANDOMNESS
 #define DONT_USE_ONLY_MOVE_EXTENSION
 #define DONT_USE_IID
 //--------------------------------
