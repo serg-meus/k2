@@ -717,13 +717,13 @@ void MaterialImbalances()
     // two bishops
     if(quantity[white][_b/2] == 2)
     {
-        val_opn += 50;
-        val_end += 50;
+        val_opn += 30;
+        val_end += 30;
     }
     if(quantity[black][_b/2] == 2)
     {
-        val_opn -= 50;
-        val_end -= 50;
+        val_opn -= 30;
+        val_end -= 30;
     }
 
     // pawn absense for both sides
