@@ -226,8 +226,8 @@ void EvalPawns(bool stm)
         }
         else if(doubled)
         {
-            ansE -= 4;
-            ansO -= 1;
+            ansE -= 15;
+            ansO -= 5;
         }
 
         if(i > 0 && i < 7
