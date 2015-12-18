@@ -47,8 +47,8 @@ short Eval()
     EvalPawns((bool)white);
     EvalPawns((bool)black);
 
-    KingSafety2(white);
-    KingSafety2(black);
+    KingSafety3(white);
+    KingSafety3(black);
 
     ClampedRook(white);
     ClampedRook(black);
@@ -1017,11 +1017,11 @@ void KingSafety3(UC king_color)
 
     int shield_score = material[!king_color]*(1 - shield_badness)/3;
 
-    UC n_att[] = {0, 0, 45, 72, 85, 90, 93, 95, 96, 97, 98, 99, 100, 100, 100, 100};
-    int sq = n_att[attackers]*sum_attacks/24;
+    int sq = sum_attacks*num_attacks/2;
+    if(attackers == 1)
+        sq /= 2;
 
     ans -= sq - shield_score;
-
 
     val_opn += king_color ? ans : -ans;
 }
