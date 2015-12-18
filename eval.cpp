@@ -301,20 +301,10 @@ void EvalPawns(bool stm)
         }
 
         // passer pawn evaluation
-        int A, B;
-        if(mx < 4)
-        {
-            A = 21;
-            B = -21;
-        }
-        else
-        {
-            A = 61;
-            B = -158;
-        }
-        int delta = A*mx + B;
-        if(mx == 6 && b[XY2SQ(i, stm ? 7 : 0)] != __)                   // if passer blocked before promotion
-            delta = 2*delta/7;
+        int pass[] =         {0, 0, 21, 40, 85, 150, 200};
+        int blocked_pass[] = {0, 0, 10, 20, 40,  50,  60};
+        bool blocked = b[XY2SQ(i, stm ? mx + 1 : 7 - mx - 1)] != __;
+        int delta = blocked ? blocked_pass[mx] : pass[mx];
 
         ansE += delta;
         ansO += delta/3;
