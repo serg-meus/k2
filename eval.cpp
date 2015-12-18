@@ -274,11 +274,11 @@ void EvalPawns(bool stm)
             short opp_k_dist = king_dist[ABSI(opp_k - pawn_coord)];
 
             if(k_dist <= 1)
-                ansE += 75;
+                ansE += 65;
             else if(k_dist == 2)
                 ansE += 15;
             if(opp_k_dist <= 1)
-                ansE -= 75;
+                ansE -= 65;
             else if(opp_k_dist == 2)
                 ansE -= 15;
         }
