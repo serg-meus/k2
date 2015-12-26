@@ -178,6 +178,9 @@ short Search(int depth, short alpha, short beta,
             if(lmr && x > alpha)
                 x = -Search(depth - 1, -beta, -alpha, pv_node, no_lmr);
         }
+        UnMove(m);
+        hash_key = doneHashKeys[FIFTY_MOVES + ply];
+
         if(legals == 0)
             first_legal = move_cr;
         legals++;
@@ -185,8 +188,6 @@ short Search(int depth, short alpha, short beta,
         if(x >= beta)
         {
             beta_cutoff = true;
-            UnMove(m);
-            hash_key = doneHashKeys[FIFTY_MOVES + ply];
             break;
         }
         else if(x > alpha)
@@ -194,8 +195,6 @@ short Search(int depth, short alpha, short beta,
             alpha = x;
             StorePV(m);
         }
-        UnMove(m);
-        hash_key = doneHashKeys[FIFTY_MOVES + ply];
     }// for move_cr
 
     if(!legals && _alpha <= mate_score)
@@ -311,10 +310,11 @@ short Quiesce(short alpha, short beta)
 
         x = -Quiesce(-beta, -alpha);
 
+        UnMove(m);
+
         if(x >= beta)
         {
             beta_cutoff = true;
-            UnMove(m);
             break;
         }
         else if(x > alpha)
@@ -322,7 +322,6 @@ short Quiesce(short alpha, short beta)
             alpha   = x;
             StorePV(m);
         }
-        UnMove(m);
     }// for(move_cr
 
     if(beta_cutoff)
@@ -373,10 +372,10 @@ void Perft(int depth)
 //-----------------------------
 void StorePV(Move m)
 {
-    int nextLen = pv[ply][0].flg;
-    pv[ply - 1][0].flg = nextLen + 1;
-    pv[ply - 1][1] = m;
-    memcpy(&pv[ply - 1][2], &pv[ply][1], sizeof(Move)*nextLen);
+    int nextLen = pv[ply + 1][0].flg;
+    pv[ply][0].flg = nextLen + 1;
+    pv[ply][1] = m;
+    memcpy(&pv[ply][2], &pv[ply + 1][1], sizeof(Move)*nextLen);
 }
 
 //-----------------------------
@@ -564,11 +563,12 @@ short RootSearch(int depth, short alpha, short beta)
         else
             root_moves.at(root_move_cr).first = max_root_move_priority;
 
+        UnMove(m);
+        hash_key = doneHashKeys[FIFTY_MOVES + ply];
+
         if(x >= beta)
         {
             beta_cutoff = true;
-            UnMove(m);
-            hash_key = doneHashKeys[FIFTY_MOVES + ply];
             break;
         }
         else if(x > alpha)
@@ -577,8 +577,6 @@ short RootSearch(int depth, short alpha, short beta)
                 pv_stable_cr = 0;
             alpha = x;
             StorePV(m);
-            UnMove(m);
-            hash_key = doneHashKeys[FIFTY_MOVES + ply];
 
             if(depth > 3 && x != -INF
             && !stop)
@@ -586,11 +584,6 @@ short RootSearch(int depth, short alpha, short beta)
             if(root_move_cr != 0)
                 std::swap(root_moves.at(root_move_cr),
                           root_moves.at(0));
-        }
-        else
-        {
-            UnMove(m);
-            hash_key = doneHashKeys[FIFTY_MOVES + ply];
         }
 
     }// for(; root_move_cr < max_root_moves
