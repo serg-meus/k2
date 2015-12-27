@@ -793,14 +793,14 @@ short EvalDebug()
     store_ve = val_end;
     store_sum = ReturnEval(white);
 
-    KingSafety2(white);
+    KingSafety3(white);
     std::cout << "King safety white\t";
     std::cout << val_opn - store_vo << '\t' << val_end - store_ve << '\t'
               << ReturnEval(white) - store_sum << std::endl;
     store_vo = val_opn;
     store_ve = val_end;
     store_sum = ReturnEval(white);
-    KingSafety2(black);
+    KingSafety3(black);
     std::cout << "King safety black\t";
     std::cout << val_opn - store_vo << '\t' << val_end - store_ve << '\t'
               << ReturnEval(white) - store_sum << std::endl;
