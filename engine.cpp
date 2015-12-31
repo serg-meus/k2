@@ -174,7 +174,7 @@ short Search(int depth, short alpha, short beta,
         }
         else
         {
-            x = -Search(depth - 1 - lmr, -beta, -alpha, cut_node, lmr);
+            x = -Search(depth - 1 - lmr, -beta, -alpha, -node_type, lmr);
             if(lmr && x > alpha)
                 x = -Search(depth - 1, -beta, -alpha, pv_node, no_lmr);
         }
