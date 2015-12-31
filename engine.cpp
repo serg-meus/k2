@@ -41,6 +41,16 @@ short Search(int depth, short alpha, short beta,
     if(in_check)
         depth += 1 + lmr_parent;
 
+#ifndef DONT_USE_RECAPTURE_EXTENSION
+    if(b_state[prev_states + ply - 1].capt
+    && b_state[prev_states + ply].capt
+    && b_state[prev_states + ply].to == b_state[prev_states + ply - 1].to
+    && b_state[prev_states + ply - 1].scr > BAD_CAPTURES
+    && b_state[prev_states + ply].scr > BAD_CAPTURES
+    )
+        depth++;
+#endif // DONT_USE_RECAPTURE_EXTENSION
+
 #ifndef DONT_USE_MATE_DISTANCE_PRUNING
     short mate_sc = (short)(K_VAL - ply);
     if(alpha >= mate_sc)

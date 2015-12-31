@@ -567,6 +567,7 @@ void StoreCurrentBoardState(Move m, UC fr, UC targ)
     b_state[prev_states + ply].fr = fr;
     b_state[prev_states + ply].to = targ;
     b_state[prev_states + ply].reversibleCr = reversible_moves;
+    b_state[prev_states + ply].scr = m.scr;
     reversible_moves++;
 }
 

@@ -19,6 +19,7 @@
 #define DONT_USE_RANDOMNESS
 #define DONT_USE_ONLY_MOVE_EXTENSION
 #define DONT_USE_IID
+//#define DONT_USE_RECAPTURE_EXTENSION
 //--------------------------------
 #define UNUSED(x) (void)(x)
 

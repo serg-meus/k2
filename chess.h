@@ -75,6 +75,7 @@ struct BrdState
     UC to;                                                              // to point, 7 bits (for simple repetition draw detection)
     short val_opn;                                                       // store material and PST value considered all material is on the board
     short val_end;                                                       // store material and PST value considered deep endgame (kings and pawns only)
+    UC scr;                                                             // move priority by move genererator
 };
 
 //--------------------------------
