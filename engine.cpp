@@ -426,16 +426,28 @@ void MainSearch()
     busy = true;
     InitSearch();
 
-    short sc = 0, sc_;
+    short sc = Quiesce(-INF, INF), sc_;
     root_ply = 1;
     max_root_moves = 0;
     pv_stable_cr = 0;
     for(; root_ply <= max_ply && !stop; ++root_ply)
     {
         sc_ = sc;
-        sc = RootSearch(root_ply, -INF, INF);
+        sc = RootSearch(root_ply, sc - 30, sc + 30);
         if(stop && sc == -INF)
             sc = sc_;
+        else if(sc <= sc_ - 30 || sc >= sc_ + 30)
+        {
+            sc = RootSearch(root_ply, sc - 150, sc + 150);
+            if(stop && sc == -INF)
+                sc = sc_;
+            else if(sc <= sc_ - 150 || sc >= sc_ + 150)
+            {
+                sc = RootSearch(root_ply, -INF, INF);
+                if(stop && sc == -INF)
+                    sc = sc_;
+            }
+        }
 
         double time1 = timer.getElapsedTimeInMicroSec();
         time_spent = time1 - time0;
@@ -528,7 +540,7 @@ short RootSearch(int depth, short alpha, short beta)
         else
         {
 #ifndef DONT_USE_PVS_IN_ROOT
-            if(root_move_cr == 0 || pv_stable_cr < 2)
+            if(root_move_cr == 0/* || pv_stable_cr < 2*/)
             {
                 x = -Search(depth - 1, -beta, -alpha, pv_node, no_lmr);
                 if(stop)
