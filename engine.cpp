@@ -433,6 +433,7 @@ void MainSearch()
     for(; root_ply <= max_ply && !stop; ++root_ply)
     {
         sc_ = sc;
+#ifndef DONT_USE_ASPIRATION_WINDOWS
         sc = RootSearch(root_ply, sc - 30, sc + 30);
         if(stop && sc == -INF)
             sc = sc_;
@@ -443,11 +444,22 @@ void MainSearch()
                 sc = sc_;
             else if(sc <= sc_ - 150 || sc >= sc_ + 150)
             {
-                sc = RootSearch(root_ply, -INF, INF);
+                sc = RootSearch(root_ply, sc - 450, sc + 450);
                 if(stop && sc == -INF)
                     sc = sc_;
+                else if(sc <= sc_ - 450 || sc >= sc_ + 450)
+                {
+                    sc = RootSearch(root_ply, -INF, INF);
+                    if(stop && sc == -INF)
+                        sc = sc_;
+                }
             }
         }
+#else
+        sc = RootSearch(root_ply, -INF, INF);
+        if(stop && sc == -INF)
+            sc = sc_;
+#endif //DONT_USE_ASPIRATION_WINDOWS
 
         double time1 = timer.getElapsedTimeInMicroSec();
         time_spent = time1 - time0;
