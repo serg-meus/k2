@@ -90,11 +90,6 @@ short Search(int depth, short alpha, short beta,
         return beta;
 #endif // DONT_USE_NULL_MOVE
 
-#ifndef DONT_USE_ONLY_MOVE_EXTENSION
-    if(in_hash && entry->only_move)
-        depth += 1;
-#endif // DONT_USE_ONLY_MOVE_EXTENSION
-
     Move move_array[MAX_MOVES], m;
     unsigned move_cr = 0, legals = 0, max_moves = 999, first_legal = 0;
     bool beta_cutoff = false;
@@ -202,27 +197,9 @@ short Search(int depth, short alpha, short beta,
         return in_check ? -K_VAL + ply : 0;
     }
     else if(legals)
-    {
-#ifndef DONT_USE_ONLY_MOVE_EXTENSION
-        bool om = in_hash && entry->only_move;
-#endif // DONT_USE_ONLY_MOVE_EXTENSION
         StoreResultInHash(depth, _alpha, alpha, beta, legals,
                           beta_cutoff,
                           (beta_cutoff ? m : move_array[first_legal]));
-#ifndef DONT_USE_ONLY_MOVE_EXTENSION
-        entry->only_move = om;
-        if(legals == 1 && !in_hash && (depth > 1 || !beta_cutoff))
-        {
-            om = DetectOnlyMove(beta_cutoff, in_check,
-                                     move_cr, max_moves, move_array);
-            if(om)
-            {
-                tt.count(hash_key, &entry);
-                entry->only_move = true;
-            }
-        }
-#endif // DONT_USE_ONLY_MOVE_EXTENSION
-    }
     if(beta_cutoff)
     {
 #ifndef DONT_SHOW_STATISTICS
@@ -1525,11 +1502,7 @@ bool HashProbe(int depth, short *alpha, short beta,
     hash_probe_cr++;
 #endif // DONT_SHOW_STATISTICS
     UC hbnd = (*entry)->bound_type;
-#ifndef DONT_USE_ONLY_MOVE_EXTENSION
-    if((*entry)->depth >= depth + (*entry)->only_move)
-#else
     if((*entry)->depth >= depth)
-#endif // DONT_USE_ONLY_MOVE_EXTENTION
     {
         short hval = (*entry)->value;
         if(hval > mate_score && hval != INF)
@@ -1798,44 +1771,6 @@ void StoreResultInHash(int depth, short _alpha, short alpha,            // save 
                hUPPER, finaly_made_moves/2);
     }
 }
-
-
-
-
-
-//-----------------------------
-bool DetectOnlyMove(bool beta_cutoff, bool in_check,
-                    unsigned move_cr, unsigned max_moves,
-                    Move *move_array)
-{
-    if(!beta_cutoff)
-        return true;
-
-    unsigned cr = move_cr;
-    while(++cr < max_moves)
-    {
-        bool nh = false;
-        tt_entry hs;
-        hs.best_move.flg = 0xFF;
-        Move tmp = Next(move_array, cr, &max_moves,
-                 &nh, &hs, wtm, all_moves);
-        MkMove(tmp);
-        if(Legal(tmp, in_check))
-        {
-            UnMove(tmp);
-            break;
-        }
-        UnMove(tmp);
-    }// while(++cr < max_moves
-    if(cr >= max_moves)
-        return true;
-
-    return false;
-}
-
-
-
-
 
 //-----------------------------
 void ShowCurrentUciInfo()
