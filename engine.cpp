@@ -609,16 +609,21 @@ short RootSearch(int depth, short alpha, short beta)
         else
             root_moves.at(root_move_cr).first = max_root_move_priority;
 
-        UnMove(m);
-        hash_key = doneHashKeys[FIFTY_MOVES + ply];
-
         if(x >= beta)
         {
+            ShowPVfailHigh(m, x);
             beta_cutoff = true;
+            std::swap(root_moves.at(root_move_cr),
+                      root_moves.at(0));
+            UnMove(m);
+            hash_key = doneHashKeys[FIFTY_MOVES + ply];
             break;
         }
         else if(x > alpha)
         {
+            UnMove(m);
+            hash_key = doneHashKeys[FIFTY_MOVES + ply];
+
             if(root_move_cr > 0)
                 pv_stable_cr = 0;
             alpha = x;
@@ -629,6 +634,11 @@ short RootSearch(int depth, short alpha, short beta)
                 PlyOutput(x);
             std::swap(root_moves.at(root_move_cr),
                       root_moves.at(0));
+        }
+        else
+        {
+            UnMove(m);
+            hash_key = doneHashKeys[FIFTY_MOVES + ply];
         }
 
     }// for(; root_move_cr < max_root_moves
