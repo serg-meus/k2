@@ -123,18 +123,19 @@ short Search(int depth, short alpha, short beta,
 
 #ifndef DONT_USE_IID
     if(node_type != all_node
-    && depth >= 4 && legals == 0                                        // first move and
-    && m.scr <= FIRST_KILLER)                                           // no move from hash table
+    && depth >= 6 && legals == 0                                         // first move and
+    && m.scr < PV_FOLLOW)                                               // no move from hash table
     {
         UnMove(m);
         hash_key = doneHashKeys[FIFTY_MOVES + ply];
-        short iid_low_bound  = alpha <= -mate_score ? alpha : alpha - 10;
-        short iid_high_bound = beta  >=  mate_score ? beta  : beta  + 10;
-        x = Search(depth - 2, iid_low_bound, iid_high_bound, node_type, no_lmr);
+        short iid_low_bound  = alpha <= -mate_score ? alpha : alpha - 30;
+        short iid_high_bound = beta  >=  mate_score ? beta  : beta  + 30;
+        x = Search(node_type == pv_node ? depth - 2 : depth/2,
+                   iid_low_bound, iid_high_bound, node_type, no_lmr);
 //        if(x <= iid_low_bound || x >= iid_high_bound)
 //            return x;
-        in_hash = true;
-        m = Next(move_array, move_cr, &max_moves,
+        HashProbe(depth, &alpha, beta, &entry, &in_hash);
+        m = Next(move_array, 0, &max_moves,
                  &in_hash, entry, wtm, all_moves);
         MoveHashKey(m, MkMove(m));
         if(!Legal(m, in_check))
