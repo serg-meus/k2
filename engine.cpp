@@ -27,6 +27,10 @@ std::vector<std::pair<UQ, Move> > root_moves;
 
 transposition_table tt;
 
+
+
+
+
 //--------------------------------
 short Search(int depth, short alpha, short beta,
              signed char node_type, int lmr_parent)
@@ -58,11 +62,11 @@ short Search(int depth, short alpha, short beta,
        return alpha;
     if(beta <= -mate_sc)
         return beta;
-#endif  // DONT_USE_MATE_DISTANCE_PRUNING
+#endif // DONT_USE_MATE_DISTANCE_PRUNING
 
 #ifndef DONT_USE_FUTILITY
     if(depth <= 2 && depth >= 0 && !in_check
-//    && material[0] + material[1] > 24
+//    && alpha < mate_score && beta >= -mate_score
     && beta < mate_score
     && Futility(depth, beta))
         return beta;
@@ -75,21 +79,7 @@ short Search(int depth, short alpha, short beta,
         return -alpha;
 
     if(depth <= 0)
-    {
-        x = Quiesce(alpha, beta);
-/*
-        if(x > alpha && x < beta)
-        {
-            alpha = x;
-            pv[ply][0].flg = 1;
-        }
-        Move nm;
-        nm.flg = 0xFF;
-        StoreResultInHash(0, _alpha, alpha, beta, 2, x >= beta, nm);
-        pv[ply][0].flg = 0;
-*/
-        return x;
-    }
+        return Quiesce(alpha, beta);
 
     nodes++;
     if((nodes & nodes_to_check_stop) == nodes_to_check_stop)
@@ -105,7 +95,7 @@ short Search(int depth, short alpha, short beta,
         depth += 1;
 #endif // DONT_USE_ONLY_MOVE_EXTENSION
 
-    Move move_array[MAX_MOVES], m, m_best;
+    Move move_array[MAX_MOVES], m;
     unsigned move_cr = 0, legals = 0, max_moves = 999, first_legal = 0;
     bool beta_cutoff = false;
 
@@ -133,8 +123,8 @@ short Search(int depth, short alpha, short beta,
 
 #ifndef DONT_USE_IID
     if(node_type != all_node
-    && depth >= 4 && legals == 0                                         // first move and
-    && m.scr <= FIRST_KILLER)                                               // no move from hash table
+    && depth >= 4 && legals == 0                                        // first move and
+    && m.scr <= FIRST_KILLER)                                           // no move from hash table
     {
         UnMove(m);
         hash_key = doneHashKeys[FIFTY_MOVES + ply];
@@ -154,7 +144,7 @@ short Search(int depth, short alpha, short beta,
             continue;
         }
     }
-#endif //DONT_USE_IID
+#endif // DONT_USE_IID
 
         FastEval(m);
 
@@ -162,12 +152,10 @@ short Search(int depth, short alpha, short beta,
         int lmr = 1;
         if(depth < 3 || m.flg || in_check)
             lmr = 0;
-        else if(legals < 4/* || m.scr >= 160*/)
+        else if(legals < 4)
             lmr = 0;
         else if((b[m.to] & ~white) == _p && TestPromo(COL(m.to), !wtm))
             lmr = 0;
-//        else if(king_dist[ABSI(m.to - *king_coord[wtm])] < 2)
-//            lmr = 0;
         else if(depth <= 4 && legals > 8)
             lmr = 2;
 #else
@@ -248,13 +236,16 @@ short Search(int depth, short alpha, short beta,
             else if(m.scr == SECOND_KILLER)
                 killer2_hits++;
         }
-#endif //DONT_SHOW_STATISTICS
-        assert(legals > 0);
+#endif // DONT_SHOW_STATISTICS
         UpdateStatistics(m, depth, legals - 1);
         return beta;
     }
     return alpha;
 }
+
+
+
+
 
 //-----------------------------
 short Quiesce(short alpha, short beta)
@@ -338,7 +329,6 @@ short Quiesce(short alpha, short beta)
     {
 #ifndef DONT_SHOW_STATISTICS
         q_cut_cr++;
-        assert(legals > 0);
         if(legals - 1 < (int)(sizeof(q_cut_num_cr)/sizeof(*q_cut_num_cr)))
             q_cut_num_cr[legals - 1]++;
 #endif // DONT_SHOW_STATISTICS
@@ -346,6 +336,10 @@ short Quiesce(short alpha, short beta)
     }
     return alpha;
 }
+
+
+
+
 
 //--------------------------------
 void Perft(int depth)
@@ -379,6 +373,10 @@ void Perft(int depth)
     }
 }
 
+
+
+
+
 //-----------------------------
 void StorePV(Move m)
 {
@@ -387,6 +385,10 @@ void StorePV(Move m)
     pv[ply][1] = m;
     memcpy(&pv[ply][2], &pv[ply + 1][1], sizeof(Move)*nextLen);
 }
+
+
+
+
 
 //-----------------------------
 void UpdateStatistics(Move m, int dpt, unsigned move_cr)
@@ -421,13 +423,18 @@ void UpdateStatistics(Move m, int dpt, unsigned move_cr)
 #endif // DONT_USE_HISTORY
 }
 
+
+
+
+
 //--------------------------------
 void MainSearch()
 {
     busy = true;
     InitSearch();
 
-    short sc = Quiesce(-INF, INF), sc_;
+    short sc = Quiesce(-INF, INF);
+    short sc_;
     root_ply = 1;
     max_root_moves = 0;
     pv_stable_cr = 0;
@@ -460,7 +467,7 @@ void MainSearch()
         sc = RootSearch(root_ply, -INF, INF);
         if(stop && sc == -INF)
             sc = sc_;
-#endif //DONT_USE_ASPIRATION_WINDOWS
+#endif // DONT_USE_ASPIRATION_WINDOWS
 
         double time1 = timer.getElapsedTimeInMicroSec();
         time_spent = time1 - time0;
@@ -499,8 +506,7 @@ void MainSearch()
     }
 
     total_nodes      += nodes;
-    total_time_spent  += time_spent;
-
+    total_time_spent += time_spent;
     timer.stop();
 
     if(!infinite_analyze || uci)
@@ -510,6 +516,10 @@ void MainSearch()
         infinite_analyze = false;
     busy = false;
 }
+
+
+
+
 
 //--------------------------------
 short RootSearch(int depth, short alpha, short beta)
@@ -525,7 +535,8 @@ short RootSearch(int depth, short alpha, short beta)
     short x;
     Move  m;
     bool beta_cutoff = false;
-    const UQ unconfirmed_fail_high = -1, max_root_move_priority = -2;
+    const UQ unconfirmed_fail_high = -1,
+            max_root_move_priority = ULLONG_MAX;
 
     for(; root_move_cr < max_root_moves && !stop; root_move_cr++)
     {
@@ -553,7 +564,7 @@ short RootSearch(int depth, short alpha, short beta)
         else
         {
 #ifndef DONT_USE_PVS_IN_ROOT
-            if(root_move_cr == 0/* || pv_stable_cr < 2*/)
+            if(root_move_cr == 0)
             {
                 x = -Search(depth - 1, -beta, -alpha, pv_node, no_lmr);
                 if(stop)
@@ -615,14 +626,12 @@ short RootSearch(int depth, short alpha, short beta)
             if(depth > 3 && x != -INF
             && !stop)
                 PlyOutput(x);
-            if(root_move_cr != 0)
-                std::swap(root_moves.at(root_move_cr),
-                          root_moves.at(0));
+            std::swap(root_moves.at(root_move_cr),
+                      root_moves.at(0));
         }
 
     }// for(; root_move_cr < max_root_moves
 
-//    root_move_vector.at(0).first = -1;                                  // give maximum value to PV
     std::sort(root_moves.rbegin(), root_moves.rend() - 1);
 
     pv_stable_cr++;
@@ -640,6 +649,10 @@ short RootSearch(int depth, short alpha, short beta)
     }
     return alpha;
 }
+
+
+
+
 
 //--------------------------------
 void ShowPVfailHigh(Move m, short x)
@@ -661,6 +674,10 @@ void ShowPVfailHigh(Move m, short x)
     MoveHashKey(m, MkMove(m));
     FastEval(m);
 }
+
+
+
+
 
 //--------------------------------
 void RootMoveGen(bool in_check)
@@ -700,6 +717,10 @@ void RootMoveGen(bool in_check)
 #endif // NDEBUG, RANDOMNESS
     pv[0][1] = (*root_moves.begin()).second;
 }
+
+
+
+
 
 //--------------------------------
 void InitSearch()
@@ -741,11 +762,18 @@ void InitSearch()
                 << " )" << std::endl;
     std::cout   << "Ply Value  Time    Nodes        Principal Variation" << std::endl;
     }
+#ifdef CLEAR_HASH_TABLE_AFTER_EACH_MOVE
+    tt.clear();
+#endif // CLEAR_HASH_TABLE_AFTER_EACH_MOVE
 
 #ifndef DONT_USE_HISTORY
     memset(history, 0, sizeof(history));
 #endif // DONT_USE_HISTORY
 }
+
+
+
+
 
 //--------------------------------
 void MoveToStr(Move m, bool stm, char *out)
@@ -763,6 +791,10 @@ void MoveToStr(Move m, bool stm, char *out)
     out[5]  = '\0';
 }
 
+
+
+
+
 //--------------------------------
 void PrintSearchResult()
 {
@@ -770,9 +802,7 @@ void PrintSearchResult()
     MoveToStr(pv[0][1], wtm, mov);
 
     if(!uci && !MakeMoveFinaly(mov))
-    {
         std::cout << "tellusererror err01" << std::endl << "resign" << std::endl;
-    }
 
     if(!uci)
         std::cout << "move " << mov << std::endl;
@@ -849,7 +879,7 @@ void PrintSearchResult()
               << ", hits = " << std::setprecision(1) << std::fixed
               << 100.*futility_hits/futility_probes
               << "% )" << std::endl;
-#endif //DONT_USE_FUTILITY
+#endif // DONT_USE_FUTILITY
     if(killer1_probes == 0)
         killer1_probes = 1;
     std::cout << "( killer1 probes = " << killer1_probes
@@ -864,53 +894,61 @@ void PrintSearchResult()
               << "% )" << std::endl;
     std::cout   << "( tSpent=" << time_spent/1.e6
                 << " )" << std::endl;
-#endif //DONT_SHOW_STATISTICS
+#endif // DONT_SHOW_STATISTICS
 }
+
+
+
+
 
 //--------------------------------
 void PlyOutput(short sc)
 {
-        using namespace std;
+    using namespace std;
 
-        double time1 = timer.getElapsedTimeInMicroSec();
-        int tsp = (int)((time1 - time0)/1000.);
+    double time1 = timer.getElapsedTimeInMicroSec();
+    int tsp = (int)((time1 - time0)/1000.);
 
-        if(uci)
-        {
-            cout << "info depth " << root_ply;
+    if(uci)
+    {
+        cout << "info depth " << root_ply;
 
-            if(ABSI(sc) < mate_score)
-                cout << " score cp " << sc;
-            else
-            {
-                if(sc > 0)
-                    cout << " score mate " << (K_VAL - sc + 1) / 2;
-                else
-                    cout << " score mate -" << (K_VAL + sc + 1) / 2;
-            }
-            cout << " time " << tsp
-                << " nodes " << nodes
-                << " pv ";
-            ShowPV(0);
-            cout << endl;
-        }
+        if(ABSI(sc) < mate_score)
+            cout << " score cp " << sc;
         else
         {
-            cout << setfill(' ') << setw(4)  << left << root_ply;
-            cout << setfill(' ') << setw(7)  << left << sc;
-            cout << setfill(' ') << setw(8)  << left << tsp / 10;
-            cout << setfill(' ') << setw(12) << left << nodes << ' ';
-            ShowPV(0);
-            cout << endl;
+            if(sc > 0)
+                cout << " score mate " << (K_VAL - sc + 1) / 2;
+            else
+                cout << " score mate -" << (K_VAL + sc + 1) / 2;
         }
+        cout << " time " << tsp
+            << " nodes " << nodes
+            << " pv ";
+        ShowPV(0);
+        cout << endl;
+    }
+    else
+    {
+        cout << setfill(' ') << setw(4)  << left << root_ply;
+        cout << setfill(' ') << setw(7)  << left << sc;
+        cout << setfill(' ') << setw(8)  << left << tsp / 10;
+        cout << setfill(' ') << setw(12) << left << nodes << ' ';
+        ShowPV(0);
+        cout << endl;
+    }
 }
+
+
+
+
 
 //-----------------------------
 void InitTime()                                                         // too complex
 {
     if(!time_command_sent)
         time_remains -= time_spent;
-    time_remains = ABSI(time_remains);                                    //<< NB: strange
+    time_remains = ABSI(time_remains);                                  //<< NB: strange
     int movsAfterControl;
     if(moves_per_session == 0)
         movsAfterControl = finaly_made_moves/2;
@@ -943,12 +981,16 @@ void InitTime()                                                         // too c
         time_remains += time_inc;
     time_to_think = time_remains / moves_remains;
     if(moves_remains != 1 && !spent_exact_time)
-        time_to_think /= 2;                           // average branching factor
+        time_to_think /= 2;                                             // average branching factor
     else if(time_inc != 0 && time_base != 0)
         time_to_think = time_inc;
 
     time_command_sent = false;
 }
+
+
+
+
 
 //-----------------------------
 bool ShowPV(int _ply)
@@ -978,6 +1020,7 @@ bool ShowPV(int _ply)
         }
     }
     else
+    {
         for(; i < stp; i++)
         {
             Move m = pv[_ply][i + 1];
@@ -1015,10 +1058,15 @@ bool ShowPV(int _ply)
             if(!Legal(m, in_check))
                 ans = false;
         }
+    }
     for(; i > 0; i--)
         UnMove(*(Move *) &pv[_ply][i]);
     return ans;
 }
+
+
+
+
 
 //-----------------------------
 void Ambiguous(Move m)
@@ -1067,6 +1115,10 @@ void Ambiguous(Move m)
         std::cout << (char)(COL(fr0) + 'a');
 
 }
+
+
+
+
 
 //-----------------------------
 bool MakeMoveFinaly(char *mov)
@@ -1125,6 +1177,10 @@ bool MakeMoveFinaly(char *mov)
     return false;
 }
 
+
+
+
+
 //--------------------------------
 void InitEngine()
 {
@@ -1147,8 +1203,11 @@ void InitEngine()
 #ifndef DONT_USE_HISTORY
     memset(history, 0, sizeof(history));
 #endif // DONT_USE_HISTORY
-//    memset(doneHashKeys, 0, sizeof(doneHashKeys));
 }
+
+
+
+
 
 //--------------------------------
 bool FenStringToEngine(char *fen)
@@ -1167,6 +1226,10 @@ bool FenStringToEngine(char *fen)
     return true;
 }
 
+
+
+
+
 //--------------------------------
 bool DrawDetect()
 {
@@ -1184,6 +1247,10 @@ bool DrawDetect()
 
     return DrawByRepetition();
 }
+
+
+
+
 
 //--------------------------------
 void CheckForInterrupt()
@@ -1217,6 +1284,10 @@ void CheckForInterrupt()
 
 }
 
+
+
+
+
 //--------------------------------------
 void MakeNullMove()
 {
@@ -1238,6 +1309,10 @@ void MakeNullMove()
     wtm ^= white;
 }
 
+
+
+
+
 //--------------------------------------
 void UnMakeNullMove()
 {
@@ -1246,6 +1321,10 @@ void UnMakeNullMove()
     ply--;
     hash_key ^= -1ULL;
 }
+
+
+
+
 
 //-----------------------------
 bool NullMove(int depth, short beta, bool in_check)
@@ -1262,9 +1341,9 @@ bool NullMove(int depth, short beta, bool in_check)
       )
         return false;
 
-    UC store_ep     = b_state[prev_states + ply].ep;
-    UC store_to     = b_state[prev_states + ply].to;
-    US store_rv     = reversible_moves;
+    UC store_ep      = b_state[prev_states + ply].ep;
+    UC store_to      = b_state[prev_states + ply].to;
+    US store_rv      = reversible_moves;
     reversible_moves = 0;
 
     MakeNullMove();
@@ -1291,6 +1370,10 @@ bool NullMove(int depth, short beta, bool in_check)
     return (x >= beta);
 }
 
+
+
+
+
 //-----------------------------
 bool Futility(int depth, short beta)
 {
@@ -1313,6 +1396,10 @@ bool Futility(int depth, short beta)
     }
     return false;
 }
+
+
+
+
 
 //--------------------------------
 bool DrawByRepetition()
@@ -1337,6 +1424,10 @@ bool DrawByRepetition()
 
     return false;
 }
+
+
+
+
 
 //--------------------------------
 void ShowFen()
@@ -1395,6 +1486,10 @@ void ShowFen()
     std::cout << std::endl;
 }
 
+
+
+
+
 //--------------------------------
 void ReHash(int size_mb)
 {
@@ -1402,6 +1497,10 @@ void ReHash(int size_mb)
     tt.resize(size_mb);
     busy = false;
 }
+
+
+
+
 
 //--------------------------------
 bool HashProbe(int depth, short *alpha, short beta,
@@ -1413,7 +1512,7 @@ bool HashProbe(int depth, short *alpha, short beta,
 
 #ifndef DONT_SHOW_STATISTICS
     hash_probe_cr++;
-#endif //DONT_SHOW_STATISTICS
+#endif // DONT_SHOW_STATISTICS
     UC hbnd = (*entry)->bound_type;
 #ifndef DONT_USE_ONLY_MOVE_EXTENSION
     if((*entry)->depth >= depth + (*entry)->only_move)
@@ -1428,12 +1527,12 @@ bool HashProbe(int depth, short *alpha, short beta,
             hval -= (*entry)->depth - ply;
 
         if( hbnd == hEXACT
-        || (hbnd == hUPPER && hval >= -*alpha)                      // -alpha is beta for parent node
-        || (hbnd == hLOWER && hval <= -beta) )                      // -beta is alpha for parent node
+        || (hbnd == hUPPER && hval >= -*alpha)                          // -alpha is beta for parent node
+        || (hbnd == hLOWER && hval <= -beta) )                          // -beta is alpha for parent node
         {
 #ifndef DONT_SHOW_STATISTICS
             hash_cut_cr++;
-#endif //DONT_SHOW_STATISTICS
+#endif // DONT_SHOW_STATISTICS
             pv[ply][0].flg = 0;
             *alpha = hval;
             return true;
@@ -1441,10 +1540,14 @@ bool HashProbe(int depth, short *alpha, short beta,
     }// if((*entry).depth >= depth
 #ifndef DONT_SHOW_STATISTICS
     hash_hit_cr++;
-#endif //DONT_SHOW_STATISTICS
+#endif // DONT_SHOW_STATISTICS
     *in_hash = true;
     return false;
 }
+
+
+
+
 
 //-----------------------------
 bool PseudoLegal(Move &m, bool stm)
@@ -1549,6 +1652,10 @@ bool PseudoLegal(Move &m, bool stm)
     return true;
 }
 
+
+
+
+
 //--------------------------------
 Move Next(Move *move_array, unsigned cur, unsigned *max_moves,
           bool *in_hash, tt_entry *entry,
@@ -1637,6 +1744,10 @@ Move Next(Move *move_array, unsigned cur, unsigned *max_moves,
     return ans;
 }
 
+
+
+
+
 //-----------------------------
 void StoreResultInHash(int depth, short _alpha, short alpha,            // save results of search to hash table
                        short beta, unsigned legals,                     // note that this result is for 'parent' node (negative score, alpha = -beta, etc)
@@ -1677,6 +1788,10 @@ void StoreResultInHash(int depth, short _alpha, short alpha,            // save 
     }
 }
 
+
+
+
+
 //-----------------------------
 bool DetectOnlyMove(bool beta_cutoff, bool in_check,
                     unsigned move_cr, unsigned max_moves,
@@ -1707,6 +1822,10 @@ bool DetectOnlyMove(bool beta_cutoff, bool in_check,
     return false;
 }
 
+
+
+
+
 //-----------------------------
 void ShowCurrentUciInfo()
 {
@@ -1731,6 +1850,10 @@ void ShowCurrentUciInfo()
     std::cout << hsz << std::endl;
 }
 
+
+
+
+
 //-----------------------------
 void PonderHit()
 {
@@ -1741,6 +1864,10 @@ void PonderHit()
     else
         pondering_in_process = false;
 }
+
+
+
+
 
 /*
 r4rk1/ppqn1pp1/4pn1p/2b2N1P/8/5N2/PPPBQPP1/2KRR3 w - - 0 18 Nxh6?! speed test position
@@ -1753,7 +1880,7 @@ r4rk1/1b3p1p/pq2pQp1/n5N1/P7/2RBP3/5PPP/3R2K1 w - - 0 1 bm Nxh7;   speed test po
 8/7p/5k2/5p2/p1p2P2/Pr1pPK2/1P1R3P/8 b - - 0 1 bm Rxb2; id "WAC.002";
 r1b2rk1/ppq3pp/2nb1n2/3pp3/3P3B/3B1N2/PP2NPPP/R2Q1RK1 w - - 0 1 low value of first move cuts in QS
 8/6k1/8/6pn/pQ6/Pp3P1K/1P3P1P/6r1 w - - 2 31 draw due to perpetual check
-2kb1R2/8/2p2B2/1pP2P2/1P6/1K6/8/3r4 w - - 0 1 bm Kc3 Be7
+2kb1R2/8/2p2B2/1pP2P2/1P6/1K6/8/3r4 w - - 0 1 bm Rxd8 Kc3 Be7
 r1r3k1/1pQ3p1/1R5p/3qNp2/p2P4/4B3/5PPP/6K1 w - - 2 28 bm Qe7 draw
 r7/2P5/8/8/1K6/4k2B/8/8 w - - 13 76 need to shorten game by fast draw
 3r4/p4p1p/2P2k2/1P3p2/P6p/8/2R5/6K1 w - - 0 44  pawn eval
@@ -1789,22 +1916,12 @@ r1bqkb1r/pp2pppp/2n2n2/1N1p4/3P1B2/8/PPP2PPP/R2QKBNR b KQkq - 0 1
 r4r1k/2Rq2pp/p5b1/1p1pB1b1/3Pn1P1/1B5P/PP1N4/3Q1RK1 b - - 0 1 bm Qxc7
 2b1r1k1/r1p1nppp/1p6/p3P3/Nn3P2/P4B2/1P3BPP/2RR2K1 b - - 0 1 am Na2
 
-6rk/3R2p1/p1q4p/5Q1R/2P5/1Pr5/P4K1P/8 w - - 6 27 KS eval - white is worse
-3r2k1/pq3ppp/R4n2/4N1Q1/1P3P2/P5PP/8/3r1RK1 w - - 3 24  KS eval - white is worse
-r3r3/6b1/7p/2pkpPp1/P3R1P1/2B5/7P/4R1K1 w - - 0 20 KS eval - wrong advantage for white
-4q1k1/2p2r1p/4NnpQ/3nB3/b2P2P1/5B1P/2p2P2/R5K1 w - - 1 31 KS eval - wrong advantage for white
-4r1k1/1p3p2/pQ1p2pp/2p5/2P1q1b1/2P1rN2/P3BRPP/4R1K1 w - - 2 18 KS eval - wrong advantage for black
-6k1/5ppp/r3p3/2bpP1P1/5K2/2P1B2P/p3bP2/RR6 b - - 0 33 KS eval - wrong advantage for black
-8/p3b2p/4k3/1pp1P1p1/4b3/1PB1NrPP/P3KP2/2R5 b - - 1 22 KS eval - wrong advantage for black
-8/2p5/3p4/5K2/3k4/2n5/3N2PP/8 b - - 2 46 king end tropism eval - white king's better
-2k1r2r/p4q1P/2p5/5p2/1bb4Q/1N2pP2/PPP1N3/1K1R3R w - - 5 19 KS eval - black is worse
-3r1rk1/1p3ppp/pnq5/4p1P1/6Q1/1BP1R3/PP3PP1/2K4R b - - 0 17 KS eval - white is better
 1r1q1rk1/1b1n1ppp/p1pQp3/3p4/4P3/2N2B2/PPP2PPP/R3R1K1 w - - 3 8 am e5
 
 r3kb1r/1b1n1p1p/pq2Np2/1p2p2Q/5P2/2N5/PPP3PP/2KR1B1R w kq - 0 1 bm Rxd7 low value of first move cuts in QS
 r4rk1/pb3ppp/1p3q2/1Nbp4/2P1nP2/P4BP1/1PQ4P/R1B2R1K b - - 0 1 Qg6 is the best?
 8/p5p1/p3k3/6PP/3NK3/8/Pb6/8 b - - 2 48 am Bxd4
-r1bqkb1r/pp1n1pp1/2p1pn1p/6N1/3P4/3B1N2/PPP2PPP/R1BQK2R w KQkq - 0 1 bm Nxd6 Deep Blue
+r1bqkb1r/pp1n1pp1/2p1pn1p/6N1/3P4/3B1N2/PPP2PPP/R1BQK2R w KQkq - 0 1 bm Nxe6 Deep Blue
 1rq2b1r/2N1k1pp/1pQp4/4n3/2P5/8/PP4PP/4RRK1 w - - 0 1 bm Rxe5
 5rk1/pq2nbp1/1p5p/2n2P2/4P1Q1/1PN4N/PB6/5K1R w - - 0 1 bm Qxg7
 2q2r2/3n1p2/p2p2k1/3PpRp1/P1n1P3/2P2QB1/1rB1R1P1/6K1 w - - bm Rxg5+; id "arasan16.3";

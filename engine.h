@@ -8,6 +8,11 @@
 //--------------------------------
 #define ENGINE_VERSION "080x"
 //--------------------------------
+
+
+
+
+
 //#define DONT_SHOW_STATISTICS
 //#define DONT_USE_FUTILITY
 //#define DONT_USE_NULL_MOVE
@@ -17,10 +22,15 @@
 //#define DONT_USE_MATE_DISTANCE_PRUNING
 //#define DONT_USE_PVS_IN_ROOT
 //#define DONT_USE_RECAPTURE_EXTENSION
-//#define DONT_USE_RANDOMNESS
+#define DONT_USE_RANDOMNESS
 //#define DONT_USE_ASPIRATION_WINDOWS
+//#define CLEAR_HASH_TABLE_AFTER_EACH_MOVE
 #define DONT_USE_ONLY_MOVE_EXTENSION
 #define DONT_USE_IID
+
+
+
+
 
 //--------------------------------
 #define UNUSED(x) (void)(x)
@@ -28,8 +38,11 @@
 #define MAX_MOVES       256
 #define RESIGN_VALUE    850
 #define RESIGN_MOVES    3
-
 #define MOVE_IS_NULL 0xFF
+
+
+
+
 
 const int mate_score = K_VAL - (short)max_ply;
 const bool all_moves = false;
@@ -39,11 +52,18 @@ const unsigned nodes_to_check_stop = 511;
 #ifdef TUNE_PARAMETERS
 extern std::vector <float> param;
 #endif
-//--------------------------------
+
+
+
+
 
 enum {all_node = -1, pv_node = 0, cut_node = 1};
 
 
+
+
+
+//--------------------------------
 void InitEngine();
 void Perft(int depth);
 short Search(int depth, short alpha, short beta, signed char node_type, int lmr_parent);
