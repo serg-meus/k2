@@ -100,7 +100,8 @@ short Search(int depth, short alpha, short beta,
     for(; move_cr < max_moves && !stop; move_cr++)
     {
         m = Next(move_array, move_cr, &max_moves,
-                 &in_hash, entry, wtm, all_moves, in_check);
+                 &in_hash, entry, wtm, all_moves, 
+				 in_check, m);
         if(max_moves <= 0)
             break;
 
@@ -272,7 +273,7 @@ short Quiesce(short alpha, short beta)
         tt_entry *hs = nullptr;
         bool bm_not_hashed = false;
         Move m = Next(move_array, move_cr, &max_moves,
-                      &bm_not_hashed, hs, wtm, captures_only, false);
+                      &bm_not_hashed, hs, wtm, captures_only, false, m);
         if(max_moves <= 0)
             break;
 
@@ -691,7 +692,7 @@ void RootMoveGen(bool in_check)
         tt_entry *hs = nullptr;
         bool bm_not_hashed = false;
         m = Next(move_array, move_cr, &max_moves,
-                 &bm_not_hashed, hs, wtm, all_moves, false);
+                 &bm_not_hashed, hs, wtm, all_moves, false, m);
     }
     root_moves.clear();
     for(unsigned move_cr = 0; move_cr < max_moves; move_cr++)
@@ -1655,7 +1656,7 @@ bool PseudoLegal(Move &m, bool stm)
 //--------------------------------
 Move Next(Move *move_array, unsigned cur, unsigned *max_moves,
           bool *in_hash, tt_entry *entry,
-          UC stm, bool only_captures, bool in_check)
+          UC stm, bool only_captures, bool in_check, Move prev_move)
 {
 #ifdef DONT_USE_ONE_REPLY_EXTENSION
     UNUSED(in_check);
@@ -1731,13 +1732,12 @@ Move Next(Move *move_array, unsigned cur, unsigned *max_moves,
     }// if cur == 0
     else if(cur == 1 && *in_hash)
     {
-        *max_moves = GenMoves(move_array, APPRICE_ALL, &entry->best_move);
-        for(unsigned i = cur; i < *max_moves; i++)
-            if(move_array[i].scr == PV_FOLLOW && i != 0)
+        *max_moves = GenMoves(move_array, APPRICE_ALL, &prev_move);
+        unsigned i = 0;
+        for(; i < *max_moves; i++)
+            if(move_array[i].scr == PV_FOLLOW)
             {
-                ans = move_array[0];
-                move_array[0] = move_array[i];
-                move_array[i] = ans;
+                std::swap(move_array[0], move_array[i]);
                 break;
             }
     }
@@ -1762,7 +1762,7 @@ Move Next(Move *move_array, unsigned cur, unsigned *max_moves,
             move_array[legal_cr++] = move_array[move_cr];
         }
         *max_moves = legal_cr;
-        if(cur == 1 && legal_cr == 1)
+        if(cur > 0 && legal_cr == 1)
             *max_moves = 0;
     }
 #endif //DONT_USE_ONE_REPLY_EXTENSION

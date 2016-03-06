@@ -98,7 +98,7 @@ bool HashProbe(int depth, short *alpha, short beta,
 bool PseudoLegal(Move &m, bool stm);
 Move Next(Move *move_array, unsigned cur, unsigned *top,
           bool *best_move_hashed, tt_entry *entry,
-          UC stm, bool captures_only, bool in_check);
+          UC stm, bool captures_only, bool in_check, Move prev_move);
 void StoreResultInHash(int depth, short _alpha, short alpha, short beta,
                        unsigned legals,
                        bool beta_cutoff, Move best_move, bool one_reply);
