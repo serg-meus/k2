@@ -185,7 +185,8 @@ void transposition_table::clear()
 
 //--------------------------------
 void transposition_table::add(UQ key, short value, Move best,
-                              UI depth, UI bound_type, UI age)
+                              UI depth, UI bound_type, UI age,
+                              bool one_reply)
 {
     unsigned i;
     tt_entry *bucket = &data[entries_in_a_bucket*(key & mask)];          // looking for already existed entries for the same position
@@ -223,9 +224,7 @@ void transposition_table::add(UQ key, short value, Move best,
     bucket[i].depth         = depth;
     bucket[i].bound_type    = bound_type;
     bucket[i].value         = value;
-#ifndef DONT_USE_ONLY_MOVE_EXTENSION
-    bucket[i].only_move     = false;
-#endif // DONT_USE_ONLY_MOVE_EXTENSION
+    bucket[i].one_reply     = one_reply;
     bucket[i].age = age & 0x03;
 }
 

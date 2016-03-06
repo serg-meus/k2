@@ -25,7 +25,7 @@ public:
     UC  depth;
     UC  bound_type  : 2;
     UC  age         : 2;
-    UC  only_move   : 1;
+    UC  one_reply   : 1;
     UC  in_check    : 1;
     UC  avoid_null_move : 1;
 };
@@ -44,7 +44,7 @@ public:
     unsigned count(UQ key);
     unsigned count(UQ key, tt_entry **entry);
     void add(UQ key, short value, Move best, UI depth,
-             UI bound_type, uint32_t half_mov_cr);
+             UI bound_type, uint32_t half_mov_cr, bool one_reply);
     void clear();
     tt_entry& operator [](UQ key);
     bool resize(unsigned size_mb);

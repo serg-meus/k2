@@ -100,16 +100,27 @@ short Search(int depth, short alpha, short beta,
     for(; move_cr < max_moves && !stop; move_cr++)
     {
         m = Next(move_array, move_cr, &max_moves,
-                 &in_hash, entry, wtm, all_moves);
+                 &in_hash, entry, wtm, all_moves, in_check);
         if(max_moves <= 0)
             break;
+
+#ifndef DONT_USE_ONE_REPLY_EXTENSION
+        if(in_check && max_moves == 1)
+//        && (depth >= 3 || b_state[prev_states + ply - 1].scr > BAD_CAPTURES))
+            depth++;
+#endif //DONT_USE_ONE_REPLY_EXTENSION
 
         MoveHashKey(m, MkMove(m));
 #ifndef NDEBUG
         if((!stop_ply || root_ply == stop_ply) && strcmp(stop_str, cv) == 0)
             ply = ply;
 #endif // NDEBUG
+
+#ifndef DONT_USE_ONE_REPLY_EXTENSION
+        if(!in_check && !Legal(m, in_check))
+#else
         if(!Legal(m, in_check))
+#endif //DONT_USE_ONE_REPLY_EXTENSION
         {
             UnMove(m);
             hash_key = doneHashKeys[FIFTY_MOVES + ply];
@@ -199,7 +210,8 @@ short Search(int depth, short alpha, short beta,
     else if(legals)
         StoreResultInHash(depth, _alpha, alpha, beta, legals,
                           beta_cutoff,
-                          (beta_cutoff ? m : move_array[first_legal]));
+                          (beta_cutoff ? m : move_array[first_legal]),
+                          in_check && max_moves == 1);
     if(beta_cutoff)
     {
 #ifndef DONT_SHOW_STATISTICS
@@ -260,7 +272,7 @@ short Quiesce(short alpha, short beta)
         tt_entry *hs = nullptr;
         bool bm_not_hashed = false;
         Move m = Next(move_array, move_cr, &max_moves,
-                      &bm_not_hashed, hs, wtm, captures_only);
+                      &bm_not_hashed, hs, wtm, captures_only, false);
         if(max_moves <= 0)
             break;
 
@@ -679,7 +691,7 @@ void RootMoveGen(bool in_check)
         tt_entry *hs = nullptr;
         bool bm_not_hashed = false;
         m = Next(move_array, move_cr, &max_moves,
-                 &bm_not_hashed, hs, wtm, all_moves);
+                 &bm_not_hashed, hs, wtm, all_moves, false);
     }
     root_moves.clear();
     for(unsigned move_cr = 0; move_cr < max_moves; move_cr++)
@@ -1643,8 +1655,12 @@ bool PseudoLegal(Move &m, bool stm)
 //--------------------------------
 Move Next(Move *move_array, unsigned cur, unsigned *max_moves,
           bool *in_hash, tt_entry *entry,
-          UC stm, bool only_captures)
+          UC stm, bool only_captures, bool in_check)
 {
+#ifdef DONT_USE_ONE_REPLY_EXTENSION
+    UNUSED(in_check);
+#endif
+
     Move ans;
     if(cur == 0)
     {
@@ -1682,7 +1698,29 @@ Move Next(Move *move_array, unsigned cur, unsigned *max_moves,
             if(pseudo_legal)
             {
                 ans.scr = PV_FOLLOW;
+#ifndef DONT_USE_ONE_REPLY_EXTENSION
+                if(entry->one_reply)
+                {
+                    MkMove(ans);
+                    if(!Legal(ans, in_check))
+                    {
+                        UnMove(ans);
+                        *in_hash = false;
+                        *max_moves = GenMoves(move_array, APPRICE_ALL, nullptr);
+                    }
+                    else
+                    {
+                        UnMove(ans);
+                        *max_moves = 1;
+                        move_array[0] = ans;
+                        return ans;
+                    }
+                }
+                else
+                    return ans;
+#else
                 return ans;
+#endif // DONT_USE_ONE_REPLY_EXTENSION
             }
             else
             {
@@ -1706,6 +1744,28 @@ Move Next(Move *move_array, unsigned cur, unsigned *max_moves,
 
     if(only_captures)                                                   // already sorted
         return move_array[cur];
+
+#ifndef DONT_USE_ONE_REPLY_EXTENSION
+    if(in_check && (cur == 0 || (cur == 1 && *in_hash)))
+    {
+        unsigned move_cr, legal_cr = cur;
+        for(move_cr = cur; move_cr < *max_moves; ++move_cr)
+        {
+            Move m = move_array[move_cr];
+            MkMove(m);
+            if(!Legal(m, in_check))
+            {
+                UnMove(m);
+                continue;
+            }
+            UnMove(m);
+            move_array[legal_cr++] = move_array[move_cr];
+        }
+        *max_moves = legal_cr;
+        if(cur == 1 && legal_cr == 1)
+            *max_moves = 0;
+    }
+#endif //DONT_USE_ONE_REPLY_EXTENSION
 
     int max = -32000;
     unsigned imx = cur;
@@ -1735,7 +1795,8 @@ Move Next(Move *move_array, unsigned cur, unsigned *max_moves,
 //-----------------------------
 void StoreResultInHash(int depth, short _alpha, short alpha,            // save results of search to hash table
                        short beta, unsigned legals,                     // note that this result is for 'parent' node (negative score, alpha = -beta, etc)
-                       bool beta_cutoff, Move best_move)
+                       bool beta_cutoff, Move best_move,
+                       bool one_reply)
 {
     if(stop)
         return;
@@ -1746,7 +1807,7 @@ void StoreResultInHash(int depth, short _alpha, short alpha,            // save 
         else if(beta < -mate_score && beta != -INF)
             beta -= ply - depth - 1;
         tt.add(hash_key, -beta, best_move, depth,
-               hLOWER, finaly_made_moves/2);
+               hLOWER, finaly_made_moves/2, one_reply);
 
     }
     else if(alpha > _alpha && pv[ply][0].flg > 0)
@@ -1756,7 +1817,7 @@ void StoreResultInHash(int depth, short _alpha, short alpha,            // save 
         else if(alpha < - mate_score && alpha != -INF)
             alpha -= ply - depth;
         tt.add(hash_key, -alpha, pv[ply][1], depth,
-                hEXACT, finaly_made_moves/2);
+                hEXACT, finaly_made_moves/2, one_reply);
     }
     else if(alpha <= _alpha)
     {
@@ -1768,7 +1829,7 @@ void StoreResultInHash(int depth, short _alpha, short alpha,            // save 
         no_move.flg = 0xFF;
         tt.add(hash_key, -_alpha,
                legals > 0 ? best_move : no_move, depth,
-               hUPPER, finaly_made_moves/2);
+               hUPPER, finaly_made_moves/2, one_reply);
     }
 }
 

@@ -25,6 +25,7 @@
 #define DONT_USE_RANDOMNESS
 //#define DONT_USE_ASPIRATION_WINDOWS
 //#define CLEAR_HASH_TABLE_AFTER_EACH_MOVE
+#define DONT_USE_ONE_REPLY_EXTENSION
 #define DONT_USE_IID
 
 
@@ -97,10 +98,10 @@ bool HashProbe(int depth, short *alpha, short beta,
 bool PseudoLegal(Move &m, bool stm);
 Move Next(Move *move_array, unsigned cur, unsigned *top,
           bool *best_move_hashed, tt_entry *entry,
-          UC stm, bool captures_only);
+          UC stm, bool captures_only, bool in_check);
 void StoreResultInHash(int depth, short _alpha, short alpha, short beta,
                        unsigned legals,
-                       bool beta_cutoff, Move best_move);
+                       bool beta_cutoff, Move best_move, bool one_reply);
 bool DetectOnlyMove(bool beta_cutoff, bool in_check,
                     unsigned move_cr, unsigned max_moves,
                     Move *move_array);
