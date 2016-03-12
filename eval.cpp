@@ -10,7 +10,7 @@ UC    attack_near_king[240];
     std::vector <float> param;
 #endif // TUNE_PARAMETERS
 
-SC king_safety_shifts[] = {15, 16, 17, 1, -1, -17, -16, -15};//, 31, 32, 33};
+SC king_safety_shifts[] = {15, 16, 17, 1, -1, -17, -16, -15, 31, 32, 33, -31, -32, -33};
 
 //-----------------------------
 void InitEval()
@@ -497,9 +497,10 @@ short KingShieldFactor(UC stm)
 {
     int k = *king_coord[stm];
     int shft = stm ? 16 : -16;
+    short ans = 0;
 
     if(!ONBRD(k + shft + shft))
-        return 7;
+        ans = 7;
 
     if(COL(k) == 0)
         k++;
@@ -521,39 +522,40 @@ short KingShieldFactor(UC stm)
     }
 
     if(shieldPieces1 == 3)
-        return 0;
+        ans =  0;
     else if(shieldPieces1 == 2)
     {
         bool centralPawn1 = LIGHT(b[k + shft], stm);
         if(!centralPawn1)
         {
             bool centralPawn2 = LIGHT(b[k + shft + shft], stm);
-            return !centralPawn2 ? 6 : 2;
+            ans =  !centralPawn2 ? 6 : 2;
         }
         else
-            return shieldPieces1or2 == 3 ? 1 : 3;
+            ans =  shieldPieces1or2 == 3 ? 1 : 3;
     }
     else if(shieldPieces1 == 1)
     {
         bool centralPawn1 = LIGHT(b[k + shft], stm);
         if(centralPawn1)
-            return shieldPieces1or2 >= 2 ? 3 : 5;
+            ans = shieldPieces1or2 >= 2 ? 3 : 5;
         else
         {
             bool centralPawn2 = LIGHT(b[k + shft + shft], stm);
-            return !centralPawn2 ? 7 : 3;
+            ans = !centralPawn2 ? 7 : 3;
         }
     }
     else
     {
         if(shieldPieces1or2 == 3)
-            return 3;
+            ans = 3;
         else if(shieldPieces1or2 == 2)
-            return 5;
+            ans = 5;
         else
-            return 7;
-
+            ans = 7;
     }
+
+    return ans;
 }
 
 //-----------------------------
@@ -868,13 +870,23 @@ short EvalDebug()
 
         int attackers = 0, num_attacks = 0;
 
+        const size_t sz = sizeof(king_safety_shifts) /
+                sizeof(*king_safety_shifts);
+        UC not_used1[sz];
+        UC not_used2[] = {0, 0, 20, 20, 10, 10};
+        memset(not_used1, 0, sizeof(not_used1));
+
         KingZoneAttackLoop(i ? black : white, attackers,
-                           num_attacks);
+                           num_attacks, not_used1, not_used2);
 
         std::cout << attackers << " attackers, " << num_attacks
                   << " attacked squares, " << std::endl;
-    }
 
+        std::cout << "scores per square: ";
+        for(size_t j = 0; j < sz; ++j)
+            std::cout << (int)not_used1[j] << " ";
+        std::cout << std::endl;
+    }
 
     std::cout << std::endl << std::endl;
 
@@ -918,21 +930,42 @@ void InitKingSafetyTable()
 }
 
 //-----------------------------
-bool KingZoneAttacked(int king_coord, int attacker_coord,
-                      UC king_color, int &num_attacks)
+bool KingZoneAttacked(int k_coord, int attacker_coord,
+                      UC king_color, int &num_attacks,
+                      UC *square_weights, UC *piece_type_weights)
 {
-    bool is_attacked = false;
+    bool is_attacked = false, protected_piece = false;
     unsigned i;
-    int attacked_coord;
-    const unsigned max_i = sizeof(king_safety_shifts) / 
+    int attacked_coord, shift;
+    const size_t max_i = sizeof(king_safety_shifts) /
             sizeof(*king_safety_shifts);
     for(i = 0; i < max_i; ++i)
     {
-        attacked_coord = king_coord + king_safety_shifts[i];
+        shift = king_safety_shifts[i];
+        attacked_coord = k_coord + shift;
         if(!ONBRD(attacked_coord))
             continue;
-//        if(LIGHT(b[attacked_coord], !king_color))
-//            continue;
+        if(king_color == white && shift < 16 - 1)
+            continue;
+        if(king_color == black && shift > -16 + 1)
+            continue;
+        if(shift >= 15 && shift <= 17
+        && LIGHT(b[attacked_coord + 16], king_color))
+            continue;
+        else if(shift >= -17 && shift <= -15
+        && LIGHT(b[attacked_coord - 16], king_color))
+            continue;
+        if(std::abs(shift) > 16 + 1)
+        {
+            if(!LIGHT(b[attacked_coord], king_color))
+                continue;
+            else/* if(b[attacked_coord]/2 == _p/2)*/
+            {
+                if(b[attacked_coord - (shift > 16 ? 15 : -15)]/2 == _p/2
+                || b[attacked_coord - (shift > 16 ? 17 : -17)]/2 == _p/2)
+                    protected_piece = true;
+            }
+        }
 
         UC piece_type = b[attacker_coord]/2;
         if(!(attacks[120 + (int)attacker_coord - attacked_coord]
@@ -943,11 +976,13 @@ bool KingZoneAttacked(int king_coord, int attacker_coord,
         {
             is_attacked = true;
             num_attacks++;
+            square_weights[i] += piece_type_weights[piece_type]/
+                    (protected_piece ? 2 : 1);
         }
         else
         {
             bool sl_attack = false;
-            if(piece_type == _q/2
+            if((piece_type == _q/2 || piece_type == _r/2)
             && (COL(attacker_coord ) == COL(attacked_coord)
             || ROW(attacker_coord) == ROW(attacked_coord)))
                 sl_attack = SliderAttackWithXRays(attacker_coord, attacked_coord, !king_color);
@@ -958,18 +993,19 @@ bool KingZoneAttacked(int king_coord, int attacker_coord,
             {
                 is_attacked = true;
                 num_attacks++;
+                square_weights[i] += piece_type_weights[piece_type]/
+                        (protected_piece ? 2 : 1);
             }
-        }
-    }
+        }// else
+    }// for i
     return is_attacked;
 }
 
 //-----------------------------
 int KingZoneAttackLoop(UC king_color, int &attackers,
-                         int &num_attacks)
+                       int &num_attacks, UC *square_weights,
+                       UC *piece_type_weights)
 {
-    int attack_weight[] = {0, 0, 5, 20, 12, 10};
-
     attackers = 0;
     int attack_influence = 0;
 
@@ -989,44 +1025,112 @@ int KingZoneAttackLoop(UC king_color, int &attackers,
             break;
 
         UC kza = KingZoneAttacked(k_coord, candid_coord,
-                                  king_color, num_attacks);
+                                  king_color, num_attacks,
+                                  square_weights, piece_type_weights);
 
         if(!kza)
             continue;
 
         attackers++;
-        short delta_influence = attack_weight[b[candid_coord]/2];
+//        short delta_influence = attack_weight[b[candid_coord]/2];
 //        UC dist = king_dist[ABSI(k_coord - candid_coord)];
 //        if(dist <= 2)
 //            delta_influence = delta_influence*2;
-        attack_influence += num_attacks*delta_influence;
+        attack_influence += piece_type_weights[b[candid_coord]/2];
     }
 
     return attack_influence;
 }
 
 //-----------------------------
+short KingWeakness(UC king_color)
+{
+    short ans = 0;
+    int k = *king_coord[king_color];
+    int shft = king_color ? 16 : -16;
+
+    if(COL(k) == 0)
+        k++;
+    else if(COL(k) == 7)
+        k--;
+
+    if(k == 2 || k == 5)
+        ans += 30;
+    if(k == 3 || k == 4)
+    {
+        if(b_state[prev_states + ply].cstl & (0x0C >> 2*king_color))
+            ans += 30;
+        else
+            ans += 110;
+    }
+
+
+    int index = 0;
+    for(int i = 0; i < 3; ++i)
+    {
+        if(b[i + k + shft - 1] == (_p | king_color))
+            continue;
+        if(b[i + k + 2*shft - 1] != (_p | king_color))
+            index += 1 << i;
+    }
+    index = 7 - index;
+    // cases: ___, __p, _p_, _pp, p__, p_p, pp_, ppp
+    int cases[]  = {0, 1, 1, 3, 1, 2, 3, 4};
+    short scores[] = {140, 75, 75, 10, 0};
+    ans += scores[cases[index]];
+
+    return ans;
+}
+
+//-----------------------------
 void KingSafety3(UC king_color)
 {
-    if(quantity[!king_color][_q/2] == 0/* && quantity[!king_color][_r/2] < 2*/)
+    if(quantity[!king_color][_q/2] == 0
+    /*&& quantity[!king_color][_r/2] <= 1*/)
         return;
 
     short ans = 0;
-    int sum_attacks;
+
+    int king_weakness = KingWeakness(king_color);
+/*
+    int tmp = hash_key;
+    for(int i = 0; i < 300; ++i)
+        tmp *= 75;
+    ans += tmp & 1;
+*/
+
+
+    UC piece_type_weights[] = {0, 0, 20, 20, 10, 10};
+    const size_t sq_sz = sizeof(king_safety_shifts) /
+            sizeof(*king_safety_shifts);
+    UC square_weights[sq_sz];
+    memset(square_weights, 0, sizeof(square_weights));
+
+    int sum_att;
     int attackers = 0, num_attacks = 0;
-    int shield_badness  = KingShieldFactor(king_color);
 
-    sum_attacks = KingZoneAttackLoop(king_color,
-                                         attackers,
-                                         num_attacks);
+    sum_att = KingZoneAttackLoop(king_color, attackers,
+                                 num_attacks, square_weights,
+                                 piece_type_weights);
+/*
+    int attack_score = 0;
+    for(size_t i = 0; i < sq_sz; ++i)
+        attack_score += square_weights[i]*square_weights[i];
+*/
 
-    int shield_score = material[!king_color]*(1 - shield_badness)/3;
 
-    int sq = sum_attacks*num_attacks/2;
-    if(attackers == 1)
-        sq /= 2;
+    short attack_total = (8 + num_attacks)*sum_att/8;
 
-    ans -= sq - shield_score;
+    if(num_attacks < 3)
+        attack_total /= 4;
+    if(king_weakness <= 10)
+        attack_total /= 2;
+
+    ans -= king_weakness + attack_total;
+
+//    ans = (material[!king_color] + 24)*ans/72;
+//    if(quantity[!king_color][_q/2] == 0)
+//        ans /= 3;
 
     val_opn += king_color ? ans : -ans;
 }
