@@ -223,6 +223,9 @@ void EvalPawns(bool stm)
         {
             ansE -= 25;
             ansO -= 15;
+//            UC blocker = b[XY2SQ(i, stm ? mx + 1: 7 - mx - 1)];
+//            if(DARK(blocker, stm) && (blocker & ~white) != _p)
+//                ansE -= 20;
         }
         else if(doubled)
         {
@@ -230,7 +233,15 @@ void EvalPawns(bool stm)
             ansO -= 5;
         }
 
-        if(i > 0 && i < 7
+        // test for passer
+        promo = false;
+        if(mx >= 7 - pawn_min[i + 1][!stm]
+        && mx >= 7 - pawn_min[i - 0][!stm]
+        && mx >= 7 - pawn_min[i + 2][!stm])
+            promo = true;
+
+
+        if(!promo && i > 0 && i < 7
         && mx < pawn_min[i + 0][stm] && mx < pawn_min[i + 2][stm])
         {   // pawn holes occupied by enemy pieces
             int y_coord = stm ? mx + 1 : 7 - mx - 1;
@@ -241,12 +252,6 @@ void EvalPawns(bool stm)
                 ansO -= 30;
         }
 
-        // test for passer
-        promo = false;
-        if(mx >= 7 - pawn_min[i + 1][!stm]
-        && mx >= 7 - pawn_min[i - 0][!stm]
-        && mx >= 7 - pawn_min[i + 2][!stm])
-            promo = true;
 
 /*
         backward = false;
