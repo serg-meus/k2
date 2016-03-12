@@ -102,6 +102,9 @@ void FastEval(Move m)
             case mPR_N :    delta_opn += material_values_opn[_n/2] + pst[_n/2 - 1][0][y0][x0];
                             delta_end += material_values_end[_n/2] + pst[_n/2 - 1][1][y0][x0];
                             break;
+
+            default :       assert(false);
+                            break;
         }
     }
 
@@ -447,7 +450,8 @@ void ClampedRook(UC stm)
             if(pawn_max[1 + 1][0] && b[0x71] == _r)
                 val_opn += CLAMPED_R;
         }
-     }
+    }
+
     short ans = 0;
     auto rit = coords[stm].rbegin();
 

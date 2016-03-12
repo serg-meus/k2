@@ -100,7 +100,7 @@ short Search(int depth, short alpha, short beta,
     for(; move_cr < max_moves && !stop; move_cr++)
     {
         m = Next(move_array, move_cr, &max_moves,
-                 &in_hash, entry, wtm, all_moves, 
+                 &in_hash, entry, wtm, all_moves,
 				 in_check, m);
         if(max_moves <= 0)
             break;
@@ -1043,7 +1043,7 @@ bool ShowPV(int _ply)
             }
             else if(m.flg & mCAPT)
             {
-                auto it = coords[wtm].begin();
+                it = coords[wtm].begin();
                 it = m.pc;
                 std::cout << (char)(COL(*it) + 'a') << "x"
                      << (char)(COL(m.to) + 'a') << (char)(ROW(m.to) + '1');
@@ -1079,7 +1079,7 @@ void Ambiguous(Move m)
     UC fr0 = *it;
     UC pt0 = b[fr0]/2;
 
-    for(auto it = coords[wtm].begin();
+    for(it = coords[wtm].begin();
         it != coords[wtm].end();
         ++it)
     {
@@ -1147,7 +1147,7 @@ bool MakeMoveFinaly(char *mov)
 
         if(strcmp(mov, rMov) == 0)
         {
-            auto it = coords[wtm].begin();
+            it = coords[wtm].begin();
             it = m.pc;
 
             MoveHashKey(m, MkMove(m));
@@ -1168,8 +1168,8 @@ bool MakeMoveFinaly(char *mov)
                         << std::endl << "resign"
                         << std::endl;
             }
-            for(int i = 0; i < FIFTY_MOVES; ++i)
-                doneHashKeys[i] = doneHashKeys[i + 1];
+            for(int j = 0; j < FIFTY_MOVES; ++j)
+                doneHashKeys[j] = doneHashKeys[j + 1];
 
             finaly_made_moves++;
             return true;
@@ -1645,6 +1645,9 @@ bool PseudoLegal(Move &m, bool stm)
             && (b[XY2SQ(0, ROW(fr))] & ~white) != _r)
                 return false;
             break;
+
+        default :
+            return false;
     }
     return true;
 }
@@ -1740,6 +1743,7 @@ Move Next(Move *move_array, unsigned cur, unsigned *max_moves,
                 std::swap(move_array[0], move_array[i]);
                 break;
             }
+        assert(i < *max_moves);
     }
 
     if(only_captures)                                                   // already sorted
@@ -1865,7 +1869,7 @@ void ShowCurrentUciInfo()
 void PonderHit()
 {
     double time1 = timer.getElapsedTimeInMicroSec();
-    double time_spent = time1 - time0;
+    time_spent = time1 - time0;
     if(time_spent >= 5*time_to_think)
         spent_exact_time  = true;
     else

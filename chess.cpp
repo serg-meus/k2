@@ -269,13 +269,13 @@ bool FenToBoard(char *p)
 //--------------------------------
 void ShowMove(UC fr, UC to)
 {
-    char *cv = cur_moves + 5*(ply - 1);
-    *(cv++) = COL(fr) + 'a';
-    *(cv++) = ROW(fr) + '1';
-    *(cv++) = COL(to) + 'a';
-    *(cv++) = ROW(to) + '1';
-    *(cv++) = ' ';
-    *cv     = '\0';
+    char *cur = cur_moves + 5*(ply - 1);
+    *(cur++) = COL(fr) + 'a';
+    *(cur++) = ROW(fr) + '1';
+    *(cur++) = COL(to) + 'a';
+    *(cur++) = ROW(to) + '1';
+    *(cur++) = ' ';
+    *cur     = '\0';
 }
 
 //--------------------------------

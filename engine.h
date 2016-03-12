@@ -80,7 +80,6 @@ void InitTime();
 bool ShowPV(int _ply);
 void Ambiguous(Move m);
 bool MakeMoveFinaly(char *mov);
-void EvalAllMaterialAndPST();
 bool FenStringToEngine(char *fen);
 bool DrawDetect();
 bool SimpleDrawByRepetition();

@@ -243,16 +243,16 @@ void PerftCommand(std::string in)
 {
     if(busy)
         return;
-    Timer t;
+    Timer timer;
     double tick1, tick2, deltaTick;
-    t.start();
-    tick1 = t.getElapsedTimeInMicroSec();
+    timer.start();
+    tick1 = timer.getElapsedTimeInMicroSec();
 
     nodes = 0;
     max_search_depth = atoi(in.c_str());
     Perft(max_search_depth);
     max_search_depth = max_ply;
-    tick2 = t.getElapsedTimeInMicroSec();
+    tick2 = timer.getElapsedTimeInMicroSec();
     deltaTick = tick2 - tick1;
 
     std::cout << std::endl << "nodes = " << nodes << std::endl
@@ -695,12 +695,12 @@ void SetvalueCommand(std::string in)
     {
         param.at(0) = atof(arg2.c_str());
     }
-/*
-    else if(arg1 == "dbl_end")
+
+    else if(arg1 == "k_saf1")
     {
         param.at(1) = atof(arg2.c_str());
     }
-*/
+
     else
     {
         std::cout << "error: wrong parameter name" << std ::endl
