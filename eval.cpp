@@ -1058,9 +1058,9 @@ short KingWeakness(UC king_color)
     else if(COL(k) == 7)
         k--;
 
-    if(k == 2 || k == 5)
+    if(COL(k) == 2 || COL(k) == 5)
         ans += 30;
-    if(k == 3 || k == 4)
+    if(COL(k) == 3 || COL(k) == 4)
     {
         if(b_state[prev_states + ply].cstl & (0x0C >> 2*king_color))
             ans += 30;
@@ -1072,17 +1072,45 @@ short KingWeakness(UC king_color)
     int index = 0;
     for(int i = 0; i < 3; ++i)
     {
-        if(b[i + k + shft - 1] == (_p | king_color))
+        UC pt1 = b[i + k + shft - 1];
+        UC pt2 = b[i + k + 2*shft - 1];
+        if(pt1 == (_p | king_color) || pt2 == (_p | king_color))
             continue;
-        if(b[i + k + 2*shft - 1] != (_p | king_color))
-            index += 1 << i;
+        if(pt1 != __ && (pt1 & white) == king_color
+        && pt2 != __ && (pt2 & white) == king_color)  // LIGHT() macros needed
+            continue;
+
+            index += (1 << i);
     }
     index = 7 - index;
     // cases: ___, __p, _p_, _pp, p__, p_p, pp_, ppp
     int cases[]  = {0, 1, 1, 3, 1, 2, 3, 4};
     short scores[] = {140, 75, 75, 10, 0};
     ans += scores[cases[index]];
+/*
+    unsigned pieces_near_king = 0;
+    int shfts[]    = {15, 16, 17, 30, 31, 32, 33, 34, 47, 48, 49};
+    int k_dist[] = {3,  3,  3,  1,  2,  2,  2,  1,  1,  1,  1};
+    for(size_t i = 0; i < sizeof(shfts)/sizeof(*shfts); ++i)
+    {
+        int attacked_coord = k + (king_color ? shfts[i] : -shfts[i]);
+        if(attacked_coord < 0 || attacked_coord >= (int)(sizeof(b)/sizeof(*b)))
+            break;
+        if(DARK(b[attacked_coord], king_color))
+            pieces_near_king += k_dist[i];
+    }
+    assert(pieces_near_king <= 13);
+    UC near_king_penalty[] = {0, 5, 15, 50, 120, 160, 200};
+    const size_t max_penalty = sizeof(near_king_penalty) /
+            sizeof(*near_king_penalty);
+    if(pieces_near_king >= max_penalty)
+        pieces_near_king = max_penalty - 1;
+    int near_king = near_king_penalty[pieces_near_king];
+    if(ans <= 10)
+        near_king /= 2;
 
+    ans += near_king/2;
+*/
     return ans;
 }
 
@@ -1096,13 +1124,12 @@ void KingSafety3(UC king_color)
     short ans = 0;
 
     int king_weakness = KingWeakness(king_color);
-/*
-    int tmp = hash_key;
-    for(int i = 0; i < 300; ++i)
-        tmp *= 75;
-    ans += tmp & 1;
-*/
-
+    if(king_weakness <= 70)
+    {
+        ans -= king_weakness;
+        val_opn += king_color ? ans : -ans;
+        return;
+    }
 
     UC piece_type_weights[] = {0, 0, 20, 20, 10, 10};
     const size_t sq_sz = sizeof(king_safety_shifts) /
@@ -1116,21 +1143,22 @@ void KingSafety3(UC king_color)
     sum_att = KingZoneAttackLoop(king_color, attackers,
                                  num_attacks, square_weights,
                                  piece_type_weights);
-/*
-    int attack_score = 0;
+
+    int sum_att_2 = 0;
     for(size_t i = 0; i < sq_sz; ++i)
-        attack_score += square_weights[i]*square_weights[i];
-*/
+        sum_att_2 += square_weights[i]*square_weights[i];
+    if(sum_att_2 > 100*100)
+        sum_att_2 = 100*100;
 
-
-    short attack_total = (8 + num_attacks)*sum_att/8;
+    int attacks_total = (4 + num_attacks)*(sum_att + sum_att_2/64);
 
     if(num_attacks < 3)
-        attack_total /= 4;
-    if(king_weakness <= 10)
-        attack_total /= 2;
+      attacks_total /= 4;
+//    if(king_weakness <= 40)
+//      attacks_total /= 2;
 
-    ans -= king_weakness + attack_total;
+    ans -= king_weakness*(material[!king_color] + 24)*ans/72
+            + attacks_total/2;
 
 //    ans = (material[!king_color] + 24)*ans/72;
 //    if(quantity[!king_color][_q/2] == 0)
