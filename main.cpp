@@ -1,10 +1,15 @@
 #include "main.h"
+
 //--------------------------------
 // K2, the chess engine
 // Author: Sergey Meus (serg_meus@mail.ru)
 // Krasnoyarsk Kray, Russia
 // Copyright 2012-2015
 //--------------------------------
+
+
+
+
 
 cmdStruct commands[]
 {
@@ -58,6 +63,11 @@ cmdStruct commands[]
     {"setvalue",    SetvalueCommand},
 };
 
+
+
+
+
+
 bool force  = false;
 bool quit   = false;
 bool xboard = false;
@@ -68,6 +78,11 @@ bool pondering_enabled = false;
 #ifdef USE_THREAD_FOR_INPUT
     std::thread t;                                                      // for compilers with C++11 support
 #endif // USE_THREAD_FOR_INPUT                                          // under Linux -pthread must be used for gcc linker
+
+
+
+
+
 
 //--------------------------------
 int main(int argc, char* argv[])
@@ -122,6 +137,10 @@ int main(int argc, char* argv[])
         StopEngine();
 }
 
+
+
+
+
 //--------------------------------
 bool CmdProcess(std::string in)
 {
@@ -140,6 +159,10 @@ bool CmdProcess(std::string in)
     }
     return false;
 }
+
+
+
+
 
 //--------------------------------
 void GetFirstArg(std::string in, std::string (*firstWord), std::string (*remainingWords))
@@ -160,6 +183,10 @@ void GetFirstArg(std::string in, std::string (*firstWord), std::string (*remaini
     *firstWord = firstWord->substr(0, secondSymbol);
 }
 
+
+
+
+
 //--------------------------------
 bool LooksLikeMove(std::string in)
 {
@@ -178,6 +205,10 @@ bool LooksLikeMove(std::string in)
 
 }
 
+
+
+
+
 //--------------------------------
 void StopEngine()
 {
@@ -186,6 +217,10 @@ void StopEngine()
         t.join();
 #endif // USE_THREAD_FOR_INPUT
 }
+
+
+
+
 
 //--------------------------------
 void NewCommand(std::string in)
@@ -211,6 +246,10 @@ void NewCommand(std::string in)
     tt.clear();
 }
 
+
+
+
+
 //-------------------------------
 void SetboardCommand(std::string in)
 {
@@ -226,6 +265,10 @@ void SetboardCommand(std::string in)
         AnalyzeCommand(in);
 }
 
+
+
+
+
 //--------------------------------
 void QuitCommand(std::string in)
 {
@@ -237,6 +280,10 @@ void QuitCommand(std::string in)
 
     quit = true;
 }
+
+
+
+
 
 //--------------------------------
 void PerftCommand(std::string in)
@@ -260,6 +307,10 @@ void PerftCommand(std::string in)
         << "Mnps = " << nodes / (deltaTick + 1) << std::endl << std::endl;
 }
 
+
+
+
+
 //--------------------------------
 void GoCommand(std::string in)
 {
@@ -280,6 +331,10 @@ void GoCommand(std::string in)
 #endif // USE_THREAD_FOR_INPUT
 
 }
+
+
+
+
 
 //--------------------------------
 void LevelCommand(std::string in)
@@ -319,6 +374,10 @@ void LevelCommand(std::string in)
     max_search_depth      = max_ply;
 }
 
+
+
+
+
 //--------------------------------
 void ForceCommand(std::string in)
 {
@@ -327,6 +386,10 @@ void ForceCommand(std::string in)
         StopEngine();
     force = true;
 }
+
+
+
+
 
 //--------------------------------
 void SetNodesCommand(std::string in)
@@ -339,6 +402,10 @@ void SetNodesCommand(std::string in)
     max_nodes_to_search = atoi(in.c_str());
     max_search_depth   = max_ply;
 }
+
+
+
+
 
 //--------------------------------
 void SetTimeCommand(std::string in)             //<< NB: wrong
@@ -353,6 +420,10 @@ void SetTimeCommand(std::string in)             //<< NB: wrong
     time_remains  = 0;
 }
 
+
+
+
+
 //--------------------------------
 void SetDepthCommand(std::string in)
 {
@@ -360,6 +431,10 @@ void SetDepthCommand(std::string in)
         return;
     max_search_depth   = atoi(in.c_str());
 }
+
+
+
+
 
 //--------------------------------
 void ProtoverCommand(std::string in)
@@ -386,6 +461,10 @@ void ProtoverCommand(std::string in)
             "done=1 " << std::endl;
 }
 
+
+
+
+
 //--------------------------------
 void StopCommand(std::string in)
 {
@@ -399,6 +478,10 @@ void StopCommand(std::string in)
 #endif // USE_THREAD_FOR_INPUT
 }
 
+
+
+
+
 //--------------------------------
 void ResultCommand(std::string in)
 {
@@ -406,6 +489,10 @@ void ResultCommand(std::string in)
     if(busy)
         StopEngine();
 }
+
+
+
+
 
 //--------------------------------
 void TimeCommand(std::string in)
@@ -420,6 +507,10 @@ void TimeCommand(std::string in)
     time_command_sent = true;
 }
 
+
+
+
+
 //--------------------------------
 void EvalCommand(std::string in)
 {
@@ -430,11 +521,19 @@ void EvalCommand(std::string in)
     EvalDebug();
 }
 
+
+
+
+
 //--------------------------------
 void TestCommand(std::string in)
 {
     UNUSED(in);
 }
+
+
+
+
 
 //--------------------------------
 void FenCommand(std::string in)
@@ -442,6 +541,10 @@ void FenCommand(std::string in)
     UNUSED(in);
     ShowFen();
 }
+
+
+
+
 
 //--------------------------------
 void XboardCommand(std::string in)
@@ -454,11 +557,19 @@ void XboardCommand(std::string in)
               << " )" << std::endl;
 }
 
+
+
+
+
 //--------------------------------
 void Unsupported(std::string in)
 {
     UNUSED(in);
 }
+
+
+
+
 
 //--------------------------------
 void UciCommand(std::string in)
@@ -470,6 +581,10 @@ void UciCommand(std::string in)
     std::cout << "option name Hash type spin default 64 min 0 max 2048" << std::endl;
     std::cout << "uciok" << std::endl;
 }
+
+
+
+
 
 //--------------------------------
 void SetOptionCommand(std::string in)
@@ -491,12 +606,20 @@ void SetOptionCommand(std::string in)
     }
 }
 
+
+
+
+
 //--------------------------------
 void IsReadyCommand(std::string in)
 {
     UNUSED(in);
     std::cout << "readyok" << std::endl;
 }
+
+
+
+
 
 //--------------------------------
 void PositionCommand(std::string in)
@@ -530,6 +653,10 @@ void PositionCommand(std::string in)
     ProcessMoveSequence(mov_seq);
 }
 
+
+
+
+
 //--------------------------------
 void ProcessMoveSequence(std::string in)
 {
@@ -545,6 +672,10 @@ void ProcessMoveSequence(std::string in)
         arg1 = arg2;
     }
 }
+
+
+
+
 
 //--------------------------------
 void UciGoCommand(std::string in)
@@ -631,12 +762,20 @@ void UciGoCommand(std::string in)
     }//while(true
 }
 
+
+
+
+
 //--------------------------------
 void EasyCommand(std::string in)
 {
     UNUSED(in);
     pondering_enabled = false;
 }
+
+
+
+
 
 //--------------------------------
 void HardCommand(std::string in)
@@ -645,12 +784,20 @@ void HardCommand(std::string in)
     pondering_enabled = true;
 }
 
+
+
+
+
 //--------------------------------
 void PonderhitCommand(std::string in)
 {
     UNUSED(in);
     PonderHit();
 }
+
+
+
+
 
 //--------------------------------
 void MemoryCommand(std::string in)
@@ -661,6 +808,10 @@ void MemoryCommand(std::string in)
     int size_MB = atoi(arg1.c_str());
     ReHash(size_MB);
 }
+
+
+
+
 
 //--------------------------------
 void AnalyzeCommand(std::string in)
@@ -678,12 +829,20 @@ void AnalyzeCommand(std::string in)
     #endif // USE_THREAD_FOR_INPUT
 }
 
+
+
+
+
 //--------------------------------
 void ExitCommand(std::string in)
 {
     StopCommand(in);
     infinite_analyze = false;
 }
+
+
+
+
 
 //--------------------------------
 void SetvalueCommand(std::string in)

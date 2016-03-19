@@ -1,6 +1,10 @@
 #if !defined(EXTERN)
 #define EXTERN
-//extern UC       b[128];
+
+
+
+
+
 extern UC b[137];
 extern short_list<UC, lst_sz> coords[2];
 extern UC       slider[7];
@@ -39,4 +43,5 @@ extern float    pst_gain[6][2];
 extern short    sort_streng[7];
 extern UC       quantity[2][6 + 1];
 extern UQ       doneHashKeys[101 + max_ply];
+
 #endif

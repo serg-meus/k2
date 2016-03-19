@@ -1,5 +1,9 @@
 #include "chess.h"
 
+
+
+
+
 //--------------------------------
 UC  b[137];                                                             // board array in "0x88" style
 short_list<UC, lst_sz> coords[2];
@@ -34,6 +38,11 @@ short_list<UC, lst_sz>::iterator king_coord[2];
 UC quantity[2][6 + 1];
 
 short val_opn, val_end;
+
+
+
+
+
 //--------------------------------
 void InitChess()
 {
@@ -49,6 +58,10 @@ void InitChess()
     pawn_min[8 + 1][0]  = 7;
     pawn_min[8 + 1][1]  = 7;
 }
+
+
+
+
 
 //--------------------------------
 void InitBrd()
@@ -107,6 +120,10 @@ void InitBrd()
 
 }
 
+
+
+
+
 //--------------------------------
 void InitAttacks()
 {
@@ -133,6 +150,10 @@ void InitAttacks()
     }
 }
 
+
+
+
+
 //--------------------------------
 bool BoardToMen()
 {
@@ -153,6 +174,10 @@ bool BoardToMen()
 
     return true;
 }
+
+
+
+
 
 //--------------------------------
 bool FenToBoard(char *p)
@@ -266,6 +291,10 @@ bool FenToBoard(char *p)
     return true;
 }
 
+
+
+
+
 //--------------------------------
 void ShowMove(UC fr, UC to)
 {
@@ -277,6 +306,10 @@ void ShowMove(UC fr, UC to)
     *(cur++) = ' ';
     *cur     = '\0';
 }
+
+
+
+
 
 //--------------------------------
 bool MakeCastle(Move m, UC fr)
@@ -338,6 +371,10 @@ bool MakeCastle(Move m, UC fr)
     return false;
 }
 
+
+
+
+
 //--------------------------------
 void UnMakeCastle(Move m)
 {
@@ -349,6 +386,10 @@ void UnMakeCastle(Move m)
     b[rFr] = __;
     *rMen = rTo;
 }
+
+
+
+
 
 //--------------------------------
 bool MakeEP(Move m, UC fr)
@@ -366,6 +407,10 @@ bool MakeEP(Move m, UC fr)
     return false;
 }
 
+
+
+
+
 //--------------------------------
 bool SliderAttack(UC fr, UC to)
 {
@@ -379,6 +424,10 @@ bool SliderAttack(UC fr, UC to)
     }
     return true;
 }
+
+
+
+
 
 //--------------------------------
 bool Attack(UC to, int xtm)
@@ -409,6 +458,10 @@ bool Attack(UC to, int xtm)
     return false;
 }
 
+
+
+
+
 //--------------------------------
 bool LegalSlider(UC fr, UC to, UC pt)
 {
@@ -431,6 +484,10 @@ bool LegalSlider(UC fr, UC to, UC pt)
     return true;
 }
 
+
+
+
+
 //--------------------------------
 bool Legal(Move m, bool ic)
 {
@@ -447,6 +504,10 @@ bool Legal(Move m, bool ic)
 
     return true;
 }
+
+
+
+
 
 //-----------------------------
 void SetPawnStruct(int x)
@@ -479,6 +540,10 @@ void SetPawnStruct(int x)
     }
 }
 
+
+
+
+
 //-----------------------------
 void MovePawnStruct(UC movedPiece, UC fr, Move m)
 {
@@ -496,6 +561,10 @@ void MovePawnStruct(UC movedPiece, UC fr, Move m)
         wtm ^= white;
     }
 }
+
+
+
+
 
 //-----------------------------
 void InitPawnStruct()
@@ -534,11 +603,19 @@ void InitPawnStruct()
     }
 }
 
+
+
+
+
 //-----------------------------
 bool PieceListCompare(UC men1, UC men2)
 {
     return sort_streng[b[men1]/2] > sort_streng[b[men2]/2];
 }
+
+
+
+
 
 //--------------------------------
 bool SliderAttackWithXRays(UC fr, UC to, UC stm)
@@ -558,6 +635,10 @@ bool SliderAttackWithXRays(UC fr, UC to, UC stm)
     return true;
 }
 
+
+
+
+
 //--------------------------------
 void StoreCurrentBoardState(Move m, UC fr, UC targ)
 {
@@ -570,6 +651,10 @@ void StoreCurrentBoardState(Move m, UC fr, UC targ)
     b_state[prev_states + ply].scr = m.scr;
     reversible_moves++;
 }
+
+
+
+
 
 //--------------------------------
 void MakeCapture(Move m, UC targ)
@@ -599,6 +684,10 @@ void MakeCapture(Move m, UC targ)
     reversible_moves = 0;
 }
 
+
+
+
+
 //--------------------------------
 void MakePromotion(Move m, short_list<UC, lst_sz>::iterator it)
 {
@@ -616,6 +705,10 @@ void MakePromotion(Move m, short_list<UC, lst_sz>::iterator it)
         reversible_moves = 0;
     }
 }
+
+
+
+
 
 //--------------------------------
 bool MkMove(Move m)
@@ -657,6 +750,10 @@ bool MkMove(Move m)
     wtm ^= white;
     return special_move;
 }
+
+
+
+
 
 //--------------------------------
 void UnmakeCapture(Move m)

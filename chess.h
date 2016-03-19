@@ -4,6 +4,10 @@
 #include <assert.h>
 #include "short_list.h"
 
+
+
+
+
 //--------------------------------
 #define UC unsigned char
 #define SC int8_t
@@ -11,13 +15,12 @@
 #define SS int16_t
 #define UI uint32_t
 #define UQ unsigned long long
-//--------------------------------
+
 #define ONBRD(X)        (!((X) & 0x88))
 #define XY2SQ(X, Y)     (((Y) << 4) + (X))
 #define COL(SQ)         ((SQ) & 7)
 #define ROW(SQ)         ((SQ) >> 4)
 #define ABSI(X)         ((X) > 0 ? (X) : (-(X)))
-
 
 const int lst_sz        = 32;                                                 // size of piece list for one colour
 const unsigned max_ply  = 100;                                                // maximum search depth
@@ -27,12 +30,18 @@ const UC  black         = 0;
 
 
 
+
+
 //--------------------------------
 enum {__ = 0,  _k = 2, _q = 4, _r = 6, _b = 8, _n = 10, _p = 12,
                _K = 3, _Q = 5, _R = 7, _B = 9, _N = 11, _P = 13};
 enum {mCAPT = 0x10, mCS_K = 0x20, mCS_Q = 0x40, mCSTL = 0x60, mENPS = 0x80,
       mPR_Q = 0x01, mPR_N = 0x02, mPR_R = 0x03, mPR_B = 0x04, mPROM = 0x07};
 
+	  
+	  
+	  
+	  
 //--------------------------------
 class Move
 {
@@ -77,6 +86,10 @@ struct BrdState
     short val_end;                                                       // store material and PST value considered deep endgame (kings and pawns only)
     UC scr;                                                             // move priority by move genererator
 };
+
+
+
+
 
 //--------------------------------
 void InitChess();

@@ -36,6 +36,10 @@
 // Krasnoyarsk Kray, Russia
 // Copyright 2014
 
+
+
+
+
 //--------------------------------
 template <class T, int n>
 class short_list
@@ -174,6 +178,10 @@ public:
         void sort(bool (*less_foo)(T, T));
 };
 
+
+
+
+
 //-----------------------------
 template <class T, int n>
 void short_list<T, n>::clear()
@@ -183,6 +191,10 @@ void short_list<T, n>::clear()
     ptr_next[0] = 0;
     ptr_prev[0] = 0;
 }
+
+
+
+
 
 //-----------------------------
 template <class T, int n>
@@ -203,6 +215,10 @@ bool short_list<T, n>::push_front(T arg)
 
     return true;
 }
+
+
+
+
 
 //-----------------------------
 template <class T, int n>
@@ -225,6 +241,10 @@ bool short_list<T, n>::push_back(T arg)
     return true;
 }
 
+
+
+
+
 //-----------------------------
 template <class T, int n>
 void short_list<T, n>::erase(iterator it)
@@ -241,6 +261,10 @@ void short_list<T, n>::erase(iterator it)
     _size--;
 }
 
+
+
+
+
 //-----------------------------
 template <class T, int n>
 void short_list<T, n>::rerase(reverse_iterator it)
@@ -256,6 +280,10 @@ void short_list<T, n>::rerase(reverse_iterator it)
     _size--;
 }
 
+
+
+
+
 //-----------------------------
 template <class T, int n>
 void short_list<T, n>::restore(iterator it)
@@ -269,6 +297,10 @@ void short_list<T, n>::restore(iterator it)
     _size++;
 }
 
+
+
+
+
 //-----------------------------
 template <class T, int n>
 void short_list<T, n>::rrestore(reverse_iterator it)
@@ -281,6 +313,10 @@ void short_list<T, n>::rrestore(reverse_iterator it)
 
     _size++;
 }
+
+
+
+
 
 //-----------------------------
 template <class T, int n>
@@ -301,6 +337,10 @@ void short_list<T, n>::move_element(iterator dst, iterator src)                 
     ptr_prev[dst.num] = src.num;
 }
 
+
+
+
+
 //-----------------------------
 template <class T, int n>
 void short_list<T, n>::rmove_element(reverse_iterator dst, reverse_iterator src)
@@ -319,6 +359,10 @@ void short_list<T, n>::rmove_element(reverse_iterator dst, reverse_iterator src)
     ptr_prev[src.num] = dst.num;
     ptr_next[dst.num] = src.num;
 }
+
+
+
+
 
 //-----------------------------
 template <class T, int n>
@@ -359,6 +403,10 @@ typename short_list<T, n>::iterator short_list<T, n>::begin()
     return it;
 }
 
+
+
+
+
 //-----------------------------
 template <class T, int n>
 typename short_list<T, n>::reverse_iterator short_list<T, n>::rbegin()
@@ -369,6 +417,10 @@ typename short_list<T, n>::reverse_iterator short_list<T, n>::rbegin()
     return rit;
 }
 
+
+
+
+
 //-----------------------------
 template <class T, int n>
 typename short_list<T, n>::iterator short_list<T, n>::end()
@@ -378,6 +430,10 @@ typename short_list<T, n>::iterator short_list<T, n>::end()
     it.linked_class = this;
     return it;
 }
+
+
+
+
 
 //-----------------------------
 template <class T, int n>

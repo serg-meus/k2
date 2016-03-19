@@ -1,11 +1,20 @@
 #include "hash.h"
 
+
+
+
+
 //--------------------------------
 UQ  zorb[12][8][8],
     zorb_en_passant[9],
     zorb_castling[16];
 
 UQ  doneHashKeys[FIFTY_MOVES + max_ply];
+
+
+
+
+
 //--------------------------------
 bool InitHashTable()
 {
@@ -35,6 +44,10 @@ bool InitHashTable()
     return true;
 }
 
+
+
+
+
 //--------------------------------
 UQ InitHashKey()
 {
@@ -53,6 +66,10 @@ UQ InitHashKey()
 
     return ans;
 }
+
+
+
+
 
 //--------------------------------
 void MoveHashKey(Move m, bool special)
@@ -118,11 +135,19 @@ void MoveHashKey(Move m, bool special)
 #endif //NDEBUG
 }
 
+
+
+
+
 //--------------------------------
 transposition_table::transposition_table() : entries_in_a_bucket(4)
 {
     set_size(64);
 }
+
+
+
+
 
 //--------------------------------
 transposition_table::transposition_table(unsigned size_mb) : entries_in_a_bucket(4)
@@ -130,11 +155,19 @@ transposition_table::transposition_table(unsigned size_mb) : entries_in_a_bucket
     set_size(size_mb);
 }
 
+
+
+
+
 //--------------------------------
 transposition_table::~transposition_table()
 {
     delete[] data;
 }
+
+
+
+
 
 //--------------------------------
 bool transposition_table::set_size(unsigned size_mb)
@@ -175,6 +208,10 @@ bool transposition_table::set_size(unsigned size_mb)
     return ans;
 }
 
+
+
+
+
 //--------------------------------
 void transposition_table::clear()
 {
@@ -182,6 +219,10 @@ void transposition_table::clear()
     memset(data, 0,
            sizeof(tt_entry)*buckets*entries_in_a_bucket);
 }
+
+
+
+
 
 //--------------------------------
 void transposition_table::add(UQ key, short value, Move best,
@@ -228,6 +269,10 @@ void transposition_table::add(UQ key, short value, Move best,
     bucket[i].age = age & 0x03;
 }
 
+
+
+
+
 //--------------------------------
 unsigned transposition_table::count(UQ key)
 {
@@ -239,6 +284,10 @@ unsigned transposition_table::count(UQ key)
     assert(ans <= 1);
     return ans;
 }
+
+
+
+
 
 //--------------------------------
 unsigned transposition_table::count(UQ key, tt_entry **entry)
@@ -255,6 +304,10 @@ unsigned transposition_table::count(UQ key, tt_entry **entry)
     return ans;
 }
 
+
+
+
+
 //--------------------------------
 tt_entry& transposition_table::operator [](UQ key)
 {
@@ -266,6 +319,10 @@ tt_entry& transposition_table::operator [](UQ key)
 
     return bucket[ans];
 }
+
+
+
+
 
 //--------------------------------
 bool transposition_table::resize(unsigned size_mb)

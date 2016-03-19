@@ -4,16 +4,23 @@
 #include <iostream>
 #include "extern.h"
 
+
+
+
+
 //--------------------------------
 #define MAXI(X, Y)       ((X) > (Y) ? (X) : (Y))
 
-//--------------------------------
 #define TUNE_PARAMETERS
 #define NPARAMS 2
 
 #ifdef TUNE_PARAMETERS
     #include <vector>
 #endif // TUNE_PARAMETERS
+
+
+
+
 
 //--------------------------------
 enum PriceList
@@ -35,6 +42,10 @@ enum PriceList
 
     CLAMPED_R   = 250
 };
+
+
+
+
 
 //--------------------------------
 void InitEval();

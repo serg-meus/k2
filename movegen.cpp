@@ -1,16 +1,28 @@
 #include "movegen.h"
 
+
+
+
+
 //--------------------------------
 Move pv[max_ply][max_ply + 1];          // the 'flg' property of first element in a row is length of PV at that depth
 Move killers[max_ply][2];
 unsigned history[2][6][128];
 unsigned min_history, max_history;
 
+
+
+
+
 //--------------------------------
 void InitMoveGen()
 {
     InitHashTable();
 }
+
+
+
+
 
 //--------------------------------
 void PushMove(Move *move_array, int *movCr, short_list<UC, lst_sz>::iterator it, UC to, UC flg)
@@ -22,6 +34,10 @@ void PushMove(Move *move_array, int *movCr, short_list<UC, lst_sz>::iterator it,
 
     move_array[(*movCr)++] = m;
 }
+
+
+
+
 
 //--------------------------------
 int GenMoves(Move *move_array, int apprice, Move *best_move)
@@ -81,6 +97,10 @@ int GenMoves(Move *move_array, int apprice, Move *best_move)
     return moveCr;
 }
 
+
+
+
+
 //--------------------------------
 void GenPawn(Move *move_array,
              int *moveCr,
@@ -137,6 +157,10 @@ void GenPawn(Move *move_array,
         }
 }
 
+
+
+
+
 //--------------------------------
 void GenPawnCap(Move *move_array,
                 int *moveCr,
@@ -189,6 +213,10 @@ void GenPawnCap(Move *move_array,
         }
 }
 
+
+
+
+
 //--------------------------------
 void GenCastles(Move *move_array, int *moveCr)
 {
@@ -234,6 +262,10 @@ void GenCastles(Move *move_array, int *moveCr)
         }
     }
 }
+
+
+
+
 
 //--------------------------------
 int GenCaptures(Move *move_array)
@@ -282,6 +314,10 @@ int GenCaptures(Move *move_array)
     SortQuiesceMoves(move_array, moveCr);
     return moveCr;
 }
+
+
+
+
 
 //--------------------------------
 void AppriceMoves(Move *move_array, int moveCr, Move *bestMove)
@@ -420,6 +456,10 @@ void AppriceMoves(Move *move_array, int moveCr, Move *bestMove)
 #endif
 }
 
+
+
+
+
 //--------------------------------
 void AppriceQuiesceMoves(Move *move_array, int moveCr)
 {
@@ -485,6 +525,10 @@ void AppriceQuiesceMoves(Move *move_array, int moveCr)
     }
 }
 
+
+
+
+
 //-----------------------------
 short SEE(UC to, short frStreng, short val, bool stm)
 {
@@ -515,6 +559,10 @@ short SEE(UC to, short frStreng, short val, bool stm)
     b[*storeMen] = storeBrd;
     return val;
 }
+
+
+
+
 
 //-----------------------------
 short_list<UC, lst_sz>::iterator SeeMinAttacker(UC to)
@@ -556,6 +604,10 @@ short_list<UC, lst_sz>::iterator SeeMinAttacker(UC to)
     return it;
 }
 
+
+
+
+
 //-----------------------------
 short SEE_main(Move m)
 {
@@ -578,6 +630,10 @@ short SEE_main(Move m)
     b[*storeMen] = storeBrd;
     return see_score;
 }
+
+
+
+
 
 //--------------------------------
 void SortQuiesceMoves(Move *move_array, int moveCr)

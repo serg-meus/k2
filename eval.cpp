@@ -1,5 +1,9 @@
 #include "eval.h"
 
+
+
+
+
 short material_values_opn[] = {  0, 0, Q_VAL_OPN, R_VAL_OPN, B_VAL_OPN, N_VAL_OPN, P_VAL_OPN};
 short material_values_end[] = {  0, 0, Q_VAL_END, R_VAL_END, B_VAL_END, N_VAL_END, P_VAL_END};
 
@@ -11,6 +15,10 @@ UC    attack_near_king[240];
 #endif // TUNE_PARAMETERS
 
 SC king_safety_shifts[] = {15, 16, 17, 1, -1, -17, -16, -15, 31, 32, 33, -31, -32, -33};
+
+
+
+
 
 //-----------------------------
 void InitEval()
@@ -27,6 +35,10 @@ void InitEval()
     InitKingSafetyTable();
 }
 
+
+
+
+
 //-----------------------------
 short ReturnEval(UC stm)
 {
@@ -36,6 +48,10 @@ short ReturnEval(UC stm)
     Y = ((val_opn - val_end)*X + 80*val_end)/80;
     return stm ? (short)(Y) : (short)(-Y);
 }
+
+
+
+
 
 //-----------------------------
 short Eval()
@@ -66,6 +82,10 @@ short Eval()
 
     return ans;
 }
+
+
+
+
 
 //-----------------------------
 void FastEval(Move m)
@@ -148,6 +168,10 @@ void FastEval(Move m)
     }
 }
 
+
+
+
+
 //-----------------------------
 void EvalAllMaterialAndPST()
 {
@@ -181,6 +205,10 @@ void EvalAllMaterialAndPST()
     }
 }
 
+
+
+
+
 //--------------------------------
 bool TestPromo(int col, UC stm)
 {
@@ -194,6 +222,10 @@ bool TestPromo(int col, UC stm)
         return false;
 
 }
+
+
+
+
 
 //--------------------------------
 void EvalPawns(bool stm)
@@ -341,6 +373,10 @@ void EvalPawns(bool stm)
     val_end += stm ? ansE : -ansE;
 }
 
+
+
+
+
 //------------------------------
 void BishopMobility(UC stm)
 {
@@ -399,6 +435,10 @@ void BishopMobility(UC stm)
     val_opn += stm ? ans : -ans;
     val_end += stm ? ans : -ans;
 }
+
+
+
+
 
 //-----------------------------
 void ClampedRook(UC stm)
@@ -481,6 +521,10 @@ void ClampedRook(UC stm)
 
 }
 
+
+
+
+
 //-----------------------------
 bool TestUnstoppable(int x, int y, UC stm)
 {
@@ -495,6 +539,10 @@ bool TestUnstoppable(int x, int y, UC stm)
         y++;
     return d - (stm != wtm) > y;
 }
+
+
+
+
 
 //-----------------------------
 short KingShieldFactor(UC stm)
@@ -562,6 +610,10 @@ short KingShieldFactor(UC stm)
     return ans;
 }
 
+
+
+
+
 //-----------------------------
 void KingSafety(UC stm)
 {
@@ -614,6 +666,10 @@ void KingSafety(UC stm)
 
     val_opn += stm ? ans : -ans;
 }
+
+
+
+
 
 //-----------------------------
 void KingSafety2(UC king_color)
@@ -669,6 +725,10 @@ void KingSafety2(UC king_color)
 
     val_opn += king_color ? ans : -ans;
 }
+
+
+
+
 
 //-----------------------------
 void MaterialImbalances()
@@ -772,6 +832,10 @@ void MaterialImbalances()
     }
 
 }
+
+
+
+
 
 //-----------------------------
 short EvalDebug()
@@ -900,6 +964,10 @@ short EvalDebug()
     return ans;
 }
 
+
+
+
+
 //-----------------------------
 void InitKingSafetyTable()
 {
@@ -932,6 +1000,10 @@ void InitKingSafetyTable()
             }
         }
 }
+
+
+
+
 
 //-----------------------------
 bool KingZoneAttacked(int k_coord, int attacker_coord,
@@ -1005,6 +1077,10 @@ bool KingZoneAttacked(int k_coord, int attacker_coord,
     return is_attacked;
 }
 
+
+
+
+
 //-----------------------------
 int KingZoneAttackLoop(UC king_color, int &attackers,
                        int &num_attacks, UC *square_weights,
@@ -1045,6 +1121,10 @@ int KingZoneAttackLoop(UC king_color, int &attackers,
 
     return attack_influence;
 }
+
+
+
+
 
 //-----------------------------
 short KingWeakness(UC king_color)
@@ -1113,6 +1193,10 @@ short KingWeakness(UC king_color)
 */
     return ans;
 }
+
+
+
+
 
 //-----------------------------
 void KingSafety3(UC king_color)

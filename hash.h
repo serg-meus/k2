@@ -2,16 +2,24 @@
 #include "extern.h"
 #include <random>
 
+
+
+
+
 //--------------------------------
 #define MEN_TO_ZORB(X) ((X) - 2)
 #define FIFTY_MOVES 101       // because last 50th move can be a mate
 
-//--------------------------------
-bool    InitHashTable();
-UQ      InitHashKey();
-void    MoveHashKey(Move m, bool special);
 
+
+
+
+//--------------------------------
 enum {hNONE, hEXACT, hUPPER, hLOWER};
+
+
+
+
 
 //--------------------------------
 struct tt_entry
@@ -61,3 +69,10 @@ protected:
     UQ _size;
 };
 
+
+
+
+//--------------------------------
+bool    InitHashTable();
+UQ      InitHashKey();
+void    MoveHashKey(Move m, bool special);

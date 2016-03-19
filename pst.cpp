@@ -1,5 +1,9 @@
 #include "chess.h"
 
+
+
+
+
 // WARNING: change values may cause error in AppriceMoves()
 
 SC pst[6][2][8][8] =

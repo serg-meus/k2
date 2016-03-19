@@ -5,13 +5,12 @@
 #include <algorithm>                // for sorting of vectors
 #include "Timer.h"
 
+
+
+
+
 //--------------------------------
 #define ENGINE_VERSION "080x"
-//--------------------------------
-
-
-
-
 
 //#define DONT_SHOW_STATISTICS
 //#define DONT_USE_FUTILITY

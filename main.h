@@ -1,5 +1,9 @@
 #include "engine.h"
 
+
+
+
+
 //--------------------------------
 #ifdef NDEBUG
     #define USE_THREAD_FOR_INPUT
@@ -12,6 +16,10 @@
 #if (defined(NDEBUG) && !defined(USE_THREAD_FOR_INPUT))
     #warning("Thread is off")
 #endif
+
+
+
+
 
 //--------------------------------
 extern double time_remains;
@@ -33,12 +41,19 @@ extern transposition_table tt;
 #endif // TUNE_PARAMETERS
 
 
+
+
+
 //--------------------------------
 struct cmdStruct
 {
     std::string command;
     void (*foo)(std::string);
 };
+
+
+
+
 
 //--------------------------------
 int main(int argc, char* argv[]);
