@@ -727,12 +727,17 @@ void RootMoveGen(bool in_check)
     unsigned max_moves = 999;
     b_state[prev_states + ply].val_opn = val_opn;
     b_state[prev_states + ply].val_end = val_end;
+
+    tt_entry *entry = nullptr;
+    bool in_hash = false;
+    short alpha = -INF, beta = INF;
+    m.flg = 0xFF;
+    HashProbe(max_ply, &alpha, beta, &entry, &in_hash);
+
     for(unsigned move_cr = 0; move_cr < max_moves; move_cr++)
     {
-        tt_entry *hs = nullptr;
-        bool bm_not_hashed = false;
         m = Next(move_array, move_cr, &max_moves,
-                 &bm_not_hashed, hs, wtm, all_moves, false, m);
+                 &in_hash, entry, wtm, all_moves, false, m);
     }
     root_moves.clear();
     for(unsigned move_cr = 0; move_cr < max_moves; move_cr++)
