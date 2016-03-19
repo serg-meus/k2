@@ -22,6 +22,9 @@ int         finaly_made_moves, moves_remains;
 bool        spent_exact_time;
 unsigned    resign_cr, pv_stable_cr;
 bool        time_command_sent;
+short       prev_val;
+Move        pondered_move, last_made_move;
+
 
 std::vector<std::pair<UQ, Move> > root_moves;
 
@@ -424,41 +427,73 @@ void MainSearch()
     busy = true;
     InitSearch();
 
-    short sc = Quiesce(-INF, INF);
-    short sc_;
-    root_ply = 1;
+    short val, val_;
+
+    if(pondered_move.flg == 0xFF || last_made_move != pondered_move)
+    {
+        root_ply = 1;
+        val = Quiesce(-INF, INF);
+    }
+    else
+    {
+        root_ply -= 2;
+        val = prev_val;
+    }
+
     max_root_moves = 0;
     pv_stable_cr = 0;
     for(; root_ply <= max_ply && !stop; ++root_ply)
     {
-        sc_ = sc;
+        val_ = val;
 #ifndef DONT_USE_ASPIRATION_WINDOWS
-        sc = RootSearch(root_ply, sc - 30, sc + 30);
-        if(stop && sc == -INF)
-            sc = sc_;
-        else if(sc <= sc_ - 30 || sc >= sc_ + 30)
+        int bounds[] = {30, 150, 450, INF, INF};
+        const size_t sz_bounds = sizeof(bounds)/sizeof(*bounds);
+        int alpha, beta;
+
+        alpha = val - 30;
+        beta  = val + 30;
+        if(beta > INF)
+            beta = INF;
+        if(alpha < -INF)
+            alpha = -INF;
+        while(true)
         {
-            sc = RootSearch(root_ply, sc - 150, sc + 150);
-            if(stop && sc == -INF)
-                sc = sc_;
-            else if(sc <= sc_ - 150 || sc >= sc_ + 150)
+            val = RootSearch(root_ply, alpha, beta);
+            if(stop && val == -INF)
             {
-                sc = RootSearch(root_ply, sc - 450, sc + 450);
-                if(stop && sc == -INF)
-                    sc = sc_;
-                else if(sc <= sc_ - 450 || sc >= sc_ + 450)
-                {
-                    sc = RootSearch(root_ply, -INF, INF);
-                    if(stop && sc == -INF)
-                        sc = sc_;
-                }
+                val = val_;
+                break;
             }
-        }
+
+            if(val >= beta)
+            {
+                size_t cr = 0;
+                for(; cr < sz_bounds; ++cr)
+                    if(beta - val_ < bounds[cr])
+                        break;
+                beta = val + bounds[cr];
+                if(beta > INF)
+                    beta = INF;
+            }
+            else if(val <= alpha)
+            {
+                size_t cr = 0;
+                for(; cr < sz_bounds; ++cr)
+                    if(val_ - alpha < bounds[cr])
+                        break;
+                alpha = val - bounds[cr];
+                if(alpha < -INF)
+                    alpha = -INF;
+            }
+            else
+                break;
+        }// while true
+        prev_val = val;
 #else
-        sc = RootSearch(root_ply, -INF, INF);
-        if(stop && sc == -INF)
-            sc = sc_;
-#endif // DONT_USE_ASPIRATION_WINDOWS
+        val = RootSearch(root_ply, -INF, INF);
+        if(stop && val == -INF)
+            val = val_;
+#endif //DONT_USE_ASPIRATION_WINDOWS
 
         double time1 = timer.getElapsedTimeInMicroSec();
         time_spent = time1 - time0;
@@ -469,7 +504,7 @@ void MainSearch()
             && !max_nodes_to_search
             && root_ply >= 2)
                 break;
-            if(ABSI(sc) > mate_score && !stop && root_ply >= 2)
+            if(ABSI(val) > mate_score && !stop && root_ply >= 2)
                 break;
             if(max_root_moves == 1 && root_ply >= 8)
                 break;
@@ -484,13 +519,13 @@ void MainSearch()
         pondering_in_process = false;
         spent_exact_time = false;
     }
-    if(sc < -RESIGN_VALUE)
+    if(val < -RESIGN_VALUE)
         resign_cr++;
     else
         resign_cr = 0;
 
-    if((!stop && !infinite_analyze && sc < -mate_score)
-    || (!infinite_analyze && sc < -RESIGN_VALUE && resign_cr > RESIGN_MOVES))
+    if((!stop && !infinite_analyze && val < -mate_score)
+    || (!infinite_analyze && resign_cr > RESIGN_MOVES))
     {
         std::cout << "resign" << std::endl;
         busy = false;
@@ -505,12 +540,14 @@ void MainSearch()
 
     if(!xboard)
         infinite_analyze = false;
+
+    pondered_move = pv[0][2];
+    if(pv[0][0].flg == 0)
+        pondered_move.flg = 0xFF;
+
+
     busy = false;
 }
-
-
-
-
 
 //--------------------------------
 short RootSearch(int depth, short alpha, short beta)
@@ -520,6 +557,8 @@ short RootSearch(int depth, short alpha, short beta)
     b_state[prev_states + ply].val_end = val_end;
     if(max_root_moves == 0)
         RootMoveGen(in_check);
+    if(max_root_moves > 0)
+        pv[0][1] = root_moves.at(0).second;
 
     root_move_cr = 0;
 
@@ -1173,6 +1212,7 @@ bool MakeMoveFinaly(char *mov)
                 doneHashKeys[j] = doneHashKeys[j + 1];
 
             finaly_made_moves++;
+            last_made_move = m;
             return true;
         }
     }
@@ -1205,6 +1245,9 @@ void InitEngine()
 #ifndef DONT_USE_HISTORY
     memset(history, 0, sizeof(history));
 #endif // DONT_USE_HISTORY
+
+    pondered_move.flg = 0xFF;
+    last_made_move.flg = 0xFF;
 }
 
 
