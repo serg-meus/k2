@@ -75,7 +75,7 @@ void RootMoveGen(bool ic);
 void MainSearch();
 void InitSearch();
 void PrintSearchResult();
-void PlyOutput(short sc);
+void PlyOutput(short sc, char exclimation);
 void InitTime();
 bool ShowPV(int _ply);
 void Ambiguous(Move m);
@@ -107,4 +107,4 @@ bool DetectOnlyMove(bool beta_cutoff, bool in_check,
 void ShowCurrentUciInfo();
 void MoveToStr(Move m, bool stm, char *out);
 void PonderHit();
-void ShowPVfailHigh(Move m, short x);
+void ShowPVfailHighOrLow(Move m, short x, char exclimation);

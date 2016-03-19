@@ -560,6 +560,8 @@ short RootSearch(int depth, short alpha, short beta)
                 x = -Search(depth - 1, -beta, -alpha, pv_node, no_lmr);
                 if(stop)
                     x = -INF;
+                else if(x <= alpha)
+                    ShowPVfailHighOrLow(m, x, '?');
             }
             else
             {
@@ -568,7 +570,7 @@ short RootSearch(int depth, short alpha, short beta)
                     x = -INF;
                 if(!stop && x > alpha)
                 {
-                    ShowPVfailHigh(m, x);
+                    ShowPVfailHighOrLow(m, x, '!');
 
                     short x_ = -Search(depth - 1, -beta, -alpha, pv_node, no_lmr);
                     if(stop)
@@ -601,7 +603,7 @@ short RootSearch(int depth, short alpha, short beta)
 
         if(x >= beta)
         {
-            ShowPVfailHigh(m, x);
+            ShowPVfailHighOrLow(m, x, '!');
             beta_cutoff = true;
             std::swap(root_moves.at(root_move_cr),
                       root_moves.at(0));
@@ -619,9 +621,8 @@ short RootSearch(int depth, short alpha, short beta)
             alpha = x;
             StorePV(m);
 
-            if(depth > 3 && x != -INF
-            && !stop)
-                PlyOutput(x);
+            if(depth > 3 && x != -INF && !stop)
+                PlyOutput(x, ' ');
             std::swap(root_moves.at(root_move_cr),
                       root_moves.at(0));
         }
@@ -637,7 +638,7 @@ short RootSearch(int depth, short alpha, short beta)
 
     pv_stable_cr++;
     if(depth <= 3 && max_root_moves != 0)
-        PlyOutput(alpha);
+        PlyOutput(alpha, ' ');
     if(max_root_moves == 0)
     {
         pv[0][0].flg = 0;
@@ -656,7 +657,7 @@ short RootSearch(int depth, short alpha, short beta)
 
 
 //--------------------------------
-void ShowPVfailHigh(Move m, short x)
+void ShowPVfailHighOrLow(Move m, short x, char exclimation)
 {
     UnMove(m);
     hash_key = doneHashKeys[FIFTY_MOVES + ply];
@@ -668,7 +669,7 @@ void ShowPVfailHigh(Move m, short x)
     pv[0][0].flg    = 1;
     pv[0][1]        = m;
 
-    PlyOutput(x);
+    PlyOutput(x, exclimation);
     pv[0][0].flg    = tmp0.flg;
     pv[0][1]        = tmp1;
 
@@ -903,7 +904,7 @@ void PrintSearchResult()
 
 
 //--------------------------------
-void PlyOutput(short sc)
+void PlyOutput(short sc, char exclimation)
 {
     using namespace std;
 
@@ -926,8 +927,6 @@ void PlyOutput(short sc)
         cout << " time " << tsp
             << " nodes " << nodes
             << " pv ";
-        ShowPV(0);
-        cout << endl;
     }
     else
     {
@@ -935,9 +934,11 @@ void PlyOutput(short sc)
         cout << setfill(' ') << setw(7)  << left << sc;
         cout << setfill(' ') << setw(8)  << left << tsp / 10;
         cout << setfill(' ') << setw(12) << left << nodes << ' ';
-        ShowPV(0);
-        cout << endl;
     }
+    ShowPV(0);
+    if(exclimation != ' ')
+        cout << exclimation;
+    cout << endl;
 }
 
 
