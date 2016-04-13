@@ -433,16 +433,8 @@ void MainSearch()
 
     short val, val_;
 
-    if(pondered_move.flg == 0xFF || last_made_move != pondered_move)
-    {
-        root_ply = 1;
-        val = Quiesce(-INF, INF);
-    }
-    else
-    {
-        root_ply -= 2;
-        val = prev_val;
-    }
+    root_ply = 1;
+    val = Quiesce(-INF, INF);
 
     max_root_moves = 0;
     pv_stable_cr = 0;
@@ -450,49 +442,15 @@ void MainSearch()
     {
         val_ = val;
 #ifndef DONT_USE_ASPIRATION_WINDOWS
-        int bounds[] = {30, 150, 450, INF, INF};
-        const size_t sz_bounds = sizeof(bounds)/sizeof(*bounds);
-        int alpha, beta;
-
-        alpha = val - 30;
-        beta  = val + 30;
-        if(beta > INF)
-            beta = INF;
-        if(alpha < -INF)
-            alpha = -INF;
-        while(true)
+        val = RootSearch(root_ply, val - 30, val + 30);
+        if(stop && val == -INF)
+            val = val_;
+        else if(val <= val_ - 30 || val >= val_ + 30)
         {
-            val = RootSearch(root_ply, alpha, beta);
+            val = RootSearch(root_ply, -INF, INF);
             if(stop && val == -INF)
-            {
                 val = val_;
-                break;
-            }
-
-            if(val >= beta)
-            {
-                size_t cr = 0;
-                for(; cr < sz_bounds; ++cr)
-                    if(beta - val_ < bounds[cr])
-                        break;
-                beta = val + bounds[cr];
-                if(beta > INF)
-                    beta = INF;
-            }
-            else if(val <= alpha)
-            {
-                size_t cr = 0;
-                for(; cr < sz_bounds; ++cr)
-                    if(val_ - alpha < bounds[cr])
-                        break;
-                alpha = val - bounds[cr];
-                if(alpha < -INF)
-                    alpha = -INF;
-            }
-            else
-                break;
-        }// while true
-        prev_val = val;
+        }
 #else
         val = RootSearch(root_ply, -INF, INF);
         if(stop && val == -INF)
