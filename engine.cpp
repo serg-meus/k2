@@ -549,9 +549,12 @@ void MainSearch()
     if(pv[0][0].flg == 0)
         pondered_move.flg = 0xFF;
 
-
     busy = false;
 }
+
+
+
+
 
 //--------------------------------
 short RootSearch(int depth, short alpha, short beta)
@@ -743,6 +746,7 @@ void RootMoveGen(bool in_check)
         m = Next(move_array, move_cr, &max_moves,
                  &in_hash, entry, wtm, all_moves, false, m);
     }
+
     root_moves.clear();
     for(unsigned move_cr = 0; move_cr < max_moves; move_cr++)
     {
@@ -1891,6 +1895,10 @@ void StoreResultInHash(int depth, short _alpha, short alpha,            // save 
                hUPPER, finaly_made_moves/2, one_reply);
     }
 }
+
+
+
+
 
 //-----------------------------
 void ShowCurrentUciInfo()

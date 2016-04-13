@@ -786,6 +786,11 @@ void UnmakeCapture(Move m)
     coords[!wtm].restore(it_cap);
     pieces[!wtm]++;
 }
+
+
+
+
+
 //--------------------------------
 void UnmakePromotion(Move m)
 {
@@ -802,6 +807,11 @@ void UnmakePromotion(Move m)
     quantity[wtm][_p/2]++;
     quantity[wtm][prPc[prIx]/2]--;
 }
+
+
+
+
+
 //--------------------------------
 void UnMove(Move m)
 {
