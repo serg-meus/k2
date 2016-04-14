@@ -79,6 +79,11 @@ short Search(int depth, short alpha, short beta,
         return beta;
 #endif // DONT_USE_FUTILITY
 
+#ifndef DONT_USE_NULL_MOVE
+    if(NullMove(depth, beta, in_check))
+        return beta;
+#endif // DONT_USE_NULL_MOVE
+
     short x, _alpha = alpha;
     bool in_hash = false;
     tt_entry *entry = nullptr;
@@ -91,11 +96,6 @@ short Search(int depth, short alpha, short beta,
     nodes++;
     if((nodes & nodes_to_check_stop) == nodes_to_check_stop)
         CheckForInterrupt();
-
-#ifndef DONT_USE_NULL_MOVE
-    if(NullMove(depth, beta, in_check))
-        return beta;
-#endif // DONT_USE_NULL_MOVE
 
     Move move_array[MAX_MOVES], m;
     unsigned move_cr = 0, legals = 0, max_moves = 999, first_legal = 0;
@@ -1968,4 +1968,11 @@ r3r1k1/3q1ppp/p4n2/1p1P4/2P2bb1/5N1P/PR1NBPP1/3Q1RK1 b - - 0 21 bm Bxh3
 rn3rk1/p3qppp/bp3n2/2bp4/N7/1P3NP1/P1QBPPBP/R3K2R w KQ - 6 5 sd 4 am Nxc5
 8/8/4b3/b2p4/P4pkP/1R6/5B2/2K5 b - - 0 48 black pawns eval
 rr4k1/1pq2p1p/p2b2p1/2pPp3/P1P1P3/4N2P/1R2QPP1/1R4K1 b - - 1 28 am Ra7
+
+4r1k1/5p1p/r2p2n1/p1pP3Q/4P3/2N3R1/2q2PP1/1R4K1 b - - 0 19 KS eval
+r4rk1/p1p3pp/1p1ppn2/5p2/P1PP2qP/1P1BPbP1/1B1Q1P2/R4RK1 w - - 1 10 KS eval
+5rk1/1p1n1pp1/1q3np1/2bpp1B1/r5P1/3P3P/P1PN1PB1/R2Q1RK1 w - - 0 8 KS eval
+
+6r1/8/4k2B/4P1pP/3K2P1/8/8/8 b - - 4 73 am Rd8
+
 */
