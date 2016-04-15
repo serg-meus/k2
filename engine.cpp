@@ -26,8 +26,6 @@ int         finaly_made_moves, moves_remains;
 bool        spent_exact_time;
 unsigned    resign_cr, pv_stable_cr;
 bool        time_command_sent;
-short       prev_val;
-Move        pondered_move, last_made_move;
 
 
 std::vector<std::pair<UQ, Move> > root_moves;
@@ -502,10 +500,6 @@ void MainSearch()
 
     if(!xboard)
         infinite_analyze = false;
-
-    pondered_move = pv[0][2];
-    if(pv[0][0].flg == 0)
-        pondered_move.flg = 0xFF;
 
     busy = false;
 }
@@ -1185,7 +1179,6 @@ bool MakeMoveFinaly(char *mov)
                 doneHashKeys[j] = doneHashKeys[j + 1];
 
             finaly_made_moves++;
-            last_made_move = m;
             return true;
         }
     }
@@ -1218,9 +1211,6 @@ void InitEngine()
 #ifndef DONT_USE_HISTORY
     memset(history, 0, sizeof(history));
 #endif // DONT_USE_HISTORY
-
-    pondered_move.flg = 0xFF;
-    last_made_move.flg = 0xFF;
 }
 
 
