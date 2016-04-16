@@ -65,15 +65,11 @@ void BishopMobility(UC stm);
 short ReturnEval(UC stm);
 void MaterialImbalances();
 short EvalDebug();
-bool KingZoneAttacked(int king_coord, int attacker_coord,
-                      UC king_color, int &number_of_attacks,
-                      unsigned char *square_weights,
-                      unsigned char *piece_type_weights);
 void KingSafety2(UC king_color);
 void KingSafety3(UC king_color);
-void InitKingSafetyTable();
-int KingZoneAttackLoop(UC king_color, int &attackers,
-                         int &attacks, unsigned char *square_weights,
-                       unsigned char *piece_type_weights);
 short KingWeakness(UC king_color);
 short KingShieldFactor(UC stm);
+int CountAttacksOnOneSquare(UC king_color, UC attacked_coord,
+                            int &weight, unsigned char *attacker_coords,
+                            unsigned char &attacker_cr);
+int CountAttacksOnKingShelter(UC king_color, int &weight, int &attackers);
