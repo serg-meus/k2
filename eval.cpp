@@ -3,6 +3,9 @@
 
 
 
+short val_opn, val_end;
+
+UC pawn_max[10][2], pawn_min[10][2];
 
 short material_values_opn[] = {  0, 0, Q_VAL_OPN, R_VAL_OPN, B_VAL_OPN, N_VAL_OPN, P_VAL_OPN};
 short material_values_end[] = {  0, 0, Q_VAL_END, R_VAL_END, B_VAL_END, N_VAL_END, P_VAL_END};
@@ -21,14 +24,30 @@ UC    attack_near_king[240];
 //-----------------------------
 void InitEval()
 {
+    InitChess();
+
     val_opn = 0;
     val_end = 0;
-    InitMoveGen();
+
     for(int i = 0; i < 120; i++)
         if(i & 8)
             king_dist[i] = MAXI(8 - COL(i), ROW(i) + 1);
         else
             king_dist[i] = MAXI(COL(i), ROW(i));
+
+    InitPawnStruct();
+
+    b_state[prev_states + ply].val_opn = 0;
+    b_state[prev_states + ply].val_end = 0;
+
+    pawn_max[1 - 1][0] = 0;
+    pawn_max[1 - 1][1] = 0;
+    pawn_min[1 - 1][0] = 7;
+    pawn_min[1 - 1][1] = 7;
+    pawn_max[8 + 1][0]  = 0;
+    pawn_max[8 + 1][1]  = 0;
+    pawn_min[8 + 1][0]  = 7;
+    pawn_min[8 + 1][1]  = 7;
 }
 
 
@@ -52,7 +71,6 @@ short ReturnEval(UC stm)
 //-----------------------------
 short Eval()
 {
-
     b_state[prev_states + ply].val_opn = val_opn;
     b_state[prev_states + ply].val_end = val_end;
 
@@ -199,6 +217,8 @@ void EvalAllMaterialAndPST()
             val_end -= tmpEnd;
         }
     }
+    b_state[prev_states + ply].val_opn = val_opn;
+    b_state[prev_states + ply].val_end = val_end;
 }
 
 
@@ -348,7 +368,7 @@ void EvalPawns(bool stm)
 
         if(promo && prev_promo && ABSI(mx - pawn_max[i + 0][stm]) <= 1)      // two connected passers
         {
-            int mmx = std::max(pawn_max[i + 0][stm], mx);
+            int mmx = std::max((int)pawn_max[i + 0][stm], mx);
             if(mmx > 4)
                 ansE += 28*mmx;
         }
@@ -922,10 +942,6 @@ short EvalDebug()
     std::cout << "Bonus for side to move\t\t\t";
     std::cout <<  (wtm ? 8 : -8) << std::endl << std::endl;
 
-    val_opn = b_state[prev_states + ply].val_opn;
-    val_end = b_state[prev_states + ply].val_end;
-
-
     int attacks, weight, attackers;
 
     std::cout << "White king safety data: " << std::endl;
@@ -948,6 +964,9 @@ short EvalDebug()
 
     std::cout << "Eval summary: " << (wtm ? -ans : ans) << std::endl;
     std::cout << "(positive values means advantage for white)" << std::endl;
+
+    val_opn = b_state[prev_states + ply].val_opn;
+    val_end = b_state[prev_states + ply].val_end;
 
     return ans;
 }
@@ -1166,4 +1185,162 @@ void KingSafety3(UC king_color)
 //    ans = (material[!king_color] + 24)*ans/72;
 
     val_opn += king_color ? ans : -ans;
+}
+
+
+
+
+
+//-----------------------------
+void SetPawnStruct(int col)
+{
+    assert(col >= 0 && col <= 7);
+    int y;
+    if(wtm)
+    {
+        y = 1;
+        while(b[XY2SQ(col, 7 - y)] != _p && y < 7)
+            y++;
+        pawn_min[col + 1][black] = y;
+
+        y = 6;
+        while(b[XY2SQ(col, 7 - y)] != _p && y > 0)
+            y--;
+        pawn_max[col + 1][black] = y;
+    }
+    else
+    {
+        y = 1;
+        while(b[XY2SQ(col, y)] != _P && y < 7)
+            y++;
+        pawn_min[col + 1][white] = y;
+
+        y = 6;
+        while(b[XY2SQ(col, y)] != _P && y > 0)
+            y--;
+        pawn_max[col + 1][white] = y;
+    }
+}
+
+
+
+
+
+//-----------------------------
+void MovePawnStruct(UC movedPiece, UC fr, Move m)
+{
+    if((movedPiece/2) == _p/2 || (m.flg & mPROM))
+    {
+        SetPawnStruct(COL(m.to));
+        if(m.flg)
+            SetPawnStruct(COL(fr));
+    }
+    if(b_state[prev_states + ply].capt/2 == _p/2
+    || (m.flg & mENPS))                                    // mENPS not needed
+    {
+        wtm ^= white;
+        SetPawnStruct(COL(m.to));
+        wtm ^= white;
+    }
+}
+
+
+
+
+
+//-----------------------------
+void InitPawnStruct()
+{
+    int x, y;
+    for(x = 0; x < 8; x++)
+    {
+        pawn_max[x + 1][0] = 0;
+        pawn_max[x + 1][1] = 0;
+        pawn_min[x + 1][0] = 7;
+        pawn_min[x + 1][1] = 7;
+        for(y = 1; y < 7; y++)
+            if(b[XY2SQ(x, y)] == _P)
+            {
+                pawn_min[x + 1][1] = y;
+                break;
+            }
+        for(y = 6; y >= 1; y--)
+            if(b[XY2SQ(x, y)] == _P)
+            {
+                pawn_max[x + 1][1] = y;
+                break;
+            }
+        for(y = 6; y >= 1; y--)
+            if(b[XY2SQ(x, y)] == _p)
+            {
+                pawn_min[x + 1][0] = 7 - y;
+                break;
+            }
+         for(y = 1; y < 7; y++)
+            if(b[XY2SQ(x, y)] == _p)
+            {
+                pawn_max[x + 1][0] = 7 - y;
+                break;
+            }
+    }
+}
+
+
+
+
+
+
+
+
+
+//-----------------------------
+bool MkMoveAndEval(Move m)
+{
+    b_state[prev_states + ply].val_opn = val_opn;
+    b_state[prev_states + ply].val_end = val_end;
+
+    bool is_special_move = MkMoveFast(m);
+
+    UC fr = b_state[prev_states + ply].fr;
+
+    MovePawnStruct(b[m.to], fr, m);
+
+    return is_special_move;
+}
+
+
+
+
+
+//-----------------------------
+void UnMoveAndEval(Move m)
+{
+    UC fr = b_state[prev_states + ply].fr;
+
+    UnMoveFast(m);
+
+    ply++;
+    wtm ^= white;
+    MovePawnStruct(b[fr], fr, m);
+    wtm ^= white;
+    ply--;
+
+    val_opn = b_state[prev_states + ply].val_opn;
+    val_end = b_state[prev_states + ply].val_end;
+}
+
+
+
+
+
+//-----------------------------
+void MkEvalAfterFastMove(Move m)
+{
+    b_state[prev_states + ply - 1].val_opn = val_opn;
+    b_state[prev_states + ply - 1].val_end = val_end;
+
+    UC fr = b_state[prev_states + ply].fr;
+
+
+    MovePawnStruct(b[m.to], fr, m);
 }

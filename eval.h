@@ -1,4 +1,4 @@
-#include "movegen.h"
+#include "chess.h"
 #include <fstream>                  // to work with files (ifstream, getline())
 #include <cstdlib>                  // to convert strings to floats (atof())
 #include <iostream>
@@ -10,8 +10,10 @@
 
 //--------------------------------
 #define MAXI(X, Y)       ((X) > (Y) ? (X) : (Y))
+#define LIGHT(X, s2m)   ((X) && (((X) & white) == (s2m)))
+#define DARK(X, s2m)    ((X) && (((X) & white) != (s2m)))
 
-#define TUNE_PARAMETERS
+//#define TUNE_PARAMETERS
 #define NPARAMS 2
 
 #ifdef TUNE_PARAMETERS
@@ -73,3 +75,7 @@ int CountAttacksOnOneSquare(UC king_color, UC attacked_coord,
                             int &weight, unsigned char *attacker_coords,
                             unsigned char &attacker_cr);
 int CountAttacksOnKingShelter(UC king_color, int &weight, int &attackers);
+bool MkMoveAndEval(Move m);
+void UnMoveAndEval(Move m);
+void MkEvalAfterFastMove(Move m);
+

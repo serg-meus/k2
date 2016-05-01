@@ -1,4 +1,4 @@
-#include "hash.h"
+#include "eval.h"
 #include "extern.h"
 #include <limits.h>
 
@@ -9,9 +9,6 @@
 //--------------------------------
 //#define DONT_USE_SEE_SORTING
 //#define DONT_USE_SEE_CUTOFF
-
-#define LIGHT(X, s2m)   ((X) && (((X) & white) == (s2m)))
-#define DARK(X, s2m)    ((X) && (((X) & white) != (s2m)))
 
 
 #define MOVE_FROM_PV    200

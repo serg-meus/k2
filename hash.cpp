@@ -5,6 +5,8 @@
 
 
 //--------------------------------
+UQ hash_key;
+
 UQ  zorb[12][8][8],
     zorb_en_passant[9],
     zorb_castling[16];
@@ -18,7 +20,7 @@ UQ  doneHashKeys[FIFTY_MOVES + max_ply];
 //--------------------------------
 bool InitHashTable()
 {
-    InitChess();
+    InitMoveGen();
 
     std::uniform_int_distribution<UQ> zorb_distr(0, (UQ)-1);
     std::mt19937 rnd_gen;
@@ -330,4 +332,37 @@ bool transposition_table::resize(unsigned size_mb)
     delete[] data;
 
     return set_size(size_mb);
+}
+
+
+
+
+
+//--------------------------------
+void MkMove(Move m)
+{
+    bool special_move = MkMoveAndEval(m);
+    MoveHashKey(m, special_move);
+}
+
+
+
+
+
+//--------------------------------
+void UnMove(Move m)
+{
+    UnMoveAndEval(m);
+    hash_key = doneHashKeys[FIFTY_MOVES + ply];
+}
+
+
+
+
+
+//--------------------------------
+void MkMoveIncrementally(Move m, bool special_move)
+{
+    MkEvalAfterFastMove(m);
+    MoveHashKey(m, special_move);
 }

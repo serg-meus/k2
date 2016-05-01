@@ -17,7 +17,7 @@ unsigned min_history, max_history;
 //--------------------------------
 void InitMoveGen()
 {
-    InitHashTable();
+    InitEval();
 }
 
 

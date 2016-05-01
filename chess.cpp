@@ -29,15 +29,12 @@ UQ nodes, tmpCr;
 char *cv;
 US reversible_moves;
 
-int pawn_max[10][2], pawn_min[10][2];
-
-UQ hash_key;
 char cur_moves[5*max_ply];
 
 short_list<UC, lst_sz>::iterator king_coord[2];
 UC quantity[2][6 + 1];
 
-short val_opn, val_end;
+
 
 
 
@@ -48,15 +45,6 @@ void InitChess()
 {
     cv = cur_moves;
     InitBrd();
-
-    pawn_max[1 - 1][0] = 0;
-    pawn_max[1 - 1][1] = 0;
-    pawn_min[1 - 1][0] = 7;
-    pawn_min[1 - 1][1] = 7;
-    pawn_max[8 + 1][0]  = 0;
-    pawn_max[8 + 1][1]  = 0;
-    pawn_min[8 + 1][0]  = 7;
-    pawn_min[8 + 1][1]  = 7;
 }
 
 
@@ -102,8 +90,6 @@ void InitBrd()
     material[white] = 48;
 
     reversible_moves     = 0;
-
-    InitPawnStruct();
 
     king_coord[white] = --coords[white].end();
     king_coord[black] = --coords[black].end();
@@ -510,104 +496,6 @@ bool Legal(Move m, bool ic)
 
 
 //-----------------------------
-void SetPawnStruct(int x)
-{
-    assert(x >= 0 && x <= 7);
-    int y;
-    if(!wtm)
-    {
-        y = 1;
-        while(b[XY2SQ(x, 7 - y)] != _p && y < 7)
-            y++;
-        pawn_min[x + 1][0] = y;
-
-        y = 6;
-        while(b[XY2SQ(x, 7 - y)] != _p && y > 0)
-            y--;
-        pawn_max[x + 1][0] = y;
-    }
-    else
-    {
-        y = 1;
-        while(b[XY2SQ(x, y)] != _P && y < 7)
-            y++;
-        pawn_min[x + 1][1] = y;
-
-        y = 6;
-        while(b[XY2SQ(x, y)] != _P && y > 0)
-            y--;
-        pawn_max[x + 1][1] = y;
-    }
-}
-
-
-
-
-
-//-----------------------------
-void MovePawnStruct(UC movedPiece, UC fr, Move m)
-{
-    if((movedPiece/2) == _p/2 || (m.flg & mPROM))
-    {
-        SetPawnStruct(COL(m.to));
-        if(m.flg)
-            SetPawnStruct(COL(fr));
-    }
-    if(b_state[prev_states + ply].capt/2 == _p/2
-    || (m.flg & mENPS))                                    // mENPS not needed
-    {
-        wtm ^= white;
-        SetPawnStruct(COL(m.to));
-        wtm ^= white;
-    }
-}
-
-
-
-
-
-//-----------------------------
-void InitPawnStruct()
-{
-    int x, y;
-    for(x = 0; x < 8; x++)
-    {
-        pawn_max[x + 1][0] = 0;
-        pawn_max[x + 1][1] = 0;
-        pawn_min[x + 1][0] = 7;
-        pawn_min[x + 1][1] = 7;
-        for(y = 1; y < 7; y++)
-            if(b[XY2SQ(x, y)] == _P)
-            {
-                pawn_min[x + 1][1] = y;
-                break;
-            }
-        for(y = 6; y >= 1; y--)
-            if(b[XY2SQ(x, y)] == _P)
-            {
-                pawn_max[x + 1][1] = y;
-                break;
-            }
-        for(y = 6; y >= 1; y--)
-            if(b[XY2SQ(x, y)] == _p)
-            {
-                pawn_min[x + 1][0] = 7 - y;
-                break;
-            }
-         for(y = 1; y < 7; y++)
-            if(b[XY2SQ(x, y)] == _p)
-            {
-                pawn_max[x + 1][0] = 7 - y;
-                break;
-            }
-    }
-}
-
-
-
-
-
-//-----------------------------
 bool PieceListCompare(UC men1, UC men2)
 {
     return sort_streng[b[men1]/2] > sort_streng[b[men2]/2];
@@ -711,9 +599,9 @@ void MakePromotion(Move m, short_list<UC, lst_sz>::iterator it)
 
 
 //--------------------------------
-bool MkMove(Move m)
+bool MkMoveFast(Move m)
 {
-    bool special_move = false;
+    bool is_special_move = false;
     ply++;
     auto it = coords[wtm].begin();
     it      = m.pc;
@@ -725,12 +613,12 @@ bool MkMove(Move m)
         MakeCapture(m, targ);
 
     if((b[fr] <= _R) || (m.flg & mCAPT))        // trick: fast exit if not K|Q|R moves, and no captures
-        special_move |= MakeCastle(m, fr);
+        is_special_move |= MakeCastle(m, fr);
 
     b_state[prev_states + ply].ep = 0;
     if((b[fr] ^ wtm) == _p)
     {
-        special_move     |= MakeEP(m, fr);
+        is_special_move     |= MakeEP(m, fr);
         reversible_moves = 0;
     }
 #ifndef NDEBUG
@@ -744,11 +632,9 @@ bool MkMove(Move m)
         MakePromotion(m, it);
 
     *it   = m.to;
-
-    MovePawnStruct(b[m.to], fr, m);
-
     wtm ^= white;
-    return special_move;
+
+    return is_special_move;
 }
 
 
@@ -813,7 +699,7 @@ void UnmakePromotion(Move m)
 
 
 //--------------------------------
-void UnMove(Move m)
+void UnMoveFast(Move m)
 {
     UC fr = b_state[prev_states + ply].fr;
     auto it = coords[!wtm].begin();
@@ -831,15 +717,10 @@ void UnMove(Move m)
 
     if(m.flg & mPROM)
         UnmakePromotion(m);
-
-    if(m.flg & mCSTL)
+    else if(m.flg & mCSTL)
         UnMakeCastle(m);
 
-    MovePawnStruct(b[fr], fr, m);
-
     ply--;
-    val_opn = b_state[prev_states + ply].val_opn;
-    val_end = b_state[prev_states + ply].val_end;
 
 #ifndef NDEBUG
     cur_moves[5*ply] = '\0';
