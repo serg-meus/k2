@@ -802,6 +802,51 @@ void MaterialImbalances()
             val_end += ans;
         }
     }
+    else if(X == 3)
+    {
+        // KBPk or KNPk with pawn at a(h) file
+        if(material[white] == 0)
+        {
+            UC k = *king_coord[white];
+            if((pawn_max[1 + 0][black] != 0 && king_dist[ABSI(k - 0x00)] <= 1)
+            || (pawn_max[1 + 7][black] != 0 && king_dist[ABSI(k - 0x07)] <= 1))
+                val_end += 750;
+        }
+        else if(material[black] == 0)
+        {
+            UC k = *king_coord[black];
+            if((pawn_max[1 + 0][white] != 0 && king_dist[ABSI(k - 0x70)] <= 1)
+            || (pawn_max[1 + 7][white] != 0 && king_dist[ABSI(k - 0x77)] <= 1))
+                val_end -= 750;
+        }
+    }
+    else if(X == 0)
+    {
+        // KPk
+        if(material[white] + material[black] == 1)
+        {
+            UC stm = material[white] == 1;
+            auto it = coords[stm].rbegin();
+            ++it;
+            UC colp = COL(*it);
+            bool unstop = TestUnstoppable(colp, 7 - pawn_max[colp + 1][stm], stm);
+            int dist_k = king_dist[ABSI(*king_coord[stm] - *it)];
+            int dist_opp_k = king_dist[ABSI(*king_coord[!stm] - *it)];
+
+            if(!unstop && dist_k > dist_opp_k + (wtm == stm))
+            {
+                val_opn = 0;
+                val_end = 0;
+            }
+            else if((colp == 0 || colp == 7)
+            && king_dist[ABSI(*king_coord[!stm] -
+                              (colp | (stm ? 0x70 : 0)))])
+            {
+                val_opn = 0;
+                val_end = 0;
+            }
+        }
+    }
 
     // two bishops
     if(quantity[white][_b/2] == 2)
