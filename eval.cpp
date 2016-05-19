@@ -11,7 +11,13 @@ short material_values_opn[] = {  0, 0, Q_VAL_OPN, R_VAL_OPN, B_VAL_OPN, N_VAL_OP
 short material_values_end[] = {  0, 0, Q_VAL_END, R_VAL_END, B_VAL_END, N_VAL_END, P_VAL_END};
 
 char  king_dist[120];
-UC    attack_near_king[240];
+short king_tropism[2];
+
+UC tropism_factor[2][7] =
+{   //  k  Q   R   B   N   P
+    {0, 0, 10, 10, 10,  4, 4},  // 4 >= dist > 3
+    {0, 0, 21, 21, 10,  0, 10}  // dist < 3
+};
 
 #ifdef TUNE_PARAMETERS
     std::vector <float> param;
@@ -77,8 +83,8 @@ short Eval()
     EvalPawns((bool)white);
     EvalPawns((bool)black);
 
-    KingSafety2(white);
-    KingSafety2(black);
+    KingSafety3(white);
+    KingSafety3(black);
 
     ClampedRook(white);
     ClampedRook(black);
@@ -219,6 +225,9 @@ void EvalAllMaterialAndPST()
     }
     b_state[prev_states + ply].val_opn = val_opn;
     b_state[prev_states + ply].val_end = val_end;
+
+    king_tropism[white] = CountKingTropism(white);
+    king_tropism[black] = CountKingTropism(black);
 }
 
 
@@ -567,7 +576,7 @@ short KingShieldFactor(UC stm)
     int shft = stm ? 16 : -16;
     short ans = 0;
 
-    if(!ONBRD(k + shft + shft))
+    if(!ONBRD(k + shft + shft))                 // <<
         ans = 7;
 
     if(COL(k) == 0)
@@ -702,13 +711,6 @@ void KingSafety2(UC king_color)
     int shield_badness  = KingShieldFactor(king_color);
     ans +=  material[!king_color]*(1 - shield_badness)/3;
 
-    static UC influence_factor[2][7] =
-    {
-        {0, 0, 10, 10, 10, 10, 0},
-        {0, 0, 20, 20, 10, 10, 0}
-    };
-
-
     int occ_cr = 0;
     int pieces_near = 0;
     auto rit = coords[!king_color].rbegin();
@@ -722,7 +724,7 @@ void KingSafety2(UC king_color)
         if(dist >= 4)
             continue;
         pieces_near++;
-        occ_cr += influence_factor[dist < 3][pt/2];
+        occ_cr += tropism_factor[dist < 3][pt/2];
     }
     int tropism = occ_cr*occ_cr*(4 + shield_badness)/50;
 
@@ -884,14 +886,14 @@ short EvalDebug()
     store_ve = val_end;
     store_sum = ReturnEval(white);
 
-    KingSafety2(white);
+    KingSafety3(white);
     std::cout << "King safety white\t";
     std::cout << val_opn - store_vo << '\t' << val_end - store_ve << '\t'
               << ReturnEval(white) - store_sum << std::endl;
     store_vo = val_opn;
     store_ve = val_end;
     store_sum = ReturnEval(white);
-    KingSafety2(black);
+    KingSafety3(black);
     std::cout << "King safety black\t";
     std::cout << val_opn - store_vo << '\t' << val_end - store_ve << '\t'
               << ReturnEval(white) - store_sum << std::endl;
@@ -942,24 +944,6 @@ short EvalDebug()
     std::cout << "Bonus for side to move\t\t\t";
     std::cout <<  (wtm ? 8 : -8) << std::endl << std::endl;
 
-    int attacks, weight, attackers;
-
-    std::cout << "White king safety data: " << std::endl;
-    std::cout << "King weakness: " << KingWeakness(white);
-    weight = 0;
-    attackers = 0;
-    attacks = CountAttacksOnKingShelter(white, weight, attackers);
-    std::cout << ", attacks: " << attacks << ", weight: "
-              << weight << ", attackers: " << attackers << std::endl;
-
-    std::cout << "Black king safety data: " << std::endl;
-    std::cout << "King weakness: " << KingWeakness(black);
-    weight = 0;
-    attackers = 0;
-    attacks = CountAttacksOnKingShelter(black, weight, attackers);
-    std::cout << ", attacks: " << attacks << ", weight: "
-              << weight << ", attackers: " << attackers << std::endl;
-
     std::cout << std::endl << std::endl;
 
     std::cout << "Eval summary: " << (wtm ? -ans : ans) << std::endl;
@@ -969,222 +953,6 @@ short EvalDebug()
     val_end = b_state[prev_states + ply].val_end;
 
     return ans;
-}
-
-
-
-
-
-//-----------------------------
-short KingWeakness(UC king_color)
-{
-    short ans = 0;
-    int k = *king_coord[king_color];
-    int shft = king_color ? 16 : -16;
-
-    if(COL(k) == 0)
-        k++;
-    else if(COL(k) == 7)
-        k--;
-
-    if(COL(k) == 2 || COL(k) == 5)
-        ans += 30;
-    if(COL(k) == 3 || COL(k) == 4)
-    {
-        if(b_state[prev_states + ply].cstl & (0x0C >> 2*king_color))
-            ans += 30;
-        else
-            ans += 90;
-    }
-    if((king_color == white && ROW(k) > 1)
-    || (king_color == black && ROW(k) < 6))
-    {
-        ans += 60;
-//        return ans;
-    }
-
-
-    int index = 0;
-    for(int i = 0; i < 3; ++i)
-    {
-        UC pt1 = b[i + k + shft - 1];
-        UC pt2 = b[i + k + 2*shft - 1];
-        if(pt1 == (_p | king_color) || pt2 == (_p | king_color))
-            continue;
-        if(pt1 != __ && (pt1 & white) == king_color
-        && pt2 != __ && (pt2 & white) == king_color)  // LIGHT() macros needed
-            continue;
-
-            index += (1 << i);
-    }
-    index = 7 - index;
-    // cases: ___, __p, _p_, _pp, p__, p_p, pp_, ppp
-    int cases[]  = {0, 1, 1, 3, 1, 2, 3, 4};
-    short scores[] = {140, 75, 75, 10, 0};
-
-    if(cases[index] == 2)
-    {
-        if(LIGHT(b[k + shft], king_color))
-            ans -= 45;
-        else if(b[k + 2*shft] == (_p | king_color))
-            ans -= 45;
-    }
-    ans += scores[cases[index]];
-
-    return ans;
-}
-
-
-
-
-
-//-----------------------------
-int CountAttacksOnOneSquare(UC king_color, UC attacked_coord, int &weight,
-                            UC *attacker_coords, UC &attacker_cr)
-{
-    int ans = 0;
-    UC shifts[] = {15, 16, 17};
-
-    for(size_t i = 0; i < sizeof(shifts)/sizeof(*shifts); ++i)
-    {
-        UC to = attacked_coord;
-        for(int j = 0; j < 7; ++j)
-        {
-            to += (king_color ? shifts[i] : -shifts[i]);
-            if(!ONBRD(to))
-                break;
-            else if(b[to]/2 == _p/2)
-                break;
-            else if(b[to] == __)
-                continue;
-            else if(LIGHT(b[to], king_color))
-                break;
-
-
-
-            if(b[to]/2 == _q/2)
-            {
-                ans++;
-                weight += 60;
-                attacker_coords[attacker_cr++] = to;
-            }
-            else if(b[to]/2 == _r/2)
-            {
-                if(shifts[i] == 16)
-                {
-                    ans++;
-                    weight += 60;
-                    attacker_coords[attacker_cr++] = to;
-                }
-                else
-                    break;
-            }
-            else if(b[to]/2 == _b/2)
-            {
-                if(shifts[i] != 16)
-                {
-                    ans++;
-                    weight += 30;
-                    attacker_coords[attacker_cr++] = to;
-                }
-                else
-                    break;
-            }
-            else if(b[to]/2 == _n/2)
-                break;
-            else if(b[to]/2 == _k/2)
-                break;
-
-        }// for j
-    }// for i
-
-    return ans;
-}
-
-
-
-
-
-//-----------------------------
-int CountAttacksOnKingShelter(UC king_color, int &weight, int &attackers)
-{
-    int ans = 0;
-    attackers = 0;
-    int k_shifts[] = {15, 16, 17, 31, 32, 33};
-    UC attacker_coords[32];
-    UC attacker_cr = 0;
-
-    UC k = *king_coord[king_color];
-    if(COL(k) == 0)
-        k++;
-    else if(COL(k) == 7)
-        k--;
-
-
-    for(size_t i = 0; i < sizeof(k_shifts)/sizeof(*k_shifts); ++i)
-    {
-        UC pt = k + (king_color ? k_shifts[i] : -k_shifts[i]);
-        if(!ONBRD(pt))
-            continue;
-        if(k_shifts[i] > 17 && !LIGHT(b[pt], king_color))
-            continue;
-        if(DARK(b[pt], king_color))
-            continue;
-
-        ans += CountAttacksOnOneSquare(king_color, pt, weight,
-                                       attacker_coords, attacker_cr);
-    }
-
-    for(UC i = 0; i < attacker_cr; ++i)
-        for(UC j = 0; j < attacker_cr - i - 1; ++j)
-            if(attacker_coords[j + 1] > attacker_coords[j])
-                std::swap(attacker_coords[j + 1], attacker_coords[j]);
-    if(attacker_cr > 0)
-        attackers = 1;
-    for(UC i = 0; i < attacker_cr - 1; ++i)
-        if(attacker_coords[i + 1] != attacker_coords[i])
-            attackers++;
-
-
-    return ans;
-}
-
-
-//-----------------------------
-void KingSafety3(UC king_color)
-{
-    if(quantity[!king_color][_q/2] == 0)
-        return;
-
-    short ans = 0;
-
-    int king_weakness = KingWeakness(king_color);
-    if(king_weakness <= 70)
-    {
-        ans -= king_weakness;
-        val_opn += king_color ? ans : -ans;
-        return;
-    }
-//    king_weakness = king_weakness*(material[!king_color] + 24)*ans/72;
-
-    int weight = 0, attackers = 0;
-    int attacks = CountAttacksOnKingShelter(king_color,
-                                            weight, attackers);
-
-    int attack_val = 3*attackers*weight/2;
-
-    if(attackers == 1)
-        attack_val = 0;
-    else if(attackers == 2)
-        attack_val /= 2;
-    if(attack_val > 250)
-        attack_val = 250;
-
-    ans -= king_weakness/2 + attack_val;
-
-//    ans = (material[!king_color] + 24)*ans/72;
-
-    val_opn += king_color ? ans : -ans;
 }
 
 
@@ -1290,6 +1058,71 @@ void InitPawnStruct()
 
 
 
+//-----------------------------
+short CountKingTropism(UC king_color)
+{
+    short occ_cr = 0;
+    auto rit = coords[!king_color].rbegin();
+    ++rit;
+    for(; rit != coords[!king_color].rend(); ++rit)
+    {
+        UC pt = b[*rit] & ~white;
+        if(pt == _p)
+            break;
+        int dist = king_dist[ABSI(*king_coord[king_color] - *rit)];
+        if(dist >= 4)
+            continue;
+        occ_cr += tropism_factor[dist < 3][pt/2];
+    }
+    return occ_cr;
+}
+
+
+
+
+
+//-----------------------------
+void MoveKingTropism(UC fr, Move m, UC king_color)
+{
+    b_state[prev_states + ply].tropism[black] = king_tropism[black];
+    b_state[prev_states + ply].tropism[white] = king_tropism[white];
+
+    UC pt = b[m.to];
+
+    if(pt/2 == _k/2)
+    {
+        king_tropism[king_color]  = CountKingTropism(king_color);
+        king_tropism[!king_color] = CountKingTropism(!king_color);
+
+        return;
+    }
+
+    int dist_to = king_dist[ABSI(*king_coord[king_color] - m.to)];
+    int dist_fr = king_dist[ABSI(*king_coord[king_color] - fr)];
+
+
+    if(dist_fr < 4 && !(m.flg & mPROM))
+        king_tropism[king_color] -= tropism_factor[dist_fr < 3][pt/2];
+    if(dist_to < 4)
+        king_tropism[king_color] += tropism_factor[dist_to < 3][pt/2];
+
+    UC cap = b_state[prev_states + ply].capt;
+    if(m.flg & mCAPT)
+    {
+        dist_to = king_dist[ABSI(*king_coord[!king_color] - m.to)];
+        if(dist_to < 4)
+            king_tropism[!king_color] -= tropism_factor[dist_to < 3][cap/2];
+    }
+
+#ifndef NDEBUG
+    short tmp = CountKingTropism(king_color);
+    if(king_tropism[king_color] != tmp && cap/2 != _k/2)
+        ply = ply;
+    tmp = CountKingTropism(!king_color);
+    if(king_tropism[!king_color] != tmp && cap/2 != _k/2)
+        ply = ply;
+#endif // NDEBUG
+}
 
 
 
@@ -1303,6 +1136,8 @@ bool MkMoveAndEval(Move m)
 
     UC fr = b_state[prev_states + ply].fr;
 
+    MoveKingTropism(fr, m, wtm);
+
     MovePawnStruct(b[m.to], fr, m);
 
     return is_special_move;
@@ -1315,6 +1150,9 @@ bool MkMoveAndEval(Move m)
 //-----------------------------
 void UnMoveAndEval(Move m)
 {
+    king_tropism[black] = b_state[prev_states + ply].tropism[black];
+    king_tropism[white] = b_state[prev_states + ply].tropism[white];
+
     UC fr = b_state[prev_states + ply].fr;
 
     UnMoveFast(m);
@@ -1341,6 +1179,171 @@ void MkEvalAfterFastMove(Move m)
 
     UC fr = b_state[prev_states + ply].fr;
 
+    MoveKingTropism(fr, m, wtm);
 
     MovePawnStruct(b[m.to], fr, m);
 }
+
+
+
+
+
+//-----------------------------
+short KingOpenFiles(UC king_color)
+{
+    short ans = 0;
+    int k = *king_coord[king_color];
+
+    if(COL(k) == 0)
+        k++;
+    else if(COL(k) == 7)
+        k--;
+
+    int open_files_near_king = 0, open_files[3] = {0};
+    for(int i = 0; i < 3; ++i)
+    {
+        int col = COL(k) + i - 1;
+        if(col < 0 || col > 7)
+            continue;
+        if(/*pawn_max[col + 1][king_color] == 0
+        && */pawn_max[col + 1][!king_color] == 0)
+        {
+            open_files_near_king++;
+            open_files[i]++;
+        }
+    }
+
+    if(open_files_near_king == 0)
+        return 0;
+
+    UC rooks_queens_on_file[8] = {0};
+    auto rit = coords[!king_color].rbegin();
+    ++rit;
+    for(; rit != coords[!king_color].rend(); ++rit)
+    {
+        UC pt = b[*rit];
+        if(pt/2 != _q/2 && pt/2 != _r/2)
+            break;
+        int k = pawn_max[COL(*rit) + 1][king_color] ? 1 : 2;
+        rooks_queens_on_file[COL(*rit)] +=
+                k*(pt/2 == _r/2 ? 2 : 1);
+    }
+
+    for(int i = 0; i < 3; ++i)
+    {
+        if(open_files[i])
+            ans += rooks_queens_on_file[COL(k) + i - 1];
+    }
+    if(ans <= 2)
+        ans = ans/2;
+
+    return ans;
+}
+
+
+
+
+
+//-----------------------------
+short KingWeakness(UC king_color)
+{
+    short ans = 0;
+    int k = *king_coord[king_color];
+    int shft = king_color ? 16 : -16;
+
+    if(COL(k) == 0)
+        k++;
+    else if(COL(k) == 7)
+        k--;
+
+    if(COL(k) == 2 || COL(k) == 5)
+        ans += 30;
+    if(COL(k) == 3 || COL(k) == 4)
+    {
+        if(b_state[prev_states + ply].cstl & (0x0C >> 2*king_color)) // able to castle
+            ans += 30;
+        else
+            ans += 60;
+    }
+    if((king_color == white && ROW(k) > 1)
+    || (king_color == black && ROW(k) < 6))
+    {
+        ans += 60;
+    }
+
+
+    int index = 0;
+    for(int i = 0; i < 3; ++i)
+    {
+        UC pt1 = b[i + k + shft - 1];
+        UC pt2 = b[i + k + 2*shft - 1];
+        if(pt1 == (_p | king_color) || pt2 == (_p | king_color))
+            continue;
+
+        if(LIGHT(pt1, king_color)
+        && LIGHT(pt2, king_color))
+            continue;
+
+        if(LIGHT(pt2, king_color)
+        && (b[i + k + shft - 2] == (_p | king_color)
+        || b[i + k + shft + 0] == (_p | king_color)))
+            continue;
+
+        index += (1 << i);
+    }
+    index = 7 - index;
+    // cases: ___, __p, _p_, _pp, p__, p_p, pp_, ppp
+    int cases[]  = {0, 1, 1, 3, 1, 2, 3, 4};
+    short scores[] = {140, 75, 75, 10, 0};
+
+    ans += scores[cases[index]];
+
+    if(cases[index] != 4)
+        ans += 25*KingOpenFiles(king_color);
+
+    return ans;
+}
+
+
+
+
+
+//-----------------------------
+void KingSafety3(UC king_color)
+{
+    int trp = king_tropism[king_color];
+
+    if(quantity[!king_color][_q/2] == 0)
+    {
+        trp += trp*trp/15;
+        val_opn += king_color ? -trp : trp;
+
+        return;
+    }
+
+    if(trp == 21 || trp == 10)
+        trp /= 4;
+    else if(trp >= 60)
+        trp *= 4;
+    trp += trp*trp/5;
+
+    short kw = KingWeakness(king_color);
+    if(trp <= 6)
+        kw /= 2;
+    else if(kw >= 40)
+        trp *= 2;
+
+    if(trp > 500)
+        trp = 500;
+
+    if(b_state[prev_states + ply].cstl & (0x0C >> 2*king_color)) // able to castle
+        kw /= 4;
+    else
+        kw = (material[!king_color] + 24)*kw/72;
+
+    int ans = -3*(kw + trp)/2;
+
+    val_opn += king_color ? ans : -ans;
+
+}
+

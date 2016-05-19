@@ -78,4 +78,5 @@ int CountAttacksOnKingShelter(UC king_color, int &weight, int &attackers);
 bool MkMoveAndEval(Move m);
 void UnMoveAndEval(Move m);
 void MkEvalAfterFastMove(Move m);
-
+short CountKingTropism(UC king_color);
+void MoveKingTropism(UC fr, Move m, UC king_color);

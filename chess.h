@@ -85,6 +85,7 @@ struct BrdState
     short val_opn;                                                       // store material and PST value considered all material is on the board
     short val_end;                                                       // store material and PST value considered deep endgame (kings and pawns only)
     UC scr;                                                             // move priority by move genererator
+    short tropism[2];
 };
 
 
