@@ -4,7 +4,7 @@
 // K2, the chess engine
 // Author: Sergey Meus (serg_meus@mail.ru)
 // Krasnoyarsk Kray, Russia
-// Copyright 2012-2015
+// Copyright 2012-2016
 //--------------------------------
 
 
@@ -854,12 +854,12 @@ void SetvalueCommand(std::string in)
     {
         param.at(0) = atof(arg2.c_str());
     }
-
+/*
     else if(arg1 == "k_saf1")
     {
         param.at(1) = atof(arg2.c_str());
     }
-
+*/
     else
     {
         std::cout << "error: wrong parameter name" << std ::endl

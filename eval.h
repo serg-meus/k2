@@ -14,7 +14,7 @@
 #define DARK(X, s2m)    ((X) && (((X) & white) != (s2m)))
 
 //#define TUNE_PARAMETERS
-#define NPARAMS 2
+#define NPARAMS 1
 
 #ifdef TUNE_PARAMETERS
     #include <vector>

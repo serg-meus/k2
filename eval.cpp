@@ -1101,8 +1101,6 @@ void InitPawnStruct()
 
 
 
-
-
 //-----------------------------
 short CountKingTropism(UC king_color)
 {
@@ -1168,6 +1166,8 @@ void MoveKingTropism(UC fr, Move m, UC king_color)
         ply = ply;
 #endif // NDEBUG
 }
+
+
 
 
 
