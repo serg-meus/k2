@@ -107,9 +107,14 @@ int main(int argc, char* argv[])
 
     char in[0x4000];
     while(!quit)
-   {
+    {
         if(!std::cin.getline(in, sizeof(in), '\n'))
-            std::cin.clear();
+        {
+            if (std::cin.eof())
+                quit = true;
+            else
+                std::cin.clear();
+        }
 
         if(CmdProcess((std::string)in))
         {
