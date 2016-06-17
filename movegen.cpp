@@ -571,14 +571,14 @@ short_list<UC, lst_sz>::iterator SeeMinAttacker(UC to)
     int shft_r[] = {17, -15};
     UC  pw[] = {_p, _P};
 
-    if(b[to + shft_l[!wtm]] == pw[!wtm])
+    if(to + shft_l[!wtm] > 0 && b[to + shft_l[!wtm]] == pw[!wtm])
         for(auto it = coords[!wtm].begin();
             it != coords[!wtm].end();
             ++it)
             if(*it == to + shft_l[!wtm])
                 return it;
 
-    if(b[to + shft_r[!wtm]] == pw[!wtm])
+    if(to + shft_r[!wtm] > 0 && b[to + shft_r[!wtm]] == pw[!wtm])
         for(auto it = coords[!wtm].begin();
             it != coords[!wtm].end();
             ++it)

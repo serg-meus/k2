@@ -1320,18 +1320,24 @@ short KingWeakness(UC king_color)
     int index = 0;
     for(int i = 0; i < 3; ++i)
     {
+        if(i + k + 2*shft - 1 < 0
+        || i + k + 2*shft - 1 >= (int)(sizeof(b)/sizeof(*b)))
+            continue;
         UC pt1 = b[i + k + shft - 1];
         UC pt2 = b[i + k + 2*shft - 1];
-        if(pt1 == (_p | king_color) || pt2 == (_p | king_color))
+        const UC pwn = _p | king_color;
+        if(pt1 == pwn || pt2 == pwn)
             continue;
 
         if(LIGHT(pt1, king_color)
         && LIGHT(pt2, king_color))
             continue;
 
+        if(i + k + shft - 2 < 0)
+            continue;
+
         if(LIGHT(pt2, king_color)
-        && (b[i + k + shft - 2] == (_p | king_color)
-        || b[i + k + shft + 0] == (_p | king_color)))
+        && (b[i + k + shft - 2] == pwn || b[i + k + shft + 0] == pwn))
             continue;
 
         index += (1 << i);
