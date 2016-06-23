@@ -425,6 +425,7 @@ void MainSearch()
 
     root_ply = 1;
     val = Quiesce(-INF, INF);
+    pv[0][0].flg = 0;
 
     max_root_moves = 0;
     pv_stable_cr = 0;
