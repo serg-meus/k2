@@ -764,6 +764,9 @@ void UciGoCommand(std::string in)
             pondering_in_process = true;
             arg1 = arg2;
         }
+        else
+            break;
+
     }//while(true
 }
 
