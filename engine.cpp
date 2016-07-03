@@ -915,6 +915,11 @@ void PlyOutput(short sc, char exclimation)
             else
                 cout << " score mate -" << (K_VAL + sc + 1) / 2;
         }
+        if(exclimation == '!')
+            cout << " upperbound";
+        else if(exclimation == '?')
+            cout << " lowerbound";
+
         cout << " time " << tsp
             << " nodes " << nodes
             << " pv ";
@@ -927,7 +932,7 @@ void PlyOutput(short sc, char exclimation)
         cout << setfill(' ') << setw(12) << left << nodes << ' ';
     }
     ShowPV(0);
-    if(exclimation != ' ')
+    if(!uci && exclimation != ' ')
         cout << exclimation;
     cout << endl;
 }
