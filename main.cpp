@@ -619,7 +619,7 @@ void SetOptionCommand(std::string in)
 void IsReadyCommand(std::string in)
 {
     UNUSED(in);
-    std::cout << "readyok" << std::endl;
+    std::cout << "\nreadyok\n";     // '\n' to avoid multithreading problems
 }
 
 
