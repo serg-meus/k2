@@ -506,28 +506,6 @@ bool PieceListCompare(UC men1, UC men2)
 
 
 //--------------------------------
-bool SliderAttackWithXRays(UC fr, UC to, UC stm)
-{
-    int shift = get_shift[120 + to - fr];
-    int delta = get_delta[120 + to - fr];
-    UC same_slider = _b;
-    if(shift/2 == 0 || (shift & 1) == 0)
-        same_slider = _r;
-    for(int i = 0; i < delta - 1; i++)
-    {
-        fr += shift;
-        if(b[fr] && b[fr] != (_q ^ stm)
-        && b[fr] != (same_slider ^ stm))
-            return false;
-    }
-    return true;
-}
-
-
-
-
-
-//--------------------------------
 void StoreCurrentBoardState(Move m, UC fr, UC targ)
 {
     b_state[prev_states + ply].cstl  = b_state[prev_states + ply - 1].cstl;
