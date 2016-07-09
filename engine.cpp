@@ -699,7 +699,7 @@ void RootMoveGen(bool in_check)
 #if (!defined(DONT_USE_RANDOMNESS) && defined(NDEBUG))
     if(root_ply != 0)
         return;
-    std::srand(std::time(0));
+    std::srand(std::time(nullptr));
     const unsigned max_moves_to_shuffle = 4;
     unsigned moves_to_shuffle = std::min(max_root_moves, max_moves_to_shuffle);
     for(unsigned i = 0; i < moves_to_shuffle; ++i)

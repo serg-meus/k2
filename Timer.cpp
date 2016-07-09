@@ -3,7 +3,7 @@
 // =========
 // High Resolution Timer.
 // This timer is able to measure the elapsed time with 1 micro-second accuracy
-// in both Windows, Linux and Unix system 
+// in both Windows, Linux and Unix system
 //
 //  AUTHOR: Song Ho Ahn (song.ahn@gmail.com)
 // CREATED: 2003-01-13
@@ -55,7 +55,7 @@ void Timer::start()
 #ifdef WIN32
     QueryPerformanceCounter(&startCount);
 #else
-    gettimeofday(&startCount, NULL);
+    gettimeofday(&startCount, nullptr);
 #endif
 }
 
@@ -72,7 +72,7 @@ void Timer::stop()
 #ifdef WIN32
     QueryPerformanceCounter(&endCount);
 #else
-    gettimeofday(&endCount, NULL);
+    gettimeofday(&endCount, nullptr);
 #endif
 }
 
@@ -92,7 +92,7 @@ double Timer::getElapsedTimeInMicroSec()
     endTimeInMicroSec = endCount.QuadPart * (1000000.0 / frequency.QuadPart);
 #else
     if(!stopped)
-        gettimeofday(&endCount, NULL);
+        gettimeofday(&endCount, nullptr);
 
     startTimeInMicroSec = (startCount.tv_sec * 1000000.0) + startCount.tv_usec;
     endTimeInMicroSec = (endCount.tv_sec * 1000000.0) + endCount.tv_usec;
