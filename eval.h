@@ -80,3 +80,6 @@ void UnMoveAndEval(Move m);
 void MkEvalAfterFastMove(Move m);
 short CountKingTropism(UC king_color);
 void MoveKingTropism(UC fr, Move m, UC king_color);
+short KingOpenFiles(UC king_color);
+void MovePawnStruct(UC movedPiece, UC fr, Move m);
+
