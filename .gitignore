@@ -1,3 +1,4 @@
+
 # Compiled Object files
 *.slo
 *.lo
@@ -11,3 +12,9 @@
 *.lai
 *.la
 *.a
+
+/bin
+*.cbp
+*.depend
+*.layout
+*.out
