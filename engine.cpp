@@ -281,7 +281,7 @@ short Quiesce(short alpha, short beta)
 #ifndef DONT_USE_DELTA_PRUNING
         if(material[0] + material[1] > 24
         && ReturnEval(wtm)
-        + 100*pc_streng[b[m.to]/2] < alpha - 700)
+        + 100*pc_streng[GET_INDEX(b[m.to])] < alpha - 700)
             continue;
 #endif
         MkMoveAndEval(m);
@@ -404,7 +404,7 @@ void UpdateStatistics(Move m, int dpt, unsigned move_cr)
     auto it = coords[wtm].begin();
     it = m.pc;
     UC fr = *it;
-    unsigned &h = history[wtm][(b[fr]/2) - 1][m.to];
+    unsigned &h = history[wtm][GET_INDEX(b[fr]) - 1][m.to];
     h += dpt*dpt + 1;
 #else
     UNUSED(dpt);
@@ -1075,7 +1075,7 @@ void Ambiguous(Move m)
     auto it = coords[wtm].begin();
     it = m.pc;
     UC fr0 = *it;
-    UC pt0 = b[fr0]/2;
+    UC pt0 = GET_INDEX(b[fr0]);
 
     for(it = coords[wtm].begin();
         it != coords[wtm].end();
@@ -1085,7 +1085,7 @@ void Ambiguous(Move m)
             continue;
         UC fr = *it;
 
-        UC pt = b[fr]/2;
+        UC pt = GET_INDEX(b[fr]);
         if(pt != pt0)
             continue;
         if(!(attacks[120 + fr - m.to] & (1 << pt)))
@@ -1450,9 +1450,9 @@ void ShowFen()
                 std::cout << blankCr;
             blankCr = 0;
             if(pt & white)
-                std::cout << whites[pt/2 - 1];
+                std::cout << whites[GET_INDEX(pt) - 1];
             else
-                std::cout << blacks[pt/2 - 1];
+                std::cout << blacks[GET_INDEX(pt) - 1];
         }
         if(blankCr != 0)
             std::cout << blankCr;
@@ -1564,15 +1564,15 @@ bool PseudoLegal(Move &m, bool stm)
         return false;
     if(!LIGHT(b[fr], stm))
         return false;
-    if((b[fr]/2) != _p/2 && ((!DARK(pt, stm) && (m.flg & mCAPT))
+    if((b[fr] & ~white) != _p && ((!DARK(pt, stm) && (m.flg & mCAPT))
     || (pt != __ && !(m.flg & mCAPT))))
         return false;
-    if((b[fr]/2) != _p/2 && (m.flg & mPROM))
+    if((b[fr] & ~white) != _p && (m.flg & mPROM))
         return false;
     bool long_move;
-    switch(b[fr]/2)
+    switch(b[fr] & ~white)
     {
-        case _p/2 :
+        case _p :
             if((m.flg & mPROM) && ((stm && ROW(fr) != 6)
             || (!stm && ROW(fr) != 1)))
                 return false;
@@ -1602,22 +1602,22 @@ bool PseudoLegal(Move &m, bool stm)
             }
 
             break;
-        case _n/2 :
+        case _n :
             m.flg &= mCAPT;
             if(ABSI(dCOL) + ABSI(dROW) != 3)
                 return false;
             if(ABSI(dCOL) != 1 && ABSI(dROW) != 1)
                 return false;
             break;
-        case _b/2 :
-        case _r/2 :
-        case _q/2 :
+        case _b :
+        case _r :
+        case _q :
             m.flg &= mCAPT;
-            if(!(attacks[120 + m.to - fr] & (1 << (b[fr]/2)))
+            if(!(attacks[120 + m.to - fr] & (1 << GET_INDEX(b[fr])))
             || !SliderAttack(m.to, fr))
                 return false;
             break;
-        case _k/2 :
+        case _k :
             if(!(m.flg & mCSTL))
             {
                 if((ABSI(dCOL) > 1 || ABSI(dROW) > 1))

@@ -51,8 +51,8 @@ int GenMoves(Move *move_array, int apprice, Move *best_move)
     for(;it != coords[wtm].end(); ++it)
     {
         UC fr = *it;
-        UC at = b[fr]/2;
-        if(at == _p/2)
+        UC at = GET_INDEX(b[fr]);
+        if(at == GET_INDEX(_p))
         {
             GenPawn(move_array, &moveCr, it);
             continue;
@@ -276,8 +276,8 @@ int GenCaptures(Move *move_array)
     for(; it != coords[wtm].end(); ++it)
     {
         UC fr = *it;
-        UC at = b[fr]/2;
-        if(at == _p/2)
+        UC at = GET_INDEX(b[fr]);
+        if(at == GET_INDEX(_p))
         {
             GenPawnCap(move_array, &moveCr, it);
             continue;
@@ -354,7 +354,7 @@ void AppriceMoves(Move *move_array, int moveCr, Move *bestMove)
             {
 #ifndef DONT_USE_HISTORY
                 UC fr = *it;
-                unsigned h = history[wtm][b[fr]/2 - 1][m.to];
+                unsigned h = history[wtm][GET_INDEX(b[fr]) - 1][m.to];
                 if(h > max_history)
                     max_history = h;
                 if(h < min_history)
@@ -369,7 +369,8 @@ void AppriceMoves(Move *move_array, int moveCr, Move *bestMove)
                     y   = 7 - y;
                     y0  = 7 - y0;
                 }
-                int pstVal  = pst[fr_pc/2 - 1][0][y][x] - pst[fr_pc/2 - 1][0][y0][x0];
+                int pstVal  = pst[GET_INDEX(fr_pc) - 1][0][y][x]
+                            - pst[GET_INDEX(fr_pc) - 1][0][y0][x0];
                 pstVal      = 96 + pstVal/2;
                 move_array[i].scr = pstVal;
             } // else (ordinary move)
@@ -377,8 +378,8 @@ void AppriceMoves(Move *move_array, int moveCr, Move *bestMove)
         else
         {
             int ans;
-            int src = streng[fr_pc/2];
-            int dst = (m.flg & mCAPT) ? streng[to_pc/2] : 0;
+            int src = streng[GET_INDEX(fr_pc)];
+            int dst = (m.flg & mCAPT) ? streng[GET_INDEX(to_pc)] : 0;
 
 #ifndef DONT_USE_SEE_SORTING
             if(dst && dst - src <= 0)
@@ -418,7 +419,7 @@ void AppriceMoves(Move *move_array, int moveCr, Move *bestMove)
             }
             else
             {
-                if(b[*it]/2 != _k/2)
+                if((b[*it] & ~white) != _k)
                 {
                     assert(-ans/2 >= 0);
                     assert(-ans/2 <= BAD_CAPTURES);
@@ -443,7 +444,7 @@ void AppriceMoves(Move *move_array, int moveCr, Move *bestMove)
             continue;
         it      = m.pc;
         UC fr   = *it;
-        unsigned h = history[wtm][b[fr]/2 - 1][m.to];
+        unsigned h = history[wtm][GET_INDEX(b[fr]) - 1][m.to];
         if(h > 3)
         {
             h -= min_history;
@@ -472,8 +473,8 @@ void AppriceQuiesceMoves(Move *move_array, int moveCr)
         UC fr = b[*it];
         UC pt = b[m.to];
 
-        int src = sort_streng[fr/2];
-        int dst = (m.flg & mCAPT) ? sort_streng[pt/2] : 0;
+        int src = sort_streng[GET_INDEX(fr)];
+        int dst = (m.flg & mCAPT) ? sort_streng[GET_INDEX(pt)] : 0;
 
         if(dst > 120)
         {
@@ -509,7 +510,7 @@ void AppriceQuiesceMoves(Move *move_array, int moveCr)
         }
         else
         {
-            if(fr/2 != _k/2)
+            if((fr & ~white) != _k)
             {
                 assert(-ans/2 >= 0);
                 assert(-ans/2 <= BAD_CAPTURES);
@@ -549,7 +550,7 @@ short SEE(UC to, short frStreng, short val, bool stm)
     b[*storeMen] = __;
     wtm = !wtm;
 
-    short tmp2 = -SEE(to, streng[storeBrd/2], -val, stm);
+    short tmp2 = -SEE(to, streng[GET_INDEX(storeBrd)], -val, stm);
 
     wtm = !wtm;
     val = std::min(tmp1, tmp2);
@@ -589,8 +590,8 @@ short_list<UC, lst_sz>::iterator SeeMinAttacker(UC to)
     for(; it != coords[!wtm].end(); ++it)
     {
         UC fr = *it;
-        int pt  = b[fr]/2;
-        if(pt == _p/2)
+        int pt  = GET_INDEX(b[fr]);
+        if(pt == GET_INDEX(_p))
             continue;
         UC att = attacks[120 + to - fr] & (1 << pt);
         if(!att)
@@ -615,8 +616,8 @@ short SEE_main(Move m)
     it = m.pc;
     UC fr_pc = b[*it];
     UC to_pc = b[m.to];
-    short src = streng[fr_pc/2];
-    short dst = (m.flg & mCAPT) ? streng[to_pc/2] : 0;
+    short src = streng[GET_INDEX(fr_pc)];
+    short dst = (m.flg & mCAPT) ? streng[GET_INDEX(to_pc)] : 0;
     auto storeMen = coords[wtm].begin();
     storeMen = m.pc;
     UC storeBrd = b[*storeMen];

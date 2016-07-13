@@ -96,12 +96,12 @@ void InitBrd()
 
     for(UC clr = 0; clr <= 1; clr++)
     {
-        quantity[clr][_k/2] = 1;
-        quantity[clr][_q/2] = 1;
-        quantity[clr][_r/2] = 2;
-        quantity[clr][_b/2] = 2;
-        quantity[clr][_n/2] = 2;
-        quantity[clr][_p/2] = 8;
+        quantity[clr][GET_INDEX(_k)] = 1;
+        quantity[clr][GET_INDEX(_q)] = 1;
+        quantity[clr][GET_INDEX(_r)] = 2;
+        quantity[clr][GET_INDEX(_b)] = 2;
+        quantity[clr][GET_INDEX(_n)] = 2;
+        quantity[clr][GET_INDEX(_p)] = 8;
     }
 
 }
@@ -152,7 +152,7 @@ bool BoardToMen()
         if(!ONBRD(i) || b[i] == __)
             continue;
         coords[b[i] & white].push_back(i);
-        quantity[b[i] & white][(b[i] & ~white)/2]++;
+        quantity[b[i] & white][GET_INDEX(b[i] & ~white)]++;
     }
 
     coords[black].sort(PieceListCompare);
@@ -428,8 +428,8 @@ bool Attack(UC to, int xtm)
     do
     {
         UC fr = *it;
-        int pt  = b[fr]/2;
-        if(pt   == _p/2)
+        int pt  = GET_INDEX(b[fr]);
+        if(pt   == GET_INDEX(_p))
             break;
 
         UC att = attacks[120 + to - fr] & (1 << pt);
@@ -483,9 +483,9 @@ bool Legal(Move m, bool ic)
     UC to = *king_coord[!wtm];
     assert(120 + to - fr >= 0);
     assert(120 + to - fr < 240);
-    if(attacks[120 + to - fr] & (1 << _r/2))
+    if(attacks[120 + to - fr] & (1 << GET_INDEX(_r)))
         return LegalSlider(fr, to, _r);
-    if(attacks[120 + to - fr] & (1 << _b/2))
+    if(attacks[120 + to - fr] & (1 << GET_INDEX(_b)))
         return LegalSlider(fr, to, _b);
 
     return true;
@@ -498,7 +498,7 @@ bool Legal(Move m, bool ic)
 //-----------------------------
 bool PieceListCompare(UC men1, UC men2)
 {
-    return sort_streng[b[men1]/2] > sort_streng[b[men2]/2];
+    return sort_streng[GET_INDEX(b[men1])] > sort_streng[GET_INDEX(b[men2])];
 }
 
 
@@ -529,13 +529,13 @@ void MakeCapture(Move m, UC targ)
     {
         targ += wtm ? -16 : 16;
         material[!wtm]--;
-        quantity[!wtm][_p/2]--;
+        quantity[!wtm][GET_INDEX(_p)]--;
     }
     else
     {
         material[!wtm] -=
-                pc_streng[b_state[prev_states + ply].capt/2 - 1];
-        quantity[!wtm][b_state[prev_states + ply].capt/2]--;
+                pc_streng[GET_INDEX(b_state[prev_states + ply].capt) - 1];
+        quantity[!wtm][GET_INDEX(b_state[prev_states + ply].capt)]--;
     }
 
     auto it_cap = coords[!wtm].begin();
@@ -562,9 +562,9 @@ void MakePromotion(Move m, short_list<UC, lst_sz>::iterator it)
     if(prIx)
     {
         b[m.to] = prPc[prIx] ^ wtm;
-        material[wtm] += pc_streng[prPc[prIx]/2 - 1] - 1;
-        quantity[wtm][_p/2]--;
-        quantity[wtm][prPc[prIx]/2]++;
+        material[wtm] += pc_streng[GET_INDEX(prPc[prIx]) - 1] - 1;
+        quantity[wtm][GET_INDEX(_p)]--;
+        quantity[wtm][GET_INDEX(prPc[prIx])]++;
         b_state[prev_states + ply].nprom = ++it;
         --it;
         coords[wtm].move_element(king_coord[wtm], it);
@@ -628,7 +628,7 @@ void UnmakeCapture(Move m)
     if(m.flg & mENPS)
     {
         material[!wtm]++;
-        quantity[!wtm][_p/2]++;
+        quantity[!wtm][GET_INDEX(_p)]++;
         if(wtm)
         {
             b[m.to - 16] = _p;
@@ -643,8 +643,8 @@ void UnmakeCapture(Move m)
     else
     {
         material[!wtm]
-            += pc_streng[b_state[prev_states + ply].capt/2 - 1];
-        quantity[!wtm][b_state[prev_states + ply].capt/2]++;
+            += pc_streng[GET_INDEX(b_state[prev_states + ply].capt) - 1];
+        quantity[!wtm][GET_INDEX(b_state[prev_states + ply].capt)]++;
     }
 
     coords[!wtm].restore(it_cap);
@@ -667,9 +667,9 @@ void UnmakePromotion(Move m)
     auto before_king = king_coord[wtm];
     --before_king;
     coords[wtm].move_element(it_prom, before_king);
-    material[wtm] -= pc_streng[prPc[prIx]/2 - 1] - 1;
-    quantity[wtm][_p/2]++;
-    quantity[wtm][prPc[prIx]/2]--;
+    material[wtm] -= pc_streng[GET_INDEX(prPc[prIx]) - 1] - 1;
+    quantity[wtm][GET_INDEX(_p)]++;
+    quantity[wtm][GET_INDEX(prPc[prIx])]--;
 }
 
 

@@ -116,7 +116,7 @@ void FastEval(Move m)
     int y  = ROW(m.to);
     int x0 = COL(b_state[prev_states + ply].fr);
     int y0 = ROW(b_state[prev_states + ply].fr);
-    UC pt  = b[m.to]/2;
+    UC pt  = GET_INDEX(b[m.to]);
 
     if(!wtm)
     {
@@ -126,21 +126,31 @@ void FastEval(Move m)
 
     if(m.flg & mPROM)
     {
-        delta_opn -= material_values_opn[_p/2] + pst[_p/2 - 1][0][y0][x0];
-        delta_end -= material_values_end[_p/2] + pst[_p/2 - 1][1][y0][x0];
+        delta_opn -= material_values_opn[GET_INDEX(_p)]
+                    + pst[GET_INDEX(_p) - 1][0][y0][x0];
+        delta_end -= material_values_end[GET_INDEX(_p)]
+                    + pst[GET_INDEX(_p) - 1][1][y0][x0];
         switch(m.flg & mPROM)
         {
-            case mPR_Q :    delta_opn += material_values_opn[_q/2] + pst[_q/2 - 1][0][y0][x0];
-                            delta_end += material_values_end[_q/2] + pst[_q/2 - 1][1][y0][x0];
+            case mPR_Q :    delta_opn += material_values_opn[GET_INDEX(_q)]
+                                        + pst[GET_INDEX(_q) - 1][0][y0][x0];
+                            delta_end += material_values_end[GET_INDEX(_q)]
+                                        + pst[GET_INDEX(_q) - 1][1][y0][x0];
                             break;
-            case mPR_R :    delta_opn += material_values_opn[_r/2] + pst[_r/2 - 1][0][y0][x0];
-                            delta_end += material_values_end[_r/2] + pst[_r/2 - 1][1][y0][x0];
+            case mPR_R :    delta_opn += material_values_opn[GET_INDEX(_r)]
+                                        + pst[GET_INDEX(_r) - 1][0][y0][x0];
+                            delta_end += material_values_end[GET_INDEX(_r)]
+                                        + pst[GET_INDEX(_r) - 1][1][y0][x0];
                             break;
-            case mPR_B :    delta_opn += material_values_opn[_b/2] + pst[_b/2 - 1][0][y0][x0];
-                            delta_end += material_values_end[_b/2] + pst[_b/2 - 1][1][y0][x0];
+            case mPR_B :    delta_opn += material_values_opn[GET_INDEX(_b)]
+                                        + pst[GET_INDEX(_b) - 1][0][y0][x0];
+                            delta_end += material_values_end[GET_INDEX(_b)]
+                                        + pst[GET_INDEX(_b) - 1][1][y0][x0];
                             break;
-            case mPR_N :    delta_opn += material_values_opn[_n/2] + pst[_n/2 - 1][0][y0][x0];
-                            delta_end += material_values_end[_n/2] + pst[_n/2 - 1][1][y0][x0];
+            case mPR_N :    delta_opn += material_values_opn[GET_INDEX(_n)]
+                                        + pst[GET_INDEX(_n) - 1][0][y0][x0];
+                            delta_end += material_values_end[GET_INDEX(_n)]
+                                        + pst[GET_INDEX(_n) - 1][1][y0][x0];
                             break;
 
             default :       assert(false);
@@ -153,24 +163,32 @@ void FastEval(Move m)
         UC capt = b_state[prev_states + ply].capt & ~white;
         if(m.flg & mENPS)
         {
-            delta_opn +=  material_values_opn[_p/2] + pst[_p/2 - 1][0][7 - y0][x];
-            delta_end +=  material_values_end[_p/2] + pst[_p/2 - 1][1][7 - y0][x];
+            delta_opn +=  material_values_opn[GET_INDEX(_p)]
+                        + pst[GET_INDEX(_p) - 1][0][7 - y0][x];
+            delta_end +=  material_values_end[GET_INDEX(_p)]
+                        + pst[GET_INDEX(_p) - 1][1][7 - y0][x];
         }
         else
         {
-            delta_opn +=  material_values_opn[capt/2] + pst[capt/2 - 1][0][7 - y][x];
-            delta_end +=  material_values_end[capt/2] + pst[capt/2 - 1][1][7 - y][x];
+            delta_opn +=  material_values_opn[GET_INDEX(capt)]
+                        + pst[GET_INDEX(capt) - 1][0][7 - y][x];
+            delta_end +=  material_values_end[GET_INDEX(capt)]
+                        + pst[GET_INDEX(capt) - 1][1][7 - y][x];
         }
     }
     else if(m.flg & mCS_K)
     {
-        delta_opn += pst[_r/2 - 1][0][7][5] - pst[_r/2 - 1][0][7][7];
-        delta_end += pst[_r/2 - 1][1][7][5] - pst[_r/2 - 1][1][7][7];
+        delta_opn += pst[GET_INDEX(_r) - 1][0][7][5]
+                    - pst[GET_INDEX(_r) - 1][0][7][7];
+        delta_end += pst[GET_INDEX(_r) - 1][1][7][5]
+                    - pst[GET_INDEX(_r) - 1][1][7][7];
     }
     else if(m.flg & mCS_Q)
     {
-        delta_opn += pst[_r/2 - 1][0][7][3] - pst[_r/2 - 1][0][7][0];
-        delta_end += pst[_r/2 - 1][1][7][3] - pst[_r/2 - 1][1][7][0];
+        delta_opn += pst[GET_INDEX(_r) - 1][0][7][3]
+                    - pst[GET_INDEX(_r) - 1][0][7][0];
+        delta_end += pst[GET_INDEX(_r) - 1][1][7][3]
+                    - pst[GET_INDEX(_r) - 1][1][7][0];
     }
 
     delta_opn += pst[pt - 1][0][y][x] - pst[pt - 1][0][y0][x0];
@@ -209,8 +227,10 @@ void EvalAllMaterialAndPST()
         if(pt & white)
             y0 = 7 - y0;
 
-        short tmpOpn = material_values_opn[pt/2] + pst[(pt/2) - 1][0][y0][x0];
-        short tmpEnd = material_values_end[pt/2] + pst[(pt/2) - 1][1][y0][x0];
+        short tmpOpn = material_values_opn[GET_INDEX(pt)]
+                        + pst[(GET_INDEX(pt)) - 1][0][y0][x0];
+        short tmpEnd = material_values_end[GET_INDEX(pt)]
+                        + pst[(GET_INDEX(pt)) - 1][1][y0][x0];
 
         if(pt & white)
         {
@@ -426,8 +446,8 @@ void BishopMobility(UC stm)
         at = *rit;
         for(UC i = 0; i < 8; ++i)
         {
-            at += shifts[_b/2][ray];
-            if(!ONBRD(at) || b[at]/2 == _p/2)
+            at += shifts[GET_INDEX(_b)][ray];
+            if(!ONBRD(at) || (b[at] & ~white) == _p)
                 break;
             cr++;
         }
@@ -448,8 +468,8 @@ void BishopMobility(UC stm)
         at = *rit;
         for(UC i = 0; i < 8; ++i)
         {
-            at += shifts[_b/2][ray];
-            if(!ONBRD(at) || b[at]/2 == _p/2)
+            at += shifts[GET_INDEX(_b)][ray];
+            if(!ONBRD(at) || (b[at] & ~white) == _p)
                 break;
             cr++;
         }
@@ -529,7 +549,7 @@ void ClampedRook(UC stm)
     UC rook_on_7th_cr = 0;
     if((stm && ROW(*rit) >= 6) || (!stm && ROW(*rit) <= 1))
         rook_on_7th_cr++;
-    if(quantity[stm][_p/2] >= 4
+    if(quantity[stm][GET_INDEX(_p)] >= 4
     && pawn_max[COL(*rit) + 1][!stm] == 0)
         ans += (pawn_max[COL(*rit) + 1][stm] == 0 ? 54 : 10);
     ++rit;
@@ -537,7 +557,7 @@ void ClampedRook(UC stm)
     {
         if((stm && ROW(*rit) >= 6) || (!stm && ROW(*rit) <= 1))
             rook_on_7th_cr++;
-        if(quantity[stm][_p/2] >= 4
+        if(quantity[stm][GET_INDEX(_p)] >= 4
         && pawn_max[COL(*rit) + 1][!stm] == 0)
             ans += (pawn_max[COL(*rit) + 1][stm] == 0 ? 54 : 10);
     }
@@ -589,17 +609,19 @@ void MaterialImbalances()
     }
     else if(X == 6 && (material[0] == 0 || material[1] == 0))           // KNNk, KBNk, KBBk, etc
     {
-        if(quantity[white][_n/2] == 2
-        || quantity[black][_n/2] == 2)
+        if(quantity[white][GET_INDEX(_n)] == 2
+        || quantity[black][GET_INDEX(_n)] == 2)
         {
             val_opn = 0;
             val_end = 0;
         }
         // many code for mating with only bishop and knight
-        else if((quantity[white][_n/2] == 1 && quantity[white][_b/2] == 1)
-             || (quantity[black][_n/2] == 1 && quantity[black][_b/2] == 1))
+        else if((quantity[white][GET_INDEX(_n)] == 1
+                 && quantity[white][GET_INDEX(_b)] == 1)
+             || (quantity[black][GET_INDEX(_n)] == 1
+                 && quantity[black][GET_INDEX(_b)] == 1))
         {
-            UC stm = quantity[white][_n/2] == 1 ? 1 : 0;
+            UC stm = quantity[white][GET_INDEX(_n)] == 1 ? 1 : 0;
             auto rit = coords[stm].begin();
             for(; rit != coords[stm].end(); ++rit)
                 if((b[*rit] & ~white) == _b)
@@ -670,24 +692,26 @@ void MaterialImbalances()
     }
 
     // two bishops
-    if(quantity[white][_b/2] == 2)
+    if(quantity[white][GET_INDEX(_b)] == 2)
     {
         val_opn += 30;
         val_end += 30;
     }
-    if(quantity[black][_b/2] == 2)
+    if(quantity[black][GET_INDEX(_b)] == 2)
     {
         val_opn -= 30;
         val_end -= 30;
     }
 
     // pawn absense for both sides
-    if(quantity[white][_p/2] == 0 && quantity[black][_p/2] == 0
+    if(quantity[white][GET_INDEX(_p)] == 0
+       && quantity[black][GET_INDEX(_p)] == 0
     && material[white] != 0 && material[black] != 0)
         val_end /= 3;
 
     // multicoloured bishops
-    if(quantity[white][_b/2] == 1 && quantity[black][_b/2] == 1)
+    if(quantity[white][GET_INDEX(_b)] == 1
+    && quantity[black][GET_INDEX(_b)] == 1)
     {
         auto w_it = coords[white].rbegin();
         while(w_it != coords[white].rend()
@@ -863,13 +887,13 @@ void SetPawnStruct(int col)
 //-----------------------------
 void MovePawnStruct(UC movedPiece, UC fr, Move m)
 {
-    if((movedPiece/2) == _p/2 || (m.flg & mPROM))
+    if((movedPiece & ~white) == _p || (m.flg & mPROM))
     {
         SetPawnStruct(COL(m.to));
         if(m.flg)
             SetPawnStruct(COL(fr));
     }
-    if(b_state[prev_states + ply].capt/2 == _p/2
+    if((b_state[prev_states + ply].capt & ~white) == _p
     || (m.flg & mENPS))                                    // mENPS not needed
     {
         wtm ^= white;
@@ -936,7 +960,7 @@ short CountKingTropism(UC king_color)
         int dist = king_dist[ABSI(*king_coord[king_color] - *rit)];
         if(dist >= 4)
             continue;
-        occ_cr += tropism_factor[dist < 3][pt/2];
+        occ_cr += tropism_factor[dist < 3][GET_INDEX(pt)];
     }
     return occ_cr;
 }
@@ -953,7 +977,7 @@ void MoveKingTropism(UC fr, Move m, UC king_color)
 
     UC pt = b[m.to];
 
-    if(pt/2 == _k/2)
+    if((pt & ~white) == _k)
     {
         king_tropism[king_color]  = CountKingTropism(king_color);
         king_tropism[!king_color] = CountKingTropism(!king_color);
@@ -966,24 +990,27 @@ void MoveKingTropism(UC fr, Move m, UC king_color)
 
 
     if(dist_fr < 4 && !(m.flg & mPROM))
-        king_tropism[king_color] -= tropism_factor[dist_fr < 3][pt/2];
+        king_tropism[king_color] -= tropism_factor[dist_fr < 3]
+                                                  [GET_INDEX(pt)];
     if(dist_to < 4)
-        king_tropism[king_color] += tropism_factor[dist_to < 3][pt/2];
+        king_tropism[king_color] += tropism_factor[dist_to < 3]
+                                                  [GET_INDEX(pt)];
 
     UC cap = b_state[prev_states + ply].capt;
     if(m.flg & mCAPT)
     {
         dist_to = king_dist[ABSI(*king_coord[!king_color] - m.to)];
         if(dist_to < 4)
-            king_tropism[!king_color] -= tropism_factor[dist_to < 3][cap/2];
+            king_tropism[!king_color] -= tropism_factor[dist_to < 3]
+                                                       [GET_INDEX(cap)];
     }
 
 #ifndef NDEBUG
     short tmp = CountKingTropism(king_color);
-    if(king_tropism[king_color] != tmp && cap/2 != _k/2)
+    if(king_tropism[king_color] != tmp && (cap & ~white) != _k)
         ply = ply;
     tmp = CountKingTropism(!king_color);
-    if(king_tropism[!king_color] != tmp && cap/2 != _k/2)
+    if(king_tropism[!king_color] != tmp && (cap & ~white) != _k)
         ply = ply;
 #endif // NDEBUG
 }
@@ -1088,11 +1115,11 @@ short KingOpenFiles(UC king_color)
     for(; rit != coords[!king_color].rend(); ++rit)
     {
         UC pt = b[*rit];
-        if(pt/2 != _q/2 && pt/2 != _r/2)
+        if((pt & ~white) != _q && (pt & ~white) != _r)
             break;
         int k = pawn_max[COL(*rit) + 1][king_color] ? 1 : 2;
         rooks_queens_on_file[COL(*rit)] +=
-                k*(pt/2 == _r/2 ? 2 : 1);
+                k*((pt & ~white) == _r ? 2 : 1);
     }
 
     for(int i = 0; i < 3; ++i)
@@ -1185,7 +1212,7 @@ void KingSafety3(UC king_color)
 {
     int trp = king_tropism[king_color];
 
-    if(quantity[!king_color][_q/2] == 0)
+    if(quantity[!king_color][GET_INDEX(_q)] == 0)
     {
         trp += trp*trp/15;
         val_opn += king_color ? -trp : trp;

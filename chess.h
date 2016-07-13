@@ -21,6 +21,7 @@
 #define COL(SQ)         ((SQ) & 7)
 #define ROW(SQ)         ((SQ) >> 4)
 #define ABSI(X)         ((X) > 0 ? (X) : (-(X)))
+#define GET_INDEX(X)    ((X)/2)
 
 const int lst_sz        = 32;                                                 // size of piece list for one colour
 const unsigned max_ply  = 100;                                                // maximum search depth
@@ -38,10 +39,10 @@ enum {__ = 0,  _k = 2, _q = 4, _r = 6, _b = 8, _n = 10, _p = 12,
 enum {mCAPT = 0x10, mCS_K = 0x20, mCS_Q = 0x40, mCSTL = 0x60, mENPS = 0x80,
       mPR_Q = 0x01, mPR_N = 0x02, mPR_R = 0x03, mPR_B = 0x04, mPROM = 0x07};
 
-	  
-	  
-	  
-	  
+
+
+
+
 //--------------------------------
 class Move
 {
