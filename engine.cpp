@@ -162,7 +162,7 @@ short Search(int depth, short alpha, short beta,
             lmr = 0;
         else if(legals < 4)
             lmr = 0;
-        else if((b[m.to] & ~white) == _p && TestPromo(COL(m.to), !wtm))
+        else if(TO_BLACK(b[m.to]) == _p && TestPromo(COL(m.to), !wtm))
             lmr = 0;
         else if(depth <= 4 && legals > 8)
             lmr = 2;
@@ -290,7 +290,7 @@ short Quiesce(short alpha, short beta)
         if((!stop_ply || root_ply == stop_ply) && strcmp(stop_str, cv) == 0)
             ply = ply;
 #endif // NDEBUG
-        if((b_state[prev_states + ply].capt & ~white) == _k)
+        if(TO_BLACK(b_state[prev_states + ply].capt) == _k)
         {
             UnMoveAndEval(m);
             return K_VAL;
@@ -1564,13 +1564,13 @@ bool PseudoLegal(Move &m, bool stm)
         return false;
     if(!LIGHT(b[fr], stm))
         return false;
-    if((b[fr] & ~white) != _p && ((!DARK(pt, stm) && (m.flg & mCAPT))
+    if(TO_BLACK(b[fr]) != _p && ((!DARK(pt, stm) && (m.flg & mCAPT))
     || (pt != __ && !(m.flg & mCAPT))))
         return false;
-    if((b[fr] & ~white) != _p && (m.flg & mPROM))
+    if(TO_BLACK(b[fr]) != _p && (m.flg & mPROM))
         return false;
     bool long_move;
-    switch(b[fr] & ~white)
+    switch (TO_BLACK(b[fr]))
     {
         case _p :
             if((m.flg & mPROM) && ((stm && ROW(fr) != 6)
@@ -1637,10 +1637,10 @@ bool PseudoLegal(Move &m, bool stm)
             if(b[XY2SQ((COL(m.to)+COL(fr))/2, ROW(fr))] != __)
                 return false;
             if((m.flg &mCS_K)
-            && (b[XY2SQ(7, ROW(fr))] & ~white) != _r)
+            && TO_BLACK(b[XY2SQ(7, ROW(fr))]) != _r)
                 return false;
             if((m.flg &mCS_Q)
-            && (b[XY2SQ(0, ROW(fr))] & ~white) != _r)
+            && TO_BLACK(b[XY2SQ(0, ROW(fr))]) != _r)
                 return false;
             break;
 

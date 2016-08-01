@@ -123,7 +123,7 @@ void MoveHashKey(Move m, bool special)
     hash_key ^= -1L;
     if(special)
     {
-        if((pt & ~white) == _p && !f.capt)
+        if(TO_BLACK(pt) == _p && !f.capt)
             hash_key ^= zorb_en_passant[f.ep];
         else
             hash_key ^= zorb_castling[_f.cstl] ^ zorb_castling[f.cstl];

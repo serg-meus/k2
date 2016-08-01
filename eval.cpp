@@ -160,7 +160,7 @@ void FastEval(Move m)
 
     if(m.flg & mCAPT)
     {
-        UC capt = b_state[prev_states + ply].capt & ~white;
+        UC capt = TO_BLACK(b_state[prev_states + ply].capt);
         if(m.flg & mENPS)
         {
             delta_opn +=  material_values_opn[GET_INDEX(_p)]
@@ -304,7 +304,7 @@ void EvalPawns(bool stm)
             ansE -= 25;
             ansO -= 15;
 //            UC blocker = b[XY2SQ(i, stm ? mx + 1: 7 - mx - 1)];
-//            if(DARK(blocker, stm) && (blocker & ~white) != _p)
+//            if(DARK(blocker, stm) && TO_BLACK(blocker) != _p)
 //                ansE -= 20;
         }
         else if(doubled)
@@ -327,7 +327,7 @@ void EvalPawns(bool stm)
             int y_coord = stm ? mx + 1 : 7 - mx - 1;
             UC op_piece = b[XY2SQ(i, y_coord)];
             bool occupied = DARK(op_piece, stm)
-            && (op_piece & ~white) != _p;
+            && TO_BLACK(op_piece) != _p;
             if(occupied)
                 ansO -= 30;
         }
@@ -434,7 +434,7 @@ void BishopMobility(UC stm)
     auto rit = coords[stm].rbegin();
 
     while(rit != coords[stm].rend()
-    && (b[*rit] & ~white) != _b)
+    && TO_BLACK(b[*rit]) != _b)
         ++rit;
     if(rit == coords[stm].rend())
         return;
@@ -447,7 +447,7 @@ void BishopMobility(UC stm)
         for(UC i = 0; i < 8; ++i)
         {
             at += shifts[GET_INDEX(_b)][ray];
-            if(!ONBRD(at) || (b[at] & ~white) == _p)
+            if(!ONBRD(at) || TO_BLACK(b[at]) == _p)
                 break;
             cr++;
         }
@@ -455,7 +455,7 @@ void BishopMobility(UC stm)
     ans += 2*nonlin[cr] - 20;
 
     ++rit;
-    if(rit == coords[stm].rend() || (b[*rit] & ~white) != _b)
+    if(rit == coords[stm].rend() || TO_BLACK(b[*rit]) != _b)
 {
         val_opn += stm ? ans : -ans;
         val_end += stm ? ans : -ans;
@@ -469,7 +469,7 @@ void BishopMobility(UC stm)
         for(UC i = 0; i < 8; ++i)
         {
             at += shifts[GET_INDEX(_b)][ray];
-            if(!ONBRD(at) || (b[at] & ~white) == _p)
+            if(!ONBRD(at) || TO_BLACK(b[at]) == _p)
                 break;
             cr++;
         }
@@ -541,7 +541,7 @@ void ClampedRook(UC stm)
     auto rit = coords[stm].rbegin();
 
     while(rit != coords[stm].rend()
-    && (b[*rit] & ~white) != _r)
+    && TO_BLACK(b[*rit]) != _r)
         ++rit;
     if(rit == coords[stm].rend())
         return;
@@ -553,7 +553,7 @@ void ClampedRook(UC stm)
     && pawn_max[COL(*rit) + 1][!stm] == 0)
         ans += (pawn_max[COL(*rit) + 1][stm] == 0 ? 54 : 10);
     ++rit;
-    if(rit != coords[stm].rend() && (b[*rit] & ~white) == _r)
+    if(rit != coords[stm].rend() && TO_BLACK(b[*rit]) == _r)
     {
         if((stm && ROW(*rit) >= 6) || (!stm && ROW(*rit) <= 1))
             rook_on_7th_cr++;
@@ -624,9 +624,9 @@ void MaterialImbalances()
             UC stm = quantity[white][GET_INDEX(_n)] == 1 ? 1 : 0;
             auto rit = coords[stm].begin();
             for(; rit != coords[stm].end(); ++rit)
-                if((b[*rit] & ~white) == _b)
+                if(TO_BLACK(b[*rit]) == _b)
                     break;
-            assert((b[*rit] & ~white) == _b);
+            assert(TO_BLACK(b[*rit]) == _b);
 
             short ans = 0;
             auto ok = *king_coord[!stm];
@@ -887,13 +887,13 @@ void SetPawnStruct(int col)
 //-----------------------------
 void MovePawnStruct(UC movedPiece, UC fr, Move m)
 {
-    if((movedPiece & ~white) == _p || (m.flg & mPROM))
+    if((movedPiece) == _p || (m.flg & mPROM))
     {
         SetPawnStruct(COL(m.to));
         if(m.flg)
             SetPawnStruct(COL(fr));
     }
-    if((b_state[prev_states + ply].capt & ~white) == _p
+    if(TO_BLACK(b_state[prev_states + ply].capt) == _p
     || (m.flg & mENPS))                                    // mENPS not needed
     {
         wtm ^= white;
@@ -954,7 +954,7 @@ short CountKingTropism(UC king_color)
     ++rit;
     for(; rit != coords[!king_color].rend(); ++rit)
     {
-        UC pt = b[*rit] & ~white;
+        UC pt = TO_BLACK(b[*rit]);
         if(pt == _p)
             break;
         int dist = king_dist[ABSI(*king_coord[king_color] - *rit)];
@@ -977,7 +977,7 @@ void MoveKingTropism(UC fr, Move m, UC king_color)
 
     UC pt = b[m.to];
 
-    if((pt & ~white) == _k)
+    if(TO_BLACK(pt) == _k)
     {
         king_tropism[king_color]  = CountKingTropism(king_color);
         king_tropism[!king_color] = CountKingTropism(!king_color);
@@ -1007,10 +1007,10 @@ void MoveKingTropism(UC fr, Move m, UC king_color)
 
 #ifndef NDEBUG
     short tmp = CountKingTropism(king_color);
-    if(king_tropism[king_color] != tmp && (cap & ~white) != _k)
+    if(king_tropism[king_color] != tmp && TO_BLACK(cap) != _k)
         ply = ply;
     tmp = CountKingTropism(!king_color);
-    if(king_tropism[!king_color] != tmp && (cap & ~white) != _k)
+    if(king_tropism[!king_color] != tmp && TO_BLACK(cap) != _k)
         ply = ply;
 #endif // NDEBUG
 }
@@ -1115,11 +1115,11 @@ short KingOpenFiles(UC king_color)
     for(; rit != coords[!king_color].rend(); ++rit)
     {
         UC pt = b[*rit];
-        if((pt & ~white) != _q && (pt & ~white) != _r)
+        if(TO_BLACK(pt) != _q && TO_BLACK(pt) != _r)
             break;
         int k = pawn_max[COL(*rit) + 1][king_color] ? 1 : 2;
         rooks_queens_on_file[COL(*rit)] +=
-                k*((pt & ~white) == _r ? 2 : 1);
+                k*(TO_BLACK(pt) == _r ? 2 : 1);
     }
 
     for(int i = 0; i < 3; ++i)

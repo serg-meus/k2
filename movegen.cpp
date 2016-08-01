@@ -419,7 +419,7 @@ void AppriceMoves(Move *move_array, int moveCr, Move *bestMove)
             }
             else
             {
-                if((b[*it] & ~white) != _k)
+                if(TO_BLACK(b[*it]) != _k)
                 {
                     assert(-ans/2 >= 0);
                     assert(-ans/2 <= BAD_CAPTURES);
@@ -510,7 +510,7 @@ void AppriceQuiesceMoves(Move *move_array, int moveCr)
         }
         else
         {
-            if((fr & ~white) != _k)
+            if(TO_BLACK(fr) != _k)
             {
                 assert(-ans/2 >= 0);
                 assert(-ans/2 <= BAD_CAPTURES);

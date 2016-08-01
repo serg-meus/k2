@@ -152,7 +152,7 @@ bool BoardToMen()
         if(!ONBRD(i) || b[i] == __)
             continue;
         coords[b[i] & white].push_back(i);
-        quantity[b[i] & white][GET_INDEX(b[i] & ~white)]++;
+        quantity[b[i] & white][GET_INDEX(TO_BLACK(b[i]))]++;
     }
 
     coords[black].sort(PieceListCompare);
@@ -207,7 +207,7 @@ bool FenToBoard(char *p)
                         break;
                 if(i >= 12)
                     return false;
-                if((pcs[i] & ~white) == _p && (row == 0 || row == 7))
+                if(TO_BLACK(pcs[i]) == _p && (row == 0 || row == 7))
                     return false;
                 b[XY2SQ(col, row)] = pcs[i];
                 material[i >= 6]  += mtr[i];
@@ -477,7 +477,7 @@ bool LegalSlider(UC fr, UC to, UC pt)
 //--------------------------------
 bool Legal(Move m, bool ic)
 {
-    if(ic || (b[m.to] & ~white) == _k)
+    if(ic || TO_BLACK(b[m.to]) == _k)
         return !Attack(*king_coord[!wtm], wtm);
     UC fr = b_state[prev_states + ply].fr;
     UC to = *king_coord[!wtm];

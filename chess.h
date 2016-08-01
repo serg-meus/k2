@@ -22,6 +22,7 @@
 #define ROW(SQ)         ((SQ) >> 4)
 #define ABSI(X)         ((X) > 0 ? (X) : (-(X)))
 #define GET_INDEX(X)    ((X)/2)
+#define TO_BLACK(X)     ((X) & ~white)
 
 const int lst_sz        = 32;                                                 // size of piece list for one colour
 const unsigned max_ply  = 100;                                                // maximum search depth
