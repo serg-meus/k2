@@ -750,9 +750,9 @@ void InitSearch()
 
     if(!uci && !xboard)
     {
-    std::cout   << "( tRemain=" << time_remains/1e6
-                << ", t2thnk=" << time_to_think/1e6
-                << ", tExact = " << (spent_exact_time ? "true " : "false ")
+    std::cout   << "( time total = " << time_remains/1e6
+                << "s, assigned to move = " << time_to_think/1e6
+                << "s, stop on timer = " << (spent_exact_time ? "true " : "false ")
                 << " )" << std::endl;
     std::cout   << "Ply Value  Time    Nodes        Principal Variation" << std::endl;
     }
@@ -886,8 +886,8 @@ void PrintSearchResult()
               << ", hits = " << std::setprecision(1) << std::fixed
               << 100.*killer2_hits/killer2_probes
               << "% )" << std::endl;
-    std::cout   << "( tSpent=" << time_spent/1.e6
-                << " )" << std::endl;
+    std::cout   << "( time spent =" << time_spent/1.e6
+                << "s )" << std::endl;
 #endif // DONT_SHOW_STATISTICS
 }
 
