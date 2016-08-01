@@ -123,11 +123,21 @@ short Search(int depth, short alpha, short beta,
         if(!in_check && !Legal(m, in_check))
 #else
         if(!Legal(m, in_check))
-#endif //DONT_USE_ONE_REPLY_EXTENSION
+#endif // DONT_USE_ONE_REPLY_EXTENSION
         {
             UnMoveFast(m);
             continue;
         }
+
+#ifndef DONT_USE_LMP
+        if(depth <= 2 && !m.flg && !in_check
+        && node_type == all_node && legals > 4)
+        {
+            UnMoveFast(m);
+            break;
+        }
+#endif // DONT_USE_LMP
+
         MkMoveIncrementally(m, is_special_move);
 
 #ifndef DONT_USE_IID
