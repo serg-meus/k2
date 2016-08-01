@@ -536,8 +536,6 @@ short SEE(UC to, short frStreng, short val, bool stm)
     auto it = SeeMinAttacker(to);
     if(it == coords[!wtm].end())
         return -val;
-    if(frStreng == 15000)
-        return -15000;
 
     val -= frStreng;
     short tmp1 = -val;
