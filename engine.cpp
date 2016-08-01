@@ -47,6 +47,8 @@ short Search(int depth, short alpha, short beta,
     }
     bool in_check = Attack(*king_coord[wtm], !wtm);
 
+    if(depth < 0)
+        depth = 0;
     if(in_check)
         depth += 1 + lmr_parent;
 
