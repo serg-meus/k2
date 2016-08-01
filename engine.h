@@ -47,7 +47,6 @@
 const int mate_score = K_VAL - (short)max_ply;
 const bool all_moves = false;
 const bool captures_only = true;
-const int no_lmr = 0;
 const unsigned nodes_to_check_stop = 511;
 #ifdef TUNE_PARAMETERS
 extern std::vector <float> param;
@@ -66,7 +65,7 @@ enum {all_node = -1, pv_node = 0, cut_node = 1};
 //--------------------------------
 void InitEngine();
 void Perft(int depth);
-short Search(int depth, short alpha, short beta, signed char node_type, int lmr_parent);
+short Search(int depth, short alpha, short beta, signed char node_type);
 short Quiesce(short alpha, short beta);
 void StorePV(Move m);
 void UpdateStatistics(Move m, int dpt, unsigned i);
