@@ -1328,7 +1328,7 @@ void UnMakeNullMove()
 //-----------------------------
 bool NullMove(int depth, short beta, bool in_check)
 {
-    if(in_check || depth < 3
+    if(in_check || depth < 2
     || material[wtm] - pieces[wtm] < 3)
         return false;
 #ifndef DONT_SHOW_STATISTICS
