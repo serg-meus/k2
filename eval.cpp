@@ -887,7 +887,7 @@ void SetPawnStruct(int col)
 //-----------------------------
 void MovePawnStruct(UC movedPiece, UC fr, Move m)
 {
-    if((movedPiece) == _p || (m.flg & mPROM))
+    if(TO_BLACK(movedPiece) == _p || (m.flg & mPROM))
     {
         SetPawnStruct(COL(m.to));
         if(m.flg)
