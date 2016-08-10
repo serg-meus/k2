@@ -18,7 +18,7 @@ SC shifts[6][8] = {{ 0,  0,  0,  0,  0,  0,  0,  0},
                     { 1, 16, -1,-16, 0,  0,  0,  0},
                     {17, 15,-17,-15, 0,  0,  0,  0},
                     {18, 33, 31, 14,-18,-33,-31,-14}};
-UC  pc_streng[7]    =  {0, 12, 6, 4, 4, 1};
+UC  pc_streng[7]    =  {0, 0, 12, 6, 4, 4, 1};
 short streng[7]     = {0, 15000, 120, 60, 40, 40, 10};
 short sort_streng[7] = {0, 15000, 120, 60, 41, 39, 10};
 UC  slider[7]       = {0, 0, 1, 1, 1, 0, 0};
@@ -534,7 +534,7 @@ void MakeCapture(Move m, UC targ)
     else
     {
         material[!wtm] -=
-                pc_streng[GET_INDEX(b_state[prev_states + ply].capt) - 1];
+                pc_streng[GET_INDEX(b_state[prev_states + ply].capt)];
         quantity[!wtm][GET_INDEX(b_state[prev_states + ply].capt)]--;
     }
 
@@ -562,7 +562,8 @@ void MakePromotion(Move m, short_list<UC, lst_sz>::iterator it)
     if(prIx)
     {
         b[m.to] = prPc[prIx] ^ wtm;
-        material[wtm] += pc_streng[GET_INDEX(prPc[prIx]) - 1] - 1;
+        material[wtm] += pc_streng[GET_INDEX(prPc[prIx])]
+                - pc_streng[GET_INDEX(_p)];
         quantity[wtm][GET_INDEX(_p)]--;
         quantity[wtm][GET_INDEX(prPc[prIx])]++;
         b_state[prev_states + ply].nprom = ++it;
@@ -643,7 +644,7 @@ void UnmakeCapture(Move m)
     else
     {
         material[!wtm]
-            += pc_streng[GET_INDEX(b_state[prev_states + ply].capt) - 1];
+            += pc_streng[GET_INDEX(b_state[prev_states + ply].capt)];
         quantity[!wtm][GET_INDEX(b_state[prev_states + ply].capt)]++;
     }
 
@@ -667,7 +668,8 @@ void UnmakePromotion(Move m)
     auto before_king = king_coord[wtm];
     --before_king;
     coords[wtm].move_element(it_prom, before_king);
-    material[wtm] -= pc_streng[GET_INDEX(prPc[prIx]) - 1] - 1;
+    material[wtm] -= pc_streng[GET_INDEX(prPc[prIx])]
+            - pc_streng[GET_INDEX(_p)];
     quantity[wtm][GET_INDEX(_p)]++;
     quantity[wtm][GET_INDEX(prPc[prIx])]--;
 }
