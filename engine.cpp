@@ -290,11 +290,19 @@ short Quiesce(short alpha, short beta)
         if(m.scr <= BAD_CAPTURES)
             break;
 #endif
+
 #ifndef DONT_USE_DELTA_PRUNING
-        if(material[0] + material[1] > 24
-        && ReturnEval(wtm)
-        + 100*pc_streng[GET_INDEX(b[m.to])] < alpha - 700)
-            continue;
+        if(material[white] + material[black]
+                - pieces[white] - pieces[black] > 24
+        && TO_BLACK(b[m.to]) != _k
+        && !(m.flg & mPROM))
+        {
+            short cur_eval = ReturnEval(wtm);
+            short capture = 100*pc_streng[GET_INDEX(b[m.to])];
+            short margin = 100;
+            if(cur_eval + capture + margin < alpha)
+                break;
+        }
 #endif
         MkMoveAndEval(m);
         legals++;
