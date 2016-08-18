@@ -92,10 +92,9 @@ bool DrawByRepetition();
 void ShowFen();
 void ReHash(int size_mb);
 bool HashProbe(int depth, short *alpha, short beta,
-               tt_entry **entry, bool *best_move_hashed);
+               tt_entry **entry);
 bool PseudoLegal(Move &m, bool stm);
-Move Next(Move *move_array, unsigned cur, unsigned *top,
-          bool *best_move_hashed, tt_entry *entry,
+Move Next(Move *move_array, unsigned cur, unsigned *top, tt_entry *entry,
           UC stm, bool captures_only, bool in_check, Move prev_move);
 void StoreResultInHash(int depth, short _alpha, short alpha, short beta,
                        unsigned legals,

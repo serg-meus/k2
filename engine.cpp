@@ -85,9 +85,8 @@ short Search(int depth, short alpha, short beta,
 #endif // DONT_USE_NULL_MOVE
 
     short x, _alpha = alpha;
-    bool in_hash = false;
     tt_entry *entry = nullptr;
-    if(depth > 0 && HashProbe(depth, &alpha, beta, &entry, &in_hash))
+    if(depth > 0 && HashProbe(depth, &alpha, beta, &entry))
         return -alpha;
 
     if(depth <= 0)
@@ -104,8 +103,7 @@ short Search(int depth, short alpha, short beta,
     for(; move_cr < max_moves && !stop; move_cr++)
     {
         m = Next(move_array, move_cr, &max_moves,
-                 &in_hash, entry, wtm, all_moves,
-				 in_check, m);
+                 entry, wtm, all_moves, in_check, m);
         if(max_moves <= 0)
             break;
 
@@ -154,7 +152,7 @@ short Search(int depth, short alpha, short beta,
                    iid_low_bound, iid_high_bound, node_type);
 //        if(x <= iid_low_bound || x >= iid_high_bound)
 //            return x;
-        HashProbe(depth, &alpha, beta, &entry, &in_hash);
+        HashProbe(depth, &alpha, beta, &entry);
         m = Next(move_array, 0, &max_moves,
                  &in_hash, entry, wtm, all_moves);
         MkMove(m);
@@ -227,11 +225,11 @@ short Search(int depth, short alpha, short beta,
     if(beta_cutoff)
     {
 #ifndef DONT_SHOW_STATISTICS
-        if(in_hash && entry->best_move.flg != 0xFF)
+        if(entry != nullptr && entry->best_move.flg != 0xFF)
             hash_best_move_cr++;
         if(legals == 1)
         {
-            if(in_hash && entry->best_move.flg != 0xFF)
+            if(entry != nullptr && entry->best_move.flg != 0xFF)
                 hash_cutoff_by_best_move_cr++;
             else if(m.scr == FIRST_KILLER)
                 killer1_hits++;
@@ -279,10 +277,8 @@ short Quiesce(short alpha, short beta)
 
     for(; move_cr < max_moves && !stop; move_cr++)
     {
-        tt_entry *hs = nullptr;
-        bool bm_not_hashed = false;
         Move m = Next(move_array, move_cr, &max_moves,
-                      &bm_not_hashed, hs, wtm, captures_only, false, m);
+                      nullptr, wtm, captures_only, false, m);
         if(max_moves <= 0)
             break;
 
@@ -693,16 +689,16 @@ void RootMoveGen(bool in_check)
     Move move_array[MAX_MOVES], m;
     unsigned max_moves = 999;
 
-    tt_entry *entry = nullptr;
-    bool in_hash = false;
     short alpha = -INF, beta = INF;
     m.flg = 0xFF;
-    HashProbe(max_ply, &alpha, beta, &entry, &in_hash);
+
+    tt_entry *entry = nullptr;
+    HashProbe(max_ply, &alpha, beta, &entry);
 
     for(unsigned move_cr = 0; move_cr < max_moves; move_cr++)
     {
         m = Next(move_array, move_cr, &max_moves,
-                 &in_hash, entry, wtm, all_moves, false, m);
+                 nullptr, wtm, all_moves, false, m);
     }
 
     root_moves.clear();
@@ -1523,8 +1519,7 @@ void ReHash(int size_mb)
 
 //--------------------------------
 bool HashProbe(int depth, short *alpha, short beta,
-               tt_entry **entry,
-               bool *in_hash)
+               tt_entry **entry)
 {
     if(tt.count(hash_key, entry) == 0 || stop)
         return false;
@@ -1556,7 +1551,6 @@ bool HashProbe(int depth, short *alpha, short beta,
 #ifndef DONT_SHOW_STATISTICS
     hash_hit_cr++;
 #endif // DONT_SHOW_STATISTICS
-    *in_hash = true;
     return false;
 }
 
@@ -1675,8 +1669,7 @@ bool PseudoLegal(Move &m, bool stm)
 
 
 //--------------------------------
-Move Next(Move *move_array, unsigned cur, unsigned *max_moves,
-          bool *in_hash, tt_entry *entry,
+Move Next(Move *move_array, unsigned cur, unsigned *max_moves, tt_entry *entry,
           UC stm, bool only_captures, bool in_check, Move prev_move)
 {
 #ifdef DONT_USE_ONE_REPLY_EXTENSION
@@ -1686,7 +1679,7 @@ Move Next(Move *move_array, unsigned cur, unsigned *max_moves,
     Move ans;
     if(cur == 0)
     {
-        if(!*in_hash)
+        if(entry == nullptr)
         {
             if(!only_captures)
                 *max_moves = GenMoves(move_array, APPRICE_ALL, nullptr);
@@ -1727,7 +1720,7 @@ Move Next(Move *move_array, unsigned cur, unsigned *max_moves,
                     if(!Legal(ans, in_check))
                     {
                         UnMoveFast(ans);
-                        *in_hash = false;
+                        *entry = nullptr;
                         *max_moves = GenMoves(move_array, APPRICE_ALL, nullptr);
                     }
                     else
@@ -1746,12 +1739,12 @@ Move Next(Move *move_array, unsigned cur, unsigned *max_moves,
             }
             else
             {
-                *in_hash = false;
+                entry = nullptr;
                 *max_moves = GenMoves(move_array, APPRICE_ALL, nullptr);
             }
-        }// else (if *in_hash)
+        }// else (entry == nullptr)
     }// if cur == 0
-    else if(cur == 1 && *in_hash)
+    else if(cur == 1 && entry != nullptr)
     {
         *max_moves = GenMoves(move_array, APPRICE_ALL, &prev_move);
         unsigned i = 0;
@@ -1768,7 +1761,7 @@ Move Next(Move *move_array, unsigned cur, unsigned *max_moves,
         return move_array[cur];
 
 #ifndef DONT_USE_ONE_REPLY_EXTENSION
-    if(in_check && (cur == 0 || (cur == 1 && *in_hash)))
+    if(in_check && (cur == 0 || (cur == 1 && entry != nullptr)))
     {
         unsigned move_cr, legal_cr = cur;
         for(move_cr = cur; move_cr < *max_moves; ++move_cr)
