@@ -91,8 +91,7 @@ bool Futility(int depth, short beta);
 bool DrawByRepetition();
 void ShowFen();
 void ReHash(int size_mb);
-bool HashProbe(int depth, short *alpha, short beta,
-               tt_entry **entry);
+tt_entry* HashProbe(int depth, short *alpha, short beta);
 bool PseudoLegal(Move &m, bool stm);
 Move Next(Move *move_array, unsigned cur, unsigned *top, tt_entry *entry,
           UC stm, bool captures_only, bool in_check, Move prev_move);

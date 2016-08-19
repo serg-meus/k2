@@ -276,33 +276,16 @@ void transposition_table::add(UQ key, short value, Move best,
 
 
 //--------------------------------
-unsigned transposition_table::count(UQ key)
+tt_entry* transposition_table::count(UQ key)
 {
-    unsigned i, ans = 0;
     tt_entry *bucket = &data[entries_in_a_bucket*(key & mask)];
-    for(i = 0; i < entries_in_a_bucket; ++i)
-        if(bucket[i].key == key >> 32)
-            ans++;
-    assert(ans <= 1);
-    return ans;
-}
-
-
-
-
-
-//--------------------------------
-unsigned transposition_table::count(UQ key, tt_entry **entry)
-{
-    unsigned i, ans = 0;
-    tt_entry *bucket = &data[entries_in_a_bucket*(key & mask)];
-    for(i = 0; i < entries_in_a_bucket; ++i, ++bucket)
+    tt_entry *ans = nullptr;
+    for(unsigned i = 0; i < entries_in_a_bucket; ++i, ++bucket)
         if(bucket->key == key >> 32)
         {
-            ans++;
+            ans = bucket;
             break;
         }
-    *entry = bucket;
     return ans;
 }
 

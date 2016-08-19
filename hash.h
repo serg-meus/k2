@@ -49,8 +49,7 @@ public:
     ~transposition_table();
 
     bool set_size(unsigned size_mb);
-    unsigned count(UQ key);
-    unsigned count(UQ key, tt_entry **entry);
+    tt_entry* count(UQ key);
     void add(UQ key, short value, Move best, UI depth,
              UI bound_type, uint32_t half_mov_cr, bool one_reply);
     void clear();

@@ -85,8 +85,9 @@ short Search(int depth, short alpha, short beta,
 #endif // DONT_USE_NULL_MOVE
 
     short x, _alpha = alpha;
-    tt_entry *entry = nullptr;
-    if(depth > 0 && HashProbe(depth, &alpha, beta, &entry))
+    tt_entry *entry;
+    if(depth > 0 && (entry = HashProbe(depth, &alpha, beta)) != nullptr
+       && alpha != _alpha)
         return -alpha;
 
     if(depth <= 0)
@@ -152,7 +153,7 @@ short Search(int depth, short alpha, short beta,
                    iid_low_bound, iid_high_bound, node_type);
 //        if(x <= iid_low_bound || x >= iid_high_bound)
 //            return x;
-        HashProbe(depth, &alpha, beta, &entry);
+        HashProbe(depth, &alpha, beta);
         m = Next(move_array, 0, &max_moves,
                  &in_hash, entry, wtm, all_moves);
         MkMove(m);
@@ -692,8 +693,7 @@ void RootMoveGen(bool in_check)
     short alpha = -INF, beta = INF;
     m.flg = 0xFF;
 
-    tt_entry *entry = nullptr;
-    HashProbe(max_ply, &alpha, beta, &entry);
+    HashProbe(max_ply, &alpha, beta);
 
     for(unsigned move_cr = 0; move_cr < max_moves; move_cr++)
     {
@@ -1518,23 +1518,23 @@ void ReHash(int size_mb)
 
 
 //--------------------------------
-bool HashProbe(int depth, short *alpha, short beta,
-               tt_entry **entry)
+tt_entry* HashProbe(int depth, short *alpha, short beta)
 {
-    if(tt.count(hash_key, entry) == 0 || stop)
-        return false;
+    tt_entry* entry = tt.count(hash_key);
+    if(entry == nullptr || stop)
+        return nullptr;
 
 #ifndef DONT_SHOW_STATISTICS
     hash_probe_cr++;
 #endif // DONT_SHOW_STATISTICS
-    UC hbnd = (*entry)->bound_type;
-    if((*entry)->depth >= depth)
+    UC hbnd = entry->bound_type;
+    if(entry->depth >= depth)
     {
-        short hval = (*entry)->value;
+        short hval = entry->value;
         if(hval > mate_score && hval != INF)
-            hval += (*entry)->depth - ply;
+            hval += entry->depth - ply;
         else if(hval < -mate_score && hval != -INF)
-            hval -= (*entry)->depth - ply;
+            hval -= entry->depth - ply;
 
         if( hbnd == hEXACT
         || (hbnd == hUPPER && hval >= -*alpha)                          // -alpha is beta for parent node
@@ -1545,13 +1545,14 @@ bool HashProbe(int depth, short *alpha, short beta,
 #endif // DONT_SHOW_STATISTICS
             pv[ply][0].flg = 0;
             *alpha = hval;
-            return true;
+            return entry;
         }// if(bnd
     }// if((*entry).depth >= depth
 #ifndef DONT_SHOW_STATISTICS
-    hash_hit_cr++;
+    if(entry->best_move.flg != 0xFF)
+        hash_hit_cr++;
 #endif // DONT_SHOW_STATISTICS
-    return false;
+    return entry;
 }
 
 
