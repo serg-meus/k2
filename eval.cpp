@@ -683,7 +683,7 @@ void MaterialImbalances()
             }
             else if((colp == 0 || colp == 7)
             && king_dist[ABSI(*king_coord[!stm] -
-                              (colp | (stm ? 0x70 : 0)))])
+                              (colp + (stm ? 0x70 : 0)))] <= 1)
             {
                 val_opn = 0;
                 val_end = 0;
