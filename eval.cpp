@@ -381,6 +381,8 @@ void EvalPawns(bool stm)
 */
         if(!promo)
         {
+            if(pawn_max[i + 0][stm] && std::abs(mx - pawn_max[i + 0][stm]) > 1)
+                ansE -= 33;            
             prev_promo = false;
             continue;
         }
