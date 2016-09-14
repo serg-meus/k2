@@ -427,10 +427,6 @@ void EvalPawns(bool stm)
 //------------------------------
 void BishopMobility(UC stm)
 {
-    short nonlin[] = {0, 8, 12, 15, 18, 20, 23, 25, 27, 28, 30, 32, 34, 35, 37, 38};
-//    if(material[stm] - pieces[stm] < 20)
-//        return;
-
     short ans = 0, cr;
 
     auto rit = coords[stm].rbegin();
@@ -454,7 +450,7 @@ void BishopMobility(UC stm)
             cr++;
         }
     }
-    ans += 2*nonlin[cr] - 20;
+    ans += -cr*cr/6 + 6*cr - 16;
 
     ++rit;
     if(rit == coords[stm].rend() || TO_BLACK(b[*rit]) != _b)
@@ -476,8 +472,7 @@ void BishopMobility(UC stm)
             cr++;
         }
     }
-    ans += 2*nonlin[cr] - 20;
-
+    ans += -cr*cr/6 + 6*cr - 16;
 
     val_opn += stm ? ans : -ans;
     val_end += stm ? ans : -ans;
