@@ -449,21 +449,27 @@ void MainSearch()
     for(; root_ply <= max_ply && !stop; ++root_ply)
     {
         val_ = val;
+        const short asp_margin = 30;
 #ifndef DONT_USE_ASPIRATION_WINDOWS
-        val = RootSearch(root_ply, val - 30, val + 30);
-        if(stop && val == -INF)
-            val = val_;
-        else if(val <= val_ - 30 || val >= val_ + 30)
+        val = RootSearch(root_ply, val - asp_margin, val + asp_margin);
+        if(!stop && val <= val_ - asp_margin)
         {
-            val = RootSearch(root_ply, -INF, INF);
-            if(stop && val == -INF)
-                val = val_;
+            val = RootSearch(root_ply, -INF, val_ - asp_margin);
+            if (!stop && val >= val_ - asp_margin)
+                val = RootSearch(root_ply, -INF, INF);
+        }
+        else if(!stop && val >= val_ + asp_margin)
+        {
+            val = RootSearch(root_ply, val_ + asp_margin, INF);
+            if(!stop && val <= val_ + asp_margin)
+                val = RootSearch(root_ply, -INF, INF);
         }
 #else
         val = RootSearch(root_ply, -INF, INF);
+#endif //DONT_USE_ASPIRATION_WINDOWS
+
         if(stop && val == -INF)
             val = val_;
-#endif //DONT_USE_ASPIRATION_WINDOWS
 
         double time1 = timer.getElapsedTimeInMicroSec();
         time_spent = time1 - time0;
@@ -554,52 +560,44 @@ short RootSearch(int depth, short alpha, short beta)
         if(uci && root_ply > 6)
             ShowCurrentUciInfo();
 
-        if(DrawByRepetition())
+        bool fail_high = false;
+#ifndef DONT_USE_PVS_IN_ROOT
+        if(root_move_cr == 0)
         {
-            x = 0;
-            pv[1][0].flg = 0;
+            x = -Search(depth - 1, -beta, -alpha, pv_node);
+            if(!stop && x <= alpha)
+            {
+                ShowPVfailHighOrLow(m, x, '?');
+//                UnMove(m);
+//                break;
+            }
         }
         else
         {
-#ifndef DONT_USE_PVS_IN_ROOT
-            if(root_move_cr == 0)
+            x = -Search(depth - 1, -alpha - 1, -alpha, cut_node);
+            if(!stop && x > alpha)
             {
-                x = -Search(depth - 1, -beta, -alpha, pv_node);
-                if(stop)
-                    x = -INF;
-                else if(x <= alpha)
-                    ShowPVfailHighOrLow(m, x, '?');
-            }
-            else
-            {
-                x = -Search(depth - 1, -alpha - 1, -alpha, cut_node);
-                if(stop)
-                    x = -INF;
-                if(!stop && x > alpha)
-                {
-                    ShowPVfailHighOrLow(m, x, '!');
+                fail_high = true;
+                ShowPVfailHighOrLow(m, x, '!');
 
-                    short x_ = -Search(depth - 1, -beta, -alpha, pv_node);
-                    if(stop)
-                        ply = ply;
-                    if(!stop)
-                        x = x_;
-                    if(x > alpha)
-                    {
-                        pv_stable_cr = 0;
-                        pv[0][0].flg    = 1;
-                        pv[0][1]        = m;
-                    }
-                    else
-                        root_moves.at(root_move_cr).first = unconfirmed_fail_high;
+                short x_ = -Search(depth - 1, -beta, -alpha, pv_node);
+                if(!stop)
+                    x = x_;
+                if(x > alpha)
+                {
+                    pv_stable_cr = 0;
+                    pv[0][0].flg    = 1;
+                    pv[0][1]        = m;
                 }
+                else
+                    root_moves.at(root_move_cr).first = unconfirmed_fail_high;
             }
-#else
-        x = -Search(depth - 1, -beta, -alpha, pv_node);
-        if(stop)
-            x = -INF;
-#endif // DONT_USE_PVS_IN_ROOT
         }
+#else
+    x = -Search(depth - 1, -beta, -alpha, pv_node);
+#endif // DONT_USE_PVS_IN_ROOT
+        if(stop && !fail_high)
+            x = -INF;
 
         UQ dn = nodes - _nodes;
 
