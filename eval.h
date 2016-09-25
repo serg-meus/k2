@@ -42,7 +42,7 @@ enum PriceList
     K_VAL       = 32000,
     INF         = 32760,
 
-    CLAMPED_R   = 250
+    CLAMPED_R   = 82,
 };
 
 
