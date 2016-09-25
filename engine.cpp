@@ -449,7 +449,7 @@ void MainSearch()
     for(; root_ply <= max_ply && !stop; ++root_ply)
     {
         val_ = val;
-        const short asp_margin = 30;
+        const short asp_margin = 47;
 #ifndef DONT_USE_ASPIRATION_WINDOWS
         val = RootSearch(root_ply, val - asp_margin, val + asp_margin);
         if(!stop && val <= val_ - asp_margin)
