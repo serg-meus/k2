@@ -24,7 +24,7 @@ double      time_base, time_inc, time_remains, total_time_spent;
 unsigned    moves_per_session;
 int         finaly_made_moves, moves_remains;
 bool        spent_exact_time;
-unsigned    resign_cr, pv_stable_cr;
+unsigned    resign_cr;
 bool        time_command_sent;
 
 
@@ -72,7 +72,7 @@ short Search(int depth, short alpha, short beta,
 #endif // DONT_USE_MATE_DISTANCE_PRUNING
 
 #ifndef DONT_USE_FUTILITY
-    if(depth <= 2 && depth >= 0 && !in_check
+    if(depth <= 2 && !in_check
 //    && alpha < mate_score && beta >= -mate_score
     && beta < mate_score
     && Futility(depth, beta))
@@ -84,27 +84,27 @@ short Search(int depth, short alpha, short beta,
         return beta;
 #endif // DONT_USE_NULL_MOVE
 
-    short x, _alpha = alpha;
+    short x, initial_alpha = alpha;
     tt_entry *entry;
     if(depth > 0 && (entry = HashProbe(depth, &alpha, beta)) != nullptr
-       && alpha != _alpha)
+       && alpha != initial_alpha)
         return -alpha;
 
     if(depth <= 0)
-        return Quiesce(alpha, beta);
+        return QSearch(alpha, beta);
 
     nodes++;
     if((nodes & nodes_to_check_stop) == nodes_to_check_stop)
         CheckForInterrupt();
 
-    Move move_array[MAX_MOVES], m;
-    unsigned move_cr = 0, legals = 0, max_moves = 999, first_legal = 0;
+    Move move_array[MAX_MOVES], cur_move;
+    unsigned move_cr = 0, legal_moves = 0, max_moves = 999, first_legal = 0;
     bool beta_cutoff = false;
 
-    for(; move_cr < max_moves && !stop; move_cr++)
+    for(; move_cr < max_moves; move_cr++)
     {
-        m = Next(move_array, move_cr, &max_moves,
-                 entry, wtm, all_moves, in_check, m);
+        cur_move = Next(move_array, move_cr, &max_moves,
+                 entry, wtm, all_moves, in_check, cur_move);
         if(max_moves <= 0)
             break;
 
@@ -114,39 +114,39 @@ short Search(int depth, short alpha, short beta,
             depth++;
 #endif //DONT_USE_ONE_REPLY_EXTENSION
 
-        bool is_special_move = MkMoveFast(m);
+        bool is_special_move = MkMoveFast(cur_move);
 #ifndef NDEBUG
         if((!stop_ply || root_ply == stop_ply) && strcmp(stop_str, cv) == 0)
             ply = ply;
 #endif // NDEBUG
 
 #ifndef DONT_USE_ONE_REPLY_EXTENSION
-        if(!in_check && !Legal(m, in_check))
+        if(!in_check && !Legal(cur_move, in_check))
 #else
-        if(!Legal(m, in_check))
+        if(!Legal(cur_move, in_check))
 #endif // DONT_USE_ONE_REPLY_EXTENSION
         {
-            UnMoveFast(m);
+            UnMoveFast(cur_move);
             continue;
         }
 
 #ifndef DONT_USE_LMP
-        if(depth <= 2 && !m.flg && !in_check
-        && node_type == all_node && legals > 4)
+        if(depth <= 2 && !cur_move.flg && !in_check
+        && node_type == all_node && legal_moves > 4)
         {
-            UnMoveFast(m);
+            UnMoveFast(cur_move);
             break;
         }
 #endif // DONT_USE_LMP
 
-        MkMoveIncrementally(m, is_special_move);
+        MkMoveIncrementally(cur_move, is_special_move);
 
 #ifndef DONT_USE_IID
     if(node_type != all_node
-    && depth >= 6 && legals == 0                                         // first move and
-    && m.scr < PV_FOLLOW)                                               // no move from hash table
+    && depth >= 6 && legal_moves == 0                                         // first move and
+    && cur_move.scr < PV_FOLLOW)                                               // no move from hash table
     {
-        UnMove(m);
+        UnMove(cur_move);
         short iid_low_bound  = alpha <= -mate_score ? alpha : alpha - 30;
         short iid_high_bound = beta  >=  mate_score ? beta  : beta  + 30;
         x = Search(node_type == pv_node ? depth - 2 : depth/2,
@@ -154,34 +154,35 @@ short Search(int depth, short alpha, short beta,
 //        if(x <= iid_low_bound || x >= iid_high_bound)
 //            return x;
         HashProbe(depth, &alpha, beta);
-        m = Next(move_array, 0, &max_moves,
+        cur_move = Next(move_array, 0, &max_moves,
                  &in_hash, entry, wtm, all_moves);
-        MkMove(m);
-        if(!Legal(m, in_check))
+        MkMove(cur_move);
+        if(!Legal(cur_move, in_check))
         {
-            UnMove(m);
+            UnMove(cur_move);
             continue;
         }
     }
 #endif // DONT_USE_IID
 
-        FastEval(m);
+        FastEval(cur_move);
 
 #ifndef DONT_USE_LMR
         int lmr = 1;
-        if(depth < 3 || m.flg || in_check)
+        if(depth < 3 || cur_move.flg || in_check)
             lmr = 0;
-        else if(legals < 4)
+        else if(legal_moves < 4)
             lmr = 0;
-        else if(TO_BLACK(b[m.to]) == _p && TestPromo(COL(m.to), !wtm))
+        else if(TO_BLACK(b[cur_move.to]) == _p
+        && TestPromo(COL(cur_move.to), !wtm))
             lmr = 0;
-        else if(depth <= 4 && legals > 8)
+        else if(depth <= 4 && legal_moves > 8)
             lmr = 2;
 #else
         int lmr = 0;
 #endif  // DONT_USE_LMR
 
-        if(legals == 0)
+        if(legal_moves == 0)
             x = -Search(depth - 1, -beta, -alpha, -node_type);
         else if(beta > alpha + 1)
         {
@@ -195,11 +196,11 @@ short Search(int depth, short alpha, short beta,
             if(lmr && x > alpha)
                 x = -Search(depth - 1, -beta, -alpha, pv_node);
         }
-        UnMove(m);
+        UnMove(cur_move);
 
-        if(legals == 0)
+        if(legal_moves == 0)
             first_legal = move_cr;
-        legals++;
+        legal_moves++;
 
         if(x >= beta)
         {
@@ -209,36 +210,38 @@ short Search(int depth, short alpha, short beta,
         else if(x > alpha)
         {
             alpha = x;
-            StorePV(m);
+            StorePV(cur_move);
         }
+        if(stop)
+            break;
     }// for move_cr
 
-    if(!legals && _alpha <= mate_score)
+    if(legal_moves == 0 && initial_alpha <= mate_score)
     {
         pv[ply][0].flg = 0;
         return in_check ? -K_VAL + ply : 0;
     }
-    else if(legals)
-        StoreResultInHash(depth, _alpha, alpha, beta, legals,
+    else if(legal_moves)
+        StoreResultInHash(depth, initial_alpha, alpha, beta, legal_moves,
                           beta_cutoff,
-                          (beta_cutoff ? m : move_array[first_legal]),
+                          (beta_cutoff ? cur_move : move_array[first_legal]),
                           in_check && max_moves == 1);
     if(beta_cutoff)
     {
 #ifndef DONT_SHOW_STATISTICS
         if(entry != nullptr && entry->best_move.flg != 0xFF)
             hash_best_move_cr++;
-        if(legals == 1)
+        if(legal_moves == 1)
         {
             if(entry != nullptr && entry->best_move.flg != 0xFF)
                 hash_cutoff_by_best_move_cr++;
-            else if(m.scr == FIRST_KILLER)
+            else if(cur_move.scr == FIRST_KILLER)
                 killer1_hits++;
-            else if(m.scr == SECOND_KILLER)
+            else if(cur_move.scr == SECOND_KILLER)
                 killer2_hits++;
         }
 #endif // DONT_SHOW_STATISTICS
-        UpdateStatistics(m, depth, legals - 1);
+        UpdateStatistics(cur_move, depth, legal_moves - 1);
         return beta;
     }
     return alpha;
@@ -249,7 +252,7 @@ short Search(int depth, short alpha, short beta,
 
 
 //-----------------------------
-short Quiesce(short alpha, short beta)
+short QSearch(short alpha, short beta)
 {
     if(ply >= max_ply - 1)
         return 0;
@@ -273,50 +276,50 @@ short Quiesce(short alpha, short beta)
         CheckForInterrupt();
 
     Move move_array[MAX_MOVES];
-    unsigned move_cr = 0, max_moves = 999, legals = 0;
+    unsigned move_cr = 0, max_moves = 999, legal_moves = 0;
     bool beta_cutoff = false;
 
-    for(; move_cr < max_moves && !stop; move_cr++)
+    for(; move_cr < max_moves; move_cr++)
     {
-        Move m = Next(move_array, move_cr, &max_moves,
-                      nullptr, wtm, captures_only, false, m);
+        Move cur_move = Next(move_array, move_cr, &max_moves,
+                      nullptr, wtm, captures_only, false, cur_move);
         if(max_moves <= 0)
             break;
 
 #ifndef DONT_USE_SEE_CUTOFF
-        if(m.scr <= BAD_CAPTURES)
+        if(cur_move.scr <= BAD_CAPTURES)
             break;
 #endif
 
 #ifndef DONT_USE_DELTA_PRUNING
         if(material[white] + material[black]
                 - pieces[white] - pieces[black] > 24
-        && TO_BLACK(b[m.to]) != _k
-        && !(m.flg & mPROM))
+        && TO_BLACK(b[cur_move.to]) != _k
+        && !(cur_move.flg & mPROM))
         {
             short cur_eval = ReturnEval(wtm);
-            short capture = 100*pc_streng[GET_INDEX(b[m.to])];
+            short capture = 100*pc_streng[GET_INDEX(b[cur_move.to])];
             short margin = 100;
             if(cur_eval + capture + margin < alpha)
                 break;
         }
 #endif
-        MkMoveAndEval(m);
-        legals++;
+        MkMoveAndEval(cur_move);
+        legal_moves++;
 #ifndef NDEBUG
         if((!stop_ply || root_ply == stop_ply) && strcmp(stop_str, cv) == 0)
             ply = ply;
 #endif // NDEBUG
         if(TO_BLACK(b_state[prev_states + ply].capt) == _k)
         {
-            UnMoveAndEval(m);
+            UnMoveAndEval(cur_move);
             return K_VAL;
         }
-        FastEval(m);
+        FastEval(cur_move);
 
-        x = -Quiesce(-beta, -alpha);
+        x = -QSearch(-beta, -alpha);
 
-        UnMoveAndEval(m);
+        UnMoveAndEval(cur_move);
 
         if(x >= beta)
         {
@@ -326,16 +329,19 @@ short Quiesce(short alpha, short beta)
         else if(x > alpha)
         {
             alpha   = x;
-            StorePV(m);
+            StorePV(cur_move);
         }
+
+        if(stop)
+            break;
     }// for(move_cr
 
     if(beta_cutoff)
     {
 #ifndef DONT_SHOW_STATISTICS
         q_cut_cr++;
-        if(legals - 1 < (int)(sizeof(q_cut_num_cr)/sizeof(*q_cut_num_cr)))
-            q_cut_num_cr[legals - 1]++;
+        if(legal_moves - 1 < (int)(sizeof(q_cut_num_cr)/sizeof(*q_cut_num_cr)))
+            q_cut_num_cr[legal_moves - 1]++;
 #endif // DONT_SHOW_STATISTICS
         return beta;
     }
@@ -358,14 +364,14 @@ void Perft(int depth)
         if((unsigned)depth == max_search_depth)
             tmpCr = nodes;
 #endif
-        Move m = move_array[move_cr];
-        MkMoveFast(m);
+        Move cur_move = move_array[move_cr];
+        MkMoveFast(cur_move);
 #ifndef NDEBUG
         if(strcmp(stop_str, cv) == 0)
             ply = ply;
 #endif // NDEBUG
 //        bool legal = !Attack(king_coord[!wtm], wtm);
-        bool legal = Legal(m, in_check);
+        bool legal = Legal(cur_move, in_check);
         if(depth > 1 && legal)
             Perft(depth - 1);
         if(depth == 1 && legal)
@@ -374,7 +380,7 @@ void Perft(int depth)
         if((unsigned)depth == max_search_depth && legal)
             std::cout << cv << nodes - tmpCr << std::endl;
 #endif
-        UnMoveFast(m);
+        UnMoveFast(cur_move);
     }
 }
 
@@ -383,11 +389,11 @@ void Perft(int depth)
 
 
 //-----------------------------
-void StorePV(Move m)
+void StorePV(Move move)
 {
     int nextLen = pv[ply + 1][0].flg;
     pv[ply][0].flg = nextLen + 1;
-    pv[ply][1] = m;
+    pv[ply][1] = move;
     memcpy(&pv[ply][2], &pv[ply + 1][1], sizeof(Move)*nextLen);
 }
 
@@ -396,35 +402,35 @@ void StorePV(Move m)
 
 
 //-----------------------------
-void UpdateStatistics(Move m, int dpt, unsigned move_cr)
+void UpdateStatistics(Move move, int depth, unsigned move_cr)
 {
 #ifndef DONT_SHOW_STATISTICS
         cut_cr++;
         if(move_cr < sizeof(cut_num_cr)/sizeof(*cut_num_cr))
             cut_num_cr[move_cr]++;
-        if(m.scr == FIRST_KILLER)
+        if(move.scr == FIRST_KILLER)
             killer1_probes++;
-        if(m.scr == SECOND_KILLER)
+        if(move.scr == SECOND_KILLER)
             killer2_probes++;
 #else
     UNUSED(move_cr);
 #endif // DONT_SHOW_STATISTICS
-    if(m.flg)
+    if(move.flg)
         return;
-    if(m != killers[ply][0] && m != killers[ply][1])
+    if(move != killers[ply][0] && move != killers[ply][1])
     {
         killers[ply][1] = killers[ply][0];
-        killers[ply][0] = m;
+        killers[ply][0] = move;
     }
 
 #ifndef DONT_USE_HISTORY
     auto it = coords[wtm].begin();
-    it = m.pc;
+    it = move.pc;
     UC fr = *it;
-    unsigned &h = history[wtm][GET_INDEX(b[fr]) - 1][m.to];
-    h += dpt*dpt + 1;
+    unsigned &h = history[wtm][GET_INDEX(b[fr]) - 1][move.to];
+    h += depth*depth + 1;
 #else
-    UNUSED(dpt);
+    UNUSED(depth);
 #endif // DONT_USE_HISTORY
 }
 
@@ -438,38 +444,37 @@ void MainSearch()
     busy = true;
     InitSearch();
 
-    short val, val_;
+    short x, prev_x;
 
     root_ply = 1;
-    val = Quiesce(-INF, INF);
+    x = QSearch(-INF, INF);
     pv[0][0].flg = 0;
 
     max_root_moves = 0;
-    pv_stable_cr = 0;
-    for(; root_ply <= max_ply && !stop; ++root_ply)
+    for(; root_ply <= max_ply; ++root_ply)
     {
-        val_ = val;
+        prev_x = x;
         const short asp_margin = 47;
 #ifndef DONT_USE_ASPIRATION_WINDOWS
-        val = RootSearch(root_ply, val - asp_margin, val + asp_margin);
-        if(!stop && val <= val_ - asp_margin)
+        x = RootSearch(root_ply, x - asp_margin, x + asp_margin);
+        if(!stop && x <= prev_x - asp_margin)
         {
-            val = RootSearch(root_ply, -INF, val_ - asp_margin);
-            if (!stop && val >= val_ - asp_margin)
-                val = RootSearch(root_ply, -INF, INF);
+            x = RootSearch(root_ply, -INF, prev_x - asp_margin);
+            if (!stop && x >= prev_x - asp_margin)
+                x = RootSearch(root_ply, -INF, INF);
         }
-        else if(!stop && val >= val_ + asp_margin)
+        else if(!stop && x >= prev_x + asp_margin)
         {
-            val = RootSearch(root_ply, val_ + asp_margin, INF);
-            if(!stop && val <= val_ + asp_margin)
-                val = RootSearch(root_ply, -INF, INF);
+            x = RootSearch(root_ply, prev_x + asp_margin, INF);
+            if(!stop && x <= prev_x + asp_margin)
+                x = RootSearch(root_ply, -INF, INF);
         }
 #else
-        val = RootSearch(root_ply, -INF, INF);
+        x = RootSearch(root_ply, -INF, INF);
 #endif //DONT_USE_ASPIRATION_WINDOWS
 
-        if(stop && val == -INF)
-            val = val_;
+        if(stop && x == -INF)
+            x = prev_x;
 
         double time1 = timer.getElapsedTimeInMicroSec();
         time_spent = time1 - time0;
@@ -480,13 +485,15 @@ void MainSearch()
             && !max_nodes_to_search
             && root_ply >= 2)
                 break;
-            if(ABSI(val) > mate_score && !stop && root_ply >= 2
+            if(ABSI(x) > mate_score && !stop && root_ply >= 2
             && time_spent > time_to_think/4)
                 break;
             if(max_root_moves == 1 && root_ply >= 8)
                 break;
         }
         if(root_ply >= max_search_depth)
+            break;
+        if(stop)
             break;
 
     }// for(root_ply
@@ -496,12 +503,12 @@ void MainSearch()
         pondering_in_process = false;
         spent_exact_time = false;
     }
-    if(val < -RESIGN_VALUE)
+    if(x < -RESIGN_VALUE)
         resign_cr++;
     else
         resign_cr = 0;
 
-    if((!stop && !infinite_analyze && val < -mate_score)
+    if((!stop && !infinite_analyze && x < -mate_score)
     || (!infinite_analyze && resign_cr > RESIGN_MOVES))
     {
         std::cout << "resign" << std::endl;
@@ -513,7 +520,7 @@ void MainSearch()
     timer.stop();
 
     if(!infinite_analyze || uci)
-        PrintSearchResult();
+        PrintFinalSearchResult();
 
     if(!xboard)
         infinite_analyze = false;
@@ -537,16 +544,16 @@ short RootSearch(int depth, short alpha, short beta)
     root_move_cr = 0;
 
     short x;
-    Move  m;
+    Move  cur_move;
     bool beta_cutoff = false;
     const UQ unconfirmed_fail_high = -1,
             max_root_move_priority = ULLONG_MAX;
 
-    for(; root_move_cr < max_root_moves && !stop; root_move_cr++)
+    for(; root_move_cr < max_root_moves; root_move_cr++)
     {
-        m = root_moves.at(root_move_cr).second;
+        cur_move = root_moves.at(root_move_cr).second;
 
-        MkMove(m);
+        MkMove(cur_move);
         nodes++;
 
 #ifndef NDEBUG
@@ -554,8 +561,8 @@ short RootSearch(int depth, short alpha, short beta)
             ply = ply;
 #endif // NDEBUG
 
-        FastEval(m);
-        UQ _nodes = nodes;
+        FastEval(cur_move);
+        UQ prev_nodes = nodes;
 
         if(uci && root_ply > 6)
             ShowCurrentUciInfo();
@@ -567,8 +574,8 @@ short RootSearch(int depth, short alpha, short beta)
             x = -Search(depth - 1, -beta, -alpha, pv_node);
             if(!stop && x <= alpha)
             {
-                ShowPVfailHighOrLow(m, x, '?');
-//                UnMove(m);
+                ShowPVfailHighOrLow(cur_move, x, '?');
+//                UnMove(cur_move);
 //                break;
             }
         }
@@ -578,16 +585,15 @@ short RootSearch(int depth, short alpha, short beta)
             if(!stop && x > alpha)
             {
                 fail_high = true;
-                ShowPVfailHighOrLow(m, x, '!');
+                ShowPVfailHighOrLow(cur_move, x, '!');
 
                 short x_ = -Search(depth - 1, -beta, -alpha, pv_node);
                 if(!stop)
                     x = x_;
                 if(x > alpha)
                 {
-                    pv_stable_cr = 0;
-                    pv[0][0].flg    = 1;
-                    pv[0][1]        = m;
+                    pv[0][0].flg = 1;
+                    pv[0][1] = cur_move;
                 }
                 else
                     root_moves.at(root_move_cr).first = unconfirmed_fail_high;
@@ -599,48 +605,43 @@ short RootSearch(int depth, short alpha, short beta)
         if(stop && !fail_high)
             x = -INF;
 
-        UQ dn = nodes - _nodes;
+        UQ delta_nodes = nodes - prev_nodes;
 
         if(root_moves.at(root_move_cr).first != unconfirmed_fail_high)
-            root_moves.at(root_move_cr).first = dn;
+            root_moves.at(root_move_cr).first = delta_nodes;
         else
             root_moves.at(root_move_cr).first = max_root_move_priority;
 
         if(x >= beta)
         {
-            ShowPVfailHighOrLow(m, x, '!');
+            ShowPVfailHighOrLow(cur_move, x, '!');
             beta_cutoff = true;
             std::swap(root_moves.at(root_move_cr),
                       root_moves.at(0));
-            UnMove(m);
+            UnMove(cur_move);
             break;
         }
         else if(x > alpha)
         {
-            UnMove(m);
-
-            if(root_move_cr > 0)
-                pv_stable_cr = 0;
+            UnMove(cur_move);
             alpha = x;
-            StorePV(m);
-
+            StorePV(cur_move);
             if(depth > 3 && x != -INF && !stop)
-                PlyOutput(x, ' ');
+                PrintCurrentSearchResult(x, ' ');
             std::swap(root_moves.at(root_move_cr),
                       root_moves.at(0));
         }
         else
-        {
-            UnMove(m);
-        }
+            UnMove(cur_move);
 
+        if(stop)
+            break;
     }// for(; root_move_cr < max_root_moves
 
     std::sort(root_moves.rbegin(), root_moves.rend() - 1);
 
-    pv_stable_cr++;
     if(depth <= 3 && max_root_moves != 0)
-        PlyOutput(alpha, ' ');
+        PrintCurrentSearchResult(alpha, ' ');
     if(max_root_moves == 0)
     {
         pv[0][0].flg = 0;
@@ -648,7 +649,7 @@ short RootSearch(int depth, short alpha, short beta)
     }
     if(beta_cutoff)
     {
-        UpdateStatistics(m, depth, root_move_cr);
+        UpdateStatistics(cur_move, depth, root_move_cr);
         return beta;
     }
     return alpha;
@@ -659,7 +660,7 @@ short RootSearch(int depth, short alpha, short beta)
 
 
 //--------------------------------
-void ShowPVfailHighOrLow(Move m, short x, char exclimation)
+void ShowPVfailHighOrLow(Move m, short x, char type_of_bound)
 {
     UnMove(m);
     char mstr[6];
@@ -670,7 +671,7 @@ void ShowPVfailHighOrLow(Move m, short x, char exclimation)
     pv[0][0].flg    = 1;
     pv[0][1]        = m;
 
-    PlyOutput(x, exclimation);
+    PrintCurrentSearchResult(x, type_of_bound);
     pv[0][0].flg    = tmp0.flg;
     pv[0][1]        = tmp1;
 
@@ -685,31 +686,31 @@ void ShowPVfailHighOrLow(Move m, short x, char exclimation)
 //--------------------------------
 void RootMoveGen(bool in_check)
 {
-    Move move_array[MAX_MOVES], m;
+    Move move_array[MAX_MOVES], cur_move;
     unsigned max_moves = 999;
 
     short alpha = -INF, beta = INF;
-    m.flg = 0xFF;
+    cur_move.flg = 0xFF;
 
     HashProbe(max_ply, &alpha, beta);
 
     for(unsigned move_cr = 0; move_cr < max_moves; move_cr++)
     {
-        m = Next(move_array, move_cr, &max_moves,
-                 nullptr, wtm, all_moves, false, m);
+        cur_move = Next(move_array, move_cr, &max_moves,
+                 nullptr, wtm, all_moves, false, cur_move);
     }
 
     root_moves.clear();
     for(unsigned move_cr = 0; move_cr < max_moves; move_cr++)
     {
-        m = move_array[move_cr];
-        MkMoveFast(m);
-        if(Legal(m, in_check))
+        cur_move = move_array[move_cr];
+        MkMoveFast(cur_move);
+        if(Legal(cur_move, in_check))
         {
-            root_moves.push_back(std::pair<UQ, Move>(0, m));
+            root_moves.push_back(std::pair<UQ, Move>(0, cur_move));
             max_root_moves++;
         }
-        UnMoveFast(m);
+        UnMoveFast(cur_move);
     }
 #if (!defined(DONT_USE_RANDOMNESS) && defined(NDEBUG))
     if(root_ply != 0)
@@ -784,18 +785,18 @@ void InitSearch()
 
 
 //--------------------------------
-void MoveToStr(Move m, bool stm, char *out)
+void MoveToStr(Move move, bool stm, char *out)
 {
     char proms[] = {'?', 'q', 'n', 'r', 'b'};
 
     auto it = coords[stm].begin();
-    it      = m.pc;
+    it      = move.pc;
     int  f  = *it;
     out[0]  = COL(f) + 'a';
     out[1]  = ROW(f) + '1';
-    out[2]  = COL(m.to) + 'a';
-    out[3]  = ROW(m.to) + '1';
-    out[4]  = (m.flg & mPROM) ? proms[m.flg & mPROM] : '\0';
+    out[2]  = COL(move.to) + 'a';
+    out[3]  = ROW(move.to) + '1';
+    out[4]  = (move.flg & mPROM) ? proms[move.flg & mPROM] : '\0';
     out[5]  = '\0';
 }
 
@@ -804,19 +805,19 @@ void MoveToStr(Move m, bool stm, char *out)
 
 
 //--------------------------------
-void PrintSearchResult()
+void PrintFinalSearchResult()
 {
-    char mov[6];
-    MoveToStr(pv[0][1], wtm, mov);
+    char move_str[6];
+    MoveToStr(pv[0][1], wtm, move_str);
 
-    if(!uci && !MakeMoveFinaly(mov))
+    if(!uci && !MakeMoveFinaly(move_str))
         std::cout << "tellusererror err01" << std::endl << "resign" << std::endl;
 
     if(!uci)
-        std::cout << "move " << mov << std::endl;
+        std::cout << "move " << move_str << std::endl;
     else
     {
-        std::cout << "bestmove " << mov;
+        std::cout << "bestmove " << move_str;
         if(!infinite_analyze && pv[0][0].flg > 1)
         {
             char pndr[6];
@@ -910,45 +911,45 @@ void PrintSearchResult()
 
 
 //--------------------------------
-void PlyOutput(short sc, char exclimation)
+void PrintCurrentSearchResult(short max_value, char type_of_bound)
 {
     using namespace std;
 
     double time1 = timer.getElapsedTimeInMicroSec();
-    int tsp = (int)((time1 - time0)/1000.);
+    int spent_time = (int)((time1 - time0)/1000.);
 
     if(uci)
     {
         cout << "info depth " << root_ply;
 
-        if(ABSI(sc) < mate_score)
-            cout << " score cp " << sc;
+        if(ABSI(max_value) < mate_score)
+            cout << " score cp " << max_value;
         else
         {
-            if(sc > 0)
-                cout << " score mate " << (K_VAL - sc + 1) / 2;
+            if(max_value > 0)
+                cout << " score mate " << (K_VAL - max_value + 1) / 2;
             else
-                cout << " score mate -" << (K_VAL + sc + 1) / 2;
+                cout << " score mate -" << (K_VAL + max_value + 1) / 2;
         }
-        if(exclimation == '!')
+        if(type_of_bound == '!')
             cout << " upperbound";
-        else if(exclimation == '?')
+        else if(type_of_bound == '?')
             cout << " lowerbound";
 
-        cout << " time " << tsp
+        cout << " time " << spent_time
             << " nodes " << nodes
             << " pv ";
     }
     else
     {
         cout << setfill(' ') << setw(4)  << left << root_ply;
-        cout << setfill(' ') << setw(7)  << left << sc;
-        cout << setfill(' ') << setw(8)  << left << tsp / 10;
+        cout << setfill(' ') << setw(7)  << left << max_value;
+        cout << setfill(' ') << setw(8)  << left << spent_time / 10;
         cout << setfill(' ') << setw(12) << left << nodes << ' ';
     }
     ShowPV(0);
-    if(!uci && exclimation != ' ')
-        cout << exclimation;
+    if(!uci && type_of_bound != ' ')
+        cout << type_of_bound;
     cout << endl;
 }
 
@@ -1006,74 +1007,79 @@ void InitTime()                                                         // too c
 
 
 //-----------------------------
-bool ShowPV(int _ply)
+bool ShowPV(int cur_ply)
 {
     char pc2chr[] = "??KKQQRRBBNNPP";
     bool ans = true;
-    int i = 0, stp = pv[_ply][0].flg;
+    int i = 0, pv_len = pv[cur_ply][0].flg;
 
     if(uci)
     {
-        for(; i < stp; i++)
+        for(; i < pv_len; i++)
         {
-            Move m = pv[_ply][i + 1];
+            Move cur_move = pv[cur_ply][i + 1];
             auto it = coords[wtm].begin();
-            it = m.pc;
-            UC fr = *it;
-            std::cout  << (char)(COL(fr) + 'a') << (char)(ROW(fr) + '1')
-                << (char)(COL(m.to) + 'a') << (char)(ROW(m.to) + '1');
+            it = cur_move.pc;
+            UC from_coord = *it;
+            std::cout  << (char)(COL(from_coord) + 'a')
+                << (char)(ROW(from_coord) + '1')
+                << (char)(COL(cur_move.to) + 'a') << (char)(ROW(cur_move.to) + '1');
             char proms[] = {'?', 'q', 'n', 'r', 'b'};
-            if(m.flg & mPROM)
-                std::cout << proms[m.flg & mPROM];
+            if(cur_move.flg & mPROM)
+                std::cout << proms[cur_move.flg & mPROM];
             std::cout << " ";
-            MkMoveFast(m);
+            MkMoveFast(cur_move);
             bool in_check = Attack(*king_coord[wtm], !wtm);
-            if(!Legal(m, in_check))
+            if(!Legal(cur_move, in_check))
                 ans = false;
         }
     }
     else
     {
-        for(; i < stp; i++)
+        for(; i < pv_len; i++)
         {
-            Move m = pv[_ply][i + 1];
+            Move cur_move = pv[cur_ply][i + 1];
             auto it = coords[wtm].begin();
-            it = m.pc;
-            char pc = pc2chr[b[*it]];
-            if(pc == 'K' && COL(*it) == 4 && COL(m.to) == 6)
+            it = cur_move.pc;
+            char piece_char = pc2chr[b[*it]];
+            if(piece_char == 'K' && COL(*it) == 4 && COL(cur_move.to) == 6)
                 std::cout << "OO";
-            else if(pc == 'K' && COL(*it) == 4 && COL(m.to) == 2)
+            else if(piece_char == 'K' && COL(*it) == 4
+                    && COL(cur_move.to) == 2)
                 std::cout << "OOO";
-            else if(pc != 'P')
+            else if(piece_char != 'P')
             {
-                std::cout << pc;
-                Ambiguous(m);
-                if(m.flg & mCAPT)
+                std::cout << piece_char;
+                FindAndPrintForAmbiguousMoves(cur_move);
+                if(cur_move.flg & mCAPT)
                     std::cout << 'x';
-                std::cout << (char)(COL(m.to) + 'a');
-                std::cout << (char)(ROW(m.to) + '1');
+                std::cout << (char)(COL(cur_move.to) + 'a');
+                std::cout << (char)(ROW(cur_move.to) + '1');
             }
-            else if(m.flg & mCAPT)
+            else if(cur_move.flg & mCAPT)
             {
                 it = coords[wtm].begin();
-                it = m.pc;
-                std::cout << (char)(COL(*it) + 'a') << "x"
-                     << (char)(COL(m.to) + 'a') << (char)(ROW(m.to) + '1');
+                it = cur_move.pc;
+                std::cout << (char)(COL(*it) + 'a')
+                    << "x"
+                    << (char)(COL(cur_move.to) + 'a')
+                    << (char)(ROW(cur_move.to) + '1');
             }
             else
-                std::cout << (char)(COL(m.to) + 'a') << (char)(ROW(m.to) + '1');
+                std::cout << (char)(COL(cur_move.to) + 'a')
+                    << (char)(ROW(cur_move.to) + '1');
             char proms[] = "?QNRB";
-            if(pc == 'P' && (m.flg & mPROM))
-                std::cout << proms[m.flg& mPROM];
+            if(piece_char == 'P' && (cur_move.flg & mPROM))
+                std::cout << proms[cur_move.flg& mPROM];
             std::cout << ' ';
-            MkMoveFast(m);
+            MkMoveFast(cur_move);
             bool in_check = Attack(*king_coord[wtm], !wtm);
-            if(!Legal(m, in_check))
+            if(!Legal(cur_move, in_check))
                 ans = false;
         }
     }
     for(; i > 0; i--)
-        UnMoveFast(*(Move *) &pv[_ply][i]);
+        UnMoveFast(*(Move *) &pv[cur_ply][i]);
     return ans;
 }
 
@@ -1082,50 +1088,52 @@ bool ShowPV(int _ply)
 
 
 //-----------------------------
-void Ambiguous(Move m)
+void FindAndPrintForAmbiguousMoves(Move move)
 {
-    Move marr[8];
-    unsigned ambCr = 0;
+    Move move_array[8];
+    unsigned amb_cr = 0;
     auto it = coords[wtm].begin();
-    it = m.pc;
-    UC fr0 = *it;
-    UC pt0 = GET_INDEX(b[fr0]);
+    it = move.pc;
+    UC init_from_coord = *it;
+    UC init_piece_type = GET_INDEX(b[init_from_coord]);
 
     for(it = coords[wtm].begin();
         it != coords[wtm].end();
         ++it)
     {
-        if(it == m.pc)
+        if(it == move.pc)
             continue;
-        UC fr = *it;
+        UC from_coord = *it;
 
-        UC pt = GET_INDEX(b[fr]);
-        if(pt != pt0)
+        UC piece_type = GET_INDEX(b[from_coord]);
+        if(piece_type != init_piece_type)
             continue;
-        if(!(attacks[120 + fr - m.to] & (1 << pt)))
+        if(!(attacks[120 + from_coord - move.to] & (1 << piece_type)))
             continue;
-        if(slider[pt] && !SliderAttack(fr, m.to))
+        if(slider[piece_type] && !SliderAttack(from_coord, move.to))
             continue;
-        Move x = m;
-        x.scr = fr;
-        marr[ambCr++]   = x;
+        Move tmp = move;
+        tmp.scr = from_coord;
+        move_array[amb_cr++] = tmp;
     }
-    if(!ambCr)
+
+    if(!amb_cr)
         return;
-    bool sameCols = false, sameRows = false;
-    for(unsigned i = 0; i < ambCr; i++)
+
+    bool same_cols = false, same_rows = false;
+    for(unsigned i = 0; i < amb_cr; i++)
     {
-        if(COL(marr[i].scr) == COL(fr0))
-            sameCols = true;
-        if(ROW(marr[i].scr) == ROW(fr0))
-            sameRows = true;
+        if(COL(move_array[i].scr) == COL(init_from_coord))
+            same_cols = true;
+        if(ROW(move_array[i].scr) == ROW(init_from_coord))
+            same_rows = true;
     }
-    if(sameCols && sameRows)
-        std::cout << (char)(COL(fr0) + 'a') << (char)(ROW(fr0) + '1');
-    else if(sameCols)
-        std::cout << (char)(ROW(fr0) + '1');
+    if(same_cols && same_rows)
+        std::cout << (char)(COL(init_from_coord) + 'a') << (char)(ROW(init_from_coord) + '1');
+    else if(same_cols)
+        std::cout << (char)(ROW(init_from_coord) + '1');
     else
-        std::cout << (char)(COL(fr0) + 'a');
+        std::cout << (char)(COL(init_from_coord) + 'a');
 
 }
 
@@ -1134,59 +1142,59 @@ void Ambiguous(Move m)
 
 
 //-----------------------------
-bool MakeMoveFinaly(char *mov)
+bool MakeMoveFinaly(char *move_str)
 {
-    int ln = strlen(mov);
+    int ln = strlen(move_str);
     if(ln < 4 || ln > 5)
         return false;
     bool in_check = Attack(*king_coord[wtm], !wtm);
     max_root_moves = 0;
     RootMoveGen(in_check);
 
-    char rMov[6];
+    char cur_move_str[6];
     char proms[] = {'?', 'q', 'n', 'r', 'b'};
     for(unsigned i = 0; i < max_root_moves; ++i)
     {
-        Move m  = root_moves.at(i).second;
+        Move cur_move  = root_moves.at(i).second;
         auto it = coords[wtm].begin();
-        it = m.pc;
-        rMov[0] = COL(*it) + 'a';
-        rMov[1] = ROW(*it) + '1';
-        rMov[2] = COL(m.to) + 'a';
-        rMov[3] = ROW(m.to) + '1';
-        rMov[4] = (m.flg & mPROM) ? proms[m.flg & mPROM] : '\0';
-        rMov[5] = '\0';
+        it = cur_move.pc;
+        cur_move_str[0] = COL(*it) + 'a';
+        cur_move_str[1] = ROW(*it) + '1';
+        cur_move_str[2] = COL(cur_move.to) + 'a';
+        cur_move_str[3] = ROW(cur_move.to) + '1';
+        cur_move_str[4] = (cur_move.flg & mPROM) ? proms[cur_move.flg & mPROM] : '\0';
+        cur_move_str[5] = '\0';
 
-        if(strcmp(mov, rMov) == 0)
+        if(strcmp(move_str, cur_move_str) != 0)
+            continue;
+
+        it = coords[wtm].begin();
+        it = cur_move.pc;
+
+        MkMove(cur_move);
+        FastEval(cur_move);
+
+        short store_val_opn = val_opn;
+        short store_val_end = val_end;
+
+        memmove(&b_state[0], &b_state[1],
+                (prev_states + 2)*sizeof(BrdState));
+        ply--;
+        EvalAllMaterialAndPST();
+        if(val_opn != store_val_opn || val_end != store_val_end)
         {
-            it = coords[wtm].begin();
-            it = m.pc;
-
-            MkMove(m);
-            FastEval(m);
-
-            short _valOpn_ = val_opn;
-            short _valEnd_ = val_end;
-
-            memmove(&b_state[0], &b_state[1],
-                    (prev_states + 2)*sizeof(BrdState));
-            ply--;
-            EvalAllMaterialAndPST();
-            if(val_opn != _valOpn_ || val_end != _valEnd_)
-            {
-                std::cout << "telluser err02: wrong score. Fast: "
-                        << _valOpn_ << '/' << _valEnd_
-                        << ", all: " << val_opn << '/' << val_end
-                        << std::endl << "resign"
-                        << std::endl;
-            }
-            for(int j = 0; j < FIFTY_MOVES; ++j)
-                doneHashKeys[j] = doneHashKeys[j + 1];
-
-            finaly_made_moves++;
-            return true;
+            std::cout << "telluser err02: wrong score. Fast: "
+                    << store_val_opn << '/' << store_val_end
+                    << ", all: " << val_opn << '/' << val_end
+                    << std::endl << "resign"
+                    << std::endl;
         }
-    }
+        for(int j = 0; j < FIFTY_MOVES; ++j)
+            doneHashKeys[j] = doneHashKeys[j + 1];
+
+        finaly_made_moves++;
+        return true;
+    }// for i
     return false;
 }
 
@@ -1203,14 +1211,14 @@ void InitEngine()
     std::cin.rdbuf()->pubsetbuf(nullptr, 0);
     std::cout.rdbuf()->pubsetbuf(nullptr, 0);
 
-    stop            = false;
-    total_nodes      = 0;
-    total_time_spent  = 0;
+    stop = false;
+    total_nodes = 0;
+    total_time_spent = 0;
 
     spent_exact_time  = false;
     finaly_made_moves = 0;
-    resign_cr        = 0;
-    time_spent       = 0;
+    resign_cr = 0;
+    time_spent = 0;
 
 //    tt.clear();
 #ifndef DONT_USE_HISTORY
@@ -1354,9 +1362,9 @@ bool NullMove(int depth, short beta, bool in_check)
       )
         return false;
 
-    UC store_ep      = b_state[prev_states + ply].ep;
-    UC store_to      = b_state[prev_states + ply].to;
-    US store_rv      = reversible_moves;
+    UC store_ep  = b_state[prev_states + ply].ep;
+    UC store_to = b_state[prev_states + ply].to;
+    US store_rv = reversible_moves;
     reversible_moves = 0;
 
     MakeNullMove();
@@ -1368,9 +1376,9 @@ bool NullMove(int depth, short beta, bool in_check)
     short x = -Search(depth - r - 1, -beta, -beta + 1, all_node);
 
     UnMakeNullMove();
-    b_state[prev_states + ply].to    = store_to;
-    b_state[prev_states + ply].ep    = store_ep;
-    reversible_moves                     = store_rv;
+    b_state[prev_states + ply].to = store_to;
+    b_state[prev_states + ply].ep = store_ep;
+    reversible_moves = store_rv;
 
     if(store_ep)
         hash_key = InitHashKey();
@@ -1447,29 +1455,28 @@ void ShowFen()
 {
     char whites[] = "KQRBNP";
     char blacks[] = "kqrbnp";
-    UC pt;
-    int blankCr;
+
     for(int row = 7; row >= 0; --row)
     {
-        blankCr = 0;
+        int blank_cr = 0;
         for(int col = 0; col < 8; ++col)
         {
-            pt = b[XY2SQ(col, row)];
-            if(pt == __)
+            UC piece = b[XY2SQ(col, row)];
+            if(piece == __)
             {
-                blankCr++;
+                blank_cr++;
                 continue;
             }
-            if(blankCr != 0)
-                std::cout << blankCr;
-            blankCr = 0;
-            if(pt & white)
-                std::cout << whites[GET_INDEX(pt) - 1];
+            if(blank_cr != 0)
+                std::cout << blank_cr;
+            blank_cr = 0;
+            if(piece & white)
+                std::cout << whites[GET_INDEX(piece) - 1];
             else
-                std::cout << blacks[GET_INDEX(pt) - 1];
+                std::cout << blacks[GET_INDEX(piece) - 1];
         }
-        if(blankCr != 0)
-            std::cout << blankCr;
+        if(blank_cr != 0)
+            std::cout << blank_cr;
         if(row != 0)
             std::cout << "/";
     }
@@ -1491,7 +1498,7 @@ void ShowFen()
         std::cout << "-";
 
 
-    std::cout << " -";                                                  // No en passant yet
+    std::cout << " -";  // No en passant yet
 
     std::cout << " " << reversible_moves;
     std::cout << " " << finaly_made_moves/2 + 1;
@@ -1535,8 +1542,8 @@ tt_entry* HashProbe(int depth, short *alpha, short beta)
             hval -= entry->depth - ply;
 
         if( hbnd == hEXACT
-        || (hbnd == hUPPER && hval >= -*alpha)                          // -alpha is beta for parent node
-        || (hbnd == hLOWER && hval <= -beta) )                          // -beta is alpha for parent node
+        || (hbnd == hUPPER && hval >= -*alpha)  //-alpha = beta for parent node
+        || (hbnd == hLOWER && hval <= -beta) )  //-beta = alpha for parent node
         {
 #ifndef DONT_SHOW_STATISTICS
             hash_cut_cr++;
@@ -1558,102 +1565,103 @@ tt_entry* HashProbe(int depth, short *alpha, short beta)
 
 
 //-----------------------------
-bool PseudoLegal(Move &m, bool stm)
+bool MoveIsPseudoLegal(Move &move, bool stm)
 {
-    if(m.flg == 0xFF)
+    if(move.flg == 0xFF)
         return false;
     auto it = coords[stm].begin();
     for(; it != coords[stm].end(); ++it)
-        if(it == m.pc)
+        if(it == move.pc)
             break;
     if(it == coords[stm].end())
         return false;
-    it = m.pc;
-    UC fr = *it;
-    UC pt = b[m.to];
-    int dCOL = COL(m.to) - COL(fr);
-    int dROW = ROW(m.to) - ROW(fr);
-    if(!dCOL && !dROW)
+    it = move.pc;
+    UC from_coord = *it;
+    UC piece = b[move.to];
+    int delta_col = COL(move.to) - COL(from_coord);
+    int delta_row = ROW(move.to) - ROW(from_coord);
+    if(!delta_col && !delta_row)
         return false;
-    if(!LIGHT(b[fr], stm))
+    if(!LIGHT(b[from_coord], stm))
         return false;
-    if(TO_BLACK(b[fr]) != _p && ((!DARK(pt, stm) && (m.flg & mCAPT))
-    || (pt != __ && !(m.flg & mCAPT))))
+    if(TO_BLACK(b[from_coord]) != _p
+       && ((!DARK(piece, stm) && (move.flg & mCAPT))
+    || (piece != __ && !(move.flg & mCAPT))))
         return false;
-    if(TO_BLACK(b[fr]) != _p && (m.flg & mPROM))
+    if(TO_BLACK(b[from_coord]) != _p && (move.flg & mPROM))
         return false;
     bool long_move;
-    switch (TO_BLACK(b[fr]))
+    switch (TO_BLACK(b[from_coord]))
     {
         case _p :
-            if((m.flg & mPROM) && ((stm && ROW(fr) != 6)
-            || (!stm && ROW(fr) != 1)))
+            if((move.flg & mPROM) && ((stm && ROW(from_coord) != 6)
+            || (!stm && ROW(from_coord) != 1)))
                 return false;
-            if((m.flg & mCAPT) && (ABSI(dCOL) != 1
-            || (stm && dROW != 1) || (!stm && dROW != -1)
-            || (!(m.flg & mENPS) && !DARK(pt, stm))))
+            if((move.flg & mCAPT) && (ABSI(delta_col) != 1
+            || (stm && delta_row != 1) || (!stm && delta_row != -1)
+            || (!(move.flg & mENPS) && !DARK(piece, stm))))
                 return false;
-            if((m.flg & mENPS)
-            && (pt != __ || b_state[prev_states + ply].ep == 0))
+            if((move.flg & mENPS)
+            && (piece != __ || b_state[prev_states + ply].ep == 0))
                 return false;
-            if(ROW(m.to) == (stm ? 7 : 0)
-            && !(m.flg & mPROM))
+            if(ROW(move.to) == (stm ? 7 : 0)
+            && !(move.flg & mPROM))
                 return false;
-            if(!(m.flg & mCAPT))
+            if(!(move.flg & mCAPT))
             {
                 if(!stm)
-                    dROW = -dROW;
-                if(pt != __ || dCOL != 0
-                || (stm && dROW <= 0))
+                    delta_row = -delta_row;
+                if(piece != __ || delta_col != 0
+                || (stm && delta_row <= 0))
                     return false;
-                long_move = (ROW(fr) == (stm ? 1 : 6));
-                if(long_move ? dROW > 2 : dROW != 1)
+                long_move = (ROW(from_coord) == (stm ? 1 : 6));
+                if(long_move ? delta_row > 2 : delta_row != 1)
                     return false;
-                if(long_move && dROW == 2
-                && b[XY2SQ(COL(fr), (ROW(fr) + ROW(m.to))/2)] != __)
+                if(long_move && delta_row == 2
+                && b[XY2SQ(COL(from_coord), (ROW(from_coord) + ROW(move.to))/2)] != __)
                     return false;
             }
 
             break;
         case _n :
-            m.flg &= mCAPT;
-            if(ABSI(dCOL) + ABSI(dROW) != 3)
+            move.flg &= mCAPT;
+            if(ABSI(delta_col) + ABSI(delta_row) != 3)
                 return false;
-            if(ABSI(dCOL) != 1 && ABSI(dROW) != 1)
+            if(ABSI(delta_col) != 1 && ABSI(delta_row) != 1)
                 return false;
             break;
         case _b :
         case _r :
         case _q :
-            m.flg &= mCAPT;
-            if(!(attacks[120 + m.to - fr] & (1 << GET_INDEX(b[fr])))
-            || !SliderAttack(m.to, fr))
+            move.flg &= mCAPT;
+            if(!(attacks[120 + move.to - from_coord] & (1 << GET_INDEX(b[from_coord])))
+            || !SliderAttack(move.to, from_coord))
                 return false;
             break;
         case _k :
-            if(!(m.flg & mCSTL))
+            if(!(move.flg & mCSTL))
             {
-                if((ABSI(dCOL) > 1 || ABSI(dROW) > 1))
+                if((ABSI(delta_col) > 1 || ABSI(delta_row) > 1))
                     return false;
                 else
                     return true;
             }
-            if(ABSI(dCOL) != 2 || ABSI(dROW) != 0)
+            if(ABSI(delta_col) != 2 || ABSI(delta_row) != 0)
                 return false;
-            if(COL(fr) != 4 || ROW(fr) != stm ? 0 : 7)
+            if(COL(from_coord) != 4 || ROW(from_coord) != stm ? 0 : 7)
                 return false;
             if((b_state[prev_states + ply].cstl &
-            (m.flg >> 3 >> (2*stm))) == 0)
+            (move.flg >> 3 >> (2*stm))) == 0)
                 return false;
-            if(b[XY2SQ(COL(m.to), ROW(fr))] != __)
+            if(b[XY2SQ(COL(move.to), ROW(from_coord))] != __)
                 return false;
-            if(b[XY2SQ((COL(m.to)+COL(fr))/2, ROW(fr))] != __)
+            if(b[XY2SQ((COL(move.to)+COL(from_coord))/2, ROW(from_coord))] != __)
                 return false;
-            if((m.flg &mCS_K)
-            && TO_BLACK(b[XY2SQ(7, ROW(fr))]) != _r)
+            if((move.flg &mCS_K)
+            && TO_BLACK(b[XY2SQ(7, ROW(from_coord))]) != _r)
                 return false;
-            if((m.flg &mCS_Q)
-            && TO_BLACK(b[XY2SQ(0, ROW(fr))]) != _r)
+            if((move.flg &mCS_Q)
+            && TO_BLACK(b[XY2SQ(0, ROW(from_coord))]) != _r)
                 return false;
             break;
 
@@ -1668,15 +1676,16 @@ bool PseudoLegal(Move &m, bool stm)
 
 
 //--------------------------------
-Move Next(Move *move_array, unsigned cur, unsigned *max_moves, tt_entry *entry,
-          UC stm, bool only_captures, bool in_check, Move prev_move)
+Move Next(Move *move_array, unsigned cur_move, unsigned *max_moves,
+          tt_entry *entry, UC stm, bool only_captures, bool in_check,
+          Move prev_move)
 {
 #ifdef DONT_USE_ONE_REPLY_EXTENSION
     UNUSED(in_check);
 #endif
 
     Move ans;
-    if(cur == 0)
+    if(cur_move == 0)
     {
         if(entry == nullptr)
         {
@@ -1697,7 +1706,7 @@ Move Next(Move *move_array, unsigned cur, unsigned *max_moves, tt_entry *entry,
         {
             ans = entry->best_move;
 
-            bool pseudo_legal = PseudoLegal(ans, stm);
+            bool pseudo_legal = MoveIsPseudoLegal(ans, stm);
 #ifndef NDEBUG
             int mx_ = GenMoves(move_array, APPRICE_NONE, nullptr);
             int i = 0;
@@ -1706,7 +1715,7 @@ Move Next(Move *move_array, unsigned cur, unsigned *max_moves, tt_entry *entry,
                     break;
             bool tt_move_found = i < mx_;
             if(tt_move_found != pseudo_legal)
-                PseudoLegal(ans, stm);
+                MoveIsPseudoLegal(ans, stm);
             assert(tt_move_found == pseudo_legal);
 #endif
             if(pseudo_legal)
@@ -1743,7 +1752,7 @@ Move Next(Move *move_array, unsigned cur, unsigned *max_moves, tt_entry *entry,
             }
         }// else (entry == nullptr)
     }// if cur == 0
-    else if(cur == 1 && entry != nullptr)
+    else if(cur_move == 1 && entry != nullptr)
     {
         *max_moves = GenMoves(move_array, APPRICE_ALL, &prev_move);
         unsigned i = 0;
@@ -1756,14 +1765,14 @@ Move Next(Move *move_array, unsigned cur, unsigned *max_moves, tt_entry *entry,
         assert(i < *max_moves);
     }
 
-    if(only_captures)                                                   // already sorted
-        return move_array[cur];
+    if(only_captures)  // already sorted
+        return move_array[cur_move];
 
 #ifndef DONT_USE_ONE_REPLY_EXTENSION
-    if(in_check && (cur == 0 || (cur == 1 && entry != nullptr)))
+    if(in_check && (cur_move == 0 || (cur_move == 1 && entry != nullptr)))
     {
-        unsigned move_cr, legal_cr = cur;
-        for(move_cr = cur; move_cr < *max_moves; ++move_cr)
+        unsigned move_cr, legal_cr = cur_move;
+        for(move_cr = cur_move; move_cr < *max_moves; ++move_cr)
         {
             Move m = move_array[move_cr];
             MkMoveFast(m);
@@ -1776,28 +1785,28 @@ Move Next(Move *move_array, unsigned cur, unsigned *max_moves, tt_entry *entry,
             move_array[legal_cr++] = move_array[move_cr];
         }
         *max_moves = legal_cr;
-        if(cur > 0 && legal_cr == 1)
+        if(cur_move > 0 && legal_cr == 1)
             *max_moves = 0;
     }
 #endif //DONT_USE_ONE_REPLY_EXTENSION
 
-    int max = -32000;
-    unsigned imx = cur;
+    int max_score = -INF;
+    unsigned max_index = cur_move;
 
-    for(unsigned i = cur; i < *max_moves; i++)
+    for(unsigned i = cur_move; i < *max_moves; i++)
     {
-        UC sc = move_array[i].scr;
-        if(sc > max)
+        UC score = move_array[i].scr;
+        if(score > max_score)
         {
-            max = sc;
-            imx = i;
+            max_score = score;
+            max_index = i;
         }
     }
-    ans = move_array[imx];
-    if(imx != cur)
+    ans = move_array[max_index];
+    if(max_index != cur_move)
     {
-        move_array[imx] = move_array[cur];
-        move_array[cur] = ans;
+        move_array[max_index] = move_array[cur_move];
+        move_array[cur_move] = ans;
     }
     return ans;
 }
@@ -1807,8 +1816,8 @@ Move Next(Move *move_array, unsigned cur, unsigned *max_moves, tt_entry *entry,
 
 
 //-----------------------------
-void StoreResultInHash(int depth, short _alpha, short alpha,            // save results of search to hash table
-                       short beta, unsigned legals,                     // note that this result is for 'parent' node (negative score, alpha = -beta, etc)
+void StoreResultInHash(int depth, short init_alpha, short alpha,
+                       short beta, unsigned legals,
                        bool beta_cutoff, Move best_move,
                        bool one_reply)
 {
@@ -1824,7 +1833,7 @@ void StoreResultInHash(int depth, short _alpha, short alpha,            // save 
                hLOWER, finaly_made_moves/2, one_reply);
 
     }
-    else if(alpha > _alpha && pv[ply][0].flg > 0)
+    else if(alpha > init_alpha && pv[ply][0].flg > 0)
     {
         if(alpha > mate_score && alpha != INF)
             alpha += ply - depth;
@@ -1833,15 +1842,15 @@ void StoreResultInHash(int depth, short _alpha, short alpha,            // save 
         tt.add(hash_key, -alpha, pv[ply][1], depth,
                 hEXACT, finaly_made_moves/2, one_reply);
     }
-    else if(alpha <= _alpha)
+    else if(alpha <= init_alpha)
     {
-        if(_alpha > mate_score && _alpha != INF)
-            _alpha += ply - depth;
-        else if(_alpha < -mate_score && _alpha != -INF)
-            _alpha -= ply - depth;
+        if(init_alpha > mate_score && init_alpha != INF)
+            init_alpha += ply - depth;
+        else if(init_alpha < -mate_score && init_alpha != -INF)
+            init_alpha -= ply - depth;
         Move no_move;
         no_move.flg = 0xFF;
-        tt.add(hash_key, -_alpha,
+        tt.add(hash_key, -init_alpha,
                legals > 0 ? best_move : no_move, depth,
                hUPPER, finaly_made_moves/2, one_reply);
     }
@@ -1859,20 +1868,20 @@ void ShowCurrentUciInfo()
     std::cout << "info nodes " << nodes
         << " nps " << (int)(1000000 * nodes / (t - time0 + 1));
 
-    Move m = root_moves.at(root_move_cr).second;
-    UC fr = b_state[prev_states + 1].fr;
+    Move move = root_moves.at(root_move_cr).second;
+    UC from_coord = b_state[prev_states + 1].fr;
     std::cout << " currmove "
-        << (char)(COL(fr) + 'a') << (char)(ROW(fr) + '1')
-        << (char)(COL(m.to) + 'a') << (char)(ROW(m.to) + '1');
+        << (char)(COL(from_coord) + 'a') << (char)(ROW(from_coord) + '1')
+        << (char)(COL(move.to) + 'a') << (char)(ROW(move.to) + '1');
     char proms[] = {'?', 'q', 'n', 'r', 'b'};
-    if(m.flg & mPROM)
-        std::cout << proms[m.flg & mPROM];
+    if(move.flg & mPROM)
+        std::cout << proms[move.flg & mPROM];
 
     std::cout << " currmovenumber " << root_move_cr + 1;
     std::cout << " hashfull ";
 
-    UQ hsz = 1000*tt.size() / tt.max_size();
-    std::cout << hsz << std::endl;
+    UQ hash_size = 1000*tt.size() / tt.max_size();
+    std::cout << hash_size << std::endl;
 }
 
 
