@@ -52,23 +52,23 @@ enum PriceList
 //--------------------------------
 void InitEval();
 void FastEval(Move m);
-short Eval(/*short alpha, short beta*/);
-void EvalAllMaterialAndPST();
-void EvalPawns(bool stm);
+short Eval();
+void InitEvaOfMaterialAndPst();
+void EvalPawns(UC stm);
 void SimpleKingShield(UC stm);
 void ClampedRook(UC stm);
 void SimpleKingNearOpp(UC stm);
-bool TestUnstoppable(int x, int y, UC stm);
+bool IsUnstoppablePawn(int x, int y, UC stm);
 short SimpleKingDist(UC stm);
 short EvalAllKingDist(UC stm, UC king_coord);
 void KingSafety(UC king_color);
-bool TestPromo(int col, UC stm);
+bool IsPasser(int col, UC stm);
 void BishopMobility(UC stm);
 short ReturnEval(UC stm);
 void MaterialImbalances();
 short EvalDebug();
 void KingSafety2(UC king_color);
-void KingSafety3(UC king_color);
+void KingSafety(UC king_color);
 short KingWeakness(UC king_color);
 short KingShieldFactor(UC stm);
 int CountAttacksOnOneSquare(UC king_color, UC attacked_coord,

@@ -174,7 +174,7 @@ short Search(int depth, short alpha, short beta,
         else if(legal_moves < 4)
             lmr = 0;
         else if(TO_BLACK(b[cur_move.to]) == _p
-        && TestPromo(COL(cur_move.to), !wtm))
+        && IsPasser(COL(cur_move.to), !wtm))
             lmr = 0;
         else if(depth <= 4 && legal_moves > 8)
             lmr = 2;
@@ -1180,7 +1180,7 @@ bool MakeMoveFinaly(char *move_str)
         memmove(&b_state[0], &b_state[1],
                 (prev_states + 2)*sizeof(BrdState));
         ply--;
-        EvalAllMaterialAndPST();
+        InitEvaOfMaterialAndPst();
         if(val_opn != store_val_opn || val_end != store_val_end)
         {
             std::cout << "telluser err02: wrong score. Fast: "
@@ -1238,7 +1238,7 @@ bool FenStringToEngine(char *fen)
     if(!ans)
         return false;
 
-    EvalAllMaterialAndPST();
+    InitEvaOfMaterialAndPst();
     time_spent   = 0;
     time_remains = time_base;
     finaly_made_moves = 0;
