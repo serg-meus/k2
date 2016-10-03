@@ -994,10 +994,10 @@ void InitTime()                                                         // too c
     if(!time_command_sent)
         time_remains += time_inc;
     time_to_think = time_remains / moves_remains;
-    if(moves_remains != 1 && !spent_exact_time)
-        time_to_think /= 2;                                             // average branching factor
+    if(time_inc == 0 && moves_remains != 1 && !spent_exact_time)
+        time_to_think /= 2;
     else if(time_inc != 0 && time_base != 0)
-        time_to_think = time_inc;
+        time_to_think += time_inc/4;
 
     time_command_sent = false;
 }
@@ -1286,11 +1286,14 @@ void CheckForInterrupt()
 
     const unsigned nodes_to_check_stop2 =
             (16*(nodes_to_check_stop + 1) - 1);
+    double margin = 20000; //0.02s
     if(spent_exact_time)
     {
         double time1 = timer.getElapsedTimeInMicroSec();
         time_spent = time1 - time0;
-        if(time_spent >= time_to_think - 50000 && root_ply > 2)
+        if(moves_remains == 1)
+            margin *= 5;
+        if(time_spent >= time_to_think - margin && root_ply >= 2)
             stop = true;
     }
     else if((nodes & nodes_to_check_stop2)
@@ -1298,7 +1301,7 @@ void CheckForInterrupt()
     {
         double time1 = timer.getElapsedTimeInMicroSec();
         time_spent = time1 - time0;
-        if(time_spent >= 10*time_to_think - 50000
+        if(time_spent >= 8*time_to_think
         && root_ply > 2)
             stop = true;
     }
