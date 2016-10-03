@@ -47,7 +47,7 @@
 const int mate_score = K_VAL - (short)max_ply;
 const bool all_moves = false;
 const bool captures_only = true;
-const unsigned nodes_to_check_stop = 511;
+const unsigned nodes_to_check_stop = 7;
 #ifdef TUNE_PARAMETERS
 extern std::vector <float> param;
 #endif
