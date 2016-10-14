@@ -1174,6 +1174,9 @@ void KingSafety(UC king_color)
         trp *= 4;
     trp += trp*trp/5;
 
+    if(material[!king_color] - pieces[!king_color] < 24)
+        trp /= 2;
+
     short kw = KingWeakness(king_color);
     if(trp <= 6)
         kw /= 2;
