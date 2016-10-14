@@ -471,7 +471,7 @@ void ClampedRook(UC stm)
         rook_on_7th_cr++;
     if(quantity[stm][GET_INDEX(_p)] >= 4
     && pawn_max[COL(*rit) + 1][stm] == 0)
-        ans += (pawn_max[COL(*rit) + 1][!stm] == 0 ? 54 : 10);
+        ans += (pawn_max[COL(*rit) + 1][!stm] == 0 ? 54 : 22);
     ++rit;
     if(rit != coords[stm].rend() && TO_BLACK(b[*rit]) == _r)
     {
@@ -479,7 +479,7 @@ void ClampedRook(UC stm)
             rook_on_7th_cr++;
         if(quantity[stm][GET_INDEX(_p)] >= 4
         && pawn_max[COL(*rit) + 1][stm] == 0)
-            ans += (pawn_max[COL(*rit) + 1][!stm] == 0 ? 54 : 10);
+            ans += (pawn_max[COL(*rit) + 1][!stm] == 0 ? 54 : 22);
     }
     ans += rook_on_7th_cr*47;
     val_opn += (stm ? ans : -ans);
