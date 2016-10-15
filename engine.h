@@ -10,7 +10,7 @@
 
 
 //--------------------------------
-#define ENGINE_VERSION "083"
+#define ENGINE_VERSION "087"
 
 //#define DONT_SHOW_STATISTICS
 //#define DONT_USE_FUTILITY
