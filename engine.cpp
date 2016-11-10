@@ -1758,6 +1758,11 @@ Move Next(Move *move_array, unsigned cur_move, unsigned *max_moves,
     else if(cur_move == 1 && entry != nullptr)
     {
         *max_moves = GenMoves(move_array, APPRICE_ALL, &prev_move);
+        if(*max_moves <= 1)
+        {
+            *max_moves = 0;
+            return move_array[0];
+        }   
         unsigned i = 0;
         for(; i < *max_moves; i++)
             if(move_array[i].scr == PV_FOLLOW)
