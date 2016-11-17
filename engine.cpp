@@ -713,7 +713,7 @@ void RootMoveGen(bool in_check)
         UnMoveFast(cur_move);
     }
 #if (!defined(DONT_USE_RANDOMNESS) && defined(NDEBUG))
-    if(root_ply != 0)
+    if(root_ply != 1)
         return;
     std::srand(std::time(nullptr));
     const unsigned max_moves_to_shuffle = 4;
