@@ -110,7 +110,6 @@ short Search(int depth, short alpha, short beta,
 
 #ifndef DONT_USE_ONE_REPLY_EXTENSION
         if(in_check && max_moves == 1)
-//        && (depth >= 3 || b_state[prev_states + ply - 1].scr > BAD_CAPTURES))
             depth++;
 #endif //DONT_USE_ONE_REPLY_EXTENSION
 
@@ -140,31 +139,6 @@ short Search(int depth, short alpha, short beta,
 #endif // DONT_USE_LMP
 
         MkMoveIncrementally(cur_move, is_special_move);
-
-#ifndef DONT_USE_IID
-    if(node_type != all_node
-    && depth >= 6 && legal_moves == 0                                         // first move and
-    && cur_move.scr < PV_FOLLOW)                                               // no move from hash table
-    {
-        UnMove(cur_move);
-        short iid_low_bound  = alpha <= -mate_score ? alpha : alpha - 30;
-        short iid_high_bound = beta  >=  mate_score ? beta  : beta  + 30;
-        x = Search(node_type == pv_node ? depth - 2 : depth/2,
-                   iid_low_bound, iid_high_bound, node_type);
-//        if(x <= iid_low_bound || x >= iid_high_bound)
-//            return x;
-        HashProbe(depth, &alpha, beta);
-        cur_move = Next(move_array, 0, &max_moves,
-                 &in_hash, entry, wtm, all_moves);
-        MkMove(cur_move);
-        if(!Legal(cur_move, in_check))
-        {
-            UnMove(cur_move);
-            continue;
-        }
-    }
-#endif // DONT_USE_IID
-
         FastEval(cur_move);
 
 #ifndef DONT_USE_LMR
@@ -187,7 +161,7 @@ short Search(int depth, short alpha, short beta,
         else if(beta > alpha + 1)
         {
             x = -Search(depth - 1 - lmr, -alpha - 1, -alpha, cut_node);
-            if(x > alpha/* && x < beta*/)
+            if(x > alpha)
                 x = -Search(depth - 1, -beta, -alpha, pv_node);
         }
         else
@@ -573,11 +547,7 @@ short RootSearch(int depth, short alpha, short beta)
         {
             x = -Search(depth - 1, -beta, -alpha, pv_node);
             if(!stop && x <= alpha)
-            {
                 ShowPVfailHighOrLow(cur_move, x, '?');
-//                UnMove(cur_move);
-//                break;
-            }
         }
         else
         {
@@ -1220,7 +1190,6 @@ void InitEngine()
     resign_cr = 0;
     time_spent = 0;
 
-//    tt.clear();
 #ifndef DONT_USE_HISTORY
     memset(history, 0, sizeof(history));
 #endif // DONT_USE_HISTORY
@@ -1762,7 +1731,7 @@ Move Next(Move *move_array, unsigned cur_move, unsigned *max_moves,
         {
             *max_moves = 0;
             return move_array[0];
-        }   
+        }
         unsigned i = 0;
         for(; i < *max_moves; i++)
             if(move_array[i].scr == PV_FOLLOW)
