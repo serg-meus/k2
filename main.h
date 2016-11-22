@@ -56,7 +56,7 @@ struct cmdStruct
 
 
 //--------------------------------
-int main(int argc, char* argv[]);
+int  main(int argc, char* argv[]);
 bool CmdProcess(std::string in);
 bool LooksLikeMove(std::string in);
 void NewCommand(std::string in);
@@ -70,7 +70,7 @@ void SetNodesCommand(std::string in);
 void SetTimeCommand(std::string in);
 void SetDepthCommand(std::string in);
 void Unsupported(std::string in);
-void GetFirstArg(std::string in, std::string *firstWord, std::string *remainingWords);
+void GetFirstArg(std::string in, std::string *first, std::string *remain);
 void ProtoverCommand(std::string in);
 void StopEngine();
 void StopCommand(std::string in);

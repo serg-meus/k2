@@ -80,9 +80,7 @@ void FindAndPrintForAmbiguousMoves(Move m);
 bool MakeMoveFinaly(char *mov);
 bool FenStringToEngine(char *fen);
 bool DrawDetect();
-bool SimpleDrawByRepetition();
 void CheckForInterrupt();
-bool DrawByRepetitionInRoot(Move lastMove);
 void MakeNullMove();
 void UnMakeNullMove();
 bool NullMove(int depth, short beta, bool ic);
@@ -97,9 +95,6 @@ Move Next(Move *move_array, unsigned cur, unsigned *top, tt_entry *entry,
 void StoreResultInHash(int depth, short _alpha, short alpha, short beta,
                        unsigned legals,
                        bool beta_cutoff, Move best_move, bool one_reply);
-bool DetectOnlyMove(bool beta_cutoff, bool in_check,
-                    unsigned move_cr, unsigned max_moves,
-                    Move *move_array);
 void ShowCurrentUciInfo();
 void MoveToStr(Move m, bool stm, char *out);
 void PonderHit();

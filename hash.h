@@ -71,10 +71,11 @@ protected:
 
 
 
+
 //--------------------------------
-bool    InitHashTable();
-UQ      InitHashKey();
-void    MoveHashKey(Move m, bool special);
-void    MkMove(Move m);
-void    UnMove(Move m);
-void    MkMoveIncrementally(Move m, bool special_move);
+bool InitHashTable();
+UQ   InitHashKey();
+void MoveHashKey(Move m, bool special);
+void MkMove(Move m);
+void UnMove(Move m);
+void MkMoveIncrementally(Move m, bool special_move);
