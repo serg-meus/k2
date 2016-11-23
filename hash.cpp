@@ -62,7 +62,7 @@ UQ InitHashKey()
         ans ^= zorb[MEN_TO_ZORB(b[fr])][COL(fr)][ROW(fr)];
 
     if(!wtm)
-        ans ^= (UQ)-1;
+        ans ^= key_for_side_to_move;
     BrdState &f = b_state[prev_states + ply];
     ans ^= zorb_en_passant[f.ep] ^ zorb_castling[f.cstl];
 
@@ -120,7 +120,7 @@ void MoveHashKey(Move m, bool special)
         hash_key ^= zorb_castling[_f.cstl]
                  ^  zorb_castling[f.cstl];
     }
-    hash_key ^= -1L;
+    hash_key ^= key_for_side_to_move;
     if(special)
     {
         if(TO_BLACK(pt) == _p && !f.capt)

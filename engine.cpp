@@ -98,7 +98,8 @@ short Search(int depth, short alpha, short beta,
         CheckForInterrupt();
 
     Move move_array[MAX_MOVES], cur_move;
-    unsigned move_cr = 0, legal_moves = 0, max_moves = 999, first_legal = 0;
+    unsigned move_cr = 0, legal_moves = 0, first_legal = 0;
+    unsigned max_moves = init_max_moves;
     bool beta_cutoff = false;
 
     for(; move_cr < max_moves; move_cr++)
@@ -203,11 +204,11 @@ short Search(int depth, short alpha, short beta,
     if(beta_cutoff)
     {
 #ifndef DONT_SHOW_STATISTICS
-        if(entry != nullptr && entry->best_move.flg != 0xFF)
+        if(entry != nullptr && entry->best_move.flg != not_a_move)
             hash_best_move_cr++;
         if(legal_moves == 1)
         {
-            if(entry != nullptr && entry->best_move.flg != 0xFF)
+            if(entry != nullptr && entry->best_move.flg != not_a_move)
                 hash_cutoff_by_best_move_cr++;
             else if(cur_move.scr == FIRST_KILLER)
                 killer1_hits++;
@@ -250,7 +251,7 @@ short QSearch(short alpha, short beta)
         CheckForInterrupt();
 
     Move move_array[MAX_MOVES];
-    unsigned move_cr = 0, max_moves = 999, legal_moves = 0;
+    unsigned move_cr = 0, legal_moves = 0, max_moves = init_max_moves;
     bool beta_cutoff = false;
 
     for(; move_cr < max_moves; move_cr++)
@@ -657,10 +658,10 @@ void ShowPVfailHighOrLow(Move m, short x, char type_of_bound)
 void RootMoveGen(bool in_check)
 {
     Move move_array[MAX_MOVES], cur_move;
-    unsigned max_moves = 999;
+    unsigned max_moves = init_max_moves;
 
     short alpha = -INF, beta = INF;
-    cur_move.flg = 0xFF;
+    cur_move.flg = not_a_move;
 
     HashProbe(max_ply, &alpha, beta);
 
@@ -946,7 +947,7 @@ void InitTime()                                                         // too c
     if(time_base == 0)
         moves_remains = 1;
 
-    if(!spent_exact_time && (moves_remains <= 8
+    if(!spent_exact_time && (moves_remains <= moves_for_time_exact_mode
     || (time_inc == 0 && moves_per_session == 0
     && time_remains < time_base / 4)))
     {
@@ -1247,7 +1248,7 @@ void CheckForInterrupt()
 {
     if(max_nodes_to_search != 0)
     {
-        if(nodes >= max_nodes_to_search - 512)
+        if(nodes >= max_nodes_to_search - nodes_to_check_stop)
             stop = true;
     }
     if(infinite_analyze || pondering_in_process)
@@ -1270,7 +1271,7 @@ void CheckForInterrupt()
     {
         double time1 = timer.getElapsedTimeInMicroSec();
         time_spent = time1 - time0;
-        if(time_spent >= 8*time_to_think
+        if(time_spent >= moves_for_time_exact_mode*time_to_think
         && root_ply > 2)
             stop = true;
     }
@@ -1296,7 +1297,7 @@ void MakeNullMove()
 
     ply++;
 
-    hash_key ^= -1ULL;
+    hash_key ^= key_for_side_to_move;
     doneHashKeys[FIFTY_MOVES + ply - 1] = hash_key;
 
     wtm ^= white;
@@ -1526,7 +1527,7 @@ tt_entry* HashProbe(int depth, short *alpha, short beta)
         }// if(bnd
     }// if((*entry).depth >= depth
 #ifndef DONT_SHOW_STATISTICS
-    if(entry->best_move.flg != 0xFF)
+    if(entry->best_move.flg != not_a_move)
         hash_hit_cr++;
 #endif // DONT_SHOW_STATISTICS
     return entry;
@@ -1539,7 +1540,7 @@ tt_entry* HashProbe(int depth, short *alpha, short beta)
 //-----------------------------
 bool MoveIsPseudoLegal(Move &move, bool stm)
 {
-    if(move.flg == 0xFF)
+    if(move.flg == not_a_move)
         return false;
     auto it = coords[stm].begin();
     for(; it != coords[stm].end(); ++it)
@@ -1826,7 +1827,7 @@ void StoreResultInHash(int depth, short init_alpha, short alpha,
         else if(init_alpha < -mate_score && init_alpha != -INF)
             init_alpha -= ply - depth;
         Move no_move;
-        no_move.flg = 0xFF;
+        no_move.flg = not_a_move;
         tt.add(hash_key, -init_alpha,
                legals > 0 ? best_move : no_move, depth,
                hUPPER, finaly_made_moves/2, one_reply);

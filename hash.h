@@ -9,7 +9,7 @@
 //--------------------------------
 #define MEN_TO_ZORB(X) ((X) - 2)
 #define FIFTY_MOVES 101       // because last 50th move can be a mate
-
+const UQ key_for_side_to_move = -1ULL;
 
 
 

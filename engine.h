@@ -47,6 +47,10 @@ const int mate_score = K_VAL - (short)max_ply;
 const bool all_moves = false;
 const bool captures_only = true;
 const unsigned nodes_to_check_stop = 7;
+const unsigned init_max_moves = 2;  // any number greater than 1
+const int moves_for_time_exact_mode = 8;
+const UC not_a_move = 0xFF;
+
 #ifdef TUNE_PARAMETERS
 extern std::vector <float> param;
 #endif
