@@ -686,6 +686,7 @@ void ProcessMoveSequence(std::string in)
 void UciGoCommand(std::string in)
 {
     pondering_in_process = false;
+    bool no_movestogo_arg = true;
     std::string arg1, arg2;
     arg1 = in;
     while(true)
@@ -726,6 +727,7 @@ void UciGoCommand(std::string in)
             GetFirstArg(arg2, &arg1, &arg2);
             moves_per_session = atoi(arg1.c_str());
             arg1 = arg2;
+            no_movestogo_arg = false;
         }
         else if(arg1 == "movetime")
         {
@@ -768,6 +770,8 @@ void UciGoCommand(std::string in)
             break;
 
     }//while(true
+    if(no_movestogo_arg)
+        moves_per_session = 0;
 }
 
 
