@@ -5,7 +5,7 @@
 
 short val_opn, val_end;
 
-UC pawn_max[10][2], pawn_min[10][2];
+u8 pawn_max[10][2], pawn_min[10][2];
 
 short material_values_opn[] = {  0, 0, Q_VAL_OPN, R_VAL_OPN, B_VAL_OPN, N_VAL_OPN, P_VAL_OPN};
 short material_values_end[] = {  0, 0, Q_VAL_END, R_VAL_END, B_VAL_END, N_VAL_END, P_VAL_END};
@@ -13,7 +13,7 @@ short material_values_end[] = {  0, 0, Q_VAL_END, R_VAL_END, B_VAL_END, N_VAL_EN
 char  king_dist[120];
 short king_tropism[2];
 
-UC tropism_factor[2][7] =
+u8 tropism_factor[2][7] =
 {   //  k  Q   R   B   N   P
     {0, 0, 10, 10, 10,  4, 4},  // 4 >= dist > 3
     {0, 0, 21, 21, 10,  0, 10}  // dist < 3
@@ -94,7 +94,7 @@ void InitEval()
 
 
 //-----------------------------
-short ReturnEval(UC stm)
+short ReturnEval(u8 stm)
 {
     int X, Y;
     X = material[0] + 1 + material[1] + 1 - pieces[0] - pieces[1];
@@ -116,7 +116,7 @@ void FastEval(Move m)
     int y  = ROW(m.to);
     int x0 = COL(b_state[prev_states + ply].fr);
     int y0 = ROW(b_state[prev_states + ply].fr);
-    UC pt  = GET_INDEX(b[m.to]);
+    u8 pt  = GET_INDEX(b[m.to]);
 
     if(!wtm)
     {
@@ -124,14 +124,14 @@ void FastEval(Move m)
         y0 = 7 - y0;
     }
 
-    UC idx, flag = m.flg & mPROM;
+    u8 idx, flag = m.flg & mPROM;
     if(flag)
     {
         idx = GET_INDEX(_p);
         ansO -= material_values_opn[idx] + pst[idx - 1][0][y0][x0];
         ansE -= material_values_end[idx] + pst[idx - 1][1][y0][x0];
 
-        UC promo_pieces[] = {_q, _n, _r, _b};
+        u8 promo_pieces[] = {_q, _n, _r, _b};
         idx = GET_INDEX(promo_pieces[flag - 1]);
         ansO += material_values_opn[idx] + pst[idx - 1][0][y0][x0];
         ansE += material_values_end[idx] + pst[idx - 1][1][y0][x0];
@@ -140,7 +140,7 @@ void FastEval(Move m)
 
     if(m.flg & mCAPT)
     {
-        UC capt = TO_BLACK(b_state[prev_states + ply].capt);
+        u8 capt = TO_BLACK(b_state[prev_states + ply].capt);
         if(m.flg & mENPS)
         {
             idx = GET_INDEX(_p);
@@ -187,15 +187,15 @@ void InitEvaOfMaterialAndPst()
     {
         if(!ONBRD(col))
             continue;
-        UC pt = b[col];
+        u8 pt = b[col];
         if(pt == __)
             continue;
-        UC x0 = COL(col);
-        UC y0 = ROW(col);
+        u8 x0 = COL(col);
+        u8 y0 = ROW(col);
         if(pt & white)
             y0 = 7 - y0;
 
-        UC idx = GET_INDEX(pt);
+        u8 idx = GET_INDEX(pt);
         short tmpOpn = material_values_opn[idx] + pst[idx - 1][0][y0][x0];
         short tmpEnd = material_values_end[idx] + pst[idx - 1][1][y0][x0];
 
@@ -222,7 +222,7 @@ void InitEvaOfMaterialAndPst()
 
 
 //--------------------------------
-bool IsPasser(int col, UC stm)
+bool IsPasser(int col, u8 stm)
 {
     int mx = pawn_max[col + 1][stm];
 
@@ -240,7 +240,7 @@ bool IsPasser(int col, UC stm)
 
 
 //--------------------------------
-void EvalPawns(UC stm)
+void EvalPawns(u8 stm)
 {
     short ansO = 0, ansE = 0;
     bool passer, prev_passer = false;
@@ -285,7 +285,7 @@ void EvalPawns(UC stm)
             && mx < pawn_min[col + 2][stm])
             {
                 int y_coord = stm ? mx + 1 : 7 - mx - 1;
-                UC op_piece = b[XY2SQ(col, y_coord)];
+                u8 op_piece = b[XY2SQ(col, y_coord)];
                 bool occupied = DARK(op_piece, stm)
                 && TO_BLACK(op_piece) != _p;
                 if(occupied)
@@ -355,14 +355,14 @@ void EvalPawns(UC stm)
 
 
 //------------------------------
-short OneBishopMobility(UC b_coord)
+short OneBishopMobility(u8 b_coord)
 {
     short ans;
     int empty_squares = 0;
-    for(UC ray = 0; ray < 4; ++ray)
+    for(u8 ray = 0; ray < 4; ++ray)
     {
-        UC coord = b_coord;
-        for(UC col = 0; col < 8; ++col)
+        u8 coord = b_coord;
+        for(u8 col = 0; col < 8; ++col)
         {
             coord += shifts[GET_INDEX(_b)][ray];
             if(!ONBRD(coord) || TO_BLACK(b[coord]) == _p)
@@ -379,7 +379,7 @@ short OneBishopMobility(UC b_coord)
 
 
 //------------------------------
-void BishopMobility(UC stm)
+void BishopMobility(u8 stm)
 {
     short ans = 0;
 
@@ -406,9 +406,9 @@ void BishopMobility(UC stm)
 
 
 //-----------------------------
-void ClampedRook(UC stm)
+void ClampedRook(u8 stm)
 {
-    UC k = *king_coord[stm];
+    u8 k = *king_coord[stm];
 
     if(stm)
     {
@@ -466,14 +466,14 @@ void ClampedRook(UC stm)
     if(rit == coords[stm].rend())
         return;
 
-    UC rook_on_7th_cr = 0;
+    u8 rook_on_7th_cr = 0;
     if((stm && ROW(*rit) >= 6) || (!stm && ROW(*rit) <= 1))
         rook_on_7th_cr++;
     if(quantity[stm][GET_INDEX(_p)] >= 4
     && pawn_max[COL(*rit) + 1][stm] == 0)
         ans += (pawn_max[COL(*rit) + 1][!stm] == 0 ? 54 : 22);
 
-    UC empty_sq = 0;
+    u8 empty_sq = 0;
     for(int i = 1; i <= 2; ++i)
     {
         if(COL(*rit) + i < 7 && b[*rit + i] == __)
@@ -514,9 +514,9 @@ void ClampedRook(UC stm)
 
 
 //-----------------------------
-bool IsUnstoppablePawn(int col, int row, UC stm)
+bool IsUnstoppablePawn(int col, int row, u8 stm)
 {
-    UC k = *king_coord[!stm];
+    u8 k = *king_coord[!stm];
 
     if(row > 5)
         row = 5;
@@ -570,7 +570,7 @@ void MaterialImbalances()
              || (quantity[black][GET_INDEX(_n)] == 1
                  && quantity[black][GET_INDEX(_b)] == 1))
         {
-            UC stm = quantity[white][GET_INDEX(_n)] == 1 ? 1 : 0;
+            u8 stm = quantity[white][GET_INDEX(_n)] == 1 ? 1 : 0;
             auto rit = coords[stm].begin();
             for(; rit != coords[stm].end(); ++rit)
                 if(TO_BLACK(b[*rit]) == _b)
@@ -599,14 +599,14 @@ void MaterialImbalances()
         // KBPk or KNPk with pawn at a(h) file
         if(material[white] == 0)
         {
-            UC k = *king_coord[white];
+            u8 k = *king_coord[white];
             if((pawn_max[1 + 0][black] != 0 && king_dist[ABSI(k - 0x00)] <= 1)
             || (pawn_max[1 + 7][black] != 0 && king_dist[ABSI(k - 0x07)] <= 1))
                 val_end += 750;
         }
         else if(material[black] == 0)
         {
-            UC k = *king_coord[black];
+            u8 k = *king_coord[black];
             if((pawn_max[1 + 0][white] != 0 && king_dist[ABSI(k - 0x70)] <= 1)
             || (pawn_max[1 + 7][white] != 0 && king_dist[ABSI(k - 0x77)] <= 1))
                 val_end -= 750;
@@ -617,10 +617,10 @@ void MaterialImbalances()
         // KPk
         if(material[white] + material[black] == 1)
         {
-            UC stm = material[white] == 1;
+            u8 stm = material[white] == 1;
             auto it = coords[stm].rbegin();
             ++it;
-            UC colp = COL(*it);
+            u8 colp = COL(*it);
             bool unstop = IsUnstoppablePawn(colp, 7 - pawn_max[colp + 1][stm], stm);
             int dist_k = king_dist[ABSI(*king_coord[stm] - *it)];
             int dist_opp_k = king_dist[ABSI(*king_coord[!stm] - *it)];
@@ -834,7 +834,7 @@ void SetPawnStruct(int col)
 
 
 //-----------------------------
-void MovePawnStruct(UC moved_piece, UC from_coord, Move move)
+void MovePawnStruct(u8 moved_piece, u8 from_coord, Move move)
 {
     if(TO_BLACK(moved_piece) == _p || (move.flg & mPROM))
     {
@@ -896,14 +896,14 @@ void InitPawnStruct()
 
 
 //-----------------------------
-short CountKingTropism(UC king_color)
+short CountKingTropism(u8 king_color)
 {
     short occ_cr = 0;
     auto rit = coords[!king_color].rbegin();
     ++rit;
     for(; rit != coords[!king_color].rend(); ++rit)
     {
-        UC cur_piece = TO_BLACK(b[*rit]);
+        u8 cur_piece = TO_BLACK(b[*rit]);
         if(cur_piece == _p)
             break;
         int dist = king_dist[ABSI(*king_coord[king_color] - *rit)];
@@ -919,12 +919,12 @@ short CountKingTropism(UC king_color)
 
 
 //-----------------------------
-void MoveKingTropism(UC from_coord, Move move, UC king_color)
+void MoveKingTropism(u8 from_coord, Move move, u8 king_color)
 {
     b_state[prev_states + ply].tropism[black] = king_tropism[black];
     b_state[prev_states + ply].tropism[white] = king_tropism[white];
 
-    UC cur_piece = b[move.to];
+    u8 cur_piece = b[move.to];
 
     if(TO_BLACK(cur_piece) == _k)
     {
@@ -945,7 +945,7 @@ void MoveKingTropism(UC from_coord, Move move, UC king_color)
         king_tropism[king_color] += tropism_factor[dist_to < 3]
                                                   [GET_INDEX(cur_piece)];
 
-    UC cap = b_state[prev_states + ply].capt;
+    u8 cap = b_state[prev_states + ply].capt;
     if(move.flg & mCAPT)
     {
         dist_to = king_dist[ABSI(*king_coord[!king_color] - move.to)];
@@ -976,7 +976,7 @@ bool MkMoveAndEval(Move m)
 
     bool is_special_move = MkMoveFast(m);
 
-    UC fr = b_state[prev_states + ply].fr;
+    u8 fr = b_state[prev_states + ply].fr;
 
     MoveKingTropism(fr, m, wtm);
 
@@ -995,7 +995,7 @@ void UnMoveAndEval(Move m)
     king_tropism[black] = b_state[prev_states + ply].tropism[black];
     king_tropism[white] = b_state[prev_states + ply].tropism[white];
 
-    UC fr = b_state[prev_states + ply].fr;
+    u8 fr = b_state[prev_states + ply].fr;
 
     UnMoveFast(m);
 
@@ -1019,7 +1019,7 @@ void MkEvalAfterFastMove(Move m)
     b_state[prev_states + ply - 1].val_opn = val_opn;
     b_state[prev_states + ply - 1].val_end = val_end;
 
-    UC fr = b_state[prev_states + ply].fr;
+    u8 fr = b_state[prev_states + ply].fr;
 
     MoveKingTropism(fr, m, wtm);
 
@@ -1031,7 +1031,7 @@ void MkEvalAfterFastMove(Move m)
 
 
 //-----------------------------
-short KingOpenFiles(UC king_color)
+short KingOpenFiles(u8 king_color)
 {
     short ans = 0;
     int k = *king_coord[king_color];
@@ -1057,12 +1057,12 @@ short KingOpenFiles(UC king_color)
     if(open_files_near_king == 0)
         return 0;
 
-    UC rooks_queens_on_file[8] = {0};
+    u8 rooks_queens_on_file[8] = {0};
     auto rit = coords[!king_color].rbegin();
     ++rit;
     for(; rit != coords[!king_color].rend(); ++rit)
     {
-        UC pt = b[*rit];
+        u8 pt = b[*rit];
         if(TO_BLACK(pt) != _q && TO_BLACK(pt) != _r)
             break;
         int k = pawn_max[COL(*rit) + 1][king_color] ? 1 : 2;
@@ -1086,7 +1086,7 @@ short KingOpenFiles(UC king_color)
 
 
 //-----------------------------
-short KingWeakness(UC king_color)
+short KingWeakness(u8 king_color)
 {
     short ans = 0;
     int k = *king_coord[king_color];
@@ -1119,9 +1119,9 @@ short KingWeakness(UC king_color)
         if(col + k + 2*shft - 1 < 0
         || col + k + 2*shft - 1 >= (int)(sizeof(b)/sizeof(*b)))
             continue;
-        UC pt1 = b[col + k + shft - 1];
-        UC pt2 = b[col + k + 2*shft - 1];
-        const UC pwn = _p | king_color;
+        u8 pt1 = b[col + k + shft - 1];
+        u8 pt2 = b[col + k + 2*shft - 1];
+        const u8 pwn = _p | king_color;
         if(pt1 == pwn || pt2 == pwn)
             continue;
 
@@ -1156,7 +1156,7 @@ short KingWeakness(UC king_color)
 
 
 //-----------------------------
-void KingSafety(UC king_color)
+void KingSafety(u8 king_color)
 {
     int trp = king_tropism[king_color];
 

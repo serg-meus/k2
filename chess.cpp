@@ -5,34 +5,34 @@
 
 
 //--------------------------------
-UC  b[137];                                                             // board array in "0x88" style
-short_list<UC, lst_sz> coords[2];
+u8  b[137];                                                             // board array in "0x88" style
+short_list<u8, lst_sz> coords[2];
 
-UC  attacks[240],                                                       // table for quick detect possible attacks
+u8  attacks[240],                                                       // table for quick detect possible attacks
     get_delta[240];                                                     // I'm already forget what's this
-SC  get_shift[240];                                                     // ... and this
-UC rays[7]   = {0, 8, 8, 4, 4, 8, 0};
-SC shifts[6][8] = {{ 0,  0,  0,  0,  0,  0,  0,  0},
+i8  get_shift[240];                                                     // ... and this
+u8 rays[7]   = {0, 8, 8, 4, 4, 8, 0};
+i8 shifts[6][8] = {{ 0,  0,  0,  0,  0,  0,  0,  0},
                     { 1, 17, 16, 15, -1,-17,-16,-15},
                     { 1, 17, 16, 15, -1,-17,-16,-15},
                     { 1, 16, -1,-16, 0,  0,  0,  0},
                     {17, 15,-17,-15, 0,  0,  0,  0},
                     {18, 33, 31, 14,-18,-33,-31,-14}};
-UC  pc_streng[7]    =  {0, 0, 12, 6, 4, 4, 1};
+u8  pc_streng[7]    =  {0, 0, 12, 6, 4, 4, 1};
 short streng[7]     = {0, 15000, 120, 60, 40, 40, 10};
 short sort_streng[7] = {0, 15000, 120, 60, 41, 39, 10};
-UC  slider[7]       = {0, 0, 1, 1, 1, 0, 0};
+u8  slider[7]       = {0, 0, 1, 1, 1, 0, 0};
 int material[2], pieces[2];
 BrdState  b_state[prev_states + max_ply];
 unsigned wtm, ply;
-UQ nodes, tmpCr;
+u64 nodes, tmpCr;
 char *cv;
-US reversible_moves;
+u16 reversible_moves;
 
 char cur_moves[5*max_ply];
 
-short_list<UC, lst_sz>::iterator king_coord[2];
-UC quantity[2][6 + 1];
+short_list<u8, lst_sz>::iterator king_coord[2];
+u8 quantity[2][6 + 1];
 
 
 
@@ -54,8 +54,8 @@ void InitChess()
 //--------------------------------
 void InitBrd()
 {
-    UC pcs[] = {_N, _N, _B, _B, _R, _R, _Q, _K};
-    UC crd[] = {6, 1, 5, 2, 7, 0, 3, 4};
+    u8 pcs[] = {_N, _N, _B, _B, _R, _R, _Q, _K};
+    u8 crd[] = {6, 1, 5, 2, 7, 0, 3, 4};
 
     memset(b, 0, sizeof(b));
 
@@ -94,7 +94,7 @@ void InitBrd()
     king_coord[white] = --coords[white].end();
     king_coord[black] = --coords[black].end();
 
-    for(UC clr = 0; clr <= 1; clr++)
+    for(u8 clr = 0; clr <= 1; clr++)
     {
         quantity[clr][GET_INDEX(_k)] = 1;
         quantity[clr][GET_INDEX(_q)] = 1;
@@ -222,7 +222,7 @@ bool FenToBoard(char *p)
     b_state[prev_states + 0].ep   = 0;
     wtm = (*(++p) == 'b') ? black : white;
 
-    UC cstl = 0;
+    u8 cstl = 0;
     p += 2;
     while(*p != ' ')
         switch(*p)
@@ -257,7 +257,7 @@ bool FenToBoard(char *p)
         int col = *(p++) - 'a';
         int row = *(p++) - '1';
         int s = wtm ? -1 : 1;
-        UC pawn = wtm ? _P : _p;
+        u8 pawn = wtm ? _P : _p;
         if(b[XY2SQ(col-1, row+s)] == pawn || b[XY2SQ(col+1, row+s)] == pawn)
             b_state[prev_states + 0].ep = col + 1;
     }
@@ -282,7 +282,7 @@ bool FenToBoard(char *p)
 
 
 //--------------------------------
-void ShowMove(UC fr, UC to)
+void ShowMove(u8 fr, u8 to)
 {
     char *cur = cur_moves + 5*(ply - 1);
     *(cur++) = COL(fr) + 'a';
@@ -298,9 +298,9 @@ void ShowMove(UC fr, UC to)
 
 
 //--------------------------------
-bool MakeCastle(Move m, UC fr)
+bool MakeCastle(Move m, u8 fr)
 {
-    UC cs = b_state[prev_states + ply].cstl;
+    u8 cs = b_state[prev_states + ply].cstl;
     if(m.pc == king_coord[wtm])                     // K moves
         b_state[prev_states + ply].cstl &= wtm ? 0xFC : 0xF3;
     if(king_coord[wtm] != --coords[wtm].end())
@@ -326,7 +326,7 @@ bool MakeCastle(Move m, UC fr)
     if(!(m.flg & mCSTL))
         return castleRightsChanged;
 
-    UC rFr, rTo;
+    u8 rFr, rTo;
     if(m.flg == mCS_K)
     {
         rFr = 0x07;
@@ -366,8 +366,8 @@ void UnMakeCastle(Move m)
 {
     auto rMen = coords[wtm].begin();
     rMen = b_state[prev_states + ply].castled_rook_it;
-    UC rFr =*rMen;
-    UC rTo = rFr + (m.flg == mCS_K ? 2 : -3);
+    u8 rFr =*rMen;
+    u8 rTo = rFr + (m.flg == mCS_K ? 2 : -3);
     b[rTo] = b[rFr];
     b[rFr] = __;
     *rMen = rTo;
@@ -378,10 +378,10 @@ void UnMakeCastle(Move m)
 
 
 //--------------------------------
-bool MakeEP(Move m, UC fr)
+bool MakeEP(Move m, u8 fr)
 {
     int delta = m.to - fr;
-    UC to = m.to;
+    u8 to = m.to;
     if(ABSI(delta) == 0x20
     && (b[m.to + 1] == (_P ^ wtm) || b[to - 1] == (_P ^ wtm)))
     {
@@ -398,7 +398,7 @@ bool MakeEP(Move m, UC fr)
 
 
 //--------------------------------
-bool SliderAttack(UC fr, UC to)
+bool SliderAttack(u8 fr, u8 to)
 {
     int shift = get_shift[120 + to - fr];
     int delta = get_delta[120 + to - fr];
@@ -416,7 +416,7 @@ bool SliderAttack(UC fr, UC to)
 
 
 //--------------------------------
-bool Attack(UC to, int xtm)
+bool Attack(u8 to, int xtm)
 {
     if((!xtm && (b[to+15] == _p || b[to+17] == _p))
     ||  (xtm && ((to >= 15 && b[to-15] == _P)
@@ -427,12 +427,12 @@ bool Attack(UC to, int xtm)
     auto it = king_coord[xtm];
     do
     {
-        UC fr = *it;
+        u8 fr = *it;
         int pt  = GET_INDEX(b[fr]);
         if(pt   == GET_INDEX(_p))
             break;
 
-        UC att = attacks[120 + to - fr] & (1 << pt);
+        u8 att = attacks[120 + to - fr] & (1 << pt);
         if(!att)
             continue;
         if(!slider[pt])
@@ -449,7 +449,7 @@ bool Attack(UC to, int xtm)
 
 
 //--------------------------------
-bool LegalSlider(UC fr, UC to, UC pt)
+bool LegalSlider(u8 fr, u8 to, u8 pt)
 {
     assert(120 + to - fr >= 0);
     assert(120 + to - fr < 240);
@@ -479,8 +479,8 @@ bool Legal(Move m, bool ic)
 {
     if(ic || TO_BLACK(b[m.to]) == _k)
         return !Attack(*king_coord[!wtm], wtm);
-    UC fr = b_state[prev_states + ply].fr;
-    UC to = *king_coord[!wtm];
+    u8 fr = b_state[prev_states + ply].fr;
+    u8 to = *king_coord[!wtm];
     assert(120 + to - fr >= 0);
     assert(120 + to - fr < 240);
     if(attacks[120 + to - fr] & (1 << GET_INDEX(_r)))
@@ -496,7 +496,7 @@ bool Legal(Move m, bool ic)
 
 
 //-----------------------------
-bool PieceListCompare(UC men1, UC men2)
+bool PieceListCompare(u8 men1, u8 men2)
 {
     return sort_streng[GET_INDEX(b[men1])] > sort_streng[GET_INDEX(b[men2])];
 }
@@ -506,7 +506,7 @@ bool PieceListCompare(UC men1, UC men2)
 
 
 //--------------------------------
-void StoreCurrentBoardState(Move m, UC fr, UC targ)
+void StoreCurrentBoardState(Move m, u8 fr, u8 targ)
 {
     b_state[prev_states + ply].cstl  = b_state[prev_states + ply - 1].cstl;
     b_state[prev_states + ply].capt  = b[m.to];
@@ -523,7 +523,7 @@ void StoreCurrentBoardState(Move m, UC fr, UC targ)
 
 
 //--------------------------------
-void MakeCapture(Move m, UC targ)
+void MakeCapture(Move m, u8 targ)
 {
     if (m.flg & mENPS)
     {
@@ -555,10 +555,10 @@ void MakeCapture(Move m, UC targ)
 
 
 //--------------------------------
-void MakePromotion(Move m, short_list<UC, lst_sz>::iterator it)
+void MakePromotion(Move m, short_list<u8, lst_sz>::iterator it)
 {
     int prIx = m.flg & mPROM;
-    UC prPc[] = {0, _q, _n, _r, _b};
+    u8 prPc[] = {0, _q, _n, _r, _b};
     if(prIx)
     {
         b[m.to] = prPc[prIx] ^ wtm;
@@ -584,8 +584,8 @@ bool MkMoveFast(Move m)
     ply++;
     auto it = coords[wtm].begin();
     it      = m.pc;
-    UC fr   = *it;
-    UC targ = m.to;
+    u8 fr   = *it;
+    u8 targ = m.to;
     StoreCurrentBoardState(m, fr, targ);
 
     if(m.flg & mCAPT)
@@ -659,7 +659,7 @@ void UnmakeCapture(Move m)
 //--------------------------------
 void UnmakePromotion(Move m)
 {
-    UC prPc[] = {0, _q, _n, _r, _b};
+    u8 prPc[] = {0, _q, _n, _r, _b};
 
     int prIx = m.flg & mPROM;
 
@@ -681,7 +681,7 @@ void UnmakePromotion(Move m)
 //--------------------------------
 void UnMoveFast(Move m)
 {
-    UC fr = b_state[prev_states + ply].fr;
+    u8 fr = b_state[prev_states + ply].fr;
     auto it = coords[!wtm].begin();
     it = m.pc;
     *it = fr;

@@ -5,13 +5,13 @@
 
 
 //--------------------------------
-UQ hash_key;
+u64 hash_key;
 
-UQ  zorb[12][8][8],
+u64  zorb[12][8][8],
     zorb_en_passant[9],
     zorb_castling[16];
 
-UQ  doneHashKeys[FIFTY_MOVES + max_ply];
+u64  doneHashKeys[FIFTY_MOVES + max_ply];
 
 
 
@@ -22,7 +22,7 @@ bool InitHashTable()
 {
     InitMoveGen();
 
-    std::uniform_int_distribution<UQ> zorb_distr(0, (UQ)-1);
+    std::uniform_int_distribution<u64> zorb_distr(0, (u64)-1);
     std::mt19937 rnd_gen;
 
     for(unsigned i = 0; i < 12; ++i)
@@ -51,9 +51,9 @@ bool InitHashTable()
 
 
 //--------------------------------
-UQ InitHashKey()
+u64 InitHashKey()
 {
-    UQ ans = 0;
+    u64 ans = 0;
 
     for(auto fr : coords[wtm])
         ans ^= zorb[MEN_TO_ZORB(b[fr])][COL(fr)][ROW(fr)];
@@ -77,9 +77,9 @@ UQ InitHashKey()
 void MoveHashKey(Move m, bool special)
 {
     doneHashKeys[FIFTY_MOVES + ply - 1] = hash_key;
-    UC fr = b_state[prev_states + ply].fr;
+    u8 fr = b_state[prev_states + ply].fr;
 
-    UC pt   = b[m.to];
+    u8 pt   = b[m.to];
     BrdState &f = b_state[prev_states + ply],
             &_f = b_state[prev_states + ply - 1];
 
@@ -227,8 +227,8 @@ void transposition_table::clear()
 
 
 //--------------------------------
-void transposition_table::add(UQ key, short value, Move best,
-                              UI depth, UI bound_type, UI age,
+void transposition_table::add(u64 key, short value, Move best,
+                              u32 depth, u32 bound_type, u32 age,
                               bool one_reply)
 {
     unsigned i;
@@ -276,7 +276,7 @@ void transposition_table::add(UQ key, short value, Move best,
 
 
 //--------------------------------
-tt_entry* transposition_table::count(UQ key)
+tt_entry* transposition_table::count(u64 key)
 {
     tt_entry *bucket = &data[entries_in_a_bucket*(key & mask)];
     tt_entry *ans = nullptr;
@@ -294,7 +294,7 @@ tt_entry* transposition_table::count(UQ key)
 
 
 //--------------------------------
-tt_entry& transposition_table::operator [](UQ key)
+tt_entry& transposition_table::operator [](u64 key)
 {
     unsigned i, ans = 0;
     tt_entry *bucket = &data[entries_in_a_bucket*(key & mask)];

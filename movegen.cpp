@@ -25,7 +25,7 @@ void InitMoveGen()
 
 
 //--------------------------------
-void PushMove(Move *move_array, int *movCr, short_list<UC, lst_sz>::iterator it, UC to, UC flg)
+void PushMove(Move *move_array, int *movCr, short_list<u8, lst_sz>::iterator it, u8 to, u8 flg)
 {
     Move    m;
     m.pc    = it;
@@ -50,8 +50,8 @@ int GenMoves(Move *move_array, int apprice, Move *best_move)
     auto it = coords[wtm].begin();
     for(;it != coords[wtm].end(); ++it)
     {
-        UC fr = *it;
-        UC at = GET_INDEX(b[fr]);
+        u8 fr = *it;
+        u8 at = GET_INDEX(b[fr]);
         if(at == GET_INDEX(_p))
         {
             GenPawn(move_array, &moveCr, it);
@@ -77,7 +77,7 @@ int GenMoves(Move *move_array, int apprice, Move *best_move)
                 to += shifts[at][ray];
                 if(!ONBRD(to))
                     break;
-                UC tt = b[to];
+                u8 tt = b[to];
                 if(!tt)
                 {
                     PushMove(move_array, &moveCr, it, to, 0);
@@ -104,10 +104,10 @@ int GenMoves(Move *move_array, int apprice, Move *best_move)
 //--------------------------------
 void GenPawn(Move *move_array,
              int *moveCr,
-             short_list<UC, lst_sz>::iterator it)
+             short_list<u8, lst_sz>::iterator it)
 {
     unsigned to, pBeg, pEnd;
-    UC fr = *it;
+    u8 fr = *it;
     if((wtm && ROW(fr) == 6) || (!wtm && ROW(fr) == 1))
     {
         pBeg = mPR_Q;
@@ -164,10 +164,10 @@ void GenPawn(Move *move_array,
 //--------------------------------
 void GenPawnCap(Move *move_array,
                 int *moveCr,
-                short_list<UC, lst_sz>::iterator it)
+                short_list<u8, lst_sz>::iterator it)
 {
     unsigned to, pBeg, pEnd;
-    UC fr = *it;
+    u8 fr = *it;
     if((wtm && ROW(fr) == 6) || (!wtm && ROW(fr) == 1))
     {
         pBeg = mPR_Q;
@@ -220,8 +220,8 @@ void GenPawnCap(Move *move_array,
 //--------------------------------
 void GenCastles(Move *move_array, int *moveCr)
 {
-    UC msk = wtm ? 0x03 : 0x0C;
-    UC cst = b_state[prev_states + ply].cstl & msk;
+    u8 msk = wtm ? 0x03 : 0x0C;
+    u8 cst = b_state[prev_states + ply].cstl & msk;
     int check = -1;
     if(!cst)
         return;
@@ -275,8 +275,8 @@ int GenCaptures(Move *move_array)
     auto it = coords[wtm].begin();
     for(; it != coords[wtm].end(); ++it)
     {
-        UC fr = *it;
-        UC at = GET_INDEX(b[fr]);
+        u8 fr = *it;
+        u8 at = GET_INDEX(b[fr]);
         if(at == GET_INDEX(_p))
         {
             GenPawnCap(move_array, &moveCr, it);
@@ -301,7 +301,7 @@ int GenCaptures(Move *move_array)
                 to += shifts[at][ray];
                 if(!ONBRD(to))
                     break;
-                UC tt = b[to];
+                u8 tt = b[to];
                 if(!tt)
                     continue;
                 if(DARK(tt, wtm))
@@ -338,8 +338,8 @@ void AppriceMoves(Move *move_array, int moveCr, Move *bestMove)
         Move m = move_array[i];
 
         it = m.pc;
-        UC fr_pc = b[*it];
-        UC to_pc = b[m.to];
+        u8 fr_pc = b[*it];
+        u8 to_pc = b[m.to];
 
         if(m == bm)
             move_array[i].scr = PV_FOLLOW;
@@ -353,7 +353,7 @@ void AppriceMoves(Move *move_array, int moveCr, Move *bestMove)
             else
             {
 #ifndef DONT_USE_HISTORY
-                UC fr = *it;
+                u8 fr = *it;
                 unsigned h = history[wtm][GET_INDEX(b[fr]) - 1][m.to];
                 if(h > max_history)
                     max_history = h;
@@ -443,7 +443,7 @@ void AppriceMoves(Move *move_array, int moveCr, Move *bestMove)
         || (m.flg & mCAPT))
             continue;
         it      = m.pc;
-        UC fr   = *it;
+        u8 fr   = *it;
         unsigned h = history[wtm][GET_INDEX(b[fr]) - 1][m.to];
         if(h > 3)
         {
@@ -470,8 +470,8 @@ void AppriceQuiesceMoves(Move *move_array, int moveCr)
         Move m = move_array[i];
 
         it = m.pc;
-        UC fr = b[*it];
-        UC pt = b[m.to];
+        u8 fr = b[*it];
+        u8 pt = b[m.to];
 
         int src = sort_streng[GET_INDEX(fr)];
         int dst = (m.flg & mCAPT) ? sort_streng[GET_INDEX(pt)] : 0;
@@ -531,7 +531,7 @@ void AppriceQuiesceMoves(Move *move_array, int moveCr)
 
 
 //-----------------------------
-short SEE(UC to, short frStreng, short val, bool stm)
+short SEE(u8 to, short frStreng, short val, bool stm)
 {
     auto it = SeeMinAttacker(to);
     if(it == coords[!wtm].end())
@@ -543,7 +543,7 @@ short SEE(UC to, short frStreng, short val, bool stm)
         return tmp1;
 
     auto storeMen = it;
-    UC storeBrd = b[*storeMen];
+    u8 storeBrd = b[*storeMen];
     coords[!wtm].erase(it);
     b[*storeMen] = __;
     wtm = !wtm;
@@ -564,11 +564,11 @@ short SEE(UC to, short frStreng, short val, bool stm)
 
 
 //-----------------------------
-short_list<UC, lst_sz>::iterator SeeMinAttacker(UC to)
+short_list<u8, lst_sz>::iterator SeeMinAttacker(u8 to)
 {
     int shft_l[] = {15, -17};
     int shft_r[] = {17, -15};
-    UC  pw[] = {_p, _P};
+    u8  pw[] = {_p, _P};
 
     if(to + shft_l[!wtm] > 0 && b[to + shft_l[!wtm]] == pw[!wtm])
         for(auto it = coords[!wtm].begin();
@@ -587,11 +587,11 @@ short_list<UC, lst_sz>::iterator SeeMinAttacker(UC to)
     auto it = coords[!wtm].begin();
     for(; it != coords[!wtm].end(); ++it)
     {
-        UC fr = *it;
+        u8 fr = *it;
         int pt  = GET_INDEX(b[fr]);
         if(pt == GET_INDEX(_p))
             continue;
-        UC att = attacks[120 + to - fr] & (1 << pt);
+        u8 att = attacks[120 + to - fr] & (1 << pt);
         if(!att)
             continue;
         if(!slider[pt])
@@ -612,13 +612,13 @@ short SEE_main(Move m)
 {
     auto it = coords[wtm].begin();
     it = m.pc;
-    UC fr_pc = b[*it];
-    UC to_pc = b[m.to];
+    u8 fr_pc = b[*it];
+    u8 to_pc = b[m.to];
     short src = streng[GET_INDEX(fr_pc)];
     short dst = (m.flg & mCAPT) ? streng[GET_INDEX(to_pc)] : 0;
     auto storeMen = coords[wtm].begin();
     storeMen = m.pc;
-    UC storeBrd = b[*storeMen];
+    u8 storeBrd = b[*storeMen];
     coords[wtm].erase(storeMen);
     b[*storeMen] = __;
 

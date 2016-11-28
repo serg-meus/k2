@@ -9,7 +9,7 @@
 //--------------------------------
 #define MEN_TO_ZORB(X) ((X) - 2)
 #define FIFTY_MOVES 101       // because last 50th move can be a mate
-const UQ key_for_side_to_move = -1ULL;
+const u64 key_for_side_to_move = -1ULL;
 
 
 
@@ -26,16 +26,16 @@ struct tt_entry
 {
 ///////
 public:
-    UI      key;
+    u32      key;
     short   value;
     Move    best_move;
 
-    UC  depth;
-    UC  bound_type  : 2;
-    UC  age         : 2;
-    UC  one_reply   : 1;
-    UC  in_check    : 1;
-    UC  avoid_null_move : 1;
+    u8  depth;
+    u8  bound_type  : 2;
+    u8  age         : 2;
+    u8  one_reply   : 1;
+    u8  in_check    : 1;
+    u8  avoid_null_move : 1;
 };
 
 //--------------------------------
@@ -49,14 +49,14 @@ public:
     ~transposition_table();
 
     bool set_size(unsigned size_mb);
-    tt_entry* count(UQ key);
-    void add(UQ key, short value, Move best, UI depth,
-             UI bound_type, uint32_t half_mov_cr, bool one_reply);
+    tt_entry* count(u64 key);
+    void add(u64 key, short value, Move best, u32 depth,
+             u32 bound_type, uint32_t half_mov_cr, bool one_reply);
     void clear();
-    tt_entry& operator [](UQ key);
+    tt_entry& operator [](u64 key);
     bool resize(unsigned size_mb);
-    UQ size()       {return _size;}
-    UQ max_size()   {return sizeof(tt_entry)*buckets*entries_in_a_bucket;}
+    u64 size()       {return _size;}
+    u64 max_size()   {return sizeof(tt_entry)*buckets*entries_in_a_bucket;}
 
 //////////
 protected:
@@ -64,8 +64,8 @@ protected:
 
     const unsigned entries_in_a_bucket;
     unsigned buckets;
-    UQ mask;
-    UQ _size;
+    u64 mask;
+    u64 _size;
 };
 
 
@@ -74,7 +74,7 @@ protected:
 
 //--------------------------------
 bool InitHashTable();
-UQ   InitHashKey();
+u64   InitHashKey();
 void MoveHashKey(Move m, bool special);
 void MkMove(Move m);
 void UnMove(Move m);

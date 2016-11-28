@@ -31,7 +31,7 @@ extern unsigned max_search_depth;
 extern bool stop;
 extern bool _abort_;
 extern bool busy;
-extern UQ total_nodes;
+extern u64 total_nodes;
 extern double total_time_spent;
 extern bool time_command_sent;
 extern transposition_table tt;

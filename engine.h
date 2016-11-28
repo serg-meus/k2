@@ -49,7 +49,7 @@ const bool captures_only = true;
 const unsigned nodes_to_check_stop = 7;
 const unsigned init_max_moves = 2;  // any number greater than 1
 const int moves_for_time_exact_mode = 8;
-const UC not_a_move = 0xFF;
+const u8 not_a_move = 0xFF;
 
 #ifdef TUNE_PARAMETERS
 extern std::vector <float> param;
@@ -95,7 +95,7 @@ void ReHash(int size_mb);
 tt_entry* HashProbe(int depth, short *alpha, short beta);
 bool MoveIsPseudoLegal(Move &m, bool stm);
 Move Next(Move *move_array, unsigned cur, unsigned *top, tt_entry *entry,
-          UC stm, bool captures_only, bool in_check, Move prev_move);
+          u8 stm, bool captures_only, bool in_check, Move prev_move);
 void StoreResultInHash(int depth, short _alpha, short alpha, short beta,
                        unsigned legals,
                        bool beta_cutoff, Move best_move, bool one_reply);
