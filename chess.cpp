@@ -282,7 +282,7 @@ bool FenToBoard(char *p)
 
 
 //--------------------------------
-void ShowMove(u8 fr, u8 to)
+void ShowMove(coord_t fr, coord_t to)
 {
     char *cur = cur_moves + 5*(ply - 1);
     *(cur++) = COL(fr) + 'a';
@@ -298,7 +298,7 @@ void ShowMove(u8 fr, u8 to)
 
 
 //--------------------------------
-bool MakeCastle(Move m, u8 fr)
+bool MakeCastle(Move m, coord_t fr)
 {
     u8 cs = b_state[prev_states + ply].cstl;
     if(m.pc == king_coord[wtm])                     // K moves
@@ -378,7 +378,7 @@ void UnMakeCastle(Move m)
 
 
 //--------------------------------
-bool MakeEP(Move m, u8 fr)
+bool MakeEP(Move m, coord_t fr)
 {
     int delta = m.to - fr;
     u8 to = m.to;
@@ -398,7 +398,7 @@ bool MakeEP(Move m, u8 fr)
 
 
 //--------------------------------
-bool SliderAttack(u8 fr, u8 to)
+bool SliderAttack(coord_t fr, coord_t to)
 {
     int shift = get_shift[120 + to - fr];
     int delta = get_delta[120 + to - fr];
@@ -416,7 +416,7 @@ bool SliderAttack(u8 fr, u8 to)
 
 
 //--------------------------------
-bool Attack(u8 to, u32 xtm)
+bool Attack(coord_t to, u32 xtm)
 {
     if((!xtm && (b[to+15] == _p || b[to+17] == _p))
     ||  (xtm && ((to >= 15 && b[to-15] == _P)
@@ -449,7 +449,7 @@ bool Attack(u8 to, u32 xtm)
 
 
 //--------------------------------
-bool LegalSlider(u8 fr, u8 to, u8 pt)
+bool LegalSlider(coord_t fr, coord_t to, u8 pt)
 {
     assert(120 + to - fr >= 0);
     assert(120 + to - fr < 240);
@@ -496,7 +496,7 @@ bool Legal(Move m, bool ic)
 
 
 //-----------------------------
-bool PieceListCompare(u8 men1, u8 men2)
+bool PieceListCompare(coord_t men1, coord_t men2)
 {
     return sort_streng[GET_INDEX(b[men1])] > sort_streng[GET_INDEX(b[men2])];
 }
@@ -506,7 +506,7 @@ bool PieceListCompare(u8 men1, u8 men2)
 
 
 //--------------------------------
-void StoreCurrentBoardState(Move m, u8 fr, u8 targ)
+void StoreCurrentBoardState(Move m, coord_t fr, coord_t targ)
 {
     b_state[prev_states + ply].cstl  = b_state[prev_states + ply - 1].cstl;
     b_state[prev_states + ply].capt  = b[m.to];
@@ -523,7 +523,7 @@ void StoreCurrentBoardState(Move m, u8 fr, u8 targ)
 
 
 //--------------------------------
-void MakeCapture(Move m, u8 targ)
+void MakeCapture(Move m, coord_t targ)
 {
     if (m.flg & mENPS)
     {

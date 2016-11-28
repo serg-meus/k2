@@ -33,6 +33,7 @@ const u8  black         = 0;
 
 typedef short_list<u8, lst_sz>::iterator_entity short_list_it_entity;
 typedef short_list<u8, lst_sz>::iterator short_list_iterator;
+typedef u8 coord_t;
 
 
 
@@ -80,7 +81,7 @@ struct BrdState
 {
     u8 capt;                                                            // taken piece, 6 bits
     short_list_it_entity captured_it;                                   // iterator to captured piece
-    u8 fr;                                                              // from point, 7 bits
+    coord_t fr;                                                         // from point, 7 bits
     u8 cstl;                                                            // castling rights, bits 0..3: _K, _Q, _k, _q, 4 bits
 
     short_list_it_entity castled_rook_it;                               // iterator to castled rook, 8 bits
@@ -104,19 +105,19 @@ void InitAttacks();
 void InitBrd();
 bool BoardToMen();
 bool FenToBoard(char *p);
-void ShowMove(u8 fr, u8 to);
-bool MakeCastle(Move m, u8 fr);
+void ShowMove(coord_t fr, coord_t to);
+bool MakeCastle(Move m, coord_t fr);
 void UnMakeCastle(Move m);
-bool MakeEP(Move m, u8 fr);
-bool SliderAttack(u8 fr, u8 to);
-bool Attack(u8 to, u32 xtm);
-bool LegalSlider(u8 fr, u8 to, u8 pt);
+bool MakeEP(Move m, coord_t fr);
+bool SliderAttack(coord_t fr, coord_t to);
+bool Attack(coord_t to, u32 xtm);
+bool LegalSlider(coord_t fr, coord_t to, u8 pt);
 bool Legal(Move m, bool ic);
 void SetPawnStruct(u32 col);
 void InitPawnStruct();
-bool PieceListCompare(u8 men1, u8 men2);
-void StoreCurrentBoardState(Move m, u8 fr, u8 targ);
-void MakeCapture(Move m, u8 targ);
+bool PieceListCompare(coord_t men1, coord_t men2);
+void StoreCurrentBoardState(Move m, coord_t fr, coord_t targ);
+void MakeCapture(Move m, coord_t targ);
 void MakePromotion(Move m, short_list_iterator it);
 void UnmakeCapture(Move m);
 void UnmakePromotion(Move m);
