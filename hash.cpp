@@ -152,7 +152,7 @@ transposition_table::transposition_table() : entries_in_a_bucket(4)
 
 
 //--------------------------------
-transposition_table::transposition_table(unsigned size_mb) : entries_in_a_bucket(4)
+transposition_table::transposition_table(u32 size_mb) : entries_in_a_bucket(4)
 {
     set_size(size_mb);
 }
@@ -172,7 +172,7 @@ transposition_table::~transposition_table()
 
 
 //--------------------------------
-bool transposition_table::set_size(unsigned size_mb)
+bool transposition_table::set_size(u32 size_mb)
 {
     bool ans = true;
     buckets = 0;
@@ -227,7 +227,7 @@ void transposition_table::clear()
 
 
 //--------------------------------
-void transposition_table::add(u64 key, short value, Move best,
+void transposition_table::add(u64 key, i16 value, Move best,
                               u32 depth, u32 bound_type, u32 age,
                               bool one_reply)
 {
@@ -310,7 +310,7 @@ tt_entry& transposition_table::operator [](u64 key)
 
 
 //--------------------------------
-bool transposition_table::resize(unsigned size_mb)
+bool transposition_table::resize(u32 size_mb)
 {
     delete[] data;
 

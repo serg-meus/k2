@@ -222,7 +222,7 @@ void InitEvaOfMaterialAndPst()
 
 
 //--------------------------------
-bool IsPasser(int col, u8 stm)
+bool IsPasser(u8 col, u8 stm)
 {
     int mx = pawn_max[col + 1][stm];
 
@@ -246,7 +246,7 @@ void EvalPawns(u8 stm)
     bool passer, prev_passer = false;
     bool opp_only_pawns = material[!stm] == pieces[!stm] - 1;
 
-    for(int col = 0; col < 8; col++)
+    for(u8 col = 0; col < 8; col++)
     {
         bool doubled = false, isolany = false;
 
@@ -514,7 +514,7 @@ void ClampedRook(u8 stm)
 
 
 //-----------------------------
-bool IsUnstoppablePawn(int col, int row, u8 stm)
+bool IsUnstoppablePawn(u8 col, u8 row, u8 stm)
 {
     u8 k = *king_coord[!stm];
 
@@ -799,7 +799,7 @@ short EvalDebug()
 
 
 //-----------------------------
-void SetPawnStruct(int col)
+void SetPawnStruct(u32 col)
 {
     assert(col >= 0 && col <= 7);
     int y;

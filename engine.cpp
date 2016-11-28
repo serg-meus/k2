@@ -37,8 +37,7 @@ transposition_table tt;
 
 
 //--------------------------------
-short Search(int depth, short alpha, short beta,
-             signed char node_type)
+short Search(i16 depth, i16 alpha, i16 beta, i8 node_type)
 {
     if(ply >= max_ply - 1 || DrawDetect())
     {
@@ -99,7 +98,7 @@ short Search(int depth, short alpha, short beta,
 
     Move move_array[MAX_MOVES], cur_move;
     unsigned move_cr = 0, legal_moves = 0, first_legal = 0;
-    unsigned max_moves = init_max_moves;
+    u8 max_moves = init_max_moves;
     bool beta_cutoff = false;
 
     for(; move_cr < max_moves; move_cr++)
@@ -251,7 +250,7 @@ short QSearch(short alpha, short beta)
         CheckForInterrupt();
 
     Move move_array[MAX_MOVES];
-    unsigned move_cr = 0, legal_moves = 0, max_moves = init_max_moves;
+    u8 move_cr = 0, legal_moves = 0, max_moves = init_max_moves;
     bool beta_cutoff = false;
 
     for(; move_cr < max_moves; move_cr++)
@@ -328,11 +327,11 @@ short QSearch(short alpha, short beta)
 
 
 //--------------------------------
-void Perft(int depth)
+void Perft(i16 depth)
 {
     Move move_array[MAX_MOVES];
     bool in_check = Attack(*king_coord[wtm], !wtm);
-    int max_moves = GenMoves(move_array, APPRICE_NONE, nullptr);
+    int max_moves = GenMoves(move_array, nullptr, APPRICE_NONE);
     for(int move_cr = 0; move_cr < max_moves; move_cr++)
     {
 #ifndef NDEBUG
@@ -377,7 +376,7 @@ void StorePV(Move move)
 
 
 //-----------------------------
-void UpdateStatistics(Move move, int depth, unsigned move_cr)
+void UpdateStatistics(Move move, i16 depth, u32 move_cr)
 {
 #ifndef DONT_SHOW_STATISTICS
         cut_cr++;
@@ -508,7 +507,7 @@ void MainSearch()
 
 
 //--------------------------------
-short RootSearch(int depth, short alpha, short beta)
+short RootSearch(i16 depth, i16 alpha, i16 beta)
 {
     bool in_check = Attack(*king_coord[wtm], !wtm);
     if(max_root_moves == 0)
@@ -658,7 +657,7 @@ void ShowPVfailHighOrLow(Move m, short x, char type_of_bound)
 void RootMoveGen(bool in_check)
 {
     Move move_array[MAX_MOVES], cur_move;
-    unsigned max_moves = init_max_moves;
+    u8 max_moves = init_max_moves;
 
     short alpha = -INF, beta = INF;
     cur_move.flg = not_a_move;
@@ -882,7 +881,7 @@ void PrintFinalSearchResult()
 
 
 //--------------------------------
-void PrintCurrentSearchResult(short max_value, char type_of_bound)
+void PrintCurrentSearchResult(i16 max_value, char type_of_bound)
 {
     using namespace std;
 
@@ -978,7 +977,7 @@ void InitTime()                                                         // too c
 
 
 //-----------------------------
-bool ShowPV(int cur_ply)
+bool ShowPV(u8 cur_ply)
 {
     char pc2chr[] = "??KKQQRRBBNNPP";
     bool ans = true;
@@ -1321,7 +1320,7 @@ void UnMakeNullMove()
 
 
 //-----------------------------
-bool NullMove(int depth, short beta, bool in_check)
+bool NullMove(i16 depth, i16 beta, bool in_check)
 {
     if(in_check || depth < 2
     || material[wtm] - pieces[wtm] < 3)
@@ -1369,7 +1368,7 @@ bool NullMove(int depth, short beta, bool in_check)
 
 
 //-----------------------------
-bool Futility(int depth, short beta)
+bool Futility(i16 depth, i16 beta)
 {
     if(b_state[prev_states + ply].capt == 0
     && b_state[prev_states + ply - 1].to != MOVE_IS_NULL
@@ -1484,7 +1483,7 @@ void ShowFen()
 
 
 //--------------------------------
-void ReHash(int size_mb)
+void ReHash(u32 size_mb)
 {
     busy = true;
     tt.resize(size_mb);
@@ -1496,7 +1495,7 @@ void ReHash(int size_mb)
 
 
 //--------------------------------
-tt_entry* HashProbe(int depth, short *alpha, short beta)
+tt_entry* HashProbe(i16 depth, i16 *alpha, i16 beta)
 {
     tt_entry* entry = tt.count(hash_key);
     if(entry == nullptr || stop)
@@ -1649,7 +1648,7 @@ bool MoveIsPseudoLegal(Move &move, bool stm)
 
 
 //--------------------------------
-Move Next(Move *move_array, unsigned cur_move, unsigned *max_moves,
+Move Next(Move *move_array, u8 cur_move, u8 *max_moves,
           tt_entry *entry, u8 stm, bool only_captures, bool in_check,
           Move prev_move)
 {
@@ -1663,7 +1662,7 @@ Move Next(Move *move_array, unsigned cur_move, unsigned *max_moves,
         if(entry == nullptr)
         {
             if(!only_captures)
-                *max_moves = GenMoves(move_array, APPRICE_ALL, nullptr);
+                *max_moves = GenMoves(move_array, nullptr, APPRICE_ALL);
             else
                 *max_moves = GenCaptures(move_array);
 
@@ -1681,7 +1680,7 @@ Move Next(Move *move_array, unsigned cur_move, unsigned *max_moves,
 
             bool pseudo_legal = MoveIsPseudoLegal(ans, stm);
 #ifndef NDEBUG
-            int mx_ = GenMoves(move_array, APPRICE_NONE, nullptr);
+            int mx_ = GenMoves(move_array, nullptr, APPRICE_NONE);
             int i = 0;
             for(; i < mx_; ++i)
                 if(move_array[i] == ans)
@@ -1702,7 +1701,7 @@ Move Next(Move *move_array, unsigned cur_move, unsigned *max_moves,
                     {
                         UnMoveFast(ans);
                         *entry = nullptr;
-                        *max_moves = GenMoves(move_array, APPRICE_ALL, nullptr);
+                        *max_moves = GenMoves(move_array, nullptr, APPRICE_ALL);
                     }
                     else
                     {
@@ -1721,13 +1720,13 @@ Move Next(Move *move_array, unsigned cur_move, unsigned *max_moves,
             else
             {
                 entry = nullptr;
-                *max_moves = GenMoves(move_array, APPRICE_ALL, nullptr);
+                *max_moves = GenMoves(move_array, nullptr, APPRICE_ALL);
             }
         }// else (entry == nullptr)
     }// if cur == 0
     else if(cur_move == 1 && entry != nullptr)
     {
-        *max_moves = GenMoves(move_array, APPRICE_ALL, &prev_move);
+        *max_moves = GenMoves(move_array, &prev_move, APPRICE_ALL);
         if(*max_moves <= 1)
         {
             *max_moves = 0;
@@ -1794,10 +1793,8 @@ Move Next(Move *move_array, unsigned cur_move, unsigned *max_moves,
 
 
 //-----------------------------
-void StoreResultInHash(int depth, short init_alpha, short alpha,
-                       short beta, unsigned legals,
-                       bool beta_cutoff, Move best_move,
-                       bool one_reply)
+void StoreResultInHash(i16 depth, i16 init_alpha, i16 alpha, i16 beta, u8 legals,
+                       bool beta_cutoff, Move best_move, bool one_reply)
 {
     if(stop)
         return;

@@ -25,7 +25,7 @@ void InitMoveGen()
 
 
 //--------------------------------
-void PushMove(Move *move_array, int *movCr, short_list<u8, lst_sz>::iterator it, u8 to, u8 flg)
+void PushMove(Move *move_array, u8 *movCr, short_list_iterator it, u8 to, u8 flg)
 {
     Move    m;
     m.pc    = it;
@@ -40,10 +40,10 @@ void PushMove(Move *move_array, int *movCr, short_list<u8, lst_sz>::iterator it,
 
 
 //--------------------------------
-int GenMoves(Move *move_array, int apprice, Move *best_move)
+int GenMoves(Move *move_array, Move *best_move, u8 apprice)
 {
     int i, to, ray;
-    int moveCr = 0;
+    u8 moveCr = 0;
 
     GenCastles(move_array, &moveCr);
 
@@ -102,9 +102,7 @@ int GenMoves(Move *move_array, int apprice, Move *best_move)
 
 
 //--------------------------------
-void GenPawn(Move *move_array,
-             int *moveCr,
-             short_list<u8, lst_sz>::iterator it)
+void GenPawn(Move *move_array, u8 *moveCr, short_list_iterator it)
 {
     unsigned to, pBeg, pEnd;
     u8 fr = *it;
@@ -162,9 +160,7 @@ void GenPawn(Move *move_array,
 
 
 //--------------------------------
-void GenPawnCap(Move *move_array,
-                int *moveCr,
-                short_list<u8, lst_sz>::iterator it)
+void GenPawnCap(Move *move_array, u8 *moveCr, short_list_iterator it)
 {
     unsigned to, pBeg, pEnd;
     u8 fr = *it;
@@ -218,7 +214,7 @@ void GenPawnCap(Move *move_array,
 
 
 //--------------------------------
-void GenCastles(Move *move_array, int *moveCr)
+void GenCastles(Move *move_array, u8 *moveCr)
 {
     u8 msk = wtm ? 0x03 : 0x0C;
     u8 cst = b_state[prev_states + ply].cstl & msk;
@@ -271,7 +267,7 @@ void GenCastles(Move *move_array, int *moveCr)
 int GenCaptures(Move *move_array)
 {
     int i, to, ray;
-    int moveCr = 0;
+    u8 moveCr = 0;
     auto it = coords[wtm].begin();
     for(; it != coords[wtm].end(); ++it)
     {
@@ -320,7 +316,7 @@ int GenCaptures(Move *move_array)
 
 
 //--------------------------------
-void AppriceMoves(Move *move_array, int moveCr, Move *bestMove)
+void AppriceMoves(Move *move_array, u8 moveCr, Move *bestMove)
 {
 #ifndef DONT_USE_HISTORY
     min_history = UINT_MAX;
@@ -462,7 +458,7 @@ void AppriceMoves(Move *move_array, int moveCr, Move *bestMove)
 
 
 //--------------------------------
-void AppriceQuiesceMoves(Move *move_array, int moveCr)
+void AppriceQuiesceMoves(Move *move_array, u8 moveCr)
 {
     auto it = coords[wtm].begin();
     for(int i = 0; i < moveCr; i++)
@@ -531,7 +527,7 @@ void AppriceQuiesceMoves(Move *move_array, int moveCr)
 
 
 //-----------------------------
-short SEE(u8 to, short frStreng, short val, bool stm)
+short SEE(u8 to, i16 frStreng, i16 val, bool stm)
 {
     auto it = SeeMinAttacker(to);
     if(it == coords[!wtm].end())
@@ -564,7 +560,7 @@ short SEE(u8 to, short frStreng, short val, bool stm)
 
 
 //-----------------------------
-short_list<u8, lst_sz>::iterator SeeMinAttacker(u8 to)
+short_list_iterator SeeMinAttacker(u8 to)
 {
     int shft_l[] = {15, -17};
     int shft_r[] = {17, -15};
@@ -635,7 +631,7 @@ short SEE_main(Move m)
 
 
 //--------------------------------
-void SortQuiesceMoves(Move *move_array, int moveCr)
+void SortQuiesceMoves(Move *move_array, u8 moveCr)
 {
     if(moveCr <= 1)
         return;

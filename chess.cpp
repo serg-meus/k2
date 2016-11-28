@@ -416,7 +416,7 @@ bool SliderAttack(u8 fr, u8 to)
 
 
 //--------------------------------
-bool Attack(u8 to, int xtm)
+bool Attack(u8 to, u32 xtm)
 {
     if((!xtm && (b[to+15] == _p || b[to+17] == _p))
     ||  (xtm && ((to >= 15 && b[to-15] == _P)
@@ -555,7 +555,7 @@ void MakeCapture(Move m, u8 targ)
 
 
 //--------------------------------
-void MakePromotion(Move m, short_list<u8, lst_sz>::iterator it)
+void MakePromotion(Move m, short_list_iterator it)
 {
     int prIx = m.flg & mPROM;
     u8 prPc[] = {0, _q, _n, _r, _b};

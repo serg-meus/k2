@@ -67,19 +67,19 @@ enum {all_node = -1, pv_node = 0, cut_node = 1};
 
 //--------------------------------
 void InitEngine();
-void Perft(int depth);
-short Search(int depth, short alpha, short beta, signed char node_type);
-short QSearch(short alpha, short beta);
+void Perft(i16 depth);
+short Search(i16 depth, i16 alpha, i16 beta, i8 node_type);
+short QSearch(i16 alpha, i16 beta);
 void StorePV(Move m);
-void UpdateStatistics(Move m, int dpt, unsigned i);
-short RootSearch(int depth, short alpha, short beta);
+void UpdateStatistics(Move m, i16 dpt, u32 i);
+short RootSearch(i16 depth, i16 alpha, i16 beta);
 void RootMoveGen(bool ic);
 void MainSearch();
 void InitSearch();
 void PrintFinalSearchResult();
-void PrintCurrentSearchResult(short sc, char exclimation);
+void PrintCurrentSearchResult(i16 sc, char exclimation);
 void InitTime();
-bool ShowPV(int _ply);
+bool ShowPV(u8 _ply);
 void FindAndPrintForAmbiguousMoves(Move m);
 bool MakeMoveFinaly(char *mov);
 bool FenStringToEngine(char *fen);
@@ -87,17 +87,16 @@ bool DrawDetect();
 void CheckForInterrupt();
 void MakeNullMove();
 void UnMakeNullMove();
-bool NullMove(int depth, short beta, bool ic);
-bool Futility(int depth, short beta);
+bool NullMove(i16 depth, i16 beta, bool ic);
+bool Futility(i16 depth, i16 beta);
 bool DrawByRepetition();
 void ShowFen();
-void ReHash(int size_mb);
-tt_entry* HashProbe(int depth, short *alpha, short beta);
+void ReHash(u32 size_mb);
+tt_entry* HashProbe(i16 depth, i16 *alpha, i16 beta);
 bool MoveIsPseudoLegal(Move &m, bool stm);
-Move Next(Move *move_array, unsigned cur, unsigned *top, tt_entry *entry,
+Move Next(Move *move_array, u8 cur, u8 *top, tt_entry *entry,
           u8 stm, bool captures_only, bool in_check, Move prev_move);
-void StoreResultInHash(int depth, short _alpha, short alpha, short beta,
-                       unsigned legals,
+void StoreResultInHash(i16 depth, i16 _alpha, i16 alpha, i16 beta, u8 legals,
                        bool beta_cutoff, Move best_move, bool one_reply);
 void ShowCurrentUciInfo();
 void MoveToStr(Move m, bool stm, char *out);
