@@ -61,25 +61,27 @@ extern std::vector <float> param;
 
 enum {all_node = -1, pv_node = 0, cut_node = 1};
 
-
+typedef i16 depth_t;
+typedef i16 score_t;
+typedef u8  movcr_t;
 
 
 
 //--------------------------------
 void InitEngine();
-void Perft(i16 depth);
-short Search(i16 depth, i16 alpha, i16 beta, i8 node_type);
-short QSearch(i16 alpha, i16 beta);
+void Perft(depth_t depth);
+short Search(depth_t depth, score_t alpha, score_t beta, i8 node_type);
+short QSearch(score_t alpha, score_t beta);
 void StorePV(Move m);
-void UpdateStatistics(Move m, i16 dpt, u32 i);
-short RootSearch(i16 depth, i16 alpha, i16 beta);
-void RootMoveGen(bool ic);
+void UpdateStatistics(Move m, depth_t dpt, movcr_t move_cr);
+short RootSearch(depth_t depth, score_t alpha, score_t beta);
+void RootMoveGen(bool in_check);
 void MainSearch();
 void InitSearch();
 void PrintFinalSearchResult();
-void PrintCurrentSearchResult(i16 sc, char exclimation);
+void PrintCurrentSearchResult(score_t sc, char exclimation);
 void InitTime();
-bool ShowPV(u8 _ply);
+bool ShowPV(depth_t _ply);
 void FindAndPrintForAmbiguousMoves(Move m);
 bool MakeMoveFinaly(char *mov);
 bool FenStringToEngine(char *fen);
@@ -87,18 +89,19 @@ bool DrawDetect();
 void CheckForInterrupt();
 void MakeNullMove();
 void UnMakeNullMove();
-bool NullMove(i16 depth, i16 beta, bool ic);
-bool Futility(i16 depth, i16 beta);
+bool NullMove(depth_t depth, score_t beta, bool ic);
+bool Futility(depth_t depth, score_t beta);
 bool DrawByRepetition();
 void ShowFen();
 void ReHash(u32 size_mb);
-tt_entry* HashProbe(i16 depth, i16 *alpha, i16 beta);
+tt_entry* HashProbe(depth_t depth, score_t *alpha, score_t beta);
 bool MoveIsPseudoLegal(Move &m, bool stm);
-Move Next(Move *move_array, u8 cur, u8 *top, tt_entry *entry,
+Move Next(Move *move_array, movcr_t cur, movcr_t *top, tt_entry *entry,
           u8 stm, bool captures_only, bool in_check, Move prev_move);
-void StoreResultInHash(i16 depth, i16 _alpha, i16 alpha, i16 beta, u8 legals,
+void StoreResultInHash(depth_t depth, score_t _alpha, score_t alpha,
+                       score_t beta, movcr_t legals,
                        bool beta_cutoff, Move best_move, bool one_reply);
 void ShowCurrentUciInfo();
 void MoveToStr(Move m, bool stm, char *out);
 void PonderHit();
-void ShowPVfailHighOrLow(Move m, short x, char exclimation);
+void ShowPVfailHighOrLow(Move m, score_t x, char exclimation);

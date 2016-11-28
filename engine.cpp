@@ -37,7 +37,7 @@ transposition_table tt;
 
 
 //--------------------------------
-short Search(i16 depth, i16 alpha, i16 beta, i8 node_type)
+short Search(depth_t depth, score_t alpha, score_t beta, i8 node_type)
 {
     if(ply >= max_ply - 1 || DrawDetect())
     {
@@ -226,7 +226,7 @@ short Search(i16 depth, i16 alpha, i16 beta, i8 node_type)
 
 
 //-----------------------------
-short QSearch(short alpha, short beta)
+short QSearch(score_t alpha, score_t beta)
 {
     if(ply >= max_ply - 1)
         return 0;
@@ -327,7 +327,7 @@ short QSearch(short alpha, short beta)
 
 
 //--------------------------------
-void Perft(i16 depth)
+void Perft(depth_t depth)
 {
     Move move_array[MAX_MOVES];
     bool in_check = Attack(*king_coord[wtm], !wtm);
@@ -376,7 +376,7 @@ void StorePV(Move move)
 
 
 //-----------------------------
-void UpdateStatistics(Move move, i16 depth, u32 move_cr)
+void UpdateStatistics(Move move, depth_t depth, movcr_t move_cr)
 {
 #ifndef DONT_SHOW_STATISTICS
         cut_cr++;
@@ -507,7 +507,7 @@ void MainSearch()
 
 
 //--------------------------------
-short RootSearch(i16 depth, i16 alpha, i16 beta)
+short RootSearch(depth_t depth, score_t alpha, score_t beta)
 {
     bool in_check = Attack(*king_coord[wtm], !wtm);
     if(max_root_moves == 0)
@@ -630,7 +630,7 @@ short RootSearch(i16 depth, i16 alpha, i16 beta)
 
 
 //--------------------------------
-void ShowPVfailHighOrLow(Move m, short x, char type_of_bound)
+void ShowPVfailHighOrLow(Move m, score_t x, char type_of_bound)
 {
     UnMove(m);
     char mstr[6];
@@ -881,7 +881,7 @@ void PrintFinalSearchResult()
 
 
 //--------------------------------
-void PrintCurrentSearchResult(i16 max_value, char type_of_bound)
+void PrintCurrentSearchResult(score_t max_value, char type_of_bound)
 {
     using namespace std;
 
@@ -977,7 +977,7 @@ void InitTime()                                                         // too c
 
 
 //-----------------------------
-bool ShowPV(u8 cur_ply)
+bool ShowPV(depth_t cur_ply)
 {
     char pc2chr[] = "??KKQQRRBBNNPP";
     bool ans = true;
@@ -1320,7 +1320,7 @@ void UnMakeNullMove()
 
 
 //-----------------------------
-bool NullMove(i16 depth, i16 beta, bool in_check)
+bool NullMove(depth_t depth, score_t beta, bool in_check)
 {
     if(in_check || depth < 2
     || material[wtm] - pieces[wtm] < 3)
@@ -1368,7 +1368,7 @@ bool NullMove(i16 depth, i16 beta, bool in_check)
 
 
 //-----------------------------
-bool Futility(i16 depth, i16 beta)
+bool Futility(depth_t depth, score_t beta)
 {
     if(b_state[prev_states + ply].capt == 0
     && b_state[prev_states + ply - 1].to != MOVE_IS_NULL
@@ -1495,7 +1495,7 @@ void ReHash(u32 size_mb)
 
 
 //--------------------------------
-tt_entry* HashProbe(i16 depth, i16 *alpha, i16 beta)
+tt_entry* HashProbe(depth_t depth, score_t *alpha, score_t beta)
 {
     tt_entry* entry = tt.count(hash_key);
     if(entry == nullptr || stop)
@@ -1648,7 +1648,7 @@ bool MoveIsPseudoLegal(Move &move, bool stm)
 
 
 //--------------------------------
-Move Next(Move *move_array, u8 cur_move, u8 *max_moves,
+Move Next(Move *move_array, movcr_t cur_move, movcr_t *max_moves,
           tt_entry *entry, u8 stm, bool only_captures, bool in_check,
           Move prev_move)
 {
@@ -1793,7 +1793,8 @@ Move Next(Move *move_array, u8 cur_move, u8 *max_moves,
 
 
 //-----------------------------
-void StoreResultInHash(i16 depth, i16 init_alpha, i16 alpha, i16 beta, u8 legals,
+void StoreResultInHash(depth_t depth, score_t init_alpha, score_t alpha,
+                       score_t beta, movcr_t legals,
                        bool beta_cutoff, Move best_move, bool one_reply)
 {
     if(stop)
