@@ -11,8 +11,9 @@ unsigned    stop_ply   = 0;
 Timer       timer;
 double      time0;
 double      time_spent, time_to_think;
-unsigned    max_nodes_to_search, max_search_depth;
-unsigned    root_ply, max_root_moves, root_move_cr;
+unsigned    max_nodes_to_search;
+depth_t     max_search_depth, root_ply;
+movcr_t     max_root_moves, root_move_cr;
 bool        stop, infinite_analyze, busy;
 u64          q_nodes, cut_cr, cut_num_cr[5], q_cut_cr, q_cut_num_cr[5];
 u64          null_probe_cr, null_cut_cr, hash_probe_cr;
@@ -63,7 +64,7 @@ short Search(depth_t depth, score_t alpha, score_t beta, i8 node_type)
 #endif // DONT_USE_RECAPTURE_EXTENSION
 
 #ifndef DONT_USE_MATE_DISTANCE_PRUNING
-    short mate_sc = (short)(K_VAL - ply);
+    score_t mate_sc = K_VAL - ply;
     if(alpha >= mate_sc)
        return alpha;
     if(beta <= -mate_sc)
@@ -83,7 +84,7 @@ short Search(depth_t depth, score_t alpha, score_t beta, i8 node_type)
         return beta;
 #endif // DONT_USE_NULL_MOVE
 
-    short x, initial_alpha = alpha;
+    score_t x, initial_alpha = alpha;
     tt_entry *entry;
     if(depth > 0 && (entry = HashProbe(depth, &alpha, beta)) != nullptr
        && alpha != initial_alpha)
@@ -97,8 +98,8 @@ short Search(depth_t depth, score_t alpha, score_t beta, i8 node_type)
         CheckForInterrupt();
 
     Move move_array[MAX_MOVES], cur_move;
-    unsigned move_cr = 0, legal_moves = 0, first_legal = 0;
-    u8 max_moves = init_max_moves;
+    movcr_t move_cr = 0, legal_moves = 0, first_legal = 0;
+    movcr_t max_moves = init_max_moves;
     bool beta_cutoff = false;
 
     for(; move_cr < max_moves; move_cr++)
@@ -142,7 +143,7 @@ short Search(depth_t depth, score_t alpha, score_t beta, i8 node_type)
         FastEval(cur_move);
 
 #ifndef DONT_USE_LMR
-        int lmr = 1;
+        depth_t lmr = 1;
         if(depth < 3 || cur_move.flg || in_check)
             lmr = 0;
         else if(legal_moves < 4)
@@ -153,7 +154,7 @@ short Search(depth_t depth, score_t alpha, score_t beta, i8 node_type)
         else if(depth <= 4 && legal_moves > 8)
             lmr = 2;
 #else
-        int lmr = 0;
+        depth_t lmr = 0;
 #endif  // DONT_USE_LMR
 
         if(legal_moves == 0)
@@ -237,7 +238,7 @@ short QSearch(score_t alpha, score_t beta)
     && ReturnEval(wtm) > beta + 250)
         return beta;
 
-    short x = Eval();
+    score_t x = Eval();
 
     if(-x >= beta)
         return beta;
@@ -250,7 +251,7 @@ short QSearch(score_t alpha, score_t beta)
         CheckForInterrupt();
 
     Move move_array[MAX_MOVES];
-    u8 move_cr = 0, legal_moves = 0, max_moves = init_max_moves;
+    movcr_t move_cr = 0, legal_moves = 0, max_moves = init_max_moves;
     bool beta_cutoff = false;
 
     for(; move_cr < max_moves; move_cr++)
@@ -271,9 +272,9 @@ short QSearch(score_t alpha, score_t beta)
         && TO_BLACK(b[cur_move.to]) != _k
         && !(cur_move.flg & mPROM))
         {
-            short cur_eval = ReturnEval(wtm);
-            short capture = 100*pc_streng[GET_INDEX(b[cur_move.to])];
-            short margin = 100;
+            score_t cur_eval = ReturnEval(wtm);
+            score_t capture = 100*pc_streng[GET_INDEX(b[cur_move.to])];
+            score_t margin = 100;
             if(cur_eval + capture + margin < alpha)
                 break;
         }
@@ -331,11 +332,11 @@ void Perft(depth_t depth)
 {
     Move move_array[MAX_MOVES];
     bool in_check = Attack(*king_coord[wtm], !wtm);
-    int max_moves = GenMoves(move_array, nullptr, APPRICE_NONE);
-    for(int move_cr = 0; move_cr < max_moves; move_cr++)
+    movcr_t max_moves = GenMoves(move_array, nullptr, APPRICE_NONE);
+    for(movcr_t move_cr = 0; move_cr < max_moves; move_cr++)
     {
 #ifndef NDEBUG
-        if((unsigned)depth == max_search_depth)
+        if(depth == max_search_depth)
             tmpCr = nodes;
 #endif
         Move cur_move = move_array[move_cr];
@@ -351,7 +352,7 @@ void Perft(depth_t depth)
         if(depth == 1 && legal)
             nodes++;
 #ifndef NDEBUG
-        if((unsigned)depth == max_search_depth && legal)
+        if(depth == max_search_depth && legal)
             std::cout << cv << nodes - tmpCr << std::endl;
 #endif
         UnMoveFast(cur_move);
@@ -400,7 +401,7 @@ void UpdateStatistics(Move move, depth_t depth, movcr_t move_cr)
 #ifndef DONT_USE_HISTORY
     auto it = coords[wtm].begin();
     it = move.pc;
-    u8 fr = *it;
+    coord_t fr = *it;
     unsigned &h = history[wtm][GET_INDEX(b[fr]) - 1][move.to];
     h += depth*depth + 1;
 #else
@@ -418,7 +419,7 @@ void MainSearch()
     busy = true;
     InitSearch();
 
-    short x, prev_x;
+    score_t x, prev_x;
 
     root_ply = 1;
     x = QSearch(-INF, INF);
@@ -428,7 +429,7 @@ void MainSearch()
     for(; root_ply <= max_ply; ++root_ply)
     {
         prev_x = x;
-        const short asp_margin = 47;
+        const score_t asp_margin = 47;
 #ifndef DONT_USE_ASPIRATION_WINDOWS
         x = RootSearch(root_ply, x - asp_margin, x + asp_margin);
         if(!stop && x <= prev_x - asp_margin)
@@ -517,7 +518,7 @@ short RootSearch(depth_t depth, score_t alpha, score_t beta)
 
     root_move_cr = 0;
 
-    short x;
+    score_t x;
     Move  cur_move;
     bool beta_cutoff = false;
     const u64 unconfirmed_fail_high = -1,
@@ -557,7 +558,7 @@ short RootSearch(depth_t depth, score_t alpha, score_t beta)
                 fail_high = true;
                 ShowPVfailHighOrLow(cur_move, x, '!');
 
-                short x_ = -Search(depth - 1, -beta, -alpha, pv_node);
+                score_t x_ = -Search(depth - 1, -beta, -alpha, pv_node);
                 if(!stop)
                     x = x_;
                 if(x > alpha)
@@ -659,19 +660,19 @@ void RootMoveGen(bool in_check)
     Move move_array[MAX_MOVES], cur_move;
     u8 max_moves = init_max_moves;
 
-    short alpha = -INF, beta = INF;
+    score_t alpha = -INF, beta = INF;
     cur_move.flg = not_a_move;
 
     HashProbe(max_ply, &alpha, beta);
 
-    for(unsigned move_cr = 0; move_cr < max_moves; move_cr++)
+    for(movcr_t move_cr = 0; move_cr < max_moves; move_cr++)
     {
         cur_move = Next(move_array, move_cr, &max_moves,
                  nullptr, wtm, all_moves, false, cur_move);
     }
 
     root_moves.clear();
-    for(unsigned move_cr = 0; move_cr < max_moves; move_cr++)
+    for(movcr_t move_cr = 0; move_cr < max_moves; move_cr++)
     {
         cur_move = move_array[move_cr];
         MkMoveFast(cur_move);
@@ -686,11 +687,11 @@ void RootMoveGen(bool in_check)
     if(root_ply != 1)
         return;
     std::srand(std::time(nullptr));
-    const unsigned max_moves_to_shuffle = 4;
-    unsigned moves_to_shuffle = std::min(max_root_moves, max_moves_to_shuffle);
-    for(unsigned i = 0; i < moves_to_shuffle; ++i)
+    const movcr_t max_moves_to_shuffle = 4;
+    movcr_t moves_to_shuffle = std::min(max_root_moves, max_moves_to_shuffle);
+    for(movcr_t i = 0; i < moves_to_shuffle; ++i)
     {
-        int rand_ix = std::rand() % moves_to_shuffle;
+        movcr_t rand_ix = std::rand() % moves_to_shuffle;
         std::swap(root_moves.at(i), root_moves.at(rand_ix));
     }
 #endif // NDEBUG, RANDOMNESS
@@ -761,7 +762,7 @@ void MoveToStr(Move move, bool stm, char *out)
 
     auto it = coords[stm].begin();
     it      = move.pc;
-    int  f  = *it;
+    coord_t  f  = *it;
     out[0]  = COL(f) + 'a';
     out[1]  = ROW(f) + '1';
     out[2]  = COL(move.to) + 'a';
@@ -805,7 +806,7 @@ void PrintFinalSearchResult()
               << ", cuts = [";
     if(cut_cr == 0)
         cut_cr = 1;
-    for(unsigned i = 0; i < sizeof(cut_num_cr)/sizeof(*cut_num_cr); i++)
+    for(size_t i = 0; i < sizeof(cut_num_cr)/sizeof(*cut_num_cr); i++)
         std::cout  << std::setprecision(1) << std::fixed
                    << 100.*cut_num_cr[i]/cut_cr << " ";
     std::cout << "]% )" << std::endl;
@@ -814,7 +815,7 @@ void PrintFinalSearchResult()
               << ", q_cuts = [";
     if(q_cut_cr == 0)
         q_cut_cr = 1;
-    for(unsigned i = 0; i < sizeof(q_cut_num_cr)/sizeof(*q_cut_num_cr); i++)
+    for(size_t i = 0; i < sizeof(q_cut_num_cr)/sizeof(*q_cut_num_cr); i++)
         std::cout  << std::setprecision(1) << std::fixed
                    << 100.*q_cut_num_cr[i]/q_cut_cr << " ";
     std::cout << "]%, ";
@@ -981,16 +982,16 @@ bool ShowPV(depth_t cur_ply)
 {
     char pc2chr[] = "??KKQQRRBBNNPP";
     bool ans = true;
-    int i = 0, pv_len = pv[cur_ply][0].flg;
+    size_t ply_cr = 0, pv_len = pv[cur_ply][0].flg;
 
     if(uci)
     {
-        for(; i < pv_len; i++)
+        for(; ply_cr < pv_len; ply_cr++)
         {
-            Move cur_move = pv[cur_ply][i + 1];
+            Move cur_move = pv[cur_ply][ply_cr + 1];
             auto it = coords[wtm].begin();
             it = cur_move.pc;
-            u8 from_coord = *it;
+            coord_t from_coord = *it;
             std::cout  << (char)(COL(from_coord) + 'a')
                 << (char)(ROW(from_coord) + '1')
                 << (char)(COL(cur_move.to) + 'a') << (char)(ROW(cur_move.to) + '1');
@@ -1006,9 +1007,9 @@ bool ShowPV(depth_t cur_ply)
     }
     else
     {
-        for(; i < pv_len; i++)
+        for(; ply_cr < pv_len; ply_cr++)
         {
-            Move cur_move = pv[cur_ply][i + 1];
+            Move cur_move = pv[cur_ply][ply_cr + 1];
             auto it = coords[wtm].begin();
             it = cur_move.pc;
             char piece_char = pc2chr[b[*it]];
@@ -1048,8 +1049,8 @@ bool ShowPV(depth_t cur_ply)
                 ans = false;
         }
     }
-    for(; i > 0; i--)
-        UnMoveFast(*(Move *) &pv[cur_ply][i]);
+    for(; ply_cr > 0; ply_cr--)
+        UnMoveFast(*(Move *) &pv[cur_ply][ply_cr]);
     return ans;
 }
 
@@ -1064,16 +1065,14 @@ void FindAndPrintForAmbiguousMoves(Move move)
     unsigned amb_cr = 0;
     auto it = coords[wtm].begin();
     it = move.pc;
-    u8 init_from_coord = *it;
+    coord_t init_from_coord = *it;
     u8 init_piece_type = GET_INDEX(b[init_from_coord]);
 
-    for(it = coords[wtm].begin();
-        it != coords[wtm].end();
-        ++it)
+    for(it = coords[wtm].begin(); it != coords[wtm].end(); ++it)
     {
         if(it == move.pc)
             continue;
-        u8 from_coord = *it;
+        coord_t from_coord = *it;
 
         u8 piece_type = GET_INDEX(b[from_coord]);
         if(piece_type != init_piece_type)
@@ -1114,7 +1113,7 @@ void FindAndPrintForAmbiguousMoves(Move move)
 //-----------------------------
 bool MakeMoveFinaly(char *move_str)
 {
-    int ln = strlen(move_str);
+    size_t ln = strlen(move_str);
     if(ln < 4 || ln > 5)
         return false;
     bool in_check = Attack(*king_coord[wtm], !wtm);
@@ -1123,7 +1122,7 @@ bool MakeMoveFinaly(char *move_str)
 
     char cur_move_str[6];
     char proms[] = {'?', 'q', 'n', 'r', 'b'};
-    for(unsigned i = 0; i < max_root_moves; ++i)
+    for(movcr_t i = 0; i < max_root_moves; ++i)
     {
         Move cur_move  = root_moves.at(i).second;
         auto it = coords[wtm].begin();
@@ -1144,8 +1143,8 @@ bool MakeMoveFinaly(char *move_str)
         MkMove(cur_move);
         FastEval(cur_move);
 
-        short store_val_opn = val_opn;
-        short store_val_end = val_end;
+        score_t store_val_opn = val_opn;
+        score_t store_val_end = val_end;
 
         memmove(&b_state[0], &b_state[1],
                 (prev_states + 2)*sizeof(BrdState));
@@ -1159,7 +1158,7 @@ bool MakeMoveFinaly(char *move_str)
                     << std::endl << "resign"
                     << std::endl;
         }
-        for(int j = 0; j < FIFTY_MOVES; ++j)
+        for(size_t j = 0; j < FIFTY_MOVES; ++j)
             doneHashKeys[j] = doneHashKeys[j + 1];
 
         finaly_made_moves++;
@@ -1335,7 +1334,7 @@ bool NullMove(depth_t depth, score_t beta, bool in_check)
         return false;
 
     u8 store_ep  = b_state[prev_states + ply].ep;
-    u8 store_to = b_state[prev_states + ply].to;
+    coord_t store_to = b_state[prev_states + ply].to;
     u16 store_rv = reversible_moves;
     reversible_moves = 0;
 
@@ -1343,7 +1342,7 @@ bool NullMove(depth_t depth, score_t beta, bool in_check)
     if(store_ep)
         hash_key = InitHashKey();
 
-    int r = depth > 6 ? 3 : 2;
+    depth_t r = depth > 6 ? 3 : 2;
 
     short x = -Search(depth - r - 1, -beta, -beta + 1, all_node);
 
@@ -1377,8 +1376,8 @@ bool Futility(depth_t depth, score_t beta)
 #ifndef DONT_SHOW_STATISTICS
             futility_probes++;
 #endif // DONT_SHOW_STATISTICS
-        short margin = depth < 2 ? 185 : 255;
-        short score = ReturnEval(wtm);
+        score_t margin = depth < 2 ? 185 : 255;
+        score_t score = ReturnEval(wtm);
         if(score > margin + beta)
         {
 #ifndef DONT_SHOW_STATISTICS
@@ -1400,15 +1399,15 @@ bool DrawByRepetition()
     if(reversible_moves < 4)
         return false;
 
-    unsigned max_count;
+    int max_count;
     if(reversible_moves > ply + finaly_made_moves)
         max_count = ply + finaly_made_moves;
     else
         max_count = reversible_moves;
 
-    if(max_count > FIFTY_MOVES + ply)
+    if(max_count > FIFTY_MOVES + (depth_t)ply)
         max_count = FIFTY_MOVES + ply;                                  // on case that GUI does not recognize 50 move rule
-    unsigned i;
+    depth_t i;
     for(i = 4; i <= max_count; i += 2)
     {
         if(hash_key == doneHashKeys[FIFTY_MOVES + ply - i])
@@ -1548,7 +1547,7 @@ bool MoveIsPseudoLegal(Move &move, bool stm)
     if(it == coords[stm].end())
         return false;
     it = move.pc;
-    u8 from_coord = *it;
+    coord_t from_coord = *it;
     u8 piece = b[move.to];
     int delta_col = COL(move.to) - COL(from_coord);
     int delta_row = ROW(move.to) - ROW(from_coord);
@@ -1680,8 +1679,8 @@ Move Next(Move *move_array, movcr_t cur_move, movcr_t *max_moves,
 
             bool pseudo_legal = MoveIsPseudoLegal(ans, stm);
 #ifndef NDEBUG
-            int mx_ = GenMoves(move_array, nullptr, APPRICE_NONE);
-            int i = 0;
+            movcr_t mx_ = GenMoves(move_array, nullptr, APPRICE_NONE);
+            movcr_t i = 0;
             for(; i < mx_; ++i)
                 if(move_array[i] == ans)
                     break;
@@ -1732,7 +1731,7 @@ Move Next(Move *move_array, movcr_t cur_move, movcr_t *max_moves,
             *max_moves = 0;
             return move_array[0];
         }
-        unsigned i = 0;
+        movcr_t i = 0;
         for(; i < *max_moves; i++)
             if(move_array[i].scr == PV_FOLLOW)
             {
@@ -1748,7 +1747,7 @@ Move Next(Move *move_array, movcr_t cur_move, movcr_t *max_moves,
 #ifndef DONT_USE_ONE_REPLY_EXTENSION
     if(in_check && (cur_move == 0 || (cur_move == 1 && entry != nullptr)))
     {
-        unsigned move_cr, legal_cr = cur_move;
+        movcr_t move_cr, legal_cr = cur_move;
         for(move_cr = cur_move; move_cr < *max_moves; ++move_cr)
         {
             Move m = move_array[move_cr];
@@ -1770,7 +1769,7 @@ Move Next(Move *move_array, movcr_t cur_move, movcr_t *max_moves,
     int max_score = -INF;
     unsigned max_index = cur_move;
 
-    for(unsigned i = cur_move; i < *max_moves; i++)
+    for(movcr_t i = cur_move; i < *max_moves; i++)
     {
         u8 score = move_array[i].scr;
         if(score > max_score)
@@ -1845,7 +1844,7 @@ void ShowCurrentUciInfo()
         << " nps " << (int)(1000000 * nodes / (t - time0 + 1));
 
     Move move = root_moves.at(root_move_cr).second;
-    u8 from_coord = b_state[prev_states + 1].fr;
+    coord_t from_coord = b_state[prev_states + 1].fr;
     std::cout << " currmove "
         << (char)(COL(from_coord) + 'a') << (char)(ROW(from_coord) + '1')
         << (char)(COL(move.to) + 'a') << (char)(ROW(move.to) + '1');

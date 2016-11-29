@@ -35,6 +35,7 @@ typedef short_list<u8, lst_sz>::iterator_entity iterator_entity;
 typedef short_list<u8, lst_sz>::iterator iterator;
 typedef u8 coord_t;
 typedef i16 score_t;
+typedef i16 depth_t;
 
 
 
@@ -54,7 +55,7 @@ enum {mCAPT = 0x10, mCS_K = 0x20, mCS_Q = 0x40, mCSTL = 0x60, mENPS = 0x80,
 class Move
 {
 public:
-    u8 to;
+    coord_t to;
     iterator_entity pc;
     u8 flg;
     u8 scr;
