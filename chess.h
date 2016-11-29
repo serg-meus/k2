@@ -34,6 +34,7 @@ const u8  black         = 0;
 typedef short_list<u8, lst_sz>::iterator_entity iterator_entity;
 typedef short_list<u8, lst_sz>::iterator iterator;
 typedef u8 coord_t;
+typedef i16 score_t;
 
 
 
@@ -80,17 +81,17 @@ public:
 struct BrdState
 {
     u8 capt;                                                            // taken piece, 6 bits
-    iterator_entity captured_it;                                   // iterator to captured piece
+    iterator_entity captured_it;                                        // iterator to captured piece
     coord_t fr;                                                         // from point, 7 bits
     u8 cstl;                                                            // castling rights, bits 0..3: _K, _Q, _k, _q, 4 bits
 
-    iterator_entity castled_rook_it;                               // iterator to castled rook, 8 bits
+    iterator_entity castled_rook_it;                                    // iterator to castled rook, 8 bits
     u8 ep;                                                              // 0 = no_ep, else ep=COL(x) + 1, not null only if opponent pawn is near, 4 bits
-    iterator_entity nprom;                                         // number of next piece for promoted pawn, 6 bits
+    iterator_entity nprom;                                              // number of next piece for promoted pawn, 6 bits
     u16 reversibleCr;                                                   // reversible halfmove counter
     u8 to;                                                              // to point, 7 bits (for simple repetition draw detection)
-    i16 val_opn;                                                        // store material and PST value considered all material is on the board
-    i16 val_end;                                                        // store material and PST value considered deep endgame (kings and pawns only)
+    score_t val_opn;                                                    // store material and PST value considered all material is on the board
+    score_t val_end;                                                    // store material and PST value considered deep endgame (kings and pawns only)
     u8 scr;                                                             // move priority by move genererator
     i16 tropism[2];
 };

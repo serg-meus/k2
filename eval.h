@@ -25,25 +25,22 @@
 
 
 //--------------------------------
-enum PriceList
-{
-    P_VAL_OPN   = 100,
-    N_VAL_OPN   = 395,
-    B_VAL_OPN   = 405,
-    R_VAL_OPN   = 600,
-    Q_VAL_OPN   = 1200,
+const score_t
+    P_VAL_OPN = 100,
+    N_VAL_OPN = 395,
+    B_VAL_OPN = 405,
+    R_VAL_OPN = 600,
+    Q_VAL_OPN = 1200,
 
-    P_VAL_END   = 128,
-    N_VAL_END   = 369,
-    B_VAL_END   = 405,
-    R_VAL_END   = 640,
-    Q_VAL_END   = 1200,
+    P_VAL_END = 128,
+    N_VAL_END = 369,
+    B_VAL_END = 405,
+    R_VAL_END = 640,
+    Q_VAL_END = 1200,
 
-    K_VAL       = 32000,
-    INF         = 32760,
-
-    CLAMPED_R   = 82,
-};
+    K_VAL = 32000,
+    INF = 32760,
+    CLAMPED_R  = 82;
 
 
 
