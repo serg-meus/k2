@@ -36,7 +36,7 @@ extern bool     xboard;
 extern bool     infinite_analyze;
 extern short    streng[7];
 extern u64      tmpCr;
-extern short_list<u8, lst_sz>::iterator king_coord[2];
+extern iterator king_coord[2];
 extern bool     pondering_in_process;
 extern char     king_dist[120];
 extern float    pst_gain[6][2];

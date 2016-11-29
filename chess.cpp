@@ -31,7 +31,7 @@ u16 reversible_moves;
 
 char cur_moves[5*max_ply];
 
-short_list<u8, lst_sz>::iterator king_coord[2];
+iterator king_coord[2];
 u8 quantity[2][6 + 1];
 
 
@@ -555,7 +555,7 @@ void MakeCapture(Move m, coord_t targ)
 
 
 //--------------------------------
-void MakePromotion(Move m, short_list_iterator it)
+void MakePromotion(Move m, iterator it)
 {
     int prIx = m.flg & mPROM;
     u8 prPc[] = {0, _q, _n, _r, _b};

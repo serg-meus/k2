@@ -25,7 +25,7 @@ void InitMoveGen()
 
 
 //--------------------------------
-void PushMove(Move *move_array, u8 *movCr, short_list_iterator it, u8 to, u8 flg)
+void PushMove(Move *move_array, u8 *movCr, iterator it, u8 to, u8 flg)
 {
     Move    m;
     m.pc    = it;
@@ -102,7 +102,7 @@ int GenMoves(Move *move_array, Move *best_move, u8 apprice)
 
 
 //--------------------------------
-void GenPawn(Move *move_array, u8 *moveCr, short_list_iterator it)
+void GenPawn(Move *move_array, u8 *moveCr, iterator it)
 {
     unsigned to, pBeg, pEnd;
     u8 fr = *it;
@@ -160,7 +160,7 @@ void GenPawn(Move *move_array, u8 *moveCr, short_list_iterator it)
 
 
 //--------------------------------
-void GenPawnCap(Move *move_array, u8 *moveCr, short_list_iterator it)
+void GenPawnCap(Move *move_array, u8 *moveCr, iterator it)
 {
     unsigned to, pBeg, pEnd;
     u8 fr = *it;
@@ -560,7 +560,7 @@ short SEE(u8 to, i16 frStreng, i16 val, bool stm)
 
 
 //-----------------------------
-short_list_iterator SeeMinAttacker(u8 to)
+iterator SeeMinAttacker(u8 to)
 {
     int shft_l[] = {15, -17};
     int shft_r[] = {17, -15};

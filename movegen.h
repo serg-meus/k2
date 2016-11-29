@@ -29,16 +29,16 @@
 //--------------------------------
 void    InitMoveGen();
 int     GenMoves(Move *list, Move *best_move, u8 apprice);
-void    GenPawn(Move *list, u8 *movCr, short_list_iterator it);
-void    GenPawnCap(Move *list, u8 *movCr, short_list_iterator it);
+void    GenPawn(Move *list, u8 *movCr, iterator it);
+void    GenPawnCap(Move *list, u8 *movCr, iterator it);
 void    GenCastles(Move *list, u8 *movCr);
 int     GenCaptures(Move *list);
 void    AppriceMoves(Move *list, u8 moveCr, Move *best_move);
 void    AppriceQuiesceMoves(Move *list, u8 moveCr);
 short   SEE(u8 to, i16 frStreng, i16 val, bool stm);
-short_list_iterator SeeMinAttacker(u8 to);
+iterator SeeMinAttacker(u8 to);
 short   SEE_main(Move m);
 void    SortQuiesceMoves(Move *move_array, u8 moveCr);
 void    PushMove(Move *move_array, int *movCr,
-              short_list_iterator it, u8 to, u8 flg);
+              iterator it, u8 to, u8 flg);
 //--------------------------------

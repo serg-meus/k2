@@ -31,8 +31,8 @@ const i32 prev_states   = 4;
 const u8  white         = 1;
 const u8  black         = 0;
 
-typedef short_list<u8, lst_sz>::iterator_entity short_list_it_entity;
-typedef short_list<u8, lst_sz>::iterator short_list_iterator;
+typedef short_list<u8, lst_sz>::iterator_entity iterator_entity;
+typedef short_list<u8, lst_sz>::iterator iterator;
 typedef u8 coord_t;
 
 
@@ -54,7 +54,7 @@ class Move
 {
 public:
     u8 to;
-    short_list<u8, lst_sz>::iterator_entity pc;
+    iterator_entity pc;
     u8 flg;
     u8 scr;
 
@@ -80,13 +80,13 @@ public:
 struct BrdState
 {
     u8 capt;                                                            // taken piece, 6 bits
-    short_list_it_entity captured_it;                                   // iterator to captured piece
+    iterator_entity captured_it;                                   // iterator to captured piece
     coord_t fr;                                                         // from point, 7 bits
     u8 cstl;                                                            // castling rights, bits 0..3: _K, _Q, _k, _q, 4 bits
 
-    short_list_it_entity castled_rook_it;                               // iterator to castled rook, 8 bits
+    iterator_entity castled_rook_it;                               // iterator to castled rook, 8 bits
     u8 ep;                                                              // 0 = no_ep, else ep=COL(x) + 1, not null only if opponent pawn is near, 4 bits
-    short_list_it_entity nprom;                                         // number of next piece for promoted pawn, 6 bits
+    iterator_entity nprom;                                         // number of next piece for promoted pawn, 6 bits
     u16 reversibleCr;                                                   // reversible halfmove counter
     u8 to;                                                              // to point, 7 bits (for simple repetition draw detection)
     i16 val_opn;                                                        // store material and PST value considered all material is on the board
@@ -118,7 +118,7 @@ void InitPawnStruct();
 bool PieceListCompare(coord_t men1, coord_t men2);
 void StoreCurrentBoardState(Move m, coord_t fr, coord_t targ);
 void MakeCapture(Move m, coord_t targ);
-void MakePromotion(Move m, short_list_iterator it);
+void MakePromotion(Move m, iterator it);
 void UnmakeCapture(Move m);
 void UnmakePromotion(Move m);
 bool MkMoveFast(Move m);
