@@ -50,7 +50,7 @@ public:
 
     bool set_size(u32 size_mb);
     tt_entry* count(u64 key);
-    void add(u64 key, i16 value, Move best, u32 depth,
+    void add(u64 key, score_t value, Move best, depth_t depth,
              u32 bound_type, u32 half_mov_cr, bool one_reply);
     void clear();
     tt_entry& operator [](u64 key);

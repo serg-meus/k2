@@ -25,17 +25,17 @@ bool InitHashTable()
     std::uniform_int_distribution<u64> zorb_distr(0, (u64)-1);
     std::mt19937 rnd_gen;
 
-    for(unsigned i = 0; i < 12; ++i)
-        for(unsigned j = 0; j < 8; ++j)
-            for(unsigned k = 0; k < 8; ++k)
+    for(size_t i = 0; i < 12; ++i)
+        for(size_t j = 0; j < 8; ++j)
+            for(size_t k = 0; k < 8; ++k)
                 zorb[i][j][k] = zorb_distr(rnd_gen);
 
-    for(unsigned i = 1;
+    for(size_t i = 1;
     i < sizeof(zorb_en_passant)/sizeof(*zorb_en_passant);
     ++i)
         zorb_en_passant[i] = zorb_distr(rnd_gen);
 
-    for(unsigned i = 1;
+    for(size_t i = 1;
     i < sizeof(zorb_castling)/sizeof(*zorb_castling);
     ++i)
         zorb_castling[i] = zorb_distr(rnd_gen);
@@ -77,7 +77,7 @@ u64 InitHashKey()
 void MoveHashKey(Move m, bool special)
 {
     doneHashKeys[FIFTY_MOVES + ply - 1] = hash_key;
-    u8 fr = b_state[prev_states + ply].fr;
+    coord_t fr = b_state[prev_states + ply].fr;
 
     u8 pt   = b[m.to];
     BrdState &f = b_state[prev_states + ply],
@@ -177,7 +177,7 @@ bool transposition_table::set_size(u32 size_mb)
     bool ans = true;
     buckets = 0;
     mask = 0;
-    unsigned sz = size_mb * 1000 / sizeof(tt_entry)
+    size_t sz = size_mb * 1000 / sizeof(tt_entry)
                 * 1000 / entries_in_a_bucket;
     unsigned MSB_count = 0;
     while(sz >>= 1)
@@ -227,11 +227,11 @@ void transposition_table::clear()
 
 
 //--------------------------------
-void transposition_table::add(u64 key, i16 value, Move best,
-                              u32 depth, u32 bound_type, u32 age,
+void transposition_table::add(u64 key, score_t value, Move best,
+                              depth_t depth, u32 bound_type, u32 age,
                               bool one_reply)
 {
-    unsigned i;
+    size_t i;
     tt_entry *bucket = &data[entries_in_a_bucket*(key & mask)];          // looking for already existed entries for the same position
     for(i = 0; i < entries_in_a_bucket; ++i)
         if(bucket[i].key == (key >> 32))
@@ -280,7 +280,7 @@ tt_entry* transposition_table::count(u64 key)
 {
     tt_entry *bucket = &data[entries_in_a_bucket*(key & mask)];
     tt_entry *ans = nullptr;
-    for(unsigned i = 0; i < entries_in_a_bucket; ++i, ++bucket)
+    for(size_t i = 0; i < entries_in_a_bucket; ++i, ++bucket)
         if(bucket->key == key >> 32)
         {
             ans = bucket;
