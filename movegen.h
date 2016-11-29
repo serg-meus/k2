@@ -25,20 +25,22 @@
 
 
 
+typedef u8  movcr_t;
+
 
 //--------------------------------
 void    InitMoveGen();
 int     GenMoves(Move *list, Move *best_move, u8 apprice);
-void    GenPawn(Move *list, u8 *movCr, iterator it);
-void    GenPawnCap(Move *list, u8 *movCr, iterator it);
+void    GenPawn(Move *list, movcr_t *movCr, iterator it);
+void    GenPawnCap(Move *list, movcr_t *movCr, iterator it);
 void    GenCastles(Move *list, u8 *movCr);
 int     GenCaptures(Move *list);
-void    AppriceMoves(Move *list, u8 moveCr, Move *best_move);
-void    AppriceQuiesceMoves(Move *list, u8 moveCr);
-short   SEE(u8 to, i16 frStreng, i16 val, bool stm);
-iterator SeeMinAttacker(u8 to);
-short   SEE_main(Move m);
-void    SortQuiesceMoves(Move *move_array, u8 moveCr);
-void    PushMove(Move *move_array, int *movCr,
-              iterator it, u8 to, u8 flg);
+void    AppriceMoves(Move *list, movcr_t moveCr, Move *best_move);
+void    AppriceQuiesceMoves(Move *list, movcr_t moveCr);
+streng_t SEE(coord_t to, streng_t frStreng, score_t val, bool stm);
+iterator SeeMinAttacker(coord_t to);
+streng_t SEE_main(Move m);
+void    SortQuiesceMoves(Move *move_array, movcr_t moveCr);
+void    PushMove(Move *move_array, movcr_t *movCr, iterator it,
+                 coord_t to, u8 flg);
 //--------------------------------

@@ -25,7 +25,7 @@ void InitMoveGen()
 
 
 //--------------------------------
-void PushMove(Move *move_array, u8 *movCr, iterator it, u8 to, u8 flg)
+void PushMove(Move *move_array, movcr_t *movCr, iterator it, coord_t to, u8 flg)
 {
     Move    m;
     m.pc    = it;
@@ -42,15 +42,15 @@ void PushMove(Move *move_array, u8 *movCr, iterator it, u8 to, u8 flg)
 //--------------------------------
 int GenMoves(Move *move_array, Move *best_move, u8 apprice)
 {
-    int i, to, ray;
-    u8 moveCr = 0;
+    u8 i, to, ray;
+    movcr_t moveCr = 0;
 
     GenCastles(move_array, &moveCr);
 
     auto it = coords[wtm].begin();
     for(;it != coords[wtm].end(); ++it)
     {
-        u8 fr = *it;
+        coord_t fr = *it;
         u8 at = GET_INDEX(b[fr]);
         if(at == GET_INDEX(_p))
         {
@@ -102,10 +102,10 @@ int GenMoves(Move *move_array, Move *best_move, u8 apprice)
 
 
 //--------------------------------
-void GenPawn(Move *move_array, u8 *moveCr, iterator it)
+void GenPawn(Move *move_array, movcr_t *moveCr, iterator it)
 {
     unsigned to, pBeg, pEnd;
-    u8 fr = *it;
+    coord_t fr = *it;
     if((wtm && ROW(fr) == 6) || (!wtm && ROW(fr) == 1))
     {
         pBeg = mPR_Q;
@@ -116,7 +116,7 @@ void GenPawn(Move *move_array, u8 *moveCr, iterator it)
         pBeg = 0;
         pEnd = 0;
     }
-    for(unsigned i = pBeg; i <= pEnd; ++i)
+    for(size_t i = pBeg; i <= pEnd; ++i)
         if(wtm)
         {
             to = fr + 17;
@@ -160,10 +160,11 @@ void GenPawn(Move *move_array, u8 *moveCr, iterator it)
 
 
 //--------------------------------
-void GenPawnCap(Move *move_array, u8 *moveCr, iterator it)
+void GenPawnCap(Move *move_array, movcr_t *moveCr, iterator it)
 {
-    unsigned to, pBeg, pEnd;
-    u8 fr = *it;
+    coord_t to;
+    size_t pBeg, pEnd;
+    coord_t fr = *it;
     if((wtm && ROW(fr) == 6) || (!wtm && ROW(fr) == 1))
     {
         pBeg = mPR_Q;
@@ -174,7 +175,7 @@ void GenPawnCap(Move *move_array, u8 *moveCr, iterator it)
         pBeg = 0;
         pEnd = 0;
     }
-    for(unsigned i = pBeg; i <= pEnd; ++i)
+    for(size_t i = pBeg; i <= pEnd; ++i)
         if(wtm)
         {
             to = fr + 17;
@@ -266,12 +267,12 @@ void GenCastles(Move *move_array, u8 *moveCr)
 //--------------------------------
 int GenCaptures(Move *move_array)
 {
-    int i, to, ray;
-    u8 moveCr = 0;
+    size_t i, to, ray;
+    movcr_t moveCr = 0;
     auto it = coords[wtm].begin();
     for(; it != coords[wtm].end(); ++it)
     {
-        u8 fr = *it;
+        coord_t fr = *it;
         u8 at = GET_INDEX(b[fr]);
         if(at == GET_INDEX(_p))
         {
@@ -316,7 +317,7 @@ int GenCaptures(Move *move_array)
 
 
 //--------------------------------
-void AppriceMoves(Move *move_array, u8 moveCr, Move *bestMove)
+void AppriceMoves(Move *move_array, movcr_t moveCr, Move *bestMove)
 {
 #ifndef DONT_USE_HISTORY
     min_history = UINT_MAX;
@@ -349,23 +350,23 @@ void AppriceMoves(Move *move_array, u8 moveCr, Move *bestMove)
             else
             {
 #ifndef DONT_USE_HISTORY
-                u8 fr = *it;
+                coord_t fr = *it;
                 unsigned h = history[wtm][GET_INDEX(b[fr]) - 1][m.to];
                 if(h > max_history)
                     max_history = h;
                 if(h < min_history)
                     min_history = h;
 #endif // DONT_USE_HISTORY
-                int y   = ROW(m.to);
-                int x   = COL(m.to);
-                int y0  = ROW(*it);
-                int x0  = COL(*it);
+                coord_t y   = ROW(m.to);
+                coord_t x   = COL(m.to);
+                coord_t y0  = ROW(*it);
+                coord_t x0  = COL(*it);
                 if(wtm)
                 {
                     y   = 7 - y;
                     y0  = 7 - y0;
                 }
-                int pstVal  = pst[GET_INDEX(fr_pc) - 1][0][y][x]
+                i8 pstVal   = pst[GET_INDEX(fr_pc) - 1][0][y][x]
                             - pst[GET_INDEX(fr_pc) - 1][0][y0][x0];
                 pstVal      = 96 + pstVal/2;
                 move_array[i].scr = pstVal;
@@ -373,9 +374,9 @@ void AppriceMoves(Move *move_array, u8 moveCr, Move *bestMove)
         }// if(to_pc == __ &&
         else
         {
-            int ans;
-            int src = streng[GET_INDEX(fr_pc)];
-            int dst = (m.flg & mCAPT) ? streng[GET_INDEX(to_pc)] : 0;
+            streng_t ans;
+            streng_t src = streng[GET_INDEX(fr_pc)];
+            streng_t dst = (m.flg & mCAPT) ? streng[GET_INDEX(to_pc)] : 0;
 
 #ifndef DONT_USE_SEE_SORTING
             if(dst && dst - src <= 0)
@@ -398,7 +399,7 @@ void AppriceMoves(Move *move_array, u8 moveCr, Move *bestMove)
                 continue;
             }
 
-            short prms[] = {0, 120, 40, 60, 40};
+            streng_t prms[] = {0, 120, 40, 60, 40};
             if(dst <= 120 && (m.flg & mPROM))
                 dst += prms[m.flg & mPROM];
 
@@ -432,14 +433,14 @@ void AppriceMoves(Move *move_array, u8 moveCr, Move *bestMove)
     }// for(int i
 
 #ifndef DONT_USE_HISTORY
-    for(int i = 0; i < moveCr; i++)
+    for(movcr_t i = 0; i < moveCr; i++)
     {
         Move m = move_array[i];
         if(m.scr >= std::min(MOVE_FROM_PV, SECOND_KILLER)
         || (m.flg & mCAPT))
             continue;
         it      = m.pc;
-        u8 fr   = *it;
+        coord_t fr   = *it;
         unsigned h = history[wtm][GET_INDEX(b[fr]) - 1][m.to];
         if(h > 3)
         {
@@ -458,19 +459,19 @@ void AppriceMoves(Move *move_array, u8 moveCr, Move *bestMove)
 
 
 //--------------------------------
-void AppriceQuiesceMoves(Move *move_array, u8 moveCr)
+void AppriceQuiesceMoves(Move *move_array, movcr_t moveCr)
 {
     auto it = coords[wtm].begin();
-    for(int i = 0; i < moveCr; i++)
+    for(movcr_t i = 0; i < moveCr; i++)
     {
         Move m = move_array[i];
 
         it = m.pc;
-        u8 fr = b[*it];
+        coord_t fr = b[*it];
         u8 pt = b[m.to];
 
-        int src = sort_streng[GET_INDEX(fr)];
-        int dst = (m.flg & mCAPT) ? sort_streng[GET_INDEX(pt)] : 0;
+        streng_t src = sort_streng[GET_INDEX(fr)];
+        streng_t dst = (m.flg & mCAPT) ? sort_streng[GET_INDEX(pt)] : 0;
 
         if(dst > 120)
         {
@@ -478,11 +479,11 @@ void AppriceQuiesceMoves(Move *move_array, u8 moveCr)
             return;
         }
 
-        short prms[] = {0, 120, 40, 60, 40};
+        streng_t prms[] = {0, 120, 40, 60, 40};
         if(dst <= 120 && (m.flg & mPROM))
             dst += prms[m.flg & mPROM];
 
-        int ans;
+        streng_t ans;
         if(dst > src)
             ans = dst - src/16;
         else
@@ -527,14 +528,14 @@ void AppriceQuiesceMoves(Move *move_array, u8 moveCr)
 
 
 //-----------------------------
-short SEE(u8 to, i16 frStreng, i16 val, bool stm)
+streng_t SEE(coord_t to, streng_t frStreng, score_t val, bool stm)
 {
     auto it = SeeMinAttacker(to);
     if(it == coords[!wtm].end())
         return -val;
 
     val -= frStreng;
-    short tmp1 = -val;
+    score_t tmp1 = -val;
     if(wtm != stm && tmp1 < -2)
         return tmp1;
 
@@ -544,7 +545,7 @@ short SEE(u8 to, i16 frStreng, i16 val, bool stm)
     b[*storeMen] = __;
     wtm = !wtm;
 
-    short tmp2 = -SEE(to, streng[GET_INDEX(storeBrd)], -val, stm);
+    streng_t tmp2 = -SEE(to, streng[GET_INDEX(storeBrd)], -val, stm);
 
     wtm = !wtm;
     val = std::min(tmp1, tmp2);
@@ -560,7 +561,7 @@ short SEE(u8 to, i16 frStreng, i16 val, bool stm)
 
 
 //-----------------------------
-iterator SeeMinAttacker(u8 to)
+iterator SeeMinAttacker(coord_t to)
 {
     int shft_l[] = {15, -17};
     int shft_r[] = {17, -15};
@@ -583,7 +584,7 @@ iterator SeeMinAttacker(u8 to)
     auto it = coords[!wtm].begin();
     for(; it != coords[!wtm].end(); ++it)
     {
-        u8 fr = *it;
+        coord_t fr = *it;
         int pt  = GET_INDEX(b[fr]);
         if(pt == GET_INDEX(_p))
             continue;
@@ -604,21 +605,21 @@ iterator SeeMinAttacker(u8 to)
 
 
 //-----------------------------
-short SEE_main(Move m)
+streng_t SEE_main(Move m)
 {
     auto it = coords[wtm].begin();
     it = m.pc;
     u8 fr_pc = b[*it];
     u8 to_pc = b[m.to];
-    short src = streng[GET_INDEX(fr_pc)];
-    short dst = (m.flg & mCAPT) ? streng[GET_INDEX(to_pc)] : 0;
+    streng_t src = streng[GET_INDEX(fr_pc)];
+    streng_t dst = (m.flg & mCAPT) ? streng[GET_INDEX(to_pc)] : 0;
     auto storeMen = coords[wtm].begin();
     storeMen = m.pc;
     u8 storeBrd = b[*storeMen];
     coords[wtm].erase(storeMen);
     b[*storeMen] = __;
 
-    short see_score = -SEE(m.to, src, dst, wtm);
+    streng_t see_score = -SEE(m.to, src, dst, wtm);
     see_score = std::min(dst, see_score);
 
     coords[wtm].restore(storeMen);
@@ -631,14 +632,14 @@ short SEE_main(Move m)
 
 
 //--------------------------------
-void SortQuiesceMoves(Move *move_array, u8 moveCr)
+void SortQuiesceMoves(Move *move_array, movcr_t moveCr)
 {
     if(moveCr <= 1)
         return;
-    for(int i = 0; i < moveCr; ++i)
+    for(movcr_t i = 0; i < moveCr; ++i)
     {
         bool swoped_around = false;
-        for(int j = 0; j < moveCr - i - 1; ++j)
+        for(movcr_t j = 0; j < moveCr - i - 1; ++j)
         {
             if(move_array[j + 1].scr > move_array[j].scr)
             {

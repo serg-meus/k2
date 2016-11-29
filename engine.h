@@ -61,7 +61,7 @@ extern std::vector <float> param;
 
 enum {all_node = -1, pv_node = 0, cut_node = 1};
 
-typedef u8  movcr_t;
+
 
 
 

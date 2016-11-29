@@ -36,6 +36,7 @@ typedef short_list<u8, lst_sz>::iterator iterator;
 typedef u8 coord_t;
 typedef i16 score_t;
 typedef i16 depth_t;
+typedef i16 streng_t;
 
 
 
