@@ -38,7 +38,7 @@ extern streng_t streng[7];
 extern u64      tmpCr;
 extern iterator king_coord[2];
 extern bool     pondering_in_process;
-extern char     king_dist[120];
+extern u8       king_dist[120];
 extern float    pst_gain[6][2];
 extern streng_t sort_streng[7];
 extern u8       quantity[2][6 + 1];

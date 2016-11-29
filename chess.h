@@ -116,7 +116,7 @@ bool SliderAttack(coord_t fr, coord_t to);
 bool Attack(coord_t to, u32 xtm);
 bool LegalSlider(coord_t fr, coord_t to, u8 pt);
 bool Legal(Move m, bool ic);
-void SetPawnStruct(u32 col);
+void SetPawnStruct(coord_t col);
 void InitPawnStruct();
 bool PieceListCompare(coord_t men1, coord_t men2);
 void StoreCurrentBoardState(Move m, coord_t fr, coord_t targ);

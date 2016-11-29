@@ -130,7 +130,7 @@ void MoveHashKey(Move m, bool special)
     }
 
 #ifndef NDEBUG
-    UQ tmp_key = InitHashKey();
+    u64 tmp_key = InitHashKey();
     if(tmp_key != hash_key)
         ply = ply;
     assert(tmp_key == hash_key);

@@ -3,15 +3,15 @@
 
 
 
-short val_opn, val_end;
+score_t val_opn, val_end;
 
 u8 pawn_max[10][2], pawn_min[10][2];
 
-short material_values_opn[] = {  0, 0, Q_VAL_OPN, R_VAL_OPN, B_VAL_OPN, N_VAL_OPN, P_VAL_OPN};
-short material_values_end[] = {  0, 0, Q_VAL_END, R_VAL_END, B_VAL_END, N_VAL_END, P_VAL_END};
+score_t material_values_opn[] = {  0, 0, Q_VAL_OPN, R_VAL_OPN, B_VAL_OPN, N_VAL_OPN, P_VAL_OPN};
+score_t material_values_end[] = {  0, 0, Q_VAL_END, R_VAL_END, B_VAL_END, N_VAL_END, P_VAL_END};
 
-char  king_dist[120];
-short king_tropism[2];
+u8  king_dist[120];
+score_t king_tropism[2];
 
 u8 tropism_factor[2][7] =
 {   //  k  Q   R   B   N   P
@@ -28,7 +28,7 @@ u8 tropism_factor[2][7] =
 
 
 //-----------------------------
-short Eval()
+score_t Eval()
 {
     b_state[prev_states + ply].val_opn = val_opn;
     b_state[prev_states + ply].val_end = val_end;
@@ -47,7 +47,7 @@ short Eval()
 
     MaterialImbalances();
 
-    short ans = -ReturnEval(wtm);
+    score_t ans = -ReturnEval(wtm);
     ans -= 8;                                                           // bonus for side to move
 
     val_opn = b_state[prev_states + ply].val_opn;
@@ -68,7 +68,7 @@ void InitEval()
     val_opn = 0;
     val_end = 0;
 
-    for(int i = 0; i < 120; i++)
+    for(size_t i = 0; i < 120; i++)
         if(i & 8)
             king_dist[i] = MAXI(8 - COL(i), ROW(i) + 1);
         else
@@ -96,11 +96,11 @@ void InitEval()
 //-----------------------------
 short ReturnEval(u8 stm)
 {
-    int X, Y;
+    i32 X, Y;
     X = material[0] + 1 + material[1] + 1 - pieces[0] - pieces[1];
 
     Y = ((val_opn - val_end)*X + 80*val_end)/80;
-    return stm ? (short)(Y) : (short)(-Y);
+    return stm ? (score_t)(Y) : (score_t)(-Y);
 }
 
 
@@ -112,10 +112,10 @@ void FastEval(Move m)
 {
     short ansO = 0, ansE = 0;
 
-    int x  = COL(m.to);
-    int y  = ROW(m.to);
-    int x0 = COL(b_state[prev_states + ply].fr);
-    int y0 = ROW(b_state[prev_states + ply].fr);
+    coord_t x  = COL(m.to);
+    coord_t y  = ROW(m.to);
+    coord_t x0 = COL(b_state[prev_states + ply].fr);
+    coord_t y0 = ROW(b_state[prev_states + ply].fr);
     u8 pt  = GET_INDEX(b[m.to]);
 
     if(!wtm)
@@ -183,21 +183,21 @@ void InitEvaOfMaterialAndPst()
 {
     val_opn = 0;
     val_end = 0;
-    for(unsigned col = 0; col < sizeof(b)/sizeof(*b); ++col)
+    for(size_t col = 0; col < sizeof(b)/sizeof(*b); ++col)
     {
         if(!ONBRD(col))
             continue;
         u8 pt = b[col];
         if(pt == __)
             continue;
-        u8 x0 = COL(col);
-        u8 y0 = ROW(col);
+        coord_t x0 = COL(col);
+        coord_t y0 = ROW(col);
         if(pt & white)
             y0 = 7 - y0;
 
         u8 idx = GET_INDEX(pt);
-        short tmpOpn = material_values_opn[idx] + pst[idx - 1][0][y0][x0];
-        short tmpEnd = material_values_end[idx] + pst[idx - 1][1][y0][x0];
+        score_t tmpOpn = material_values_opn[idx] + pst[idx - 1][0][y0][x0];
+        score_t tmpEnd = material_values_end[idx] + pst[idx - 1][1][y0][x0];
 
         if(pt & white)
         {
@@ -222,7 +222,7 @@ void InitEvaOfMaterialAndPst()
 
 
 //--------------------------------
-bool IsPasser(u8 col, u8 stm)
+bool IsPasser(coord_t col, u8 stm)
 {
     int mx = pawn_max[col + 1][stm];
 
@@ -242,15 +242,15 @@ bool IsPasser(u8 col, u8 stm)
 //--------------------------------
 void EvalPawns(u8 stm)
 {
-    short ansO = 0, ansE = 0;
+    score_t ansO = 0, ansE = 0;
     bool passer, prev_passer = false;
     bool opp_only_pawns = material[!stm] == pieces[!stm] - 1;
 
-    for(u8 col = 0; col < 8; col++)
+    for(coord_t col = 0; col < 8; col++)
     {
         bool doubled = false, isolany = false;
 
-        int mx = pawn_max[col + 1][stm];
+        u8 mx = pawn_max[col + 1][stm];
         if(mx == 0)
         {
             prev_passer = false;
@@ -284,7 +284,7 @@ void EvalPawns(u8 stm)
             if(col > 0 && col < 7 && mx < pawn_min[col + 0][stm]
             && mx < pawn_min[col + 2][stm])
             {
-                int y_coord = stm ? mx + 1 : 7 - mx - 1;
+                u8 y_coord = stm ? mx + 1 : 7 - mx - 1;
                 u8 op_piece = b[XY2SQ(col, y_coord)];
                 bool occupied = DARK(op_piece, stm)
                 && TO_BLACK(op_piece) != _p;
@@ -303,11 +303,11 @@ void EvalPawns(u8 stm)
         // following code executed only for passers
 
         // king pawn tropism
-        short k = *king_coord[stm];
-        short opp_k = *king_coord[!stm];
-        short pawn_coord = XY2SQ(col, stm ? mx + 1 : 7 - mx - 1);
-        short k_dist = king_dist[ABSI(k - pawn_coord)];
-        short opp_k_dist = king_dist[ABSI(opp_k - pawn_coord)];
+        coord_t k = *king_coord[stm];
+        coord_t opp_k = *king_coord[!stm];
+        coord_t pawn_coord = XY2SQ(col, stm ? mx + 1 : 7 - mx - 1);
+        u8 k_dist = king_dist[ABSI(k - pawn_coord)];
+        u8 opp_k_dist = king_dist[ABSI(opp_k - pawn_coord)];
 
         if(k_dist <= 1)
             ansE += 30 + 10*mx;
@@ -319,10 +319,10 @@ void EvalPawns(u8 stm)
             ansE -= 15;
 
         // passed pawn evaluation
-        int pass[] =         {0, 0, 21, 40, 85, 150, 200};
-        int blocked_pass[] = {0, 0, 10, 20, 40,  50,  60};
+        score_t pass[] =         {0, 0, 21, 40, 85, 150, 200};
+        score_t blocked_pass[] = {0, 0, 10, 20, 40,  50,  60};
         bool blocked = b[XY2SQ(col, stm ? mx + 1 : 7 - mx - 1)] != __;
-        int delta = blocked ? blocked_pass[mx] : pass[mx];
+        score_t delta = blocked ? blocked_pass[mx] : pass[mx];
 
         ansE += delta;
         ansO += delta/3;
@@ -330,7 +330,7 @@ void EvalPawns(u8 stm)
         // connected passers
         if(passer && prev_passer && ABSI(mx - pawn_max[col + 0][stm]) <= 1)
         {
-            int mmx = std::max((int)pawn_max[col + 0][stm], mx);
+            int mmx = std::max(pawn_max[col + 0][stm], mx);
             if(mmx > 4)
                 ansE += 28*mmx;
         }
@@ -355,10 +355,10 @@ void EvalPawns(u8 stm)
 
 
 //------------------------------
-short OneBishopMobility(u8 b_coord)
+score_t OneBishopMobility(coord_t b_coord)
 {
-    short ans;
-    int empty_squares = 0;
+    score_t ans;
+    score_t empty_squares = 0;
     for(u8 ray = 0; ray < 4; ++ray)
     {
         u8 coord = b_coord;
@@ -381,7 +381,7 @@ short OneBishopMobility(u8 b_coord)
 //------------------------------
 void BishopMobility(u8 stm)
 {
-    short ans = 0;
+    score_t ans = 0;
 
     auto rit = coords[stm].rbegin();
 
@@ -408,7 +408,7 @@ void BishopMobility(u8 stm)
 //-----------------------------
 void ClampedRook(u8 stm)
 {
-    u8 k = *king_coord[stm];
+    coord_t k = *king_coord[stm];
 
     if(stm)
     {
@@ -457,7 +457,7 @@ void ClampedRook(u8 stm)
         }
     }
 
-    short ans = 0;
+    score_t ans = 0;
     auto rit = coords[stm].rbegin();
 
     while(rit != coords[stm].rend()
@@ -514,18 +514,18 @@ void ClampedRook(u8 stm)
 
 
 //-----------------------------
-bool IsUnstoppablePawn(u8 col, u8 row, u8 stm)
+bool IsUnstoppablePawn(coord_t col, coord_t row, u8 stm)
 {
-    u8 k = *king_coord[!stm];
+    coord_t k = *king_coord[!stm];
 
     if(row > 5)
         row = 5;
-    int psq = XY2SQ(col, stm ? 7 : 0);
-    int d = king_dist[ABSI(k - psq)];
+    coord_t psq = XY2SQ(col, stm ? 7 : 0);
+    u8 d = king_dist[ABSI(k - psq)];
     if(COL(*king_coord[stm]) == col
     && king_dist[ABSI(*king_coord[stm] - psq)] <= row)
         row++;
-    return d - (stm != wtm) > row;
+    return (int)(d - (stm != wtm)) > row;
 }
 
 
@@ -535,7 +535,7 @@ bool IsUnstoppablePawn(u8 col, u8 row, u8 stm)
 //-----------------------------
 void MaterialImbalances()
 {
-    int X = material[black] + 1 + material[white] + 1
+    score_t X = material[black] + 1 + material[white] + 1
             - pieces[black] - pieces[white];
 
     if(X == 3 && (material[black] == 4 || material[white] == 4))
@@ -577,7 +577,7 @@ void MaterialImbalances()
                     break;
             assert(TO_BLACK(b[*rit]) == _b);
 
-            short ans = 0;
+            score_t ans = 0;
             auto ok = *king_coord[!stm];
             if(ok == 0x06 || ok == 0x07 || ok == 0x17
             || ok == 0x70 || ok == 0x71 || ok == 0x60)
@@ -599,14 +599,14 @@ void MaterialImbalances()
         // KBPk or KNPk with pawn at a(h) file
         if(material[white] == 0)
         {
-            u8 k = *king_coord[white];
+            coord_t k = *king_coord[white];
             if((pawn_max[1 + 0][black] != 0 && king_dist[ABSI(k - 0x00)] <= 1)
             || (pawn_max[1 + 7][black] != 0 && king_dist[ABSI(k - 0x07)] <= 1))
                 val_end += 750;
         }
         else if(material[black] == 0)
         {
-            u8 k = *king_coord[black];
+            coord_t k = *king_coord[black];
             if((pawn_max[1 + 0][white] != 0 && king_dist[ABSI(k - 0x70)] <= 1)
             || (pawn_max[1 + 7][white] != 0 && king_dist[ABSI(k - 0x77)] <= 1))
                 val_end -= 750;
@@ -620,10 +620,10 @@ void MaterialImbalances()
             u8 stm = material[white] == 1;
             auto it = coords[stm].rbegin();
             ++it;
-            u8 colp = COL(*it);
+            coord_t colp = COL(*it);
             bool unstop = IsUnstoppablePawn(colp, 7 - pawn_max[colp + 1][stm], stm);
-            int dist_k = king_dist[ABSI(*king_coord[stm] - *it)];
-            int dist_opp_k = king_dist[ABSI(*king_coord[!stm] - *it)];
+            u8 dist_k = king_dist[ABSI(*king_coord[stm] - *it)];
+            u8 dist_opp_k = king_dist[ABSI(*king_coord[!stm] - *it)];
 
             if(!unstop && dist_k > dist_opp_k + (wtm == stm))
             {
@@ -700,7 +700,7 @@ short EvalDebug()
     b_state[prev_states + ply].val_opn = val_opn;
     b_state[prev_states + ply].val_end = val_end;
 
-    short store_vo, store_ve, store_sum;
+    score_t store_vo, store_ve, store_sum;
 
     store_vo = val_opn;
     store_ve = val_end;
@@ -778,7 +778,7 @@ short EvalDebug()
     store_ve = val_end;
     store_sum = ReturnEval(white);
 
-    short ans = -ReturnEval(wtm);
+    score_t ans = -ReturnEval(wtm);
     ans -= 8;                                                           // bonus for side to move
     std::cout << "Bonus for side to move\t\t\t";
     std::cout <<  (wtm ? 8 : -8) << std::endl << std::endl;
@@ -799,10 +799,10 @@ short EvalDebug()
 
 
 //-----------------------------
-void SetPawnStruct(u32 col)
+void SetPawnStruct(coord_t col)
 {
-    assert(col >= 0 && col <= 7);
-    int y;
+    assert(col <= 7);
+    u8 y;
     if(wtm)
     {
         y = 1;
@@ -834,7 +834,7 @@ void SetPawnStruct(u32 col)
 
 
 //-----------------------------
-void MovePawnStruct(u8 moved_piece, u8 from_coord, Move move)
+void MovePawnStruct(u8 moved_piece, coord_t from_coord, Move move)
 {
     if(TO_BLACK(moved_piece) == _p || (move.flg & mPROM))
     {
@@ -858,7 +858,8 @@ void MovePawnStruct(u8 moved_piece, u8 from_coord, Move move)
 //-----------------------------
 void InitPawnStruct()
 {
-    int x, y;
+    coord_t x;
+    u8 y;
     for(x = 0; x < 8; x++)
     {
         pawn_max[x + 1][0] = 0;
@@ -896,7 +897,7 @@ void InitPawnStruct()
 
 
 //-----------------------------
-short CountKingTropism(u8 king_color)
+score_t CountKingTropism(u8 king_color)
 {
     short occ_cr = 0;
     auto rit = coords[!king_color].rbegin();
@@ -919,7 +920,7 @@ short CountKingTropism(u8 king_color)
 
 
 //-----------------------------
-void MoveKingTropism(u8 from_coord, Move move, u8 king_color)
+void MoveKingTropism(coord_t from_coord, Move move, u8 king_color)
 {
     b_state[prev_states + ply].tropism[black] = king_tropism[black];
     b_state[prev_states + ply].tropism[white] = king_tropism[white];
@@ -955,7 +956,7 @@ void MoveKingTropism(u8 from_coord, Move move, u8 king_color)
     }
 
 #ifndef NDEBUG
-    short tmp = CountKingTropism(king_color);
+    score_t tmp = CountKingTropism(king_color);
     if(king_tropism[king_color] != tmp && TO_BLACK(cap) != _k)
         ply = ply;
     tmp = CountKingTropism(!king_color);
@@ -976,7 +977,7 @@ bool MkMoveAndEval(Move m)
 
     bool is_special_move = MkMoveFast(m);
 
-    u8 fr = b_state[prev_states + ply].fr;
+    coord_t fr = b_state[prev_states + ply].fr;
 
     MoveKingTropism(fr, m, wtm);
 

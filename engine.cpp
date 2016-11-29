@@ -6,7 +6,7 @@
 
 //--------------------------------
 char        stop_str[] = "";
-unsigned    stop_ply   = 0;
+depth_t     stop_ply   = 0;
 
 Timer       timer;
 double      time0;
