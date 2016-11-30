@@ -5,11 +5,11 @@
 
 
 //--------------------------------
-u8  b[137];                                                             // board array in "0x88" style
+piece_t b[137];                                                             // board array in "0x88" style
 short_list<u8, lst_sz> coords[2];
 
-u8  attacks[240],                                                       // table for quick detect possible attacks
-    get_delta[240];                                                     // I'm already forget what's this
+u8  attacks[240];                                                       // table for quick detect possible attacks
+u8  get_delta[240];                                                     // I'm already forget what's this
 i8  get_shift[240];                                                     // ... and this
 u8 rays[7]   = {0, 8, 8, 4, 4, 8, 0};
 i8 shifts[6][8] = {{ 0,  0,  0,  0,  0,  0,  0,  0},
@@ -18,7 +18,7 @@ i8 shifts[6][8] = {{ 0,  0,  0,  0,  0,  0,  0,  0},
                     { 1, 16, -1,-16, 0,  0,  0,  0},
                     {17, 15,-17,-15, 0,  0,  0,  0},
                     {18, 33, 31, 14,-18,-33,-31,-14}};
-streng_t  pc_streng[7] =  {0, 0, 12, 6, 4, 4, 1};
+streng_t pc_streng[7] =  {0, 0, 12, 6, 4, 4, 1};
 streng_t streng[7]     = {0, 15000, 120, 60, 40, 40, 10};
 streng_t sort_streng[7] = {0, 15000, 120, 60, 41, 39, 10};
 u8  slider[7]       = {0, 0, 1, 1, 1, 0, 0};
@@ -55,7 +55,7 @@ void InitChess()
 //--------------------------------
 void InitBrd()
 {
-    u8 pcs[] = {_N, _N, _B, _B, _R, _R, _Q, _K};
+    piece_t pcs[] = {_N, _N, _B, _B, _R, _R, _Q, _K};
     u8 crd[] = {6, 1, 5, 2, 7, 0, 3, 4};
 
     memset(b, 0, sizeof(b));
@@ -327,7 +327,7 @@ bool MakeCastle(Move m, coord_t fr)
     if(!(m.flg & mCSTL))
         return castleRightsChanged;
 
-    u8 rFr, rTo;
+    coord_t rFr, rTo;
     if(m.flg == mCS_K)
     {
         rFr = 0x07;
@@ -367,8 +367,8 @@ void UnMakeCastle(Move m)
 {
     auto rMen = coords[wtm].begin();
     rMen = b_state[prev_states + ply].castled_rook_it;
-    u8 rFr =*rMen;
-    u8 rTo = rFr + (m.flg == mCS_K ? 2 : -3);
+    coord_t rFr =*rMen;
+    coord_t rTo = rFr + (m.flg == mCS_K ? 2 : -3);
     b[rTo] = b[rFr];
     b[rFr] = __;
     *rMen = rTo;
@@ -382,7 +382,7 @@ void UnMakeCastle(Move m)
 bool MakeEP(Move m, coord_t fr)
 {
     int delta = m.to - fr;
-    u8 to = m.to;
+    coord_t to = m.to;
     if(ABSI(delta) == 0x20
     && (b[m.to + 1] == (_P ^ wtm) || b[to - 1] == (_P ^ wtm)))
     {
@@ -480,8 +480,8 @@ bool Legal(Move m, bool ic)
 {
     if(ic || TO_BLACK(b[m.to]) == _k)
         return !Attack(*king_coord[!wtm], wtm);
-    u8 fr = b_state[prev_states + ply].fr;
-    u8 to = *king_coord[!wtm];
+    coord_t fr = b_state[prev_states + ply].fr;
+    coord_t to = *king_coord[!wtm];
     assert(120 + to - fr >= 0);
     assert(120 + to - fr < 240);
     if(attacks[120 + to - fr] & (1 << GET_INDEX(_r)))
@@ -585,8 +585,8 @@ bool MkMoveFast(Move m)
     ply++;
     auto it = coords[wtm].begin();
     it      = m.pc;
-    u8 fr   = *it;
-    u8 targ = m.to;
+    coord_t fr   = *it;
+    coord_t targ = m.to;
     StoreCurrentBoardState(m, fr, targ);
 
     if(m.flg & mCAPT)
@@ -660,7 +660,7 @@ void UnmakeCapture(Move m)
 //--------------------------------
 void UnmakePromotion(Move m)
 {
-    u8 prPc[] = {0, _q, _n, _r, _b};
+    piece_t prPc[] = {0, _q, _n, _r, _b};
 
     int prIx = m.flg & mPROM;
 
@@ -682,7 +682,7 @@ void UnmakePromotion(Move m)
 //--------------------------------
 void UnMoveFast(Move m)
 {
-    u8 fr = b_state[prev_states + ply].fr;
+    coord_t fr = b_state[prev_states + ply].fr;
     auto it = coords[!wtm].begin();
     it = m.pc;
     *it = fr;

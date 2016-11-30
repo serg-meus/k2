@@ -10,8 +10,8 @@ u8 pawn_max[10][2], pawn_min[10][2];
 score_t material_values_opn[] = {  0, 0, Q_VAL_OPN, R_VAL_OPN, B_VAL_OPN, N_VAL_OPN, P_VAL_OPN};
 score_t material_values_end[] = {  0, 0, Q_VAL_END, R_VAL_END, B_VAL_END, N_VAL_END, P_VAL_END};
 
-u8  king_dist[120];
-score_t king_tropism[2];
+u8 king_dist[120];
+tropism_t king_tropism[2];
 
 u8 tropism_factor[2][7] =
 {   //  k  Q   R   B   N   P

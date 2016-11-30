@@ -37,6 +37,12 @@ typedef u8 coord_t;
 typedef i16 score_t;
 typedef i16 depth_t;
 typedef i16 streng_t;
+typedef u8 piece_t;
+typedef u8 side_to_move_t;
+typedef u8 move_score_t;
+typedef i16 tropism_t;
+typedef u8 move_flag_t;
+typedef u8 piece_index_t;
 
 
 
@@ -59,7 +65,7 @@ public:
     coord_t to;
     iterator_entity pc;
     u8 flg;
-    u8 scr;
+    move_score_t scr;
 
     bool operator == (Move m)   {return to == m.to && pc == m.pc && flg == m.flg;}
     bool operator != (Move m)   {return to != m.to || pc != m.pc || flg != m.flg;}
@@ -82,7 +88,7 @@ public:
 //--------------------------------
 struct BrdState
 {
-    u8 capt;                                                            // taken piece, 6 bits
+    piece_t capt;                                                            // taken piece, 6 bits
     iterator_entity captured_it;                                        // iterator to captured piece
     coord_t fr;                                                         // from point, 7 bits
     u8 cstl;                                                            // castling rights, bits 0..3: _K, _Q, _k, _q, 4 bits
@@ -91,11 +97,11 @@ struct BrdState
     u8 ep;                                                              // 0 = no_ep, else ep=COL(x) + 1, not null only if opponent pawn is near, 4 bits
     iterator_entity nprom;                                              // number of next piece for promoted pawn, 6 bits
     u16 reversibleCr;                                                   // reversible halfmove counter
-    u8 to;                                                              // to point, 7 bits (for simple repetition draw detection)
+    coord_t to;                                                              // to point, 7 bits (for simple repetition draw detection)
     score_t val_opn;                                                    // store material and PST value considered all material is on the board
     score_t val_end;                                                    // store material and PST value considered deep endgame (kings and pawns only)
-    u8 scr;                                                             // move priority by move genererator
-    i16 tropism[2];
+    move_score_t scr;                                                             // move priority by move genererator
+    tropism_t tropism[2];
 };
 
 
