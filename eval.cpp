@@ -13,7 +13,7 @@ score_t material_values_end[] = {  0, 0, Q_VAL_END, R_VAL_END, B_VAL_END, N_VAL_
 u8 king_dist[120];
 tropism_t king_tropism[2];
 
-u8 tropism_factor[2][7] =
+tropism_t tropism_factor[2][7] =
 {   //  k  Q   R   B   N   P
     {0, 0, 10, 10, 10,  4, 4},  // 4 >= dist > 3
     {0, 0, 21, 21, 10,  0, 10}  // dist < 3

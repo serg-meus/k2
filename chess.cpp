@@ -21,10 +21,10 @@ i8 shifts[6][8] = {{ 0,  0,  0,  0,  0,  0,  0,  0},
 streng_t pc_streng[7] =  {0, 0, 12, 6, 4, 4, 1};
 streng_t streng[7]     = {0, 15000, 120, 60, 40, 40, 10};
 streng_t sort_streng[7] = {0, 15000, 120, 60, 41, 39, 10};
-u8  slider[7]       = {0, 0, 1, 1, 1, 0, 0};
-int material[2], pieces[2];
+u8  slider[7] = {0, 0, 1, 1, 1, 0, 0};
+streng_t material[2], pieces[2];
 BrdState  b_state[prev_states + max_ply];
-unsigned wtm;
+side_to_move_t wtm;
 depth_t ply;
 u64 nodes, tmpCr;
 char *cv;
@@ -65,7 +65,7 @@ void InitBrd()
 
     InitAttacks();
 
-    int i;
+    coord_t i;
     for(i = 0; i < 8; i++)
     {
         b[XY2SQ(i, 1)]      = _P;
@@ -95,7 +95,7 @@ void InitBrd()
     king_coord[white] = --coords[white].end();
     king_coord[black] = --coords[black].end();
 
-    for(u8 clr = 0; clr <= 1; clr++)
+    for(side_to_move_t clr = black; clr <= white; clr++)
     {
         quantity[clr][GET_INDEX(_k)] = 1;
         quantity[clr][GET_INDEX(_q)] = 1;
@@ -144,7 +144,7 @@ void InitAttacks()
 //--------------------------------
 bool BoardToMen()
 {
-    unsigned i;
+    size_t i;
 
     coords[black].clear();
     coords[white].clear();
@@ -170,9 +170,8 @@ bool BoardToMen()
 bool FenToBoard(char *p)
 {
     char chars[] = "kqrbnpKQRBNP";
-    char pcs[]  = { _k, _q, _r, _b, _n, _p, _K, _Q, _R, _B, _N, _P};
-    int mtr[]   = {0, 12, 6, 4, 4, 1, 0, 12, 6, 4, 4, 1};
-    int i;
+    piece_t pcs[]  = { _k, _q, _r, _b, _n, _p, _K, _Q, _R, _B, _N, _P};
+    streng_t mtr[]   = {0, 12, 6, 4, 4, 1, 0, 12, 6, 4, 4, 1};
     material[black] = 0;
     material[white] = 0;
     pieces[black]   = 0;
@@ -202,7 +201,7 @@ bool FenToBoard(char *p)
             }
             else
             {
-                i = 0;
+                size_t i = 0;
                 for(; i < 12; ++i)
                     if(*p == chars[i])
                         break;
@@ -401,8 +400,8 @@ bool MakeEP(Move m, coord_t fr)
 //--------------------------------
 bool SliderAttack(coord_t fr, coord_t to)
 {
-    int shift = get_shift[120 + to - fr];
-    int delta = get_delta[120 + to - fr];
+    i8 shift = get_shift[120 + to - fr];
+    u8 delta = get_delta[120 + to - fr];
     for(int i = 0; i < delta - 1; i++)
     {
         fr += shift;
@@ -428,9 +427,9 @@ bool Attack(coord_t to, u32 xtm)
     auto it = king_coord[xtm];
     do
     {
-        u8 fr = *it;
-        int pt  = GET_INDEX(b[fr]);
-        if(pt   == GET_INDEX(_p))
+        coord_t fr = *it;
+        piece_index_t pt = GET_INDEX(b[fr]);
+        if(pt == GET_INDEX(_p))
             break;
 
         u8 att = attacks[120 + to - fr] & (1 << pt);
@@ -454,8 +453,8 @@ bool LegalSlider(coord_t fr, coord_t to, u8 pt)
 {
     assert(120 + to - fr >= 0);
     assert(120 + to - fr < 240);
-    int shift = get_shift[120 + to - fr];
-    for(int i = 0; i < 7; i++)
+    i8 shift = get_shift[120 + to - fr];
+    for(size_t i = 0; i < 7; i++)
     {
         to -= shift;
         if(!ONBRD(to))
@@ -558,8 +557,8 @@ void MakeCapture(Move m, coord_t targ)
 //--------------------------------
 void MakePromotion(Move m, iterator it)
 {
-    int prIx = m.flg & mPROM;
-    u8 prPc[] = {0, _q, _n, _r, _b};
+    move_flag_t prIx = m.flg & mPROM;
+    piece_t prPc[] = {0, _q, _n, _r, _b};
     if(prIx)
     {
         b[m.to] = prPc[prIx] ^ wtm;
@@ -662,7 +661,7 @@ void UnmakePromotion(Move m)
 {
     piece_t prPc[] = {0, _q, _n, _r, _b};
 
-    int prIx = m.flg & mPROM;
+    move_flag_t prIx = m.flg & mPROM;
 
     auto it_prom = coords[wtm].begin();
     it_prom = b_state[prev_states + ply].nprom;
