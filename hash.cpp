@@ -79,7 +79,7 @@ void MoveHashKey(Move m, bool special)
     doneHashKeys[FIFTY_MOVES + ply - 1] = hash_key;
     coord_t fr = b_state[prev_states + ply].fr;
 
-    u8 pt   = b[m.to];
+    piece_t pt   = b[m.to];
     BrdState &f = b_state[prev_states + ply],
             &_f = b_state[prev_states + ply - 1];
 
@@ -296,7 +296,7 @@ tt_entry* transposition_table::count(u64 key)
 //--------------------------------
 tt_entry& transposition_table::operator [](u64 key)
 {
-    unsigned i, ans = 0;
+    size_t i, ans = 0;
     tt_entry *bucket = &data[entries_in_a_bucket*(key & mask)];
     for(i = 0; i < entries_in_a_bucket; ++i)
         if(bucket[i].key == key >> 32)
