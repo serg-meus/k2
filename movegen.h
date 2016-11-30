@@ -30,11 +30,11 @@ typedef u8  movcr_t;
 
 //--------------------------------
 void    InitMoveGen();
-int     GenMoves(Move *list, Move *best_move, u8 apprice);
+movcr_t GenMoves(Move *list, Move *best_move, u8 apprice);
 void    GenPawn(Move *list, movcr_t *movCr, iterator it);
 void    GenPawnCap(Move *list, movcr_t *movCr, iterator it);
-void    GenCastles(Move *list, u8 *movCr);
-int     GenCaptures(Move *list);
+void    GenCastles(Move *list, movcr_t *movCr);
+movcr_t GenCaptures(Move *list);
 void    AppriceMoves(Move *list, movcr_t moveCr, Move *best_move);
 void    AppriceQuiesceMoves(Move *list, movcr_t moveCr);
 streng_t SEE(coord_t to, streng_t frStreng, score_t val, bool stm);
@@ -42,5 +42,5 @@ iterator SeeMinAttacker(coord_t to);
 streng_t SEE_main(Move m);
 void    SortQuiesceMoves(Move *move_array, movcr_t moveCr);
 void    PushMove(Move *move_array, movcr_t *movCr, iterator it,
-                 coord_t to, u8 flg);
+                 coord_t to, move_flag_t flg);
 //--------------------------------
