@@ -132,8 +132,8 @@ void GenPawn(move_c *move_array, movcr_t *moveCr, iterator it)
                 PushMove(move_array, moveCr, it, to, i);
             if(ROW(fr) == 1 && !b[fr + 16] && !b[fr + 32])
                 PushMove(move_array, moveCr, it, fr + 32, 0);
-            u8 ep = b_state[prev_states + ply].ep;
-            i8 delta = ep - 1 - COL(fr);
+            enpass_t ep = b_state[prev_states + ply].ep;
+            shifts_t delta = ep - 1 - COL(fr);
             if(ep && ABSI(delta) == 1 && ROW(fr) == 4)
                 PushMove(move_array, moveCr, it, fr + 16 + delta, mCAPT | mENPS);
         }
@@ -150,8 +150,8 @@ void GenPawn(move_c *move_array, movcr_t *moveCr, iterator it)
                 PushMove(move_array, moveCr, it, to, i);
             if(ROW(fr) == 6 && !b[fr - 16] && !b[fr - 32])
                 PushMove(move_array, moveCr, it, fr - 32, 0);
-            u8 ep = b_state[prev_states + ply].ep;
-            i8 delta = ep - 1 - COL(fr);
+            enpass_t ep = b_state[prev_states + ply].ep;
+            shifts_t delta = ep - 1 - COL(fr);
             if(ep && ABSI(delta) == 1 && ROW(fr) == 3)
                 PushMove(move_array, moveCr, it, fr - 16 + delta, mCAPT | mENPS);
         }
@@ -189,8 +189,8 @@ void GenPawnCap(move_c *move_array, movcr_t *moveCr, iterator it)
             to = fr + 16;
             if(pBeg && !b[to])
                 PushMove(move_array, moveCr, it, to, i);
-            u8 ep = b_state[prev_states + ply].ep;
-            i8 delta = ep - 1 - COL(fr);
+            enpass_t ep = b_state[prev_states + ply].ep;
+            shifts_t delta = ep - 1 - COL(fr);
             if(ep && ABSI(delta) == 1 && ROW(fr) == 4)
                 PushMove(move_array, moveCr, it, fr + 16 + delta, mCAPT | mENPS);
         }
@@ -205,8 +205,8 @@ void GenPawnCap(move_c *move_array, movcr_t *moveCr, iterator it)
             to = fr - 16;
             if(pBeg && !b[to])
                 PushMove(move_array, moveCr, it, to, i);
-            u8 ep = b_state[prev_states + ply].ep;
-            i8 delta = ep - 1 - COL(fr);
+            enpass_t ep = b_state[prev_states + ply].ep;
+            shifts_t delta = ep - 1 - COL(fr);
             if(ep && ABSI(delta) == 1 && ROW(fr) == 3)
                 PushMove(move_array, moveCr, it, fr - 16 + delta, mCAPT | mENPS);
         }
@@ -565,8 +565,8 @@ streng_t SEE(coord_t to, streng_t frStreng, score_t val, bool stm)
 //-----------------------------
 iterator SeeMinAttacker(coord_t to)
 {
-    i8 shft_l[] = {15, -17};
-    i8 shft_r[] = {17, -15};
+    shifts_t shft_l[] = {15, -17};
+    shifts_t shft_r[] = {17, -15};
     piece_t  pw[] = {_p, _P};
 
     if(to + shft_l[!wtm] > 0 && b[to + shft_l[!wtm]] == pw[!wtm])
@@ -590,7 +590,7 @@ iterator SeeMinAttacker(coord_t to)
         piece_index_t pt  = GET_INDEX(b[fr]);
         if(pt == GET_INDEX(_p))
             continue;
-        u8 att = attacks[120 + to - fr] & (1 << pt);
+        attack_t att = attacks[120 + to - fr] & (1 << pt);
         if(!att)
             continue;
         if(!slider[pt])
