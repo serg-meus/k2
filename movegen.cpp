@@ -5,8 +5,8 @@
 
 
 //--------------------------------
-Move pv[max_ply][max_ply + 1];          // the 'flg' property of first element in a row is length of PV at that depth
-Move killers[max_ply][2];
+move_c pv[max_ply][max_ply + 1];          // the 'flg' property of first element in a row is length of PV at that depth
+move_c killers[max_ply][2];
 history_t history[2][6][128];
 history_t min_history, max_history;
 
@@ -25,10 +25,10 @@ void InitMoveGen()
 
 
 //--------------------------------
-void PushMove(Move *move_array, movcr_t *movCr, iterator it, coord_t to,
+void PushMove(move_c *move_array, movcr_t *movCr, iterator it, coord_t to,
               move_flag_t flg)
 {
-    Move    m;
+    move_c    m;
     m.pc    = it;
     m.to    = to;
     m.flg   = flg;
@@ -41,7 +41,7 @@ void PushMove(Move *move_array, movcr_t *movCr, iterator it, coord_t to,
 
 
 //--------------------------------
-movcr_t GenMoves(Move *move_array, Move *best_move, u8 apprice)
+movcr_t GenMoves(move_c *move_array, move_c *best_move, u8 apprice)
 {
     coord_t i, to, ray;
     movcr_t moveCr = 0;
@@ -103,7 +103,7 @@ movcr_t GenMoves(Move *move_array, Move *best_move, u8 apprice)
 
 
 //--------------------------------
-void GenPawn(Move *move_array, movcr_t *moveCr, iterator it)
+void GenPawn(move_c *move_array, movcr_t *moveCr, iterator it)
 {
     coord_t to;
     move_flag_t pBeg, pEnd;
@@ -162,7 +162,7 @@ void GenPawn(Move *move_array, movcr_t *moveCr, iterator it)
 
 
 //--------------------------------
-void GenPawnCap(Move *move_array, movcr_t *moveCr, iterator it)
+void GenPawnCap(move_c *move_array, movcr_t *moveCr, iterator it)
 {
     coord_t to;
     size_t pBeg, pEnd;
@@ -217,7 +217,7 @@ void GenPawnCap(Move *move_array, movcr_t *moveCr, iterator it)
 
 
 //--------------------------------
-void GenCastles(Move *move_array, movcr_t *moveCr)
+void GenCastles(move_c *move_array, movcr_t *moveCr)
 {
     u8 msk = wtm ? 0x03 : 0x0C;
     u8 cst = b_state[prev_states + ply].cstl & msk;
@@ -267,7 +267,7 @@ void GenCastles(Move *move_array, movcr_t *moveCr)
 
 
 //--------------------------------
-movcr_t GenCaptures(Move *move_array)
+movcr_t GenCaptures(move_c *move_array)
 {
     coord_t i, to, ray;
     movcr_t moveCr = 0;
@@ -319,7 +319,7 @@ movcr_t GenCaptures(Move *move_array)
 
 
 //--------------------------------
-void AppriceMoves(Move *move_array, movcr_t moveCr, Move *bestMove)
+void AppriceMoves(move_c *move_array, movcr_t moveCr, move_c *bestMove)
 {
 #ifndef DONT_USE_HISTORY
     min_history = UINT_MAX;
@@ -327,14 +327,14 @@ void AppriceMoves(Move *move_array, movcr_t moveCr, Move *bestMove)
 #endif
 
     auto it = coords[wtm].begin();
-    Move bm = *move_array;
+    move_c bm = *move_array;
     if(bestMove == nullptr)
         bm.flg = 0xFF;
     else
         bm = *bestMove;
     for(movcr_t i = 0; i < moveCr; i++)
     {
-        Move m = move_array[i];
+        move_c m = move_array[i];
 
         it = m.pc;
         piece_t fr_pc = b[*it];
@@ -437,7 +437,7 @@ void AppriceMoves(Move *move_array, movcr_t moveCr, Move *bestMove)
 #ifndef DONT_USE_HISTORY
     for(movcr_t i = 0; i < moveCr; i++)
     {
-        Move m = move_array[i];
+        move_c m = move_array[i];
         if(m.scr >= std::min(MOVE_FROM_PV, SECOND_KILLER)
         || (m.flg & mCAPT))
             continue;
@@ -461,12 +461,12 @@ void AppriceMoves(Move *move_array, movcr_t moveCr, Move *bestMove)
 
 
 //--------------------------------
-void AppriceQuiesceMoves(Move *move_array, movcr_t moveCr)
+void AppriceQuiesceMoves(move_c *move_array, movcr_t moveCr)
 {
     auto it = coords[wtm].begin();
     for(movcr_t i = 0; i < moveCr; i++)
     {
-        Move m = move_array[i];
+        move_c m = move_array[i];
 
         it = m.pc;
         coord_t fr = b[*it];
@@ -607,7 +607,7 @@ iterator SeeMinAttacker(coord_t to)
 
 
 //-----------------------------
-streng_t SEE_main(Move m)
+streng_t SEE_main(move_c m)
 {
     auto it = coords[wtm].begin();
     it = m.pc;
@@ -634,7 +634,7 @@ streng_t SEE_main(Move m)
 
 
 //--------------------------------
-void SortQuiesceMoves(Move *move_array, movcr_t moveCr)
+void SortQuiesceMoves(move_c *move_array, movcr_t moveCr)
 {
     if(moveCr <= 1)
         return;

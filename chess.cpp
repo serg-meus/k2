@@ -9,9 +9,9 @@ piece_t b[137];                                                             // b
 short_list<coord_t, lst_sz> coords[2];
 
 attack_t attacks[240];                                                // table for quick detect possible attacks
-deltas_t get_delta[240];                                               // I'm already forget what's this
+dist_t get_delta[240];                                               // I'm already forget what's this
 shifts_t get_shift[240];                                               // ... and this
-deltas_t rays[7] = {0, 8, 8, 4, 4, 8, 0};
+dist_t rays[7] = {0, 8, 8, 4, 4, 8, 0};
 shifts_t shifts[6][8] = {
                     { 0,  0,  0,  0,  0,  0,  0,  0},
                     { 1, 17, 16, 15, -1,-17,-16,-15},
@@ -24,7 +24,7 @@ streng_t streng[7]     = {0, 15000, 120, 60, 40, 40, 10};
 streng_t sort_streng[7] = {0, 15000, 120, 60, 41, 39, 10};
 bool  slider[7] = {0, 0, 1, 1, 1, 0, 0};
 streng_t material[2], pieces[2];
-BrdState  b_state[prev_states + max_ply];
+state_s  b_state[prev_states + max_ply];
 side_to_move_t wtm;
 depth_t ply;
 char *cv;
@@ -297,7 +297,7 @@ void ShowMove(coord_t fr, coord_t to)
 
 
 //--------------------------------
-bool MakeCastle(Move m, coord_t fr)
+bool MakeCastle(move_c m, coord_t fr)
 {
     castle_t cs = b_state[prev_states + ply].cstl;
     if(m.pc == king_coord[wtm])                     // K moves
@@ -361,7 +361,7 @@ bool MakeCastle(Move m, coord_t fr)
 
 
 //--------------------------------
-void UnMakeCastle(Move m)
+void UnMakeCastle(move_c m)
 {
     auto rMen = coords[wtm].begin();
     rMen = b_state[prev_states + ply].castled_rook_it;
@@ -377,7 +377,7 @@ void UnMakeCastle(Move m)
 
 
 //--------------------------------
-bool MakeEP(Move m, coord_t fr)
+bool MakeEP(move_c m, coord_t fr)
 {
     int delta = m.to - fr;
     coord_t to = m.to;
@@ -400,7 +400,7 @@ bool MakeEP(Move m, coord_t fr)
 bool SliderAttack(coord_t fr, coord_t to)
 {
     shifts_t shift = get_shift[120 + to - fr];
-    deltas_t delta = get_delta[120 + to - fr];
+    dist_t delta = get_delta[120 + to - fr];
     for(int i = 0; i < delta - 1; i++)
     {
         fr += shift;
@@ -474,7 +474,7 @@ bool LegalSlider(coord_t fr, coord_t to, piece_t pt)
 
 
 //--------------------------------
-bool Legal(Move m, bool ic)
+bool Legal(move_c m, bool ic)
 {
     if(ic || TO_BLACK(b[m.to]) == _k)
         return !Attack(*king_coord[!wtm], wtm);
@@ -505,7 +505,7 @@ bool PieceListCompare(coord_t men1, coord_t men2)
 
 
 //--------------------------------
-void StoreCurrentBoardState(Move m, coord_t fr, coord_t targ)
+void StoreCurrentBoardState(move_c m, coord_t fr, coord_t targ)
 {
     b_state[prev_states + ply].cstl  = b_state[prev_states + ply - 1].cstl;
     b_state[prev_states + ply].capt  = b[m.to];
@@ -522,7 +522,7 @@ void StoreCurrentBoardState(Move m, coord_t fr, coord_t targ)
 
 
 //--------------------------------
-void MakeCapture(Move m, coord_t targ)
+void MakeCapture(move_c m, coord_t targ)
 {
     if (m.flg & mENPS)
     {
@@ -554,7 +554,7 @@ void MakeCapture(Move m, coord_t targ)
 
 
 //--------------------------------
-void MakePromotion(Move m, iterator it)
+void MakePromotion(move_c m, iterator it)
 {
     move_flag_t prIx = m.flg & mPROM;
     piece_t prPc[] = {0, _q, _n, _r, _b};
@@ -577,7 +577,7 @@ void MakePromotion(Move m, iterator it)
 
 
 //--------------------------------
-bool MkMoveFast(Move m)
+bool MkMoveFast(move_c m)
 {
     bool is_special_move = false;
     ply++;
@@ -620,7 +620,7 @@ bool MkMoveFast(Move m)
 
 
 //--------------------------------
-void UnmakeCapture(Move m)
+void UnmakeCapture(move_c m)
 {
     auto it_cap = coords[!wtm].begin();
     it_cap = b_state[prev_states + ply].captured_it;
@@ -656,7 +656,7 @@ void UnmakeCapture(Move m)
 
 
 //--------------------------------
-void UnmakePromotion(Move m)
+void UnmakePromotion(move_c m)
 {
     piece_t prPc[] = {0, _q, _n, _r, _b};
 
@@ -678,7 +678,7 @@ void UnmakePromotion(Move m)
 
 
 //--------------------------------
-void UnMoveFast(Move m)
+void UnMoveFast(move_c m)
 {
     coord_t fr = b_state[prev_states + ply].fr;
     auto it = coords[!wtm].begin();

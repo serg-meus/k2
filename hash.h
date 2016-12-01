@@ -27,13 +27,13 @@ typedef u32 short_key_t;
 
 
 //--------------------------------
-struct tt_entry
+struct hash_entry_s
 {
 ///////
 public:
     short_key_t key;
     score_t value;
-    Move    best_move;
+    move_c    best_move;
 
     hdepth_t  depth;
     hbound_t  bound_type  : 2;
@@ -44,28 +44,28 @@ public:
 };
 
 //--------------------------------
-class transposition_table
+class hash_table_c
 {
 ///////
 public:
 
-    transposition_table();
-    transposition_table(size_t size_mb);
-    ~transposition_table();
+    hash_table_c();
+    hash_table_c(size_t size_mb);
+    ~hash_table_c();
 
     bool set_size(size_t size_mb);
-    tt_entry* count(hash_key_t key);
-    void add(hash_key_t key, score_t value, Move best, depth_t depth,
+    hash_entry_s* count(hash_key_t key);
+    void add(hash_key_t key, score_t value, move_c best, depth_t depth,
              hbound_t bound_type, depth_t half_mov_cr, bool one_reply);
     void clear();
-    tt_entry& operator [](hash_key_t key);
+    hash_entry_s& operator [](hash_key_t key);
     bool resize(size_t size_mb);
     size_t size()     {return _size;}
-    size_t max_size() {return sizeof(tt_entry)*buckets*entries_in_a_bucket;}
+    size_t max_size() {return sizeof(hash_entry_s)*buckets*entries_in_a_bucket;}
 
 //////////
 protected:
-    tt_entry *data;
+    hash_entry_s *data;
 
     const size_t entries_in_a_bucket;
     size_t buckets;
@@ -80,7 +80,7 @@ protected:
 //--------------------------------
 bool InitHashTable();
 hash_key_t  InitHashKey();
-void MoveHashKey(Move m, bool special);
-void MkMove(Move m);
-void UnMove(Move m);
-void MkMoveIncrementally(Move m, bool special_move);
+void MoveHashKey(move_c m, bool special);
+void MkMove(move_c m);
+void UnMove(move_c m);
+void MkMoveIncrementally(move_c m, bool special_move);

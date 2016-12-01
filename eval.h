@@ -23,8 +23,6 @@
 
 
 
-typedef u8 rank_t;
-
 
 //--------------------------------
 const score_t
@@ -50,7 +48,7 @@ const score_t
 
 //--------------------------------
 void  InitEval();
-void  FastEval(Move m);
+void  FastEval(move_c m);
 score_t Eval();
 void  InitEvaOfMaterialAndPst();
 void  EvalPawns(side_to_move_t stm);
@@ -63,11 +61,11 @@ score_t ReturnEval(side_to_move_t stm);
 void  MaterialImbalances();
 score_t EvalDebug();
 score_t KingWeakness(side_to_move_t king_color);
-bool  MkMoveAndEval(Move m);
-void  UnMoveAndEval(Move m);
-void  MkEvalAfterFastMove(Move m);
+bool  MkMoveAndEval(move_c m);
+void  UnMoveAndEval(move_c m);
+void  MkEvalAfterFastMove(move_c m);
 score_t CountKingTropism(side_to_move_t king_color);
-void  MoveKingTropism(coord_t fr, Move m, side_to_move_t king_color);
+void  MoveKingTropism(coord_t fr, move_c m, side_to_move_t king_color);
 score_t KingOpenFiles(side_to_move_t king_color);
-void  MovePawnStruct(piece_t movedPiece, coord_t fr, Move m);
+void  MovePawnStruct(piece_t movedPiece, coord_t fr, move_c m);
 score_t OneBishopMobility(coord_t b_coord);

@@ -74,8 +74,8 @@ void Perft(depth_t depth);
 score_t Search(depth_t depth, score_t alpha, score_t beta,
                node_type_t node_type);
 score_t QSearch(score_t alpha, score_t beta);
-void StorePV(Move m);
-void UpdateStatistics(Move m, depth_t dpt, movcr_t move_cr);
+void StorePV(move_c m);
+void UpdateStatistics(move_c m, depth_t dpt, movcr_t move_cr);
 score_t RootSearch(depth_t depth, score_t alpha, score_t beta);
 void RootMoveGen(bool in_check);
 void MainSearch();
@@ -84,7 +84,7 @@ void PrintFinalSearchResult();
 void PrintCurrentSearchResult(score_t sc, char exclimation);
 void InitTime();
 bool ShowPV(depth_t _ply);
-void FindAndPrintForAmbiguousMoves(Move m);
+void FindAndPrintForAmbiguousMoves(move_c m);
 bool MakeMoveFinaly(char *mov);
 bool FenStringToEngine(char *fen);
 bool DrawDetect();
@@ -96,15 +96,15 @@ bool Futility(depth_t depth, score_t beta);
 bool DrawByRepetition();
 void ShowFen();
 void ReHash(size_t size_mb);
-tt_entry* HashProbe(depth_t depth, score_t *alpha, score_t beta);
-bool MoveIsPseudoLegal(Move &m, bool stm);
-Move Next(Move *move_array, movcr_t cur, movcr_t *top, tt_entry *entry,
+hash_entry_s* HashProbe(depth_t depth, score_t *alpha, score_t beta);
+bool MoveIsPseudoLegal(move_c &m, bool stm);
+move_c Next(move_c *move_array, movcr_t cur, movcr_t *top, hash_entry_s *entry,
           side_to_move_t stm, bool captures_only, bool in_check,
-          Move prev_move);
+          move_c prev_move);
 void StoreResultInHash(depth_t depth, score_t _alpha, score_t alpha,
                        score_t beta, movcr_t legals,
-                       bool beta_cutoff, Move best_move, bool one_reply);
+                       bool beta_cutoff, move_c best_move, bool one_reply);
 void ShowCurrentUciInfo();
-void MoveToStr(Move m, bool stm, char *out);
+void MoveToStr(move_c m, bool stm, char *out);
 void PonderHit();
-void ShowPVfailHighOrLow(Move m, score_t x, char exclimation);
+void ShowPVfailHighOrLow(move_c m, score_t x, char exclimation);

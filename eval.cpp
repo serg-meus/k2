@@ -10,7 +10,7 @@ rank_t pawn_max[10][2], pawn_min[10][2];
 score_t material_values_opn[] = {  0, 0, Q_VAL_OPN, R_VAL_OPN, B_VAL_OPN, N_VAL_OPN, P_VAL_OPN};
 score_t material_values_end[] = {  0, 0, Q_VAL_END, R_VAL_END, B_VAL_END, N_VAL_END, P_VAL_END};
 
-deltas_t king_dist[120];
+dist_t king_dist[120];
 tropism_t king_tropism[2];
 
 tropism_t tropism_factor[2][7] =
@@ -108,7 +108,7 @@ score_t ReturnEval(side_to_move_t stm)
 
 
 //-----------------------------
-void FastEval(Move m)
+void FastEval(move_c m)
 {
     score_t ansO = 0, ansE = 0;
 
@@ -307,8 +307,8 @@ void EvalPawns(side_to_move_t stm)
         coord_t k = *king_coord[stm];
         coord_t opp_k = *king_coord[!stm];
         coord_t pawn_coord = XY2SQ(col, stm ? mx + 1 : 7 - mx - 1);
-        deltas_t k_dist = king_dist[ABSI(k - pawn_coord)];
-        deltas_t opp_k_dist = king_dist[ABSI(opp_k - pawn_coord)];
+        dist_t k_dist = king_dist[ABSI(k - pawn_coord)];
+        dist_t opp_k_dist = king_dist[ABSI(opp_k - pawn_coord)];
 
         if(k_dist <= 1)
             ansE += 30 + 10*mx;
@@ -522,7 +522,7 @@ bool IsUnstoppablePawn(coord_t col, coord_t row, side_to_move_t stm)
     if(row > 5)
         row = 5;
     coord_t psq = XY2SQ(col, stm ? 7 : 0);
-    deltas_t d = king_dist[ABSI(k - psq)];
+    dist_t d = king_dist[ABSI(k - psq)];
     if(COL(*king_coord[stm]) == col
     && king_dist[ABSI(*king_coord[stm] - psq)] <= row)
         row++;
@@ -623,8 +623,8 @@ void MaterialImbalances()
             ++it;
             coord_t colp = COL(*it);
             bool unstop = IsUnstoppablePawn(colp, 7 - pawn_max[colp + 1][stm], stm);
-            deltas_t dist_k = king_dist[ABSI(*king_coord[stm] - *it)];
-            deltas_t dist_opp_k = king_dist[ABSI(*king_coord[!stm] - *it)];
+            dist_t dist_k = king_dist[ABSI(*king_coord[stm] - *it)];
+            dist_t dist_opp_k = king_dist[ABSI(*king_coord[!stm] - *it)];
 
             if(!unstop && dist_k > dist_opp_k + (wtm == stm))
             {
@@ -835,7 +835,7 @@ void SetPawnStruct(coord_t col)
 
 
 //-----------------------------
-void MovePawnStruct(piece_t moved_piece, coord_t from_coord, Move move)
+void MovePawnStruct(piece_t moved_piece, coord_t from_coord, move_c move)
 {
     if(TO_BLACK(moved_piece) == _p || (move.flg & mPROM))
     {
@@ -907,7 +907,7 @@ score_t CountKingTropism(side_to_move_t king_color)
         piece_t cur_piece = TO_BLACK(b[*rit]);
         if(cur_piece == _p)
             break;
-        deltas_t dist = king_dist[ABSI(*king_coord[king_color] - *rit)];
+        dist_t dist = king_dist[ABSI(*king_coord[king_color] - *rit)];
         if(dist >= 4)
             continue;
         occ_cr += tropism_factor[dist < 3][GET_INDEX(cur_piece)];
@@ -920,7 +920,7 @@ score_t CountKingTropism(side_to_move_t king_color)
 
 
 //-----------------------------
-void MoveKingTropism(coord_t from_coord, Move move, side_to_move_t king_color)
+void MoveKingTropism(coord_t from_coord, move_c move, side_to_move_t king_color)
 {
     b_state[prev_states + ply].tropism[black] = king_tropism[black];
     b_state[prev_states + ply].tropism[white] = king_tropism[white];
@@ -935,8 +935,8 @@ void MoveKingTropism(coord_t from_coord, Move move, side_to_move_t king_color)
         return;
     }
 
-    deltas_t dist_to = king_dist[ABSI(*king_coord[king_color] - move.to)];
-    deltas_t dist_fr = king_dist[ABSI(*king_coord[king_color] - from_coord)];
+    dist_t dist_to = king_dist[ABSI(*king_coord[king_color] - move.to)];
+    dist_t dist_fr = king_dist[ABSI(*king_coord[king_color] - from_coord)];
 
 
     if(dist_fr < 4 && !(move.flg & mPROM))
@@ -970,7 +970,7 @@ void MoveKingTropism(coord_t from_coord, Move move, side_to_move_t king_color)
 
 
 //-----------------------------
-bool MkMoveAndEval(Move m)
+bool MkMoveAndEval(move_c m)
 {
     b_state[prev_states + ply].val_opn = val_opn;
     b_state[prev_states + ply].val_end = val_end;
@@ -991,7 +991,7 @@ bool MkMoveAndEval(Move m)
 
 
 //-----------------------------
-void UnMoveAndEval(Move m)
+void UnMoveAndEval(move_c m)
 {
     king_tropism[black] = b_state[prev_states + ply].tropism[black];
     king_tropism[white] = b_state[prev_states + ply].tropism[white];
@@ -1015,7 +1015,7 @@ void UnMoveAndEval(Move m)
 
 
 //-----------------------------
-void MkEvalAfterFastMove(Move m)
+void MkEvalAfterFastMove(move_c m)
 {
     b_state[prev_states + ply - 1].val_opn = val_opn;
     b_state[prev_states + ply - 1].val_end = val_end;

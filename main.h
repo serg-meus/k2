@@ -34,7 +34,7 @@ extern bool busy;
 extern u64 total_nodes;
 extern double total_time_spent;
 extern bool time_command_sent;
-extern transposition_table tt;
+extern hash_table_c hash_table;
 
 #ifdef TUNE_PARAMETERS
     extern std::vector <float> param;

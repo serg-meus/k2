@@ -67,7 +67,7 @@ hash_key_t InitHashKey()
 
     if(!wtm)
         ans ^= key_for_side_to_move;
-    BrdState &f = b_state[prev_states + ply];
+    state_s &f = b_state[prev_states + ply];
     ans ^= zorb_en_passant[f.ep] ^ zorb_castling[f.cstl];
 
     return ans;
@@ -78,13 +78,13 @@ hash_key_t InitHashKey()
 
 
 //--------------------------------
-void MoveHashKey(Move m, bool special)
+void MoveHashKey(move_c m, bool special)
 {
     doneHashKeys[FIFTY_MOVES + ply - 1] = hash_key;
     coord_t fr = b_state[prev_states + ply].fr;
 
     piece_t pt   = b[m.to];
-    BrdState &f = b_state[prev_states + ply],
+    state_s &f = b_state[prev_states + ply],
             &_f = b_state[prev_states + ply - 1];
 
     hash_key ^= zorb[MEN_TO_ZORB(pt)][COL(fr)][ROW(fr)]
@@ -146,7 +146,7 @@ void MoveHashKey(Move m, bool special)
 
 
 //--------------------------------
-transposition_table::transposition_table() : entries_in_a_bucket(4)
+hash_table_c::hash_table_c() : entries_in_a_bucket(4)
 {
     set_size(64);
 }
@@ -156,7 +156,7 @@ transposition_table::transposition_table() : entries_in_a_bucket(4)
 
 
 //--------------------------------
-transposition_table::transposition_table(size_t size_mb) : entries_in_a_bucket(4)
+hash_table_c::hash_table_c(size_t size_mb) : entries_in_a_bucket(4)
 {
     set_size(size_mb);
 }
@@ -166,7 +166,7 @@ transposition_table::transposition_table(size_t size_mb) : entries_in_a_bucket(4
 
 
 //--------------------------------
-transposition_table::~transposition_table()
+hash_table_c::~hash_table_c()
 {
     delete[] data;
 }
@@ -176,19 +176,19 @@ transposition_table::~transposition_table()
 
 
 //--------------------------------
-bool transposition_table::set_size(size_t size_mb)
+bool hash_table_c::set_size(size_t size_mb)
 {
     bool ans = true;
     buckets = 0;
     mask = 0;
-    size_t sz = size_mb * 1000 / sizeof(tt_entry)
+    size_t sz = size_mb * 1000 / sizeof(hash_entry_s)
                 * 1000 / entries_in_a_bucket;
     unsigned MSB_count = 0;
     while(sz >>= 1)
         MSB_count++;
     sz = (1 << MSB_count);
 
-    if((data = new tt_entry[entries_in_a_bucket*sz]) == nullptr)
+    if((data = new hash_entry_s[entries_in_a_bucket*sz]) == nullptr)
     {
         std::cout << "error: can't allocate memory for hash table"
                   << std::endl;
@@ -206,9 +206,9 @@ bool transposition_table::set_size(size_t size_mb)
     {
         buckets = 0;
         mask = 0;
-        data = new tt_entry[1];
+        data = new hash_entry_s[1];
 
-        memset(data, 0, sizeof(tt_entry));
+        memset(data, 0, sizeof(hash_entry_s));
     }
 
     return ans;
@@ -219,11 +219,11 @@ bool transposition_table::set_size(size_t size_mb)
 
 
 //--------------------------------
-void transposition_table::clear()
+void hash_table_c::clear()
 {
     _size = 0;
     memset(data, 0,
-           sizeof(tt_entry)*buckets*entries_in_a_bucket);
+           sizeof(hash_entry_s)*buckets*entries_in_a_bucket);
 }
 
 
@@ -231,12 +231,12 @@ void transposition_table::clear()
 
 
 //--------------------------------
-void transposition_table::add(hash_key_t key, score_t value, Move best,
+void hash_table_c::add(hash_key_t key, score_t value, move_c best,
                               depth_t depth, hbound_t bound_type, depth_t age,
                               bool one_reply)
 {
     size_t i;
-    tt_entry *bucket = &data[entries_in_a_bucket*(key & mask)];          // looking for already existed entries for the same position
+    hash_entry_s *bucket = &data[entries_in_a_bucket*(key & mask)];          // looking for already existed entries for the same position
     for(i = 0; i < entries_in_a_bucket; ++i)
         if(bucket[i].key == (key >> 32))
             break;
@@ -246,7 +246,7 @@ void transposition_table::add(hash_key_t key, score_t value, Move best,
         for(i = 0; i < entries_in_a_bucket; ++i)                        // looking for empty entries
             if(bucket[i].key == 0 && bucket[i].depth == 0)
             {
-                _size += sizeof(tt_entry);
+                _size += sizeof(hash_entry_s);
                 break;
             }
 
@@ -280,10 +280,10 @@ void transposition_table::add(hash_key_t key, score_t value, Move best,
 
 
 //--------------------------------
-tt_entry* transposition_table::count(hash_key_t key)
+hash_entry_s* hash_table_c::count(hash_key_t key)
 {
-    tt_entry *bucket = &data[entries_in_a_bucket*(key & mask)];
-    tt_entry *ans = nullptr;
+    hash_entry_s *bucket = &data[entries_in_a_bucket*(key & mask)];
+    hash_entry_s *ans = nullptr;
     for(size_t i = 0; i < entries_in_a_bucket; ++i, ++bucket)
         if(bucket->key == key >> 32)
         {
@@ -298,10 +298,10 @@ tt_entry* transposition_table::count(hash_key_t key)
 
 
 //--------------------------------
-tt_entry& transposition_table::operator [](hash_key_t key)
+hash_entry_s& hash_table_c::operator [](hash_key_t key)
 {
     size_t i, ans = 0;
-    tt_entry *bucket = &data[entries_in_a_bucket*(key & mask)];
+    hash_entry_s *bucket = &data[entries_in_a_bucket*(key & mask)];
     for(i = 0; i < entries_in_a_bucket; ++i)
         if(bucket[i].key == key >> 32)
             ans++;
@@ -314,7 +314,7 @@ tt_entry& transposition_table::operator [](hash_key_t key)
 
 
 //--------------------------------
-bool transposition_table::resize(size_t size_mb)
+bool hash_table_c::resize(size_t size_mb)
 {
     delete[] data;
 
@@ -326,7 +326,7 @@ bool transposition_table::resize(size_t size_mb)
 
 
 //--------------------------------
-void MkMove(Move m)
+void MkMove(move_c m)
 {
     bool special_move = MkMoveAndEval(m);
     MoveHashKey(m, special_move);
@@ -337,7 +337,7 @@ void MkMove(Move m)
 
 
 //--------------------------------
-void UnMove(Move m)
+void UnMove(move_c m)
 {
     UnMoveAndEval(m);
     hash_key = doneHashKeys[FIFTY_MOVES + ply];
@@ -348,7 +348,7 @@ void UnMove(Move m)
 
 
 //--------------------------------
-void MkMoveIncrementally(Move m, bool special_move)
+void MkMoveIncrementally(move_c m, bool special_move)
 {
     MkEvalAfterFastMove(m);
     MoveHashKey(m, special_move);

@@ -95,7 +95,7 @@ int main(int argc, char* argv[])
         param.push_back(1);
 #endif
     InitEngine();
-    tt.clear();
+    hash_table.clear();
 
     max_search_depth      = max_ply;
     time_remains     = 300000000;
@@ -248,7 +248,7 @@ void NewCommand(std::string in)
                 << " )" << std::endl;
     }
     InitEngine();
-    tt.clear();
+    hash_table.clear();
 }
 
 

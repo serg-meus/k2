@@ -29,8 +29,8 @@ depth_t     resign_cr;
 bool        time_command_sent;
 
 
-std::vector<std::pair<node_t, Move> > root_moves;
-transposition_table tt;
+std::vector<std::pair<node_t, move_c> > root_moves;
+hash_table_c hash_table;
 
 
 
@@ -85,7 +85,7 @@ score_t Search(depth_t depth, score_t alpha, score_t beta,
 #endif // DONT_USE_NULL_MOVE
 
     score_t x, initial_alpha = alpha;
-    tt_entry *entry;
+    hash_entry_s *entry;
     if(depth > 0 && (entry = HashProbe(depth, &alpha, beta)) != nullptr
        && alpha != initial_alpha)
         return -alpha;
@@ -97,7 +97,7 @@ score_t Search(depth_t depth, score_t alpha, score_t beta,
     if((nodes & nodes_to_check_stop) == nodes_to_check_stop)
         CheckForInterrupt();
 
-    Move move_array[MAX_MOVES], cur_move;
+    move_c move_array[MAX_MOVES], cur_move;
     movcr_t move_cr = 0, legal_moves = 0, first_legal = 0;
     movcr_t max_moves = init_max_moves;
     bool beta_cutoff = false;
@@ -250,13 +250,13 @@ score_t QSearch(score_t alpha, score_t beta)
     if((nodes & nodes_to_check_stop) == nodes_to_check_stop)
         CheckForInterrupt();
 
-    Move move_array[MAX_MOVES];
+    move_c move_array[MAX_MOVES];
     movcr_t move_cr = 0, legal_moves = 0, max_moves = init_max_moves;
     bool beta_cutoff = false;
 
     for(; move_cr < max_moves; move_cr++)
     {
-        Move cur_move = Next(move_array, move_cr, &max_moves,
+        move_c cur_move = Next(move_array, move_cr, &max_moves,
                       nullptr, wtm, captures_only, false, cur_move);
         if(max_moves <= 0)
             break;
@@ -330,7 +330,7 @@ score_t QSearch(score_t alpha, score_t beta)
 //--------------------------------
 void Perft(depth_t depth)
 {
-    Move move_array[MAX_MOVES];
+    move_c move_array[MAX_MOVES];
     bool in_check = Attack(*king_coord[wtm], !wtm);
     movcr_t max_moves = GenMoves(move_array, nullptr, APPRICE_NONE);
     for(movcr_t move_cr = 0; move_cr < max_moves; move_cr++)
@@ -339,7 +339,7 @@ void Perft(depth_t depth)
         if(depth == max_search_depth)
             tmpCr = nodes;
 #endif
-        Move cur_move = move_array[move_cr];
+        move_c cur_move = move_array[move_cr];
         MkMoveFast(cur_move);
 #ifndef NDEBUG
         if(strcmp(stop_str, cv) == 0)
@@ -364,12 +364,12 @@ void Perft(depth_t depth)
 
 
 //-----------------------------
-void StorePV(Move move)
+void StorePV(move_c move)
 {
     move_flag_t nextLen = pv[ply + 1][0].flg;
     pv[ply][0].flg = nextLen + 1;
     pv[ply][1] = move;
-    memcpy(&pv[ply][2], &pv[ply + 1][1], sizeof(Move)*nextLen);
+    memcpy(&pv[ply][2], &pv[ply + 1][1], sizeof(move_c)*nextLen);
 }
 
 
@@ -377,7 +377,7 @@ void StorePV(Move move)
 
 
 //-----------------------------
-void UpdateStatistics(Move move, depth_t depth, movcr_t move_cr)
+void UpdateStatistics(move_c move, depth_t depth, movcr_t move_cr)
 {
 #ifndef DONT_SHOW_STATISTICS
         cut_cr++;
@@ -519,7 +519,7 @@ score_t RootSearch(depth_t depth, score_t alpha, score_t beta)
     root_move_cr = 0;
 
     score_t x;
-    Move  cur_move;
+    move_c  cur_move;
     bool beta_cutoff = false;
     const node_t unconfirmed_fail_high = -1,
             max_root_move_priority = ULLONG_MAX;
@@ -631,14 +631,14 @@ score_t RootSearch(depth_t depth, score_t alpha, score_t beta)
 
 
 //--------------------------------
-void ShowPVfailHighOrLow(Move m, score_t x, char type_of_bound)
+void ShowPVfailHighOrLow(move_c m, score_t x, char type_of_bound)
 {
     UnMove(m);
     char mstr[6];
     MoveToStr(m, wtm, mstr);
 
-    Move tmp0       = pv[0][0];
-    Move tmp1       = pv[0][1];
+    move_c tmp0       = pv[0][0];
+    move_c tmp1       = pv[0][1];
     pv[0][0].flg    = 1;
     pv[0][1]        = m;
 
@@ -657,7 +657,7 @@ void ShowPVfailHighOrLow(Move m, score_t x, char type_of_bound)
 //--------------------------------
 void RootMoveGen(bool in_check)
 {
-    Move move_array[MAX_MOVES], cur_move;
+    move_c move_array[MAX_MOVES], cur_move;
     movcr_t max_moves = init_max_moves;
 
     score_t alpha = -INF, beta = INF;
@@ -678,7 +678,7 @@ void RootMoveGen(bool in_check)
         MkMoveFast(cur_move);
         if(Legal(cur_move, in_check))
         {
-            root_moves.push_back(std::pair<node_t, Move>(0, cur_move));
+            root_moves.push_back(std::pair<node_t, move_c>(0, cur_move));
             max_root_moves++;
         }
         UnMoveFast(cur_move);
@@ -756,7 +756,7 @@ void InitSearch()
 
 
 //--------------------------------
-void MoveToStr(Move move, bool stm, char *out)
+void MoveToStr(move_c move, bool stm, char *out)
 {
     char proms[] = {'?', 'q', 'n', 'r', 'b'};
 
@@ -838,9 +838,9 @@ void PrintFinalSearchResult()
                 << "cuts by best move = "
                 << 100.*hash_cutoff_by_best_move_cr/hash_best_move_cr << "% )"
                 << std::endl
-                << "( hash full = " << (i32)100*tt.size()/tt.max_size()
-                << "% (" << tt.size()/sizeof(tt_entry)
-                << "/" << tt.max_size()/sizeof(tt_entry)
+                << "( hash full = " << (i32)100*hash_table.size()/hash_table.max_size()
+                << "% (" << hash_table.size()/sizeof(hash_entry_s)
+                << "/" << hash_table.max_size()/sizeof(hash_entry_s)
                 << " entries )" << std::endl;
 #ifndef DONT_USE_NULL_MOVE
     if(null_probe_cr == 0)
@@ -988,7 +988,7 @@ bool ShowPV(depth_t cur_ply)
     {
         for(; ply_cr < pv_len; ply_cr++)
         {
-            Move cur_move = pv[cur_ply][ply_cr + 1];
+            move_c cur_move = pv[cur_ply][ply_cr + 1];
             auto it = coords[wtm].begin();
             it = cur_move.pc;
             coord_t from_coord = *it;
@@ -1009,7 +1009,7 @@ bool ShowPV(depth_t cur_ply)
     {
         for(; ply_cr < pv_len; ply_cr++)
         {
-            Move cur_move = pv[cur_ply][ply_cr + 1];
+            move_c cur_move = pv[cur_ply][ply_cr + 1];
             auto it = coords[wtm].begin();
             it = cur_move.pc;
             char piece_char = pc2chr[b[*it]];
@@ -1050,7 +1050,7 @@ bool ShowPV(depth_t cur_ply)
         }
     }
     for(; ply_cr > 0; ply_cr--)
-        UnMoveFast(*(Move *) &pv[cur_ply][ply_cr]);
+        UnMoveFast(*(move_c *) &pv[cur_ply][ply_cr]);
     return ans;
 }
 
@@ -1059,9 +1059,9 @@ bool ShowPV(depth_t cur_ply)
 
 
 //-----------------------------
-void FindAndPrintForAmbiguousMoves(Move move)
+void FindAndPrintForAmbiguousMoves(move_c move)
 {
-    Move move_array[8];
+    move_c move_array[8];
     unsigned amb_cr = 0;
     auto it = coords[wtm].begin();
     it = move.pc;
@@ -1081,7 +1081,7 @@ void FindAndPrintForAmbiguousMoves(Move move)
             continue;
         if(slider[piece_type] && !SliderAttack(from_coord, move.to))
             continue;
-        Move tmp = move;
+        move_c tmp = move;
         tmp.scr = from_coord;
         move_array[amb_cr++] = tmp;
     }
@@ -1124,7 +1124,7 @@ bool MakeMoveFinaly(char *move_str)
     char proms[] = {'?', 'q', 'n', 'r', 'b'};
     for(movcr_t i = 0; i < max_root_moves; ++i)
     {
-        Move cur_move  = root_moves.at(i).second;
+        move_c cur_move  = root_moves.at(i).second;
         auto it = coords[wtm].begin();
         it = cur_move.pc;
         cur_move_str[0] = COL(*it) + 'a';
@@ -1147,7 +1147,7 @@ bool MakeMoveFinaly(char *move_str)
         score_t store_val_end = val_end;
 
         memmove(&b_state[0], &b_state[1],
-                (prev_states + 2)*sizeof(BrdState));
+                (prev_states + 2)*sizeof(state_s));
         ply--;
         InitEvaOfMaterialAndPst();
         if(val_opn != store_val_opn || val_end != store_val_end)
@@ -1485,7 +1485,7 @@ void ShowFen()
 void ReHash(size_t size_mb)
 {
     busy = true;
-    tt.resize(size_mb);
+    hash_table.resize(size_mb);
     busy = false;
 }
 
@@ -1494,9 +1494,9 @@ void ReHash(size_t size_mb)
 
 
 //--------------------------------
-tt_entry* HashProbe(depth_t depth, score_t *alpha, score_t beta)
+hash_entry_s* HashProbe(depth_t depth, score_t *alpha, score_t beta)
 {
-    tt_entry* entry = tt.count(hash_key);
+    hash_entry_s* entry = hash_table.count(hash_key);
     if(entry == nullptr || stop)
         return nullptr;
 
@@ -1536,7 +1536,7 @@ tt_entry* HashProbe(depth_t depth, score_t *alpha, score_t beta)
 
 
 //-----------------------------
-bool MoveIsPseudoLegal(Move &move, bool stm)
+bool MoveIsPseudoLegal(move_c &move, bool stm)
 {
     if(move.flg == not_a_move)
         return false;
@@ -1647,15 +1647,15 @@ bool MoveIsPseudoLegal(Move &move, bool stm)
 
 
 //--------------------------------
-Move Next(Move *move_array, movcr_t cur_move, movcr_t *max_moves,
-          tt_entry *entry, side_to_move_t stm, bool only_captures,
-          bool in_check, Move prev_move)
+move_c Next(move_c *move_array, movcr_t cur_move, movcr_t *max_moves,
+          hash_entry_s *entry, side_to_move_t stm, bool only_captures,
+          bool in_check, move_c prev_move)
 {
 #ifdef DONT_USE_ONE_REPLY_EXTENSION
     UNUSED(in_check);
 #endif
 
-    Move ans;
+    move_c ans;
     if(cur_move == 0)
     {
         if(entry == nullptr)
@@ -1794,7 +1794,7 @@ Move Next(Move *move_array, movcr_t cur_move, movcr_t *max_moves,
 //-----------------------------
 void StoreResultInHash(depth_t depth, score_t init_alpha, score_t alpha,
                        score_t beta, movcr_t legals,
-                       bool beta_cutoff, Move best_move, bool one_reply)
+                       bool beta_cutoff, move_c best_move, bool one_reply)
 {
     if(stop)
         return;
@@ -1804,7 +1804,7 @@ void StoreResultInHash(depth_t depth, score_t init_alpha, score_t alpha,
             beta += ply - depth - 1;
         else if(beta < -mate_score && beta != -INF)
             beta -= ply - depth - 1;
-        tt.add(hash_key, -beta, best_move, depth,
+        hash_table.add(hash_key, -beta, best_move, depth,
                hLOWER, finaly_made_moves/2, one_reply);
 
     }
@@ -1814,7 +1814,7 @@ void StoreResultInHash(depth_t depth, score_t init_alpha, score_t alpha,
             alpha += ply - depth;
         else if(alpha < - mate_score && alpha != -INF)
             alpha -= ply - depth;
-        tt.add(hash_key, -alpha, pv[ply][1], depth,
+        hash_table.add(hash_key, -alpha, pv[ply][1], depth,
                 hEXACT, finaly_made_moves/2, one_reply);
     }
     else if(alpha <= init_alpha)
@@ -1823,9 +1823,9 @@ void StoreResultInHash(depth_t depth, score_t init_alpha, score_t alpha,
             init_alpha += ply - depth;
         else if(init_alpha < -mate_score && init_alpha != -INF)
             init_alpha -= ply - depth;
-        Move no_move;
+        move_c no_move;
         no_move.flg = not_a_move;
-        tt.add(hash_key, -init_alpha,
+        hash_table.add(hash_key, -init_alpha,
                legals > 0 ? best_move : no_move, depth,
                hUPPER, finaly_made_moves/2, one_reply);
     }
@@ -1843,7 +1843,7 @@ void ShowCurrentUciInfo()
     std::cout << "info nodes " << nodes
         << " nps " << (i32)(1000000 * nodes / (t - time0 + 1));
 
-    Move move = root_moves.at(root_move_cr).second;
+    move_c move = root_moves.at(root_move_cr).second;
     coord_t from_coord = b_state[prev_states + 1].fr;
     std::cout << " currmove "
         << (char)(COL(from_coord) + 'a') << (char)(ROW(from_coord) + '1')
@@ -1855,7 +1855,7 @@ void ShowCurrentUciInfo()
     std::cout << " currmovenumber " << root_move_cr + 1;
     std::cout << " hashfull ";
 
-    size_t hash_size = 1000*tt.size() / tt.max_size();
+    size_t hash_size = 1000*hash_table.size() / hash_table.max_size();
     std::cout << hash_size << std::endl;
 }
 

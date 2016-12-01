@@ -47,12 +47,13 @@ typedef u8 piece_index_t;
 typedef u8 castle_t;
 typedef u8 enpass_t;
 typedef u8 attack_t;
-typedef u8 deltas_t;
+typedef u8 dist_t;
 typedef i8 shifts_t;
 typedef u64 hash_key_t;
 typedef u64 node_t;
 typedef u32 history_t;
 typedef u8 piece_num_t;
+typedef u8 rank_t;
 
 
 
@@ -68,7 +69,7 @@ enum {mCAPT = 0x10, mCS_K = 0x20, mCS_Q = 0x40, mCSTL = 0x60, mENPS = 0x80,
 
 
 //--------------------------------
-class Move
+class move_c
 {
 public:
     coord_t to;
@@ -76,9 +77,9 @@ public:
     move_flag_t flg;
     move_score_t scr;
 
-    bool operator == (Move m)   {return to == m.to && pc == m.pc && flg == m.flg;}
-    bool operator != (Move m)   {return to != m.to || pc != m.pc || flg != m.flg;}
-    bool operator < (const Move m) const {return scr < m.scr;}
+    bool operator == (move_c m)   {return to == m.to && pc == m.pc && flg == m.flg;}
+    bool operator != (move_c m)   {return to != m.to || pc != m.pc || flg != m.flg;}
+    bool operator < (const move_c m) const {return scr < m.scr;}
 };
                                                                         // 'to' - coords for piece to move to (8 bit);
                                                                         // 'pc' - number of piece in 'men' array (8 bit);
@@ -95,7 +96,7 @@ public:
                                                                         //      255 - opp king capture or hash hit
 
 //--------------------------------
-struct BrdState
+struct state_s
 {
     piece_t capt;                                                            // taken piece, 6 bits
     iterator_entity captured_it;                                        // iterator to captured piece
@@ -124,20 +125,20 @@ void InitBrd();
 bool BoardToMen();
 bool FenToBoard(char *p);
 void ShowMove(coord_t fr, coord_t to);
-bool MakeCastle(Move m, coord_t fr);
-void UnMakeCastle(Move m);
-bool MakeEP(Move m, coord_t fr);
+bool MakeCastle(move_c m, coord_t fr);
+void UnMakeCastle(move_c m);
+bool MakeEP(move_c m, coord_t fr);
 bool SliderAttack(coord_t fr, coord_t to);
 bool Attack(coord_t to, side_to_move_t xtm);
 bool LegalSlider(coord_t fr, coord_t to, piece_t pt);
-bool Legal(Move m, bool ic);
+bool Legal(move_c m, bool ic);
 void SetPawnStruct(coord_t col);
 void InitPawnStruct();
 bool PieceListCompare(coord_t men1, coord_t men2);
-void StoreCurrentBoardState(Move m, coord_t fr, coord_t targ);
-void MakeCapture(Move m, coord_t targ);
-void MakePromotion(Move m, iterator it);
-void UnmakeCapture(Move m);
-void UnmakePromotion(Move m);
-bool MkMoveFast(Move m);
-void UnMoveFast(Move m);
+void StoreCurrentBoardState(move_c m, coord_t fr, coord_t targ);
+void MakeCapture(move_c m, coord_t targ);
+void MakePromotion(move_c m, iterator it);
+void UnmakeCapture(move_c m);
+void UnmakePromotion(move_c m);
+bool MkMoveFast(move_c m);
+void UnMoveFast(move_c m);
