@@ -219,9 +219,9 @@ void GenPawnCap(move_c *move_array, movcr_t *moveCr, iterator it)
 //--------------------------------
 void GenCastles(move_c *move_array, movcr_t *moveCr)
 {
-    u8 msk = wtm ? 0x03 : 0x0C;
-    u8 cst = b_state[prev_states + ply].cstl & msk;
-    i8 check = -1;
+    castle_t msk = wtm ? 0x03 : 0x0C;
+    castle_t cst = b_state[prev_states + ply].cstl & msk;
+    bool check = false, not_seen = true;
     if(!cst)
         return;
     if(wtm)
@@ -229,13 +229,14 @@ void GenCastles(move_c *move_array, movcr_t *moveCr)
         if((cst & 1) && !b[0x05] && !b[0x06])
         {
             check = Attack(0x04, black);
+            not_seen = false;
             if(!check && !Attack(0x05, black) && !Attack(0x06, black))
                 PushMove(move_array, moveCr,
                          king_coord[white], 0x06, mCS_K);
         }
         if((cst & 2) && !b[0x03] && !b[0x02] && !b[0x01])
         {
-            if(check == -1)
+            if(not_seen)
                 check = Attack(0x04, black);
             if(!check && !Attack(0x03, black) && !Attack(0x02, black))
                 PushMove(move_array, moveCr,
@@ -247,13 +248,14 @@ void GenCastles(move_c *move_array, movcr_t *moveCr)
         if((cst & 4) && !b[0x75] && !b[0x76])
         {
             check = Attack(0x74, white);
+            not_seen = false;
             if(!check && !Attack(0x75, white) && !Attack(0x76, white))
                 PushMove(move_array, moveCr,
                          king_coord[black], 0x76, mCS_K);
         }
         if((cst & 8) && !b[0x73] && !b[0x72] && !b[0x71])
         {
-            if(check == -1)
+            if(not_seen)
                 check = Attack(0x74, white);
             if(!check && !Attack(0x73, white) && !Attack(0x72, white))
                 PushMove(move_array, moveCr,
