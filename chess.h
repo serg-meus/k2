@@ -25,7 +25,6 @@ typedef u8 coord_t;
 #define XY2SQ(X, Y)     (((Y) << 4) + (X))
 #define COL(SQ)         ((SQ) & 7)
 #define ROW(SQ)         ((SQ) >> 4)
-#define ABSI(X)         ((X) > 0 ? (X) : (-(X)))
 #define GET_INDEX(X)    ((X)/2)
 #define TO_BLACK(X)     ((X) & ~white)
 

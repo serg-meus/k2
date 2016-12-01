@@ -307,8 +307,8 @@ void EvalPawns(side_to_move_t stm)
         coord_t k = *king_coord[stm];
         coord_t opp_k = *king_coord[!stm];
         coord_t pawn_coord = XY2SQ(col, stm ? mx + 1 : 7 - mx - 1);
-        dist_t k_dist = king_dist[ABSI(k - pawn_coord)];
-        dist_t opp_k_dist = king_dist[ABSI(opp_k - pawn_coord)];
+        dist_t k_dist = king_dist[std::abs(k - pawn_coord)];
+        dist_t opp_k_dist = king_dist[std::abs(opp_k - pawn_coord)];
 
         if(k_dist <= 1)
             ansE += 30 + 10*mx;
@@ -329,7 +329,7 @@ void EvalPawns(side_to_move_t stm)
         ansO += delta/3;
 
         // connected passers
-        if(passer && prev_passer && ABSI(mx - pawn_max[col + 0][stm]) <= 1)
+        if(passer && prev_passer && std::abs(mx - pawn_max[col + 0][stm]) <= 1)
         {
             rank_t mmx = std::max(pawn_max[col + 0][stm], mx);
             if(mmx > 4)
@@ -522,9 +522,9 @@ bool IsUnstoppablePawn(coord_t col, coord_t row, side_to_move_t stm)
     if(row > 5)
         row = 5;
     coord_t psq = XY2SQ(col, stm ? 7 : 0);
-    dist_t d = king_dist[ABSI(k - psq)];
+    dist_t d = king_dist[std::abs(k - psq)];
     if(COL(*king_coord[stm]) == col
-    && king_dist[ABSI(*king_coord[stm] - psq)] <= row)
+    && king_dist[std::abs(*king_coord[stm] - psq)] <= row)
         row++;
     return (score_t)d - (stm != wtm) > row;
 }
@@ -601,15 +601,15 @@ void MaterialImbalances()
         if(material[white] == 0)
         {
             coord_t k = *king_coord[white];
-            if((pawn_max[1 + 0][black] != 0 && king_dist[ABSI(k - 0x00)] <= 1)
-            || (pawn_max[1 + 7][black] != 0 && king_dist[ABSI(k - 0x07)] <= 1))
+            if((pawn_max[1 + 0][black] != 0 && king_dist[std::abs(k - 0x00)] <= 1)
+            || (pawn_max[1 + 7][black] != 0 && king_dist[std::abs(k - 0x07)] <= 1))
                 val_end += 750;
         }
         else if(material[black] == 0)
         {
             coord_t k = *king_coord[black];
-            if((pawn_max[1 + 0][white] != 0 && king_dist[ABSI(k - 0x70)] <= 1)
-            || (pawn_max[1 + 7][white] != 0 && king_dist[ABSI(k - 0x77)] <= 1))
+            if((pawn_max[1 + 0][white] != 0 && king_dist[std::abs(k - 0x70)] <= 1)
+            || (pawn_max[1 + 7][white] != 0 && king_dist[std::abs(k - 0x77)] <= 1))
                 val_end -= 750;
         }
     }
@@ -623,8 +623,8 @@ void MaterialImbalances()
             ++it;
             coord_t colp = COL(*it);
             bool unstop = IsUnstoppablePawn(colp, 7 - pawn_max[colp + 1][stm], stm);
-            dist_t dist_k = king_dist[ABSI(*king_coord[stm] - *it)];
-            dist_t dist_opp_k = king_dist[ABSI(*king_coord[!stm] - *it)];
+            dist_t dist_k = king_dist[std::abs(*king_coord[stm] - *it)];
+            dist_t dist_opp_k = king_dist[std::abs(*king_coord[!stm] - *it)];
 
             if(!unstop && dist_k > dist_opp_k + (wtm == stm))
             {
@@ -632,7 +632,7 @@ void MaterialImbalances()
                 val_end = 0;
             }
             else if((colp == 0 || colp == 7)
-            && king_dist[ABSI(*king_coord[!stm] -
+            && king_dist[std::abs(*king_coord[!stm] -
                               (colp + (stm ? 0x70 : 0)))] <= 1)
             {
                 val_opn = 0;
@@ -907,7 +907,7 @@ score_t CountKingTropism(side_to_move_t king_color)
         piece_t cur_piece = TO_BLACK(b[*rit]);
         if(cur_piece == _p)
             break;
-        dist_t dist = king_dist[ABSI(*king_coord[king_color] - *rit)];
+        dist_t dist = king_dist[std::abs(*king_coord[king_color] - *rit)];
         if(dist >= 4)
             continue;
         occ_cr += tropism_factor[dist < 3][GET_INDEX(cur_piece)];
@@ -935,8 +935,8 @@ void MoveKingTropism(coord_t from_coord, move_c move, side_to_move_t king_color)
         return;
     }
 
-    dist_t dist_to = king_dist[ABSI(*king_coord[king_color] - move.to)];
-    dist_t dist_fr = king_dist[ABSI(*king_coord[king_color] - from_coord)];
+    dist_t dist_to = king_dist[std::abs(*king_coord[king_color] - move.to)];
+    dist_t dist_fr = king_dist[std::abs(*king_coord[king_color] - from_coord)];
 
 
     if(dist_fr < 4 && !(move.flg & mPROM))
@@ -949,7 +949,7 @@ void MoveKingTropism(coord_t from_coord, move_c move, side_to_move_t king_color)
     piece_t cap = b_state[prev_states + ply].capt;
     if(move.flg & mCAPT)
     {
-        dist_to = king_dist[ABSI(*king_coord[!king_color] - move.to)];
+        dist_to = king_dist[std::abs(*king_coord[!king_color] - move.to)];
         if(dist_to < 4)
             king_tropism[!king_color] -= tropism_factor[dist_to < 3]
                                                        [GET_INDEX(cap)];

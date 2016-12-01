@@ -134,7 +134,7 @@ void GenPawn(move_c *move_array, movcr_t *moveCr, iterator it)
                 PushMove(move_array, moveCr, it, fr + 32, 0);
             enpass_t ep = b_state[prev_states + ply].ep;
             shifts_t delta = ep - 1 - COL(fr);
-            if(ep && ABSI(delta) == 1 && ROW(fr) == 4)
+            if(ep && std::abs(delta) == 1 && ROW(fr) == 4)
                 PushMove(move_array, moveCr, it, fr + 16 + delta, mCAPT | mENPS);
         }
         else
@@ -152,7 +152,7 @@ void GenPawn(move_c *move_array, movcr_t *moveCr, iterator it)
                 PushMove(move_array, moveCr, it, fr - 32, 0);
             enpass_t ep = b_state[prev_states + ply].ep;
             shifts_t delta = ep - 1 - COL(fr);
-            if(ep && ABSI(delta) == 1 && ROW(fr) == 3)
+            if(ep && std::abs(delta) == 1 && ROW(fr) == 3)
                 PushMove(move_array, moveCr, it, fr - 16 + delta, mCAPT | mENPS);
         }
 }
@@ -191,7 +191,7 @@ void GenPawnCap(move_c *move_array, movcr_t *moveCr, iterator it)
                 PushMove(move_array, moveCr, it, to, i);
             enpass_t ep = b_state[prev_states + ply].ep;
             shifts_t delta = ep - 1 - COL(fr);
-            if(ep && ABSI(delta) == 1 && ROW(fr) == 4)
+            if(ep && std::abs(delta) == 1 && ROW(fr) == 4)
                 PushMove(move_array, moveCr, it, fr + 16 + delta, mCAPT | mENPS);
         }
         else
@@ -207,7 +207,7 @@ void GenPawnCap(move_c *move_array, movcr_t *moveCr, iterator it)
                 PushMove(move_array, moveCr, it, to, i);
             enpass_t ep = b_state[prev_states + ply].ep;
             shifts_t delta = ep - 1 - COL(fr);
-            if(ep && ABSI(delta) == 1 && ROW(fr) == 3)
+            if(ep && std::abs(delta) == 1 && ROW(fr) == 3)
                 PushMove(move_array, moveCr, it, fr - 16 + delta, mCAPT | mENPS);
         }
 }

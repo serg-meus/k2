@@ -460,7 +460,7 @@ void MainSearch()
             && !max_nodes_to_search
             && root_ply >= 2)
                 break;
-            if(ABSI(x) > mate_score && !stop && root_ply >= 2
+            if(std::abs(x) > mate_score && !stop && root_ply >= 2
             && time_spent > time_to_think/4)
                 break;
             if(max_root_moves == 1 && root_ply >= 8)
@@ -893,7 +893,7 @@ void PrintCurrentSearchResult(score_t max_value, char type_of_bound)
     {
         cout << "info depth " << root_ply;
 
-        if(ABSI(max_value) < mate_score)
+        if(std::abs(max_value) < mate_score)
             cout << " score cp " << max_value;
         else
         {
@@ -933,7 +933,7 @@ void InitTime()                                                         // too c
 {
     if(!time_command_sent)
         time_remains -= time_spent;
-    time_remains = ABSI(time_remains);                                  //<< NB: strange
+    time_remains = std::abs(time_remains);                                  //<< NB: strange
     depth_t movsAfterControl;
     if(moves_per_session == 0)
         movsAfterControl = finaly_made_moves/2;
@@ -1568,7 +1568,7 @@ bool MoveIsPseudoLegal(move_c &move, bool stm)
             if((move.flg & mPROM) && ((stm && ROW(from_coord) != 6)
             || (!stm && ROW(from_coord) != 1)))
                 return false;
-            if((move.flg & mCAPT) && (ABSI(delta_col) != 1
+            if((move.flg & mCAPT) && (std::abs(delta_col) != 1
             || (stm && delta_row != 1) || (!stm && delta_row != -1)
             || (!(move.flg & mENPS) && !DARK(piece, stm))))
                 return false;
@@ -1596,9 +1596,9 @@ bool MoveIsPseudoLegal(move_c &move, bool stm)
             break;
         case _n :
             move.flg &= mCAPT;
-            if(ABSI(delta_col) + ABSI(delta_row) != 3)
+            if(std::abs(delta_col) + std::abs(delta_row) != 3)
                 return false;
-            if(ABSI(delta_col) != 1 && ABSI(delta_row) != 1)
+            if(std::abs(delta_col) != 1 && std::abs(delta_row) != 1)
                 return false;
             break;
         case _b :
@@ -1612,12 +1612,12 @@ bool MoveIsPseudoLegal(move_c &move, bool stm)
         case _k :
             if(!(move.flg & mCSTL))
             {
-                if((ABSI(delta_col) > 1 || ABSI(delta_row) > 1))
+                if((std::abs(delta_col) > 1 || std::abs(delta_row) > 1))
                     return false;
                 else
                     return true;
             }
-            if(ABSI(delta_col) != 2 || ABSI(delta_row) != 0)
+            if(std::abs(delta_col) != 2 || std::abs(delta_row) != 0)
                 return false;
             if(COL(from_coord) != 4 || ROW(from_coord) != stm ? 0 : 7)
                 return false;

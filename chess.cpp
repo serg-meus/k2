@@ -381,7 +381,7 @@ bool MakeEP(move_c m, coord_t fr)
 {
     int delta = m.to - fr;
     coord_t to = m.to;
-    if(ABSI(delta) == 0x20
+    if(std::abs(delta) == 0x20
     && (b[m.to + 1] == (_P ^ wtm) || b[to - 1] == (_P ^ wtm)))
     {
         b_state[prev_states + ply].ep = (to & 0x07) + 1;
