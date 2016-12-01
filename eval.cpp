@@ -5,12 +5,12 @@
 
 score_t val_opn, val_end;
 
-u8 pawn_max[10][2], pawn_min[10][2];
+rank_t pawn_max[10][2], pawn_min[10][2];
 
 score_t material_values_opn[] = {  0, 0, Q_VAL_OPN, R_VAL_OPN, B_VAL_OPN, N_VAL_OPN, P_VAL_OPN};
 score_t material_values_end[] = {  0, 0, Q_VAL_END, R_VAL_END, B_VAL_END, N_VAL_END, P_VAL_END};
 
-u8 king_dist[120];
+deltas_t king_dist[120];
 tropism_t king_tropism[2];
 
 tropism_t tropism_factor[2][7] =
@@ -225,7 +225,7 @@ void InitEvaOfMaterialAndPst()
 //--------------------------------
 bool IsPasser(coord_t col, side_to_move_t stm)
 {
-    u8 mx = pawn_max[col + 1][stm];
+    rank_t mx = pawn_max[col + 1][stm];
 
     if(mx >= 7 - pawn_min[col + 1][!stm]
     && mx >= 7 - pawn_min[col - 0][!stm]
@@ -251,7 +251,7 @@ void EvalPawns(side_to_move_t stm)
     {
         bool doubled = false, isolany = false;
 
-        u8 mx = pawn_max[col + 1][stm];
+        rank_t mx = pawn_max[col + 1][stm];
         if(mx == 0)
         {
             prev_passer = false;
@@ -307,8 +307,8 @@ void EvalPawns(side_to_move_t stm)
         coord_t k = *king_coord[stm];
         coord_t opp_k = *king_coord[!stm];
         coord_t pawn_coord = XY2SQ(col, stm ? mx + 1 : 7 - mx - 1);
-        u8 k_dist = king_dist[ABSI(k - pawn_coord)];
-        u8 opp_k_dist = king_dist[ABSI(opp_k - pawn_coord)];
+        deltas_t k_dist = king_dist[ABSI(k - pawn_coord)];
+        deltas_t opp_k_dist = king_dist[ABSI(opp_k - pawn_coord)];
 
         if(k_dist <= 1)
             ansE += 30 + 10*mx;
@@ -331,7 +331,7 @@ void EvalPawns(side_to_move_t stm)
         // connected passers
         if(passer && prev_passer && ABSI(mx - pawn_max[col + 0][stm]) <= 1)
         {
-            u8 mmx = std::max(pawn_max[col + 0][stm], mx);
+            rank_t mmx = std::max(pawn_max[col + 0][stm], mx);
             if(mmx > 4)
                 ansE += 28*mmx;
         }
@@ -467,14 +467,14 @@ void ClampedRook(side_to_move_t stm)
     if(rit == coords[stm].rend())
         return;
 
-    u8 rook_on_7th_cr = 0;
+    size_t rook_on_7th_cr = 0;
     if((stm && ROW(*rit) >= 6) || (!stm && ROW(*rit) <= 1))
         rook_on_7th_cr++;
     if(quantity[stm][GET_INDEX(_p)] >= 4
     && pawn_max[COL(*rit) + 1][stm] == 0)
         ans += (pawn_max[COL(*rit) + 1][!stm] == 0 ? 54 : 22);
 
-    u8 empty_sq = 0;
+    size_t empty_sq = 0;
     for(coord_t i = 1; i <= 2; ++i)
     {
         if(COL(*rit) + i < 7 && b[*rit + i] == __)
@@ -522,11 +522,11 @@ bool IsUnstoppablePawn(coord_t col, coord_t row, side_to_move_t stm)
     if(row > 5)
         row = 5;
     coord_t psq = XY2SQ(col, stm ? 7 : 0);
-    i8 d = king_dist[ABSI(k - psq)];
+    deltas_t d = king_dist[ABSI(k - psq)];
     if(COL(*king_coord[stm]) == col
     && king_dist[ABSI(*king_coord[stm] - psq)] <= row)
         row++;
-    return d - (stm != wtm) > row;
+    return (score_t)d - (stm != wtm) > row;
 }
 
 
@@ -623,8 +623,8 @@ void MaterialImbalances()
             ++it;
             coord_t colp = COL(*it);
             bool unstop = IsUnstoppablePawn(colp, 7 - pawn_max[colp + 1][stm], stm);
-            u8 dist_k = king_dist[ABSI(*king_coord[stm] - *it)];
-            u8 dist_opp_k = king_dist[ABSI(*king_coord[!stm] - *it)];
+            deltas_t dist_k = king_dist[ABSI(*king_coord[stm] - *it)];
+            deltas_t dist_opp_k = king_dist[ABSI(*king_coord[!stm] - *it)];
 
             if(!unstop && dist_k > dist_opp_k + (wtm == stm))
             {
@@ -859,7 +859,7 @@ void MovePawnStruct(piece_t moved_piece, coord_t from_coord, Move move)
 //-----------------------------
 void InitPawnStruct()
 {
-    u8 x, y;
+    coord_t x, y;
     for(x = 0; x < 8; x++)
     {
         pawn_max[x + 1][0] = 0;
@@ -907,7 +907,7 @@ score_t CountKingTropism(side_to_move_t king_color)
         piece_t cur_piece = TO_BLACK(b[*rit]);
         if(cur_piece == _p)
             break;
-        u8 dist = king_dist[ABSI(*king_coord[king_color] - *rit)];
+        deltas_t dist = king_dist[ABSI(*king_coord[king_color] - *rit)];
         if(dist >= 4)
             continue;
         occ_cr += tropism_factor[dist < 3][GET_INDEX(cur_piece)];
@@ -935,8 +935,8 @@ void MoveKingTropism(coord_t from_coord, Move move, side_to_move_t king_color)
         return;
     }
 
-    u8 dist_to = king_dist[ABSI(*king_coord[king_color] - move.to)];
-    u8 dist_fr = king_dist[ABSI(*king_coord[king_color] - from_coord)];
+    deltas_t dist_to = king_dist[ABSI(*king_coord[king_color] - move.to)];
+    deltas_t dist_fr = king_dist[ABSI(*king_coord[king_color] - from_coord)];
 
 
     if(dist_fr < 4 && !(move.flg & mPROM))
@@ -1042,10 +1042,10 @@ score_t KingOpenFiles(side_to_move_t king_color)
     else if(COL(k) == 7)
         k--;
 
-    u8 open_files_near_king = 0, open_files[3] = {0};
+    size_t open_files_near_king = 0, open_files[3] = {0};
     for(coord_t i = 0; i < 3; ++i)
     {
-        i8 col = COL(k) + i - 1;
+        shifts_t col = COL(k) + i - 1;
         if(col < 0 || col > 7)
             continue;
         if(pawn_max[col + 1][!king_color] == 0)
@@ -1058,7 +1058,7 @@ score_t KingOpenFiles(side_to_move_t king_color)
     if(open_files_near_king == 0)
         return 0;
 
-    u8 rooks_queens_on_file[8] = {0};
+    size_t rooks_queens_on_file[8] = {0};
     auto rit = coords[!king_color].rbegin();
     ++rit;
     for(; rit != coords[!king_color].rend(); ++rit)
@@ -1066,7 +1066,7 @@ score_t KingOpenFiles(side_to_move_t king_color)
         piece_t pt = b[*rit];
         if(TO_BLACK(pt) != _q && TO_BLACK(pt) != _r)
             break;
-        u8 k = pawn_max[COL(*rit) + 1][king_color] ? 1 : 2;
+        rank_t k = pawn_max[COL(*rit) + 1][king_color] ? 1 : 2;
         rooks_queens_on_file[COL(*rit)] +=
                 k*(TO_BLACK(pt) == _r ? 2 : 1);
     }
@@ -1091,7 +1091,7 @@ score_t KingWeakness(side_to_move_t king_color)
 {
     score_t ans = 0;
     coord_t k = *king_coord[king_color];
-    i8 shft = king_color ? 16 : -16;
+    shifts_t shft = king_color ? 16 : -16;
 
     if(COL(k) == 0)
         k++;
@@ -1114,11 +1114,11 @@ score_t KingWeakness(side_to_move_t king_color)
     }
 
 
-    i16 idx = 0;
-    for(i16 col = 0; col < 3; ++col)
+    score_t idx = 0;
+    for(score_t col = 0; col < 3; ++col)
     {
         if(col + k + 2*shft - 1 < 0
-        || col + k + 2*shft - 1 >= (i16)(sizeof(b)/sizeof(*b)))
+        || col + k + 2*shft - 1 >= (score_t)(sizeof(b)/sizeof(*b)))
             continue;
         piece_t pt1 = b[col + k + shft - 1];
         piece_t pt2 = b[col + k + 2*shft - 1];
@@ -1141,7 +1141,7 @@ score_t KingWeakness(side_to_move_t king_color)
     }
     idx = 7 - idx;
     // cases: ___, __p, _p_, _pp, p__, p_p, pp_, ppp
-    u8 cases[]  = {0, 1, 1, 3, 1, 2, 3, 4};
+    size_t cases[]  = {0, 1, 1, 3, 1, 2, 3, 4};
     score_t scores[] = {140, 75, 75, 10, 0};
 
     ans += scores[cases[idx]];

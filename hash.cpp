@@ -5,13 +5,15 @@
 
 
 //--------------------------------
-u64 hash_key;
+hash_key_t hash_key;
 
-u64  zorb[12][8][8],
+hash_key_t zorb[12][8][8],
     zorb_en_passant[9],
     zorb_castling[16];
 
-u64  doneHashKeys[FIFTY_MOVES + max_ply];
+hash_key_t doneHashKeys[FIFTY_MOVES + max_ply];
+
+node_t nodes;
 
 
 
@@ -22,7 +24,7 @@ bool InitHashTable()
 {
     InitMoveGen();
 
-    std::uniform_int_distribution<u64> zorb_distr(0, (u64)-1);
+    std::uniform_int_distribution<hash_key_t> zorb_distr(0, (hash_key_t)-1);
     std::mt19937 rnd_gen;
 
     for(size_t i = 0; i < 12; ++i)
@@ -43,6 +45,8 @@ bool InitHashTable()
     zorb_en_passant[0] = 0;
     zorb_castling[0] = 0;
 
+    nodes = 0;
+
     return true;
 }
 
@@ -51,9 +55,9 @@ bool InitHashTable()
 
 
 //--------------------------------
-u64 InitHashKey()
+hash_key_t InitHashKey()
 {
-    u64 ans = 0;
+    hash_key_t ans = 0;
 
     for(auto fr : coords[wtm])
         ans ^= zorb[MEN_TO_ZORB(b[fr])][COL(fr)][ROW(fr)];
@@ -130,7 +134,7 @@ void MoveHashKey(Move m, bool special)
     }
 
 #ifndef NDEBUG
-    u64 tmp_key = InitHashKey();
+    hash_key_t tmp_key = InitHashKey();
     if(tmp_key != hash_key)
         ply = ply;
     assert(tmp_key == hash_key);
@@ -152,7 +156,7 @@ transposition_table::transposition_table() : entries_in_a_bucket(4)
 
 
 //--------------------------------
-transposition_table::transposition_table(u32 size_mb) : entries_in_a_bucket(4)
+transposition_table::transposition_table(size_t size_mb) : entries_in_a_bucket(4)
 {
     set_size(size_mb);
 }
@@ -172,7 +176,7 @@ transposition_table::~transposition_table()
 
 
 //--------------------------------
-bool transposition_table::set_size(u32 size_mb)
+bool transposition_table::set_size(size_t size_mb)
 {
     bool ans = true;
     buckets = 0;
@@ -227,8 +231,8 @@ void transposition_table::clear()
 
 
 //--------------------------------
-void transposition_table::add(u64 key, score_t value, Move best,
-                              depth_t depth, u32 bound_type, u32 age,
+void transposition_table::add(hash_key_t key, score_t value, Move best,
+                              depth_t depth, hbound_t bound_type, depth_t age,
                               bool one_reply)
 {
     size_t i;
@@ -250,10 +254,10 @@ void transposition_table::add(u64 key, score_t value, Move best,
         {
             for(i = 0; i < entries_in_a_bucket; ++i)                    // looking for entries with lower depth
             {
-                int bckt_age = bucket[i].age;
-                if(bckt_age > (int)(age & 0x03))
+                depth_t bckt_age = bucket[i].age;
+                if(bckt_age > (age & 0x03))
                     bckt_age -= 3;
-                if(bucket[i].depth + bckt_age < int(depth + age))
+                if(bucket[i].depth + bckt_age < depth + age)
                     break;
             }
 
@@ -276,7 +280,7 @@ void transposition_table::add(u64 key, score_t value, Move best,
 
 
 //--------------------------------
-tt_entry* transposition_table::count(u64 key)
+tt_entry* transposition_table::count(hash_key_t key)
 {
     tt_entry *bucket = &data[entries_in_a_bucket*(key & mask)];
     tt_entry *ans = nullptr;
@@ -294,7 +298,7 @@ tt_entry* transposition_table::count(u64 key)
 
 
 //--------------------------------
-tt_entry& transposition_table::operator [](u64 key)
+tt_entry& transposition_table::operator [](hash_key_t key)
 {
     size_t i, ans = 0;
     tt_entry *bucket = &data[entries_in_a_bucket*(key & mask)];
@@ -310,7 +314,7 @@ tt_entry& transposition_table::operator [](u64 key)
 
 
 //--------------------------------
-bool transposition_table::resize(u32 size_mb)
+bool transposition_table::resize(size_t size_mb)
 {
     delete[] data;
 

@@ -44,7 +44,15 @@ typedef u8 move_score_t;
 typedef i16 tropism_t;
 typedef u8 move_flag_t;
 typedef u8 piece_index_t;
-
+typedef u8 castle_t;
+typedef u8 enpass_t;
+typedef u8 attack_t;
+typedef u8 deltas_t;
+typedef i8 shifts_t;
+typedef u64 hash_key_t;
+typedef u64 node_t;
+typedef u32 history_t;
+typedef u8 piece_num_t;
 
 
 
@@ -65,7 +73,7 @@ class Move
 public:
     coord_t to;
     iterator_entity pc;
-    u8 flg;
+    move_flag_t flg;
     move_score_t scr;
 
     bool operator == (Move m)   {return to == m.to && pc == m.pc && flg == m.flg;}
@@ -92,12 +100,12 @@ struct BrdState
     piece_t capt;                                                            // taken piece, 6 bits
     iterator_entity captured_it;                                        // iterator to captured piece
     coord_t fr;                                                         // from point, 7 bits
-    u8 cstl;                                                            // castling rights, bits 0..3: _K, _Q, _k, _q, 4 bits
+    castle_t cstl;                                                      // castling rights, bits 0..3: _K, _Q, _k, _q, 4 bits
 
     iterator_entity castled_rook_it;                                    // iterator to castled rook, 8 bits
-    u8 ep;                                                              // 0 = no_ep, else ep=COL(x) + 1, not null only if opponent pawn is near, 4 bits
+    enpass_t ep;                                                        // 0 = no_ep, else ep=COL(x) + 1, not null only if opponent pawn is near, 4 bits
     iterator_entity nprom;                                              // number of next piece for promoted pawn, 6 bits
-    u16 reversibleCr;                                                   // reversible halfmove counter
+    depth_t reversibleCr;                                                   // reversible halfmove counter
     coord_t to;                                                              // to point, 7 bits (for simple repetition draw detection)
     score_t val_opn;                                                    // store material and PST value considered all material is on the board
     score_t val_end;                                                    // store material and PST value considered deep endgame (kings and pawns only)
@@ -120,8 +128,8 @@ bool MakeCastle(Move m, coord_t fr);
 void UnMakeCastle(Move m);
 bool MakeEP(Move m, coord_t fr);
 bool SliderAttack(coord_t fr, coord_t to);
-bool Attack(coord_t to, u32 xtm);
-bool LegalSlider(coord_t fr, coord_t to, u8 pt);
+bool Attack(coord_t to, side_to_move_t xtm);
+bool LegalSlider(coord_t fr, coord_t to, piece_t pt);
 bool Legal(Move m, bool ic);
 void SetPawnStruct(coord_t col);
 void InitPawnStruct();

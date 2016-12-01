@@ -1,8 +1,8 @@
 #include "chess.h"
+#include "extern.h"
 #include <fstream>                  // to work with files (ifstream, getline())
 #include <cstdlib>                  // to convert strings to floats (atof())
 #include <iostream>
-#include "extern.h"
 
 
 
@@ -22,6 +22,8 @@
 
 
 
+
+typedef u8 rank_t;
 
 
 //--------------------------------

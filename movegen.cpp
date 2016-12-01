@@ -7,8 +7,8 @@
 //--------------------------------
 Move pv[max_ply][max_ply + 1];          // the 'flg' property of first element in a row is length of PV at that depth
 Move killers[max_ply][2];
-unsigned history[2][6][128];
-unsigned min_history, max_history;
+history_t history[2][6][128];
+history_t min_history, max_history;
 
 
 

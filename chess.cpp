@@ -8,11 +8,12 @@
 piece_t b[137];                                                             // board array in "0x88" style
 short_list<coord_t, lst_sz> coords[2];
 
-u8  attacks[240];                                                       // table for quick detect possible attacks
-u8  get_delta[240];                                                     // I'm already forget what's this
-i8  get_shift[240];                                                     // ... and this
-u8 rays[7]   = {0, 8, 8, 4, 4, 8, 0};
-i8 shifts[6][8] = {{ 0,  0,  0,  0,  0,  0,  0,  0},
+attack_t attacks[240];                                                // table for quick detect possible attacks
+deltas_t get_delta[240];                                               // I'm already forget what's this
+shifts_t get_shift[240];                                               // ... and this
+deltas_t rays[7] = {0, 8, 8, 4, 4, 8, 0};
+shifts_t shifts[6][8] = {
+                    { 0,  0,  0,  0,  0,  0,  0,  0},
                     { 1, 17, 16, 15, -1,-17,-16,-15},
                     { 1, 17, 16, 15, -1,-17,-16,-15},
                     { 1, 16, -1,-16, 0,  0,  0,  0},
@@ -21,19 +22,18 @@ i8 shifts[6][8] = {{ 0,  0,  0,  0,  0,  0,  0,  0},
 streng_t pc_streng[7] =  {0, 0, 12, 6, 4, 4, 1};
 streng_t streng[7]     = {0, 15000, 120, 60, 40, 40, 10};
 streng_t sort_streng[7] = {0, 15000, 120, 60, 41, 39, 10};
-u8  slider[7] = {0, 0, 1, 1, 1, 0, 0};
+bool  slider[7] = {0, 0, 1, 1, 1, 0, 0};
 streng_t material[2], pieces[2];
 BrdState  b_state[prev_states + max_ply];
 side_to_move_t wtm;
 depth_t ply;
-u64 nodes, tmpCr;
 char *cv;
 depth_t reversible_moves;
 
 char cur_moves[5*max_ply];
 
 iterator king_coord[2];
-u8 quantity[2][6 + 1];
+piece_num_t quantity[2][6 + 1];
 
 
 
@@ -83,7 +83,6 @@ void InitBrd()
     b_state[prev_states + 0].ep      = 0;
     wtm             = white;
     ply             = 0;
-    nodes           = 0;
     cv[0]           = '\0';
     pieces[black]   = 16;
     pieces[white]   = 16;
@@ -222,7 +221,7 @@ bool FenToBoard(char *p)
     b_state[prev_states + 0].ep   = 0;
     wtm = (*(++p) == 'b') ? black : white;
 
-    u8 cstl = 0;
+    castle_t cstl = 0;
     p += 2;
     while(*p != ' ')
         switch(*p)
@@ -257,7 +256,7 @@ bool FenToBoard(char *p)
         int col = *(p++) - 'a';
         int row = *(p++) - '1';
         int s = wtm ? -1 : 1;
-        u8 pawn = wtm ? _P : _p;
+        piece_t pawn = wtm ? _P : _p;
         if(b[XY2SQ(col-1, row+s)] == pawn || b[XY2SQ(col+1, row+s)] == pawn)
             b_state[prev_states + 0].ep = col + 1;
     }
@@ -300,7 +299,7 @@ void ShowMove(coord_t fr, coord_t to)
 //--------------------------------
 bool MakeCastle(Move m, coord_t fr)
 {
-    u8 cs = b_state[prev_states + ply].cstl;
+    castle_t cs = b_state[prev_states + ply].cstl;
     if(m.pc == king_coord[wtm])                     // K moves
         b_state[prev_states + ply].cstl &= wtm ? 0xFC : 0xF3;
     if(king_coord[wtm] != --coords[wtm].end())
@@ -400,8 +399,8 @@ bool MakeEP(Move m, coord_t fr)
 //--------------------------------
 bool SliderAttack(coord_t fr, coord_t to)
 {
-    i8 shift = get_shift[120 + to - fr];
-    u8 delta = get_delta[120 + to - fr];
+    shifts_t shift = get_shift[120 + to - fr];
+    deltas_t delta = get_delta[120 + to - fr];
     for(int i = 0; i < delta - 1; i++)
     {
         fr += shift;
@@ -416,7 +415,7 @@ bool SliderAttack(coord_t fr, coord_t to)
 
 
 //--------------------------------
-bool Attack(coord_t to, u32 xtm)
+bool Attack(coord_t to, side_to_move_t xtm)
 {
     if((!xtm && (b[to+15] == _p || b[to+17] == _p))
     ||  (xtm && ((to >= 15 && b[to-15] == _P)
@@ -432,7 +431,7 @@ bool Attack(coord_t to, u32 xtm)
         if(pt == GET_INDEX(_p))
             break;
 
-        u8 att = attacks[120 + to - fr] & (1 << pt);
+        attack_t att = attacks[120 + to - fr] & (1 << pt);
         if(!att)
             continue;
         if(!slider[pt])
@@ -449,11 +448,11 @@ bool Attack(coord_t to, u32 xtm)
 
 
 //--------------------------------
-bool LegalSlider(coord_t fr, coord_t to, u8 pt)
+bool LegalSlider(coord_t fr, coord_t to, piece_t pt)
 {
     assert(120 + to - fr >= 0);
     assert(120 + to - fr < 240);
-    i8 shift = get_shift[120 + to - fr];
+    shifts_t shift = get_shift[120 + to - fr];
     for(size_t i = 0; i < 7; i++)
     {
         to -= shift;

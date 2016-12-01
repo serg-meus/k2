@@ -11,25 +11,25 @@ depth_t     stop_ply   = 0;
 Timer       timer;
 double      time0;
 double      time_spent, time_to_think;
-u64         max_nodes_to_search;
+node_t      q_nodes, max_nodes_to_search, total_nodes;
 depth_t     max_search_depth, root_ply;
 movcr_t     max_root_moves, root_move_cr;
 bool        stop, infinite_analyze, busy;
-u64         q_nodes, cut_cr, cut_num_cr[5], q_cut_cr, q_cut_num_cr[5];
-u64         null_probe_cr, null_cut_cr, hash_probe_cr;
-u64         hash_hit_cr, hash_cut_cr;
-u64         hash_best_move_cr, hash_cutoff_by_best_move_cr;
-u64         total_nodes, futility_probes, futility_hits;
-u64         killer1_probes, killer1_hits, killer2_probes, killer2_hits;
+count_t     cut_cr, cut_num_cr[5], q_cut_cr, q_cut_num_cr[5];
+count_t     null_probe_cr, null_cut_cr, hash_probe_cr;
+count_t     hash_hit_cr, hash_cut_cr;
+count_t     hash_best_move_cr, hash_cutoff_by_best_move_cr;
+count_t     futility_probes, futility_hits;
+count_t     killer1_probes, killer1_hits, killer2_probes, killer2_hits;
 double      time_base, time_inc, time_remains, total_time_spent;
 depth_t     moves_per_session;
 depth_t     finaly_made_moves, moves_remains;
 bool        spent_exact_time;
-unsigned    resign_cr;
+depth_t     resign_cr;
 bool        time_command_sent;
 
 
-std::vector<std::pair<u64, Move> > root_moves;
+std::vector<std::pair<node_t, Move> > root_moves;
 transposition_table tt;
 
 
@@ -37,7 +37,8 @@ transposition_table tt;
 
 
 //--------------------------------
-score_t Search(depth_t depth, score_t alpha, score_t beta, i8 node_type)
+score_t Search(depth_t depth, score_t alpha, score_t beta,
+               node_type_t node_type)
 {
     if(ply >= max_ply - 1 || DrawDetect())
     {
@@ -520,7 +521,7 @@ score_t RootSearch(depth_t depth, score_t alpha, score_t beta)
     score_t x;
     Move  cur_move;
     bool beta_cutoff = false;
-    const u64 unconfirmed_fail_high = -1,
+    const node_t unconfirmed_fail_high = -1,
             max_root_move_priority = ULLONG_MAX;
 
     for(; root_move_cr < max_root_moves; root_move_cr++)
@@ -536,7 +537,7 @@ score_t RootSearch(depth_t depth, score_t alpha, score_t beta)
 #endif // NDEBUG
 
         FastEval(cur_move);
-        u64 prev_nodes = nodes;
+        node_t prev_nodes = nodes;
 
         if(uci && root_ply > 6)
             ShowCurrentUciInfo();
@@ -575,7 +576,7 @@ score_t RootSearch(depth_t depth, score_t alpha, score_t beta)
         if(stop && !fail_high)
             x = -INF;
 
-        u64 delta_nodes = nodes - prev_nodes;
+        node_t delta_nodes = nodes - prev_nodes;
 
         if(root_moves.at(root_move_cr).first != unconfirmed_fail_high)
             root_moves.at(root_move_cr).first = delta_nodes;
@@ -677,7 +678,7 @@ void RootMoveGen(bool in_check)
         MkMoveFast(cur_move);
         if(Legal(cur_move, in_check))
         {
-            root_moves.push_back(std::pair<u64, Move>(0, cur_move));
+            root_moves.push_back(std::pair<node_t, Move>(0, cur_move));
             max_root_moves++;
         }
         UnMoveFast(cur_move);
@@ -886,7 +887,7 @@ void PrintCurrentSearchResult(score_t max_value, char type_of_bound)
     using namespace std;
 
     double time1 = timer.getElapsedTimeInMicroSec();
-    u32 spent_time = ((time1 - time0)/1000.);
+    i32 spent_time = ((time1 - time0)/1000.);
 
     if(uci)
     {
@@ -1332,7 +1333,7 @@ bool NullMove(depth_t depth, score_t beta, bool in_check)
       )
         return false;
 
-    u8 store_ep  = b_state[prev_states + ply].ep;
+    enpass_t store_ep  = b_state[prev_states + ply].ep;
     coord_t store_to = b_state[prev_states + ply].to;
     depth_t store_rv = reversible_moves;
     reversible_moves = 0;
@@ -1426,10 +1427,10 @@ void ShowFen()
     char whites[] = "KQRBNP";
     char blacks[] = "kqrbnp";
 
-    for(i8 row = 7; row >= 0; --row)
+    for(score_t row = 7; row >= 0; --row)
     {
         size_t blank_cr = 0;
-        for(i8 col = 0; col < 8; ++col)
+        for(score_t col = 0; col < 8; ++col)
         {
             piece_t piece = b[XY2SQ(col, row)];
             if(piece == __)
@@ -1452,7 +1453,7 @@ void ShowFen()
     }
     std::cout << " " << (wtm ? 'w' : 'b') << " ";
 
-    u8 cstl = b_state[prev_states + 0].cstl;
+    castle_t cstl = b_state[prev_states + 0].cstl;
     if(cstl & 0x0F)
     {
         if(cstl & 0x01)
@@ -1481,7 +1482,7 @@ void ShowFen()
 
 
 //--------------------------------
-void ReHash(u32 size_mb)
+void ReHash(size_t size_mb)
 {
     busy = true;
     tt.resize(size_mb);
@@ -1548,8 +1549,8 @@ bool MoveIsPseudoLegal(Move &move, bool stm)
     it = move.pc;
     coord_t from_coord = *it;
     piece_t piece = b[move.to];
-    i8 delta_col = COL(move.to) - COL(from_coord);
-    i8 delta_row = ROW(move.to) - ROW(from_coord);
+    score_t delta_col = COL(move.to) - COL(from_coord);
+    score_t delta_row = ROW(move.to) - ROW(from_coord);
     if(!delta_col && !delta_row)
         return false;
     if(!LIGHT(b[from_coord], stm))
@@ -1854,7 +1855,7 @@ void ShowCurrentUciInfo()
     std::cout << " currmovenumber " << root_move_cr + 1;
     std::cout << " hashfull ";
 
-    u64 hash_size = 1000*tt.size() / tt.max_size();
+    size_t hash_size = 1000*tt.size() / tt.max_size();
     std::cout << hash_size << std::endl;
 }
 

@@ -42,14 +42,17 @@
 
 
 
+typedef u64 count_t;
+typedef i8 node_type_t;
+
 
 const score_t mate_score = K_VAL - (short)max_ply;
 const bool all_moves = false;
 const bool captures_only = true;
-const u64 nodes_to_check_stop = 7;
+const node_t nodes_to_check_stop = 7;
 const movcr_t init_max_moves = 2;  // any number greater than 1
-const int moves_for_time_exact_mode = 8;
-const u8 not_a_move = 0xFF;
+const depth_t moves_for_time_exact_mode = 8;
+const move_flag_t not_a_move = 0xFF;
 
 #ifdef TUNE_PARAMETERS
 extern std::vector <float> param;
@@ -68,7 +71,8 @@ enum {all_node = -1, pv_node = 0, cut_node = 1};
 //--------------------------------
 void InitEngine();
 void Perft(depth_t depth);
-score_t Search(depth_t depth, score_t alpha, score_t beta, i8 node_type);
+score_t Search(depth_t depth, score_t alpha, score_t beta,
+               node_type_t node_type);
 score_t QSearch(score_t alpha, score_t beta);
 void StorePV(Move m);
 void UpdateStatistics(Move m, depth_t dpt, movcr_t move_cr);
@@ -91,7 +95,7 @@ bool NullMove(depth_t depth, score_t beta, bool ic);
 bool Futility(depth_t depth, score_t beta);
 bool DrawByRepetition();
 void ShowFen();
-void ReHash(u32 size_mb);
+void ReHash(size_t size_mb);
 tt_entry* HashProbe(depth_t depth, score_t *alpha, score_t beta);
 bool MoveIsPseudoLegal(Move &m, bool stm);
 Move Next(Move *move_array, movcr_t cur, movcr_t *top, tt_entry *entry,
