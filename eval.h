@@ -9,7 +9,6 @@
 
 
 //--------------------------------
-#define MAXI(X, Y)       ((X) > (Y) ? (X) : (Y))
 #define LIGHT(X, s2m)   ((X) && (((X) & white) == (s2m)))
 #define DARK(X, s2m)    ((X) && (((X) & white) != (s2m)))
 

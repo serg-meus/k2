@@ -70,9 +70,9 @@ void InitEval()
 
     for(size_t i = 0; i < 120; i++)
         if(i & 8)
-            king_dist[i] = MAXI(8 - COL(i), ROW(i) + 1);
+            king_dist[i] = std::max(8 - COL(i), ROW(i) + 1);
         else
-            king_dist[i] = MAXI(COL(i), ROW(i));
+            king_dist[i] = std::max(COL(i), ROW(i));
 
     InitPawnStruct();
 
