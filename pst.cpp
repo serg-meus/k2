@@ -6,7 +6,7 @@
 
 // WARNING: change values may cause error in AppriceMoves()
 
-i8 pst[6][2][8][8] =
+pst_t pst[6][2][8][8] =
 
 {
   {         // KING

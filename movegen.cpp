@@ -368,7 +368,7 @@ void AppriceMoves(move_c *move_array, movcr_t moveCr, move_c *bestMove)
                     y   = 7 - y;
                     y0  = 7 - y0;
                 }
-                i8 pstVal   = pst[GET_INDEX(fr_pc) - 1][0][y][x]
+                pst_t pstVal   = pst[GET_INDEX(fr_pc) - 1][0][y][x]
                             - pst[GET_INDEX(fr_pc) - 1][0][y0][x0];
                 pstVal      = 96 + pstVal/2;
                 move_array[i].scr = pstVal;

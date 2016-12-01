@@ -22,7 +22,7 @@ extern move_c   pv[max_ply][max_ply + 1];
 extern move_c   killers[max_ply][2];
 extern char     *cv;
 extern history_t history [2][6][128];
-extern i8       pst[6][2][8][8];
+extern pst_t    pst[6][2][8][8];
 extern score_t  val_opn;
 extern score_t  val_end;
 extern state_s  b_state[prev_states + max_ply];

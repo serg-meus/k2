@@ -54,6 +54,7 @@ typedef u64 node_t;
 typedef u32 history_t;
 typedef u8 piece_num_t;
 typedef u8 rank_t;
+typedef i8 pst_t;
 
 
 
