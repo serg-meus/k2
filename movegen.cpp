@@ -324,7 +324,7 @@ movcr_t GenCaptures(move_c *move_array)
 void AppriceMoves(move_c *move_array, movcr_t moveCr, move_c *bestMove)
 {
 #ifndef DONT_USE_HISTORY
-    min_history = UINT_MAX;
+    min_history = std::numeric_limits<history_t>::max();
     max_history = 0;
 #endif
 

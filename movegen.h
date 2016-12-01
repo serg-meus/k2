@@ -1,6 +1,6 @@
 #include "eval.h"
 #include "extern.h"
-#include <limits.h>
+#include <limits>
 
 
 

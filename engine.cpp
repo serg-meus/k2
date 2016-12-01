@@ -522,7 +522,7 @@ score_t RootSearch(depth_t depth, score_t alpha, score_t beta)
     move_c  cur_move;
     bool beta_cutoff = false;
     const node_t unconfirmed_fail_high = -1,
-            max_root_move_priority = ULLONG_MAX;
+            max_root_move_priority = std::numeric_limits<node_t>::max();
 
     for(; root_move_cr < max_root_moves; root_move_cr++)
     {
