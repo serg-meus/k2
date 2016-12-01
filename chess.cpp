@@ -6,7 +6,7 @@
 
 //--------------------------------
 piece_t b[137];                                                             // board array in "0x88" style
-short_list<u8, lst_sz> coords[2];
+short_list<coord_t, lst_sz> coords[2];
 
 u8  attacks[240];                                                       // table for quick detect possible attacks
 u8  get_delta[240];                                                     // I'm already forget what's this
@@ -28,7 +28,7 @@ side_to_move_t wtm;
 depth_t ply;
 u64 nodes, tmpCr;
 char *cv;
-u16 reversible_moves;
+depth_t reversible_moves;
 
 char cur_moves[5*max_ply];
 
@@ -56,7 +56,7 @@ void InitChess()
 void InitBrd()
 {
     piece_t pcs[] = {_N, _N, _B, _B, _R, _R, _Q, _K};
-    u8 crd[] = {6, 1, 5, 2, 7, 0, 3, 4};
+    coord_t crd[] = {6, 1, 5, 2, 7, 0, 3, 4};
 
     memset(b, 0, sizeof(b));
 

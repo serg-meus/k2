@@ -43,11 +43,11 @@
 
 
 
-const int mate_score = K_VAL - (short)max_ply;
+const score_t mate_score = K_VAL - (short)max_ply;
 const bool all_moves = false;
 const bool captures_only = true;
-const unsigned nodes_to_check_stop = 7;
-const unsigned init_max_moves = 2;  // any number greater than 1
+const u64 nodes_to_check_stop = 7;
+const movcr_t init_max_moves = 2;  // any number greater than 1
 const int moves_for_time_exact_mode = 8;
 const u8 not_a_move = 0xFF;
 
@@ -68,11 +68,11 @@ enum {all_node = -1, pv_node = 0, cut_node = 1};
 //--------------------------------
 void InitEngine();
 void Perft(depth_t depth);
-short Search(depth_t depth, score_t alpha, score_t beta, i8 node_type);
-short QSearch(score_t alpha, score_t beta);
+score_t Search(depth_t depth, score_t alpha, score_t beta, i8 node_type);
+score_t QSearch(score_t alpha, score_t beta);
 void StorePV(Move m);
 void UpdateStatistics(Move m, depth_t dpt, movcr_t move_cr);
-short RootSearch(depth_t depth, score_t alpha, score_t beta);
+score_t RootSearch(depth_t depth, score_t alpha, score_t beta);
 void RootMoveGen(bool in_check);
 void MainSearch();
 void InitSearch();
@@ -95,7 +95,8 @@ void ReHash(u32 size_mb);
 tt_entry* HashProbe(depth_t depth, score_t *alpha, score_t beta);
 bool MoveIsPseudoLegal(Move &m, bool stm);
 Move Next(Move *move_array, movcr_t cur, movcr_t *top, tt_entry *entry,
-          u8 stm, bool captures_only, bool in_check, Move prev_move);
+          side_to_move_t stm, bool captures_only, bool in_check,
+          Move prev_move);
 void StoreResultInHash(depth_t depth, score_t _alpha, score_t alpha,
                        score_t beta, movcr_t legals,
                        bool beta_cutoff, Move best_move, bool one_reply);

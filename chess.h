@@ -17,6 +17,10 @@ typedef uint32_t u32;
 typedef int32_t i32;
 typedef unsigned long long u64;
 
+typedef i16 depth_t;
+typedef u8 piece_t;
+typedef u8 coord_t;
+
 #define ONBRD(X)        (!((X) & 0x88))
 #define XY2SQ(X, Y)     (((Y) << 4) + (X))
 #define COL(SQ)         ((SQ) & 7)
@@ -26,18 +30,15 @@ typedef unsigned long long u64;
 #define TO_BLACK(X)     ((X) & ~white)
 
 const i32 lst_sz  = 32;                                                 // size of piece list for one colour
-const i32 max_ply  = 100;                                                // maximum search depth
-const i32 prev_states   = 4;
-const u8  white         = 1;
-const u8  black         = 0;
+const depth_t max_ply  = 100;                                                // maximum search depth
+const depth_t prev_states   = 4;
+const piece_t white = 1;
+const piece_t black = 0;
 
-typedef short_list<u8, lst_sz>::iterator_entity iterator_entity;
-typedef short_list<u8, lst_sz>::iterator iterator;
-typedef u8 coord_t;
+typedef short_list<coord_t, lst_sz>::iterator_entity iterator_entity;
+typedef short_list<coord_t, lst_sz>::iterator iterator;
 typedef i16 score_t;
-typedef i16 depth_t;
 typedef i16 streng_t;
-typedef u8 piece_t;
 typedef u8 side_to_move_t;
 typedef u8 move_score_t;
 typedef i16 tropism_t;

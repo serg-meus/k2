@@ -11,26 +11,25 @@ depth_t     stop_ply   = 0;
 Timer       timer;
 double      time0;
 double      time_spent, time_to_think;
-unsigned    max_nodes_to_search;
+u64         max_nodes_to_search;
 depth_t     max_search_depth, root_ply;
 movcr_t     max_root_moves, root_move_cr;
 bool        stop, infinite_analyze, busy;
-u64          q_nodes, cut_cr, cut_num_cr[5], q_cut_cr, q_cut_num_cr[5];
-u64          null_probe_cr, null_cut_cr, hash_probe_cr;
-u64          hash_hit_cr, hash_cut_cr;
-u64          hash_best_move_cr, hash_cutoff_by_best_move_cr;
-u64          total_nodes, futility_probes, futility_hits;
-u64          killer1_probes, killer1_hits, killer2_probes, killer2_hits;
+u64         q_nodes, cut_cr, cut_num_cr[5], q_cut_cr, q_cut_num_cr[5];
+u64         null_probe_cr, null_cut_cr, hash_probe_cr;
+u64         hash_hit_cr, hash_cut_cr;
+u64         hash_best_move_cr, hash_cutoff_by_best_move_cr;
+u64         total_nodes, futility_probes, futility_hits;
+u64         killer1_probes, killer1_hits, killer2_probes, killer2_hits;
 double      time_base, time_inc, time_remains, total_time_spent;
-unsigned    moves_per_session;
-int         finaly_made_moves, moves_remains;
+depth_t     moves_per_session;
+depth_t     finaly_made_moves, moves_remains;
 bool        spent_exact_time;
 unsigned    resign_cr;
 bool        time_command_sent;
 
 
 std::vector<std::pair<u64, Move> > root_moves;
-
 transposition_table tt;
 
 
@@ -38,7 +37,7 @@ transposition_table tt;
 
 
 //--------------------------------
-short Search(depth_t depth, score_t alpha, score_t beta, i8 node_type)
+score_t Search(depth_t depth, score_t alpha, score_t beta, i8 node_type)
 {
     if(ply >= max_ply - 1 || DrawDetect())
     {
@@ -227,7 +226,7 @@ short Search(depth_t depth, score_t alpha, score_t beta, i8 node_type)
 
 
 //-----------------------------
-short QSearch(score_t alpha, score_t beta)
+score_t QSearch(score_t alpha, score_t beta)
 {
     if(ply >= max_ply - 1)
         return 0;
@@ -315,7 +314,7 @@ short QSearch(score_t alpha, score_t beta)
     {
 #ifndef DONT_SHOW_STATISTICS
         q_cut_cr++;
-        if(legal_moves - 1 < (int)(sizeof(q_cut_num_cr)/sizeof(*q_cut_num_cr)))
+        if(legal_moves < 1 + (sizeof(q_cut_num_cr)/sizeof(*q_cut_num_cr)))
             q_cut_num_cr[legal_moves - 1]++;
 #endif // DONT_SHOW_STATISTICS
         return beta;
@@ -366,7 +365,7 @@ void Perft(depth_t depth)
 //-----------------------------
 void StorePV(Move move)
 {
-    int nextLen = pv[ply + 1][0].flg;
+    move_flag_t nextLen = pv[ply + 1][0].flg;
     pv[ply][0].flg = nextLen + 1;
     pv[ply][1] = move;
     memcpy(&pv[ply][2], &pv[ply + 1][1], sizeof(Move)*nextLen);
@@ -508,7 +507,7 @@ void MainSearch()
 
 
 //--------------------------------
-short RootSearch(depth_t depth, score_t alpha, score_t beta)
+score_t RootSearch(depth_t depth, score_t alpha, score_t beta)
 {
     bool in_check = Attack(*king_coord[wtm], !wtm);
     if(max_root_moves == 0)
@@ -658,7 +657,7 @@ void ShowPVfailHighOrLow(Move m, score_t x, char type_of_bound)
 void RootMoveGen(bool in_check)
 {
     Move move_array[MAX_MOVES], cur_move;
-    u8 max_moves = init_max_moves;
+    movcr_t max_moves = init_max_moves;
 
     score_t alpha = -INF, beta = INF;
     cur_move.flg = not_a_move;
@@ -838,7 +837,7 @@ void PrintFinalSearchResult()
                 << "cuts by best move = "
                 << 100.*hash_cutoff_by_best_move_cr/hash_best_move_cr << "% )"
                 << std::endl
-                << "( hash full = " << (int)100*tt.size()/tt.max_size()
+                << "( hash full = " << (i32)100*tt.size()/tt.max_size()
                 << "% (" << tt.size()/sizeof(tt_entry)
                 << "/" << tt.max_size()/sizeof(tt_entry)
                 << " entries )" << std::endl;
@@ -887,7 +886,7 @@ void PrintCurrentSearchResult(score_t max_value, char type_of_bound)
     using namespace std;
 
     double time1 = timer.getElapsedTimeInMicroSec();
-    int spent_time = (int)((time1 - time0)/1000.);
+    u32 spent_time = ((time1 - time0)/1000.);
 
     if(uci)
     {
@@ -934,7 +933,7 @@ void InitTime()                                                         // too c
     if(!time_command_sent)
         time_remains -= time_spent;
     time_remains = ABSI(time_remains);                                  //<< NB: strange
-    int movsAfterControl;
+    depth_t movsAfterControl;
     if(moves_per_session == 0)
         movsAfterControl = finaly_made_moves/2;
     else
@@ -1066,7 +1065,7 @@ void FindAndPrintForAmbiguousMoves(Move move)
     auto it = coords[wtm].begin();
     it = move.pc;
     coord_t init_from_coord = *it;
-    u8 init_piece_type = GET_INDEX(b[init_from_coord]);
+    piece_index_t init_piece_type = GET_INDEX(b[init_from_coord]);
 
     for(it = coords[wtm].begin(); it != coords[wtm].end(); ++it)
     {
@@ -1074,7 +1073,7 @@ void FindAndPrintForAmbiguousMoves(Move move)
             continue;
         coord_t from_coord = *it;
 
-        u8 piece_type = GET_INDEX(b[from_coord]);
+        piece_index_t piece_type = GET_INDEX(b[from_coord]);
         if(piece_type != init_piece_type)
             continue;
         if(!(attacks[120 + from_coord - move.to] & (1 << piece_type)))
@@ -1335,7 +1334,7 @@ bool NullMove(depth_t depth, score_t beta, bool in_check)
 
     u8 store_ep  = b_state[prev_states + ply].ep;
     coord_t store_to = b_state[prev_states + ply].to;
-    u16 store_rv = reversible_moves;
+    depth_t store_rv = reversible_moves;
     reversible_moves = 0;
 
     MakeNullMove();
@@ -1344,7 +1343,7 @@ bool NullMove(depth_t depth, score_t beta, bool in_check)
 
     depth_t r = depth > 6 ? 3 : 2;
 
-    short x = -Search(depth - r - 1, -beta, -beta + 1, all_node);
+    score_t x = -Search(depth - r - 1, -beta, -beta + 1, all_node);
 
     UnMakeNullMove();
     b_state[prev_states + ply].to = store_to;
@@ -1399,7 +1398,7 @@ bool DrawByRepetition()
     if(reversible_moves < 4)
         return false;
 
-    int max_count;
+    depth_t max_count;
     if(reversible_moves > ply + finaly_made_moves)
         max_count = ply + finaly_made_moves;
     else
@@ -1427,12 +1426,12 @@ void ShowFen()
     char whites[] = "KQRBNP";
     char blacks[] = "kqrbnp";
 
-    for(int row = 7; row >= 0; --row)
+    for(i8 row = 7; row >= 0; --row)
     {
-        int blank_cr = 0;
-        for(int col = 0; col < 8; ++col)
+        size_t blank_cr = 0;
+        for(i8 col = 0; col < 8; ++col)
         {
-            u8 piece = b[XY2SQ(col, row)];
+            piece_t piece = b[XY2SQ(col, row)];
             if(piece == __)
             {
                 blank_cr++;
@@ -1506,7 +1505,7 @@ tt_entry* HashProbe(depth_t depth, score_t *alpha, score_t beta)
     u8 hbnd = entry->bound_type;
     if(entry->depth >= depth)
     {
-        short hval = entry->value;
+        score_t hval = entry->value;
         if(hval > mate_score && hval != INF)
             hval += entry->depth - ply;
         else if(hval < -mate_score && hval != -INF)
@@ -1548,9 +1547,9 @@ bool MoveIsPseudoLegal(Move &move, bool stm)
         return false;
     it = move.pc;
     coord_t from_coord = *it;
-    u8 piece = b[move.to];
-    int delta_col = COL(move.to) - COL(from_coord);
-    int delta_row = ROW(move.to) - ROW(from_coord);
+    piece_t piece = b[move.to];
+    i8 delta_col = COL(move.to) - COL(from_coord);
+    i8 delta_row = ROW(move.to) - ROW(from_coord);
     if(!delta_col && !delta_row)
         return false;
     if(!LIGHT(b[from_coord], stm))
@@ -1648,8 +1647,8 @@ bool MoveIsPseudoLegal(Move &move, bool stm)
 
 //--------------------------------
 Move Next(Move *move_array, movcr_t cur_move, movcr_t *max_moves,
-          tt_entry *entry, u8 stm, bool only_captures, bool in_check,
-          Move prev_move)
+          tt_entry *entry, side_to_move_t stm, bool only_captures,
+          bool in_check, Move prev_move)
 {
 #ifdef DONT_USE_ONE_REPLY_EXTENSION
     UNUSED(in_check);
@@ -1766,12 +1765,12 @@ Move Next(Move *move_array, movcr_t cur_move, movcr_t *max_moves,
     }
 #endif //DONT_USE_ONE_REPLY_EXTENSION
 
-    int max_score = -INF;
-    unsigned max_index = cur_move;
+    move_score_t max_score = 0;
+    movcr_t max_index = cur_move;
 
     for(movcr_t i = cur_move; i < *max_moves; i++)
     {
-        u8 score = move_array[i].scr;
+        move_score_t score = move_array[i].scr;
         if(score > max_score)
         {
             max_score = score;
@@ -1841,7 +1840,7 @@ void ShowCurrentUciInfo()
     double t = timer.getElapsedTimeInMicroSec();
 
     std::cout << "info nodes " << nodes
-        << " nps " << (int)(1000000 * nodes / (t - time0 + 1));
+        << " nps " << (i32)(1000000 * nodes / (t - time0 + 1));
 
     Move move = root_moves.at(root_move_cr).second;
     coord_t from_coord = b_state[prev_states + 1].fr;

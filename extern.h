@@ -26,7 +26,7 @@ extern score_t  val_opn;
 extern score_t  val_end;
 extern u8       unused1[24];
 extern BrdState b_state[prev_states + max_ply];
-extern u16      reversible_moves;
+extern depth_t  reversible_moves;
 extern char     cur_moves[5*max_ply];
 extern u8       pawn_max[10][2];
 extern u8       pawn_min[10][2];
