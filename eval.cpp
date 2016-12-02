@@ -7,8 +7,8 @@ score_t val_opn, val_end;
 
 rank_t pawn_max[10][2], pawn_min[10][2];
 
-score_t material_values_opn[] = {  0, 0, Q_VAL_OPN, R_VAL_OPN, B_VAL_OPN, N_VAL_OPN, P_VAL_OPN};
-score_t material_values_end[] = {  0, 0, Q_VAL_END, R_VAL_END, B_VAL_END, N_VAL_END, P_VAL_END};
+score_t material_values_opn[] = {  0, 0, queen_val_opn, rook_val_opn, bishop_val_opn, kinght_val_opn, pawn_val_opn};
+score_t material_values_end[] = {  0, 0, queen_val_end, rook_val_end, bishop_val_end, kinght_val_end, pawn_val_end};
 
 dist_t king_dist[120];
 tropism_t king_tropism[2];
@@ -409,52 +409,53 @@ void BishopMobility(side_to_move_t stm)
 //-----------------------------
 void ClampedRook(side_to_move_t stm)
 {
+    const score_t clamped_rook  = 82;
     coord_t k = *king_coord[stm];
 
     if(stm)
     {
         if(k == 0x06 && b[0x07] == _R && pawn_max[7 + 1][1])
-            val_opn -= CLAMPED_R;
+            val_opn -= clamped_rook;
         else if(k == 0x05)
         {
             if(pawn_max[7 + 1][1] && b[0x07] == _R)
-                val_opn -= CLAMPED_R;
+                val_opn -= clamped_rook;
             else
             if(pawn_max[6 + 1][1] && b[0x06] == _R)
-                val_opn -= CLAMPED_R;
+                val_opn -= clamped_rook;
         }
         else if(k == 0x01 && b[0x00] == _R && pawn_max[0 + 1][1])
-            val_opn -= CLAMPED_R;
+            val_opn -= clamped_rook;
         else if(k == 0x02)
         {
             if(pawn_max[0 + 1][1] && b[0x00] == _R)
-                val_opn -= CLAMPED_R;
+                val_opn -= clamped_rook;
             else
             if(pawn_max[1 + 1][1] && b[0x01] == _R)
-                val_opn -= CLAMPED_R;
+                val_opn -= clamped_rook;
         }
      }
      else
      {
         if(k == 0x76 && b[0x77] == _r && pawn_max[7 + 1][0])
-            val_opn += CLAMPED_R;
+            val_opn += clamped_rook;
         else if(k == 0x75)
         {
             if(pawn_max[7 + 1][0] && b[0x77] == _r)
-                val_opn += CLAMPED_R;
+                val_opn += clamped_rook;
             else
             if(pawn_max[6 + 1][0] && b[0x76] == _r)
-                val_opn += CLAMPED_R;
+                val_opn += clamped_rook;
         }
         else if(k == 0x71 && b[0x70] == _r && pawn_max[0 + 1][0])
-            val_opn += CLAMPED_R;
+            val_opn += clamped_rook;
         else if(k == 0x72)
         {
             if(pawn_max[0 + 1][0] && b[0x70] == _r)
-                val_opn += CLAMPED_R;
+                val_opn += clamped_rook;
             else
             if(pawn_max[1 + 1][0] && b[0x71] == _r)
-                val_opn += CLAMPED_R;
+                val_opn += clamped_rook;
         }
     }
 
@@ -550,10 +551,10 @@ void MaterialImbalances()
         }
         // KPkn, KPkb
         if(material[white] == 1 && material[black] == 4)
-            val_end += B_VAL_END + P_VAL_END/4;
+            val_end += bishop_val_end + pawn_val_end/4;
         // KNkp, KBkp
         if(material[black] == 1 && material[white] == 4)
-            val_end -= B_VAL_END + P_VAL_END/4;
+            val_end -= bishop_val_end + pawn_val_end/4;
     }
     // KNNk, KBNk, KBBk, etc
     else if(X == 6 && (material[0] == 0 || material[1] == 0))

@@ -46,7 +46,7 @@ typedef u64 count_t;
 typedef i8 node_type_t;
 
 
-const score_t mate_score = K_VAL - (short)max_ply;
+const score_t mate_score = king_value - (short)max_ply;
 const bool all_moves = false;
 const bool captures_only = true;
 const node_t nodes_to_check_stop = 7;

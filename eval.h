@@ -25,21 +25,20 @@
 
 //--------------------------------
 const score_t
-    P_VAL_OPN = 100,
-    N_VAL_OPN = 395,
-    B_VAL_OPN = 405,
-    R_VAL_OPN = 600,
-    Q_VAL_OPN = 1200,
+    pawn_val_opn = 100,
+    kinght_val_opn = 395,
+    bishop_val_opn = 405,
+    rook_val_opn = 600,
+    queen_val_opn = 1200,
 
-    P_VAL_END = 128,
-    N_VAL_END = 369,
-    B_VAL_END = 405,
-    R_VAL_END = 640,
-    Q_VAL_END = 1200,
+    pawn_val_end = 128,
+    kinght_val_end = 369,
+    bishop_val_end = 405,
+    rook_val_end = 640,
+    queen_val_end = 1200,
 
-    K_VAL = 32000,
-    INF = 32760,
-    CLAMPED_R  = 82;
+    king_value = 32000,
+    infinit_score = 32760;
 
 
 

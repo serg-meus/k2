@@ -64,7 +64,7 @@ score_t Search(depth_t depth, score_t alpha, score_t beta,
 #endif // DONT_USE_RECAPTURE_EXTENSION
 
 #ifndef DONT_USE_MATE_DISTANCE_PRUNING
-    score_t mate_sc = K_VAL - ply;
+    score_t mate_sc = king_value - ply;
     if(alpha >= mate_sc)
        return alpha;
     if(beta <= -mate_sc)
@@ -194,7 +194,7 @@ score_t Search(depth_t depth, score_t alpha, score_t beta,
     if(legal_moves == 0 && initial_alpha <= mate_score)
     {
         pv[ply][0].flg = 0;
-        return in_check ? -K_VAL + ply : 0;
+        return in_check ? -king_value + ply : 0;
     }
     else if(legal_moves)
         StoreResultInHash(depth, initial_alpha, alpha, beta, legal_moves,
@@ -288,7 +288,7 @@ score_t QSearch(score_t alpha, score_t beta)
         if(TO_BLACK(b_state[prev_states + ply].capt) == _k)
         {
             UnMoveAndEval(cur_move);
-            return K_VAL;
+            return king_value;
         }
         FastEval(cur_move);
 
@@ -422,7 +422,7 @@ void MainSearch()
     score_t x, prev_x;
 
     root_ply = 1;
-    x = QSearch(-INF, INF);
+    x = QSearch(-infinit_score, infinit_score);
     pv[0][0].flg = 0;
 
     max_root_moves = 0;
@@ -434,21 +434,21 @@ void MainSearch()
         x = RootSearch(root_ply, x - asp_margin, x + asp_margin);
         if(!stop && x <= prev_x - asp_margin)
         {
-            x = RootSearch(root_ply, -INF, prev_x - asp_margin);
+            x = RootSearch(root_ply, -infinit_score, prev_x - asp_margin);
             if (!stop && x >= prev_x - asp_margin)
-                x = RootSearch(root_ply, -INF, INF);
+                x = RootSearch(root_ply, -infinit_score, infinit_score);
         }
         else if(!stop && x >= prev_x + asp_margin)
         {
-            x = RootSearch(root_ply, prev_x + asp_margin, INF);
+            x = RootSearch(root_ply, prev_x + asp_margin, infinit_score);
             if(!stop && x <= prev_x + asp_margin)
-                x = RootSearch(root_ply, -INF, INF);
+                x = RootSearch(root_ply, -infinit_score, infinit_score);
         }
 #else
         x = RootSearch(root_ply, -INF, INF);
 #endif //DONT_USE_ASPIRATION_WINDOWS
 
-        if(stop && x == -INF)
+        if(stop && x == -infinit_score)
             x = prev_x;
 
         double time1 = timer.getElapsedTimeInMicroSec();
@@ -574,7 +574,7 @@ score_t RootSearch(depth_t depth, score_t alpha, score_t beta)
     x = -Search(depth - 1, -beta, -alpha, pv_node);
 #endif // DONT_USE_PVS_IN_ROOT
         if(stop && !fail_high)
-            x = -INF;
+            x = -infinit_score;
 
         node_t delta_nodes = nodes - prev_nodes;
 
@@ -597,7 +597,7 @@ score_t RootSearch(depth_t depth, score_t alpha, score_t beta)
             UnMove(cur_move);
             alpha = x;
             StorePV(cur_move);
-            if(depth > 3 && x != -INF && !stop)
+            if(depth > 3 && x != -infinit_score && !stop)
                 PrintCurrentSearchResult(x, ' ');
             std::swap(root_moves.at(root_move_cr),
                       root_moves.at(0));
@@ -616,7 +616,7 @@ score_t RootSearch(depth_t depth, score_t alpha, score_t beta)
     if(max_root_moves == 0)
     {
         pv[0][0].flg = 0;
-        return in_check ? -K_VAL + ply : 0;
+        return in_check ? -king_value + ply : 0;
     }
     if(beta_cutoff)
     {
@@ -660,7 +660,7 @@ void RootMoveGen(bool in_check)
     move_c move_array[MAX_MOVES], cur_move;
     movcr_t max_moves = init_max_moves;
 
-    score_t alpha = -INF, beta = INF;
+    score_t alpha = -infinit_score, beta = infinit_score;
     cur_move.flg = not_a_move;
 
     HashProbe(max_ply, &alpha, beta);
@@ -898,9 +898,9 @@ void PrintCurrentSearchResult(score_t max_value, char type_of_bound)
         else
         {
             if(max_value > 0)
-                cout << " score mate " << (K_VAL - max_value + 1) / 2;
+                cout << " score mate " << (king_value - max_value + 1) / 2;
             else
-                cout << " score mate -" << (K_VAL + max_value + 1) / 2;
+                cout << " score mate -" << (king_value + max_value + 1) / 2;
         }
         if(type_of_bound == '!')
             cout << " upperbound";
@@ -1507,9 +1507,9 @@ hash_entry_s* HashProbe(depth_t depth, score_t *alpha, score_t beta)
     if(entry->depth >= depth)
     {
         score_t hval = entry->value;
-        if(hval > mate_score && hval != INF)
+        if(hval > mate_score && hval != infinit_score)
             hval += entry->depth - ply;
-        else if(hval < -mate_score && hval != -INF)
+        else if(hval < -mate_score && hval != -infinit_score)
             hval -= entry->depth - ply;
 
         if( hbnd == hEXACT
@@ -1800,9 +1800,9 @@ void StoreResultInHash(depth_t depth, score_t init_alpha, score_t alpha,
         return;
     if(beta_cutoff)
     {
-        if(beta > mate_score && beta != INF)
+        if(beta > mate_score && beta != infinit_score)
             beta += ply - depth - 1;
-        else if(beta < -mate_score && beta != -INF)
+        else if(beta < -mate_score && beta != -infinit_score)
             beta -= ply - depth - 1;
         hash_table.add(hash_key, -beta, best_move, depth,
                hLOWER, finaly_made_moves/2, one_reply);
@@ -1810,18 +1810,18 @@ void StoreResultInHash(depth_t depth, score_t init_alpha, score_t alpha,
     }
     else if(alpha > init_alpha && pv[ply][0].flg > 0)
     {
-        if(alpha > mate_score && alpha != INF)
+        if(alpha > mate_score && alpha != infinit_score)
             alpha += ply - depth;
-        else if(alpha < - mate_score && alpha != -INF)
+        else if(alpha < - mate_score && alpha != -infinit_score)
             alpha -= ply - depth;
         hash_table.add(hash_key, -alpha, pv[ply][1], depth,
                 hEXACT, finaly_made_moves/2, one_reply);
     }
     else if(alpha <= init_alpha)
     {
-        if(init_alpha > mate_score && init_alpha != INF)
+        if(init_alpha > mate_score && init_alpha != infinit_score)
             init_alpha += ply - depth;
-        else if(init_alpha < -mate_score && init_alpha != -INF)
+        else if(init_alpha < -mate_score && init_alpha != -infinit_score)
             init_alpha -= ply - depth;
         move_c no_move;
         no_move.flg = not_a_move;
