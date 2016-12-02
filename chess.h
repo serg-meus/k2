@@ -21,13 +21,6 @@ typedef i16 depth_t;
 typedef u8 piece_t;
 typedef u8 coord_t;
 
-#define ONBRD(X)        (!((X) & 0x88))
-#define XY2SQ(X, Y)     (((Y) << 4) + (X))
-#define COL(SQ)         ((SQ) & 7)
-#define ROW(SQ)         ((SQ) >> 4)
-#define GET_INDEX(X)    ((X)/2)
-#define TO_BLACK(X)     ((X) & ~white)
-
 const i32 lst_sz  = 32;                                                 // size of piece list for one colour
 const depth_t max_ply  = 100;                                                // maximum search depth
 const depth_t prev_states   = 4;
@@ -142,3 +135,9 @@ void UnmakeCapture(move_c m);
 void UnmakePromotion(move_c m);
 bool MkMoveFast(move_c m);
 void UnMoveFast(move_c m);
+bool ONBRD(coord_t coord);
+coord_t XY2SQ(coord_t col, coord_t row);
+coord_t COL(coord_t coord);
+coord_t ROW(coord_t coord);
+coord_t GET_INDEX(piece_t X);
+piece_t TO_BLACK(piece_t piece);

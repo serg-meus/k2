@@ -705,3 +705,61 @@ void UnMoveFast(move_c m)
     cur_moves[5*ply] = '\0';
 #endif // NDEBUG
 }
+
+
+
+
+
+//--------------------------------
+bool ONBRD(coord_t coord)
+{
+    return !(coord & 0x88);
+}
+
+
+
+
+
+//--------------------------------
+coord_t XY2SQ(coord_t col, coord_t row)
+{
+    return (row << 4) + col;
+}
+
+
+
+//--------------------------------
+coord_t COL(coord_t coord)
+{
+    return coord & 7;
+}
+
+
+
+
+
+//--------------------------------
+coord_t ROW(coord_t coord)
+{
+    return coord >> 4;
+}
+
+
+
+
+
+//--------------------------------
+coord_t GET_INDEX(piece_t piece)
+{
+    return piece/2;
+}
+
+
+
+
+
+//--------------------------------
+coord_t TO_BLACK(piece_t piece)
+{
+    return piece & ~white;
+}
