@@ -7,7 +7,6 @@
 
 
 //--------------------------------
-#define MEN_TO_ZORB(X) ((X) - 2)
 const depth_t FIFTY_MOVES = 101;       // because last 50th move can be a mate
 const hash_key_t key_for_side_to_move = -1ULL;
 
@@ -84,3 +83,4 @@ void MoveHashKey(move_c m, bool special);
 void MkMove(move_c m);
 void UnMove(move_c m);
 void MkMoveIncrementally(move_c m, bool special_move);
+piece_t piece_hash_index(piece_t piece);

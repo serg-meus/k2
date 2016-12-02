@@ -9,9 +9,6 @@
 
 
 //--------------------------------
-#define LIGHT(X, s2m)   ((X) && (((X) & white) == (s2m)))
-#define DARK(X, s2m)    ((X) && (((X) & white) != (s2m)))
-
 //#define TUNE_PARAMETERS
 #define NPARAMS 1
 
@@ -67,3 +64,5 @@ void  MoveKingTropism(coord_t fr, move_c m, side_to_move_t king_color);
 score_t KingOpenFiles(side_to_move_t king_color);
 void  MovePawnStruct(piece_t movedPiece, coord_t fr, move_c m);
 score_t OneBishopMobility(coord_t b_coord);
+bool is_light(piece_t piece, side_to_move_t stm);
+bool is_dark(piece_t piece, side_to_move_t stm);

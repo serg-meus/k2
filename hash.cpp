@@ -60,10 +60,10 @@ hash_key_t InitHashKey()
     hash_key_t ans = 0;
 
     for(auto fr : coords[wtm])
-        ans ^= zorb[MEN_TO_ZORB(b[fr])][COL(fr)][ROW(fr)];
+        ans ^= zorb[piece_hash_index(b[fr])][get_col(fr)][get_row(fr)];
 
     for(auto fr : coords[!wtm])
-        ans ^= zorb[MEN_TO_ZORB(b[fr])][COL(fr)][ROW(fr)];
+        ans ^= zorb[piece_hash_index(b[fr])][get_col(fr)][get_row(fr)];
 
     if(!wtm)
         ans ^= key_for_side_to_move;
@@ -87,39 +87,39 @@ void MoveHashKey(move_c m, bool special)
     state_s &f = b_state[prev_states + ply],
             &_f = b_state[prev_states + ply - 1];
 
-    hash_key ^= zorb[MEN_TO_ZORB(pt)][COL(fr)][ROW(fr)]
-           ^ zorb[MEN_TO_ZORB(pt)][COL(m.to)][ROW(m.to)];
+    hash_key ^= zorb[piece_hash_index(pt)][get_col(fr)][get_row(fr)]
+           ^ zorb[piece_hash_index(pt)][get_col(m.to)][get_row(m.to)];
 
     if(f.capt)
-        hash_key ^= zorb[MEN_TO_ZORB(f.capt)][COL(m.to)][ROW(m.to)];
+        hash_key ^= zorb[piece_hash_index(f.capt)][get_col(m.to)][get_row(m.to)];
     if(_f.ep)
         hash_key ^= zorb_en_passant[_f.ep];
 
     if(m.flg & mPROM)
-        hash_key ^= zorb[MEN_TO_ZORB(_P ^ wtm)][COL(fr)][ROW(fr)]
-               ^ zorb[MEN_TO_ZORB(pt)][COL(fr)][ROW(fr)];
+        hash_key ^= zorb[piece_hash_index(_P ^ wtm)][get_col(fr)][get_row(fr)]
+               ^ zorb[piece_hash_index(pt)][get_col(fr)][get_row(fr)];
     else if(m.flg & mENPS)
-        hash_key ^= zorb[MEN_TO_ZORB(_p ^ wtm)][COL(m.to)]
-            [ROW(m.to) + (wtm ? 1 : -1)];
+        hash_key ^= zorb[piece_hash_index(_p ^ wtm)][get_col(m.to)]
+            [get_row(m.to) + (wtm ? 1 : -1)];
     else if(m.flg & mCSTL)
     {
         if(!wtm)
         {
             if(m.flg & mCS_K)
-                hash_key ^= zorb[MEN_TO_ZORB(_R)][7][0]
-                         ^  zorb[MEN_TO_ZORB(_R)][5][0];
+                hash_key ^= zorb[piece_hash_index(_R)][7][0]
+                         ^  zorb[piece_hash_index(_R)][5][0];
             else
-                hash_key ^= zorb[MEN_TO_ZORB(_R)][0][0]
-                         ^  zorb[MEN_TO_ZORB(_R)][3][0];
+                hash_key ^= zorb[piece_hash_index(_R)][0][0]
+                         ^  zorb[piece_hash_index(_R)][3][0];
         }
         else
         {
             if(m.flg & mCS_K)
-                hash_key ^= zorb[MEN_TO_ZORB(_r)][7][7]
-                         ^  zorb[MEN_TO_ZORB(_r)][5][7];
+                hash_key ^= zorb[piece_hash_index(_r)][7][7]
+                         ^  zorb[piece_hash_index(_r)][5][7];
             else
-                hash_key ^= zorb[MEN_TO_ZORB(_r)][0][7]
-                         ^  zorb[MEN_TO_ZORB(_r)][3][7];
+                hash_key ^= zorb[piece_hash_index(_r)][0][7]
+                         ^  zorb[piece_hash_index(_r)][3][7];
         }
         hash_key ^= zorb_castling[_f.cstl]
                  ^  zorb_castling[f.cstl];
@@ -127,7 +127,7 @@ void MoveHashKey(move_c m, bool special)
     hash_key ^= key_for_side_to_move;
     if(special)
     {
-        if(TO_BLACK(pt) == _p && !f.capt)
+        if(to_black(pt) == _p && !f.capt)
             hash_key ^= zorb_en_passant[f.ep];
         else
             hash_key ^= zorb_castling[_f.cstl] ^ zorb_castling[f.cstl];
@@ -352,4 +352,14 @@ void MkMoveIncrementally(move_c m, bool special_move)
 {
     MkEvalAfterFastMove(m);
     MoveHashKey(m, special_move);
+}
+
+
+
+
+
+//--------------------------------
+piece_t piece_hash_index(piece_t piece)
+{
+    return piece - 2;
 }

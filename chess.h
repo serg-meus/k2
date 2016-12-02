@@ -97,7 +97,7 @@ struct state_s
     castle_t cstl;                                                      // castling rights, bits 0..3: _K, _Q, _k, _q, 4 bits
 
     iterator_entity castled_rook_it;                                    // iterator to castled rook, 8 bits
-    enpass_t ep;                                                        // 0 = no_ep, else ep=COL(x) + 1, not null only if opponent pawn is near, 4 bits
+    enpass_t ep;                                                        // 0 = no_ep, else ep=get_col(x) + 1, not null only if opponent pawn is near, 4 bits
     iterator_entity nprom;                                              // number of next piece for promoted pawn, 6 bits
     depth_t reversibleCr;                                                   // reversible halfmove counter
     coord_t to;                                                              // to point, 7 bits (for simple repetition draw detection)
@@ -136,8 +136,8 @@ void UnmakePromotion(move_c m);
 bool MkMoveFast(move_c m);
 void UnMoveFast(move_c m);
 bool ONBRD(coord_t coord);
-coord_t XY2SQ(coord_t col, coord_t row);
-coord_t COL(coord_t coord);
-coord_t ROW(coord_t coord);
-coord_t GET_INDEX(piece_t X);
-piece_t TO_BLACK(piece_t piece);
+coord_t get_coord(coord_t col, coord_t row);
+coord_t get_col(coord_t coord);
+coord_t get_row(coord_t coord);
+coord_t get_index(piece_t X);
+piece_t to_black(piece_t piece);

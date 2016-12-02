@@ -70,9 +70,9 @@ void InitEval()
 
     for(size_t i = 0; i < 120; i++)
         if(i & 8)
-            king_dist[i] = std::max(8 - COL(i), ROW(i) + 1);
+            king_dist[i] = std::max(8 - get_col(i), get_row(i) + 1);
         else
-            king_dist[i] = std::max(COL(i), ROW(i));
+            king_dist[i] = std::max(get_col(i), get_row(i));
 
     InitPawnStruct();
 
@@ -112,11 +112,11 @@ void FastEval(move_c m)
 {
     score_t ansO = 0, ansE = 0;
 
-    coord_t x  = COL(m.to);
-    coord_t y  = ROW(m.to);
-    coord_t x0 = COL(b_state[prev_states + ply].fr);
-    coord_t y0 = ROW(b_state[prev_states + ply].fr);
-    piece_index_t pt  = GET_INDEX(b[m.to]);
+    coord_t x  = get_col(m.to);
+    coord_t y  = get_row(m.to);
+    coord_t x0 = get_col(b_state[prev_states + ply].fr);
+    coord_t y0 = get_row(b_state[prev_states + ply].fr);
+    piece_index_t pt  = get_index(b[m.to]);
 
     if(!wtm)
     {
@@ -128,12 +128,12 @@ void FastEval(move_c m)
     move_flag_t flag = m.flg & mPROM;
     if(flag)
     {
-        idx = GET_INDEX(_p);
+        idx = get_index(_p);
         ansO -= material_values_opn[idx] + pst[idx - 1][0][y0][x0];
         ansE -= material_values_end[idx] + pst[idx - 1][1][y0][x0];
 
         piece_t promo_pieces[] = {_q, _n, _r, _b};
-        idx = GET_INDEX(promo_pieces[flag - 1]);
+        idx = get_index(promo_pieces[flag - 1]);
         ansO += material_values_opn[idx] + pst[idx - 1][0][y0][x0];
         ansE += material_values_end[idx] + pst[idx - 1][1][y0][x0];
 
@@ -141,29 +141,29 @@ void FastEval(move_c m)
 
     if(m.flg & mCAPT)
     {
-        piece_t capt = TO_BLACK(b_state[prev_states + ply].capt);
+        piece_t capt = to_black(b_state[prev_states + ply].capt);
         if(m.flg & mENPS)
         {
-            idx = GET_INDEX(_p);
+            idx = get_index(_p);
             ansO += material_values_opn[idx] + pst[idx - 1][0][7 - y0][x];
             ansE += material_values_end[idx] + pst[idx - 1][1][7 - y0][x];
         }
         else
         {
-            idx = GET_INDEX(capt);
+            idx = get_index(capt);
             ansO += material_values_opn[idx] + pst[idx - 1][0][7 - y][x];
             ansE += material_values_end[idx] + pst[idx - 1][1][7 - y][x];
         }
     }
     else if(m.flg & mCS_K)
     {
-        idx = GET_INDEX(_r);
+        idx = get_index(_r);
         ansO += pst[idx - 1][0][7][5] - pst[idx - 1][0][7][7];
         ansE += pst[idx - 1][1][7][5] - pst[idx - 1][1][7][7];
     }
     else if(m.flg & mCS_Q)
     {
-        idx = GET_INDEX(_r);
+        idx = get_index(_r);
         ansO += pst[idx - 1][0][7][3] - pst[idx - 1][0][7][0];
         ansE += pst[idx - 1][1][7][3] - pst[idx - 1][1][7][0];
     }
@@ -191,12 +191,12 @@ void InitEvaOfMaterialAndPst()
         piece_t pt = b[col];
         if(pt == __)
             continue;
-        coord_t x0 = COL(col);
-        coord_t y0 = ROW(col);
+        coord_t x0 = get_col(col);
+        coord_t y0 = get_row(col);
         if(pt & white)
             y0 = 7 - y0;
 
-        piece_index_t idx = GET_INDEX(pt);
+        piece_index_t idx = get_index(pt);
         score_t tmpOpn = material_values_opn[idx] + pst[idx - 1][0][y0][x0];
         score_t tmpEnd = material_values_end[idx] + pst[idx - 1][1][y0][x0];
 
@@ -286,9 +286,9 @@ void EvalPawns(side_to_move_t stm)
             && mx < pawn_min[col + 2][stm])
             {
                 coord_t y_coord = stm ? mx + 1 : 7 - mx - 1;
-                piece_t op_piece = b[XY2SQ(col, y_coord)];
-                bool occupied = DARK(op_piece, stm)
-                && TO_BLACK(op_piece) != _p;
+                piece_t op_piece = b[get_coord(col, y_coord)];
+                bool occupied = is_dark(op_piece, stm)
+                && to_black(op_piece) != _p;
                 if(occupied)
                     ansO -= 30;
             }
@@ -306,7 +306,7 @@ void EvalPawns(side_to_move_t stm)
         // king pawn tropism
         coord_t k = *king_coord[stm];
         coord_t opp_k = *king_coord[!stm];
-        coord_t pawn_coord = XY2SQ(col, stm ? mx + 1 : 7 - mx - 1);
+        coord_t pawn_coord = get_coord(col, stm ? mx + 1 : 7 - mx - 1);
         dist_t k_dist = king_dist[std::abs(k - pawn_coord)];
         dist_t opp_k_dist = king_dist[std::abs(opp_k - pawn_coord)];
 
@@ -322,7 +322,7 @@ void EvalPawns(side_to_move_t stm)
         // passed pawn evaluation
         score_t pass[] =         {0, 0, 21, 40, 85, 150, 200};
         score_t blocked_pass[] = {0, 0, 10, 20, 40,  50,  60};
-        bool blocked = b[XY2SQ(col, stm ? mx + 1 : 7 - mx - 1)] != __;
+        bool blocked = b[get_coord(col, stm ? mx + 1 : 7 - mx - 1)] != __;
         score_t delta = blocked ? blocked_pass[mx] : pass[mx];
 
         ansE += delta;
@@ -365,8 +365,8 @@ score_t OneBishopMobility(coord_t b_coord)
         coord_t coord = b_coord;
         for(size_t col = 0; col < 8; ++col)
         {
-            coord += shifts[GET_INDEX(_b)][ray];
-            if(!ONBRD(coord) || TO_BLACK(b[coord]) == _p)
+            coord += shifts[get_index(_b)][ray];
+            if(!ONBRD(coord) || to_black(b[coord]) == _p)
                 break;
             empty_squares++;
         }
@@ -387,7 +387,7 @@ void BishopMobility(side_to_move_t stm)
     auto rit = coords[stm].rbegin();
 
     while(rit != coords[stm].rend()
-    && TO_BLACK(b[*rit]) != _b)
+    && to_black(b[*rit]) != _b)
         ++rit;
     if(rit == coords[stm].rend())
         return;
@@ -395,7 +395,7 @@ void BishopMobility(side_to_move_t stm)
     ans += OneBishopMobility(*rit);
 
     ++rit;
-    if(rit != coords[stm].rend() && TO_BLACK(b[*rit]) == _b)
+    if(rit != coords[stm].rend() && to_black(b[*rit]) == _b)
         ans += OneBishopMobility(*rit);
 
     val_opn += stm ? ans : -ans;
@@ -463,44 +463,44 @@ void ClampedRook(side_to_move_t stm)
     auto rit = coords[stm].rbegin();
 
     while(rit != coords[stm].rend()
-    && TO_BLACK(b[*rit]) != _r)
+    && to_black(b[*rit]) != _r)
         ++rit;
     if(rit == coords[stm].rend())
         return;
 
     size_t rook_on_7th_cr = 0;
-    if((stm && ROW(*rit) >= 6) || (!stm && ROW(*rit) <= 1))
+    if((stm && get_row(*rit) >= 6) || (!stm && get_row(*rit) <= 1))
         rook_on_7th_cr++;
-    if(quantity[stm][GET_INDEX(_p)] >= 4
-    && pawn_max[COL(*rit) + 1][stm] == 0)
-        ans += (pawn_max[COL(*rit) + 1][!stm] == 0 ? 54 : 22);
+    if(quantity[stm][get_index(_p)] >= 4
+    && pawn_max[get_col(*rit) + 1][stm] == 0)
+        ans += (pawn_max[get_col(*rit) + 1][!stm] == 0 ? 54 : 22);
 
     size_t empty_sq = 0;
     for(coord_t i = 1; i <= 2; ++i)
     {
-        if(COL(*rit) + i < 7 && b[*rit + i] == __)
+        if(get_col(*rit) + i < 7 && b[*rit + i] == __)
             empty_sq++;
-        if(COL(*rit) - i > 0 && b[*rit - i] == __)
+        if(get_col(*rit) - i > 0 && b[*rit - i] == __)
             empty_sq++;
     }
     if(empty_sq <= 1)
         ans -= 15;
 
     ++rit;
-    if(rit != coords[stm].rend() && TO_BLACK(b[*rit]) == _r)
+    if(rit != coords[stm].rend() && to_black(b[*rit]) == _r)
     {
-        if((stm && ROW(*rit) >= 6) || (!stm && ROW(*rit) <= 1))
+        if((stm && get_row(*rit) >= 6) || (!stm && get_row(*rit) <= 1))
             rook_on_7th_cr++;
-        if(quantity[stm][GET_INDEX(_p)] >= 4
-        && pawn_max[COL(*rit) + 1][stm] == 0)
-            ans += (pawn_max[COL(*rit) + 1][!stm] == 0 ? 54 : 22);
+        if(quantity[stm][get_index(_p)] >= 4
+        && pawn_max[get_col(*rit) + 1][stm] == 0)
+            ans += (pawn_max[get_col(*rit) + 1][!stm] == 0 ? 54 : 22);
 
         empty_sq = 0;
         for(coord_t i = 1; i <= 2; ++i)
         {
-            if(COL(*rit) + i < 7 && b[*rit + i] == __)
+            if(get_col(*rit) + i < 7 && b[*rit + i] == __)
                 empty_sq++;
-            if(COL(*rit) - i > 0 && b[*rit - i] == __)
+            if(get_col(*rit) - i > 0 && b[*rit - i] == __)
                 empty_sq++;
         }
         if(empty_sq <= 1)
@@ -522,9 +522,9 @@ bool IsUnstoppablePawn(coord_t col, coord_t row, side_to_move_t stm)
 
     if(row > 5)
         row = 5;
-    coord_t psq = XY2SQ(col, stm ? 7 : 0);
+    coord_t psq = get_coord(col, stm ? 7 : 0);
     dist_t d = king_dist[std::abs(k - psq)];
-    if(COL(*king_coord[stm]) == col
+    if(get_col(*king_coord[stm]) == col
     && king_dist[std::abs(*king_coord[stm] - psq)] <= row)
         row++;
     return (score_t)d - (stm != wtm) > row;
@@ -559,25 +559,25 @@ void MaterialImbalances()
     // KNNk, KBNk, KBBk, etc
     else if(X == 6 && (material[0] == 0 || material[1] == 0))
     {
-        if(quantity[white][GET_INDEX(_n)] == 2
-        || quantity[black][GET_INDEX(_n)] == 2)
+        if(quantity[white][get_index(_n)] == 2
+        || quantity[black][get_index(_n)] == 2)
         {
             val_opn = 0;
             val_end = 0;
             return;
         }
         // many code for mating with only bishop and knight
-        else if((quantity[white][GET_INDEX(_n)] == 1
-                 && quantity[white][GET_INDEX(_b)] == 1)
-             || (quantity[black][GET_INDEX(_n)] == 1
-                 && quantity[black][GET_INDEX(_b)] == 1))
+        else if((quantity[white][get_index(_n)] == 1
+                 && quantity[white][get_index(_b)] == 1)
+             || (quantity[black][get_index(_n)] == 1
+                 && quantity[black][get_index(_b)] == 1))
         {
-            side_to_move_t stm = quantity[white][GET_INDEX(_n)] == 1 ? 1 : 0;
+            side_to_move_t stm = quantity[white][get_index(_n)] == 1 ? 1 : 0;
             auto rit = coords[stm].begin();
             for(; rit != coords[stm].end(); ++rit)
-                if(TO_BLACK(b[*rit]) == _b)
+                if(to_black(b[*rit]) == _b)
                     break;
-            assert(TO_BLACK(b[*rit]) == _b);
+            assert(to_black(b[*rit]) == _b);
 
             score_t ans = 0;
             auto ok = *king_coord[!stm];
@@ -588,7 +588,7 @@ void MaterialImbalances()
             || ok == 0x77 || ok == 0x76 || ok == 0x67)
                 ans = -200;
 
-            bool bishop_on_light_square = ((COL(*rit)) + ROW(*rit)) & 1;
+            bool bishop_on_light_square = ((get_col(*rit)) + get_row(*rit)) & 1;
             if(!bishop_on_light_square)
                 ans = -ans;
             if(!stm)
@@ -622,7 +622,7 @@ void MaterialImbalances()
             side_to_move_t stm = material[white] == 1;
             auto it = coords[stm].rbegin();
             ++it;
-            coord_t colp = COL(*it);
+            coord_t colp = get_col(*it);
             bool unstop = IsUnstoppablePawn(colp, 7 - pawn_max[colp + 1][stm], stm);
             dist_t dist_k = king_dist[std::abs(*king_coord[stm] - *it)];
             dist_t dist_opp_k = king_dist[std::abs(*king_coord[!stm] - *it)];
@@ -643,26 +643,26 @@ void MaterialImbalances()
     }
 
     // two bishops
-    if(quantity[white][GET_INDEX(_b)] == 2)
+    if(quantity[white][get_index(_b)] == 2)
     {
         val_opn += 30;
         val_end += 30;
     }
-    if(quantity[black][GET_INDEX(_b)] == 2)
+    if(quantity[black][get_index(_b)] == 2)
     {
         val_opn -= 30;
         val_end -= 30;
     }
 
     // pawn absence for both sides
-    if(quantity[white][GET_INDEX(_p)] == 0
-       && quantity[black][GET_INDEX(_p)] == 0
+    if(quantity[white][get_index(_p)] == 0
+       && quantity[black][get_index(_p)] == 0
     && material[white] != 0 && material[black] != 0)
         val_end /= 3;
 
     // multicolored bishops
-    if(quantity[white][GET_INDEX(_b)] == 1
-    && quantity[black][GET_INDEX(_b)] == 1)
+    if(quantity[white][get_index(_b)] == 1
+    && quantity[black][get_index(_b)] == 1)
     {
         auto w_it = coords[white].rbegin();
         while(w_it != coords[white].rend()
@@ -676,8 +676,8 @@ void MaterialImbalances()
             ++b_it;
         assert(b_it != coords[white].rend());
 
-        coord_t sum_coord_w = COL(*w_it) + ROW(*w_it);
-        coord_t sum_coord_b = COL(*b_it) + ROW(*b_it);
+        coord_t sum_coord_w = get_col(*w_it) + get_row(*w_it);
+        coord_t sum_coord_b = get_col(*b_it) + get_row(*b_it);
 
         if((sum_coord_w & 1) != (sum_coord_b & 1))
         {
@@ -808,24 +808,24 @@ void SetPawnStruct(coord_t col)
     if(wtm)
     {
         y = 1;
-        while(b[XY2SQ(col, 7 - y)] != _p && y < 7)
+        while(b[get_coord(col, 7 - y)] != _p && y < 7)
             y++;
         pawn_min[col + 1][black] = y;
 
         y = 6;
-        while(b[XY2SQ(col, 7 - y)] != _p && y > 0)
+        while(b[get_coord(col, 7 - y)] != _p && y > 0)
             y--;
         pawn_max[col + 1][black] = y;
     }
     else
     {
         y = 1;
-        while(b[XY2SQ(col, y)] != _P && y < 7)
+        while(b[get_coord(col, y)] != _P && y < 7)
             y++;
         pawn_min[col + 1][white] = y;
 
         y = 6;
-        while(b[XY2SQ(col, y)] != _P && y > 0)
+        while(b[get_coord(col, y)] != _P && y > 0)
             y--;
         pawn_max[col + 1][white] = y;
     }
@@ -838,17 +838,17 @@ void SetPawnStruct(coord_t col)
 //-----------------------------
 void MovePawnStruct(piece_t moved_piece, coord_t from_coord, move_c move)
 {
-    if(TO_BLACK(moved_piece) == _p || (move.flg & mPROM))
+    if(to_black(moved_piece) == _p || (move.flg & mPROM))
     {
-        SetPawnStruct(COL(move.to));
+        SetPawnStruct(get_col(move.to));
         if(move.flg)
-            SetPawnStruct(COL(from_coord));
+            SetPawnStruct(get_col(from_coord));
     }
-    if(TO_BLACK(b_state[prev_states + ply].capt) == _p
+    if(to_black(b_state[prev_states + ply].capt) == _p
     || (move.flg & mENPS))                                    // mENPS not needed
     {
         wtm ^= white;
-        SetPawnStruct(COL(move.to));
+        SetPawnStruct(get_col(move.to));
         wtm ^= white;
     }
 }
@@ -868,25 +868,25 @@ void InitPawnStruct()
         pawn_min[x + 1][0] = 7;
         pawn_min[x + 1][1] = 7;
         for(y = 1; y < 7; y++)
-            if(b[XY2SQ(x, y)] == _P)
+            if(b[get_coord(x, y)] == _P)
             {
                 pawn_min[x + 1][1] = y;
                 break;
             }
         for(y = 6; y >= 1; y--)
-            if(b[XY2SQ(x, y)] == _P)
+            if(b[get_coord(x, y)] == _P)
             {
                 pawn_max[x + 1][1] = y;
                 break;
             }
         for(y = 6; y >= 1; y--)
-            if(b[XY2SQ(x, y)] == _p)
+            if(b[get_coord(x, y)] == _p)
             {
                 pawn_min[x + 1][0] = 7 - y;
                 break;
             }
          for(y = 1; y < 7; y++)
-            if(b[XY2SQ(x, y)] == _p)
+            if(b[get_coord(x, y)] == _p)
             {
                 pawn_max[x + 1][0] = 7 - y;
                 break;
@@ -905,13 +905,13 @@ score_t CountKingTropism(side_to_move_t king_color)
     ++rit;
     for(; rit != coords[!king_color].rend(); ++rit)
     {
-        piece_t cur_piece = TO_BLACK(b[*rit]);
+        piece_t cur_piece = to_black(b[*rit]);
         if(cur_piece == _p)
             break;
         dist_t dist = king_dist[std::abs(*king_coord[king_color] - *rit)];
         if(dist >= 4)
             continue;
-        occ_cr += tropism_factor[dist < 3][GET_INDEX(cur_piece)];
+        occ_cr += tropism_factor[dist < 3][get_index(cur_piece)];
     }
     return occ_cr;
 }
@@ -928,7 +928,7 @@ void MoveKingTropism(coord_t from_coord, move_c move, side_to_move_t king_color)
 
     piece_t cur_piece = b[move.to];
 
-    if(TO_BLACK(cur_piece) == _k)
+    if(to_black(cur_piece) == _k)
     {
         king_tropism[king_color]  = CountKingTropism(king_color);
         king_tropism[!king_color] = CountKingTropism(!king_color);
@@ -942,10 +942,10 @@ void MoveKingTropism(coord_t from_coord, move_c move, side_to_move_t king_color)
 
     if(dist_fr < 4 && !(move.flg & mPROM))
         king_tropism[king_color] -= tropism_factor[dist_fr < 3]
-                                                  [GET_INDEX(cur_piece)];
+                                                  [get_index(cur_piece)];
     if(dist_to < 4)
         king_tropism[king_color] += tropism_factor[dist_to < 3]
-                                                  [GET_INDEX(cur_piece)];
+                                                  [get_index(cur_piece)];
 
     piece_t cap = b_state[prev_states + ply].capt;
     if(move.flg & mCAPT)
@@ -953,15 +953,15 @@ void MoveKingTropism(coord_t from_coord, move_c move, side_to_move_t king_color)
         dist_to = king_dist[std::abs(*king_coord[!king_color] - move.to)];
         if(dist_to < 4)
             king_tropism[!king_color] -= tropism_factor[dist_to < 3]
-                                                       [GET_INDEX(cap)];
+                                                       [get_index(cap)];
     }
 
 #ifndef NDEBUG
     score_t tmp = CountKingTropism(king_color);
-    if(king_tropism[king_color] != tmp && TO_BLACK(cap) != _k)
+    if(king_tropism[king_color] != tmp && to_black(cap) != _k)
         ply = ply;
     tmp = CountKingTropism(!king_color);
-    if(king_tropism[!king_color] != tmp && TO_BLACK(cap) != _k)
+    if(king_tropism[!king_color] != tmp && to_black(cap) != _k)
         ply = ply;
 #endif // NDEBUG
 }
@@ -1038,15 +1038,15 @@ score_t KingOpenFiles(side_to_move_t king_color)
     score_t ans = 0;
     coord_t k = *king_coord[king_color];
 
-    if(COL(k) == 0)
+    if(get_col(k) == 0)
         k++;
-    else if(COL(k) == 7)
+    else if(get_col(k) == 7)
         k--;
 
     size_t open_files_near_king = 0, open_files[3] = {0};
     for(coord_t i = 0; i < 3; ++i)
     {
-        shifts_t col = COL(k) + i - 1;
+        shifts_t col = get_col(k) + i - 1;
         if(col < 0 || col > 7)
             continue;
         if(pawn_max[col + 1][!king_color] == 0)
@@ -1065,17 +1065,17 @@ score_t KingOpenFiles(side_to_move_t king_color)
     for(; rit != coords[!king_color].rend(); ++rit)
     {
         piece_t pt = b[*rit];
-        if(TO_BLACK(pt) != _q && TO_BLACK(pt) != _r)
+        if(to_black(pt) != _q && to_black(pt) != _r)
             break;
-        rank_t k = pawn_max[COL(*rit) + 1][king_color] ? 1 : 2;
-        rooks_queens_on_file[COL(*rit)] +=
-                k*(TO_BLACK(pt) == _r ? 2 : 1);
+        rank_t k = pawn_max[get_col(*rit) + 1][king_color] ? 1 : 2;
+        rooks_queens_on_file[get_col(*rit)] +=
+                k*(to_black(pt) == _r ? 2 : 1);
     }
 
     for(size_t i = 0; i < 3; ++i)
     {
         if(open_files[i])
-            ans += rooks_queens_on_file[COL(k) + i - 1];
+            ans += rooks_queens_on_file[get_col(k) + i - 1];
     }
     if(ans <= 2)
         ans = ans/2;
@@ -1094,22 +1094,22 @@ score_t KingWeakness(side_to_move_t king_color)
     coord_t k = *king_coord[king_color];
     shifts_t shft = king_color ? 16 : -16;
 
-    if(COL(k) == 0)
+    if(get_col(k) == 0)
         k++;
-    else if(COL(k) == 7)
+    else if(get_col(k) == 7)
         k--;
 
-    if(COL(k) == 2 || COL(k) == 5)
+    if(get_col(k) == 2 || get_col(k) == 5)
         ans += 30;
-    if(COL(k) == 3 || COL(k) == 4)
+    if(get_col(k) == 3 || get_col(k) == 4)
     {
         if(b_state[prev_states + ply].cstl & (0x0C >> 2*king_color)) // able to castle
             ans += 30;
         else
             ans += 60;
     }
-    if((king_color == white && ROW(k) > 1)
-    || (king_color == black && ROW(k) < 6))
+    if((king_color == white && get_row(k) > 1)
+    || (king_color == black && get_row(k) < 6))
     {
         ans += 60;
     }
@@ -1127,14 +1127,14 @@ score_t KingWeakness(side_to_move_t king_color)
         if(pt1 == pwn || pt2 == pwn)
             continue;
 
-        if(LIGHT(pt1, king_color)
-        && LIGHT(pt2, king_color))
+        if(is_light(pt1, king_color)
+        && is_light(pt2, king_color))
             continue;
 
         if(col + k + shft - 2 < 0)
             continue;
 
-        if(LIGHT(pt2, king_color)
+        if(is_light(pt2, king_color)
         && (b[col + k + shft - 2] == pwn || b[col + k + shft + 0] == pwn))
             continue;
 
@@ -1162,7 +1162,7 @@ void KingSafety(side_to_move_t king_color)
 {
     tropism_t trp = king_tropism[king_color];
 
-    if(quantity[!king_color][GET_INDEX(_q)] == 0)
+    if(quantity[!king_color][get_index(_q)] == 0)
     {
         trp += trp*trp/15;
         val_opn += king_color ? -trp : trp;
@@ -1199,3 +1199,22 @@ void KingSafety(side_to_move_t king_color)
 
 }
 
+
+
+
+
+//--------------------------------
+bool is_light(piece_t piece, side_to_move_t stm)
+{
+    return piece != __ && (piece & white) == stm;
+}
+
+
+
+
+
+//--------------------------------
+bool is_dark(piece_t piece, side_to_move_t stm)
+{
+    return piece != __ && (piece & white) != stm;
+}

@@ -68,14 +68,14 @@ void InitBrd()
     coord_t i;
     for(i = 0; i < 8; i++)
     {
-        b[XY2SQ(i, 1)]      = _P;
-        coords[white].push_front(XY2SQ(7 - i, 1));
-        b[XY2SQ(i, 6)]     = _p;
-        coords[black].push_front(XY2SQ(7 - i, 6));
-        b[XY2SQ(crd[i], 0)]      = pcs[i];
-        coords[white].push_back(XY2SQ(crd[i], 0));
-        b[XY2SQ(crd[i], 7)]      = pcs[i] ^ white;
-        coords[black].push_back(XY2SQ(crd[i], 7));
+        b[get_coord(i, 1)]      = _P;
+        coords[white].push_front(get_coord(7 - i, 1));
+        b[get_coord(i, 6)]     = _p;
+        coords[black].push_front(get_coord(7 - i, 6));
+        b[get_coord(crd[i], 0)]      = pcs[i];
+        coords[white].push_back(get_coord(crd[i], 0));
+        b[get_coord(crd[i], 7)]      = pcs[i] ^ white;
+        coords[black].push_back(get_coord(crd[i], 7));
     }
 
     b_state[prev_states + 0].capt    = 0;
@@ -96,12 +96,12 @@ void InitBrd()
 
     for(side_to_move_t clr = black; clr <= white; clr++)
     {
-        quantity[clr][GET_INDEX(_k)] = 1;
-        quantity[clr][GET_INDEX(_q)] = 1;
-        quantity[clr][GET_INDEX(_r)] = 2;
-        quantity[clr][GET_INDEX(_b)] = 2;
-        quantity[clr][GET_INDEX(_n)] = 2;
-        quantity[clr][GET_INDEX(_p)] = 8;
+        quantity[clr][get_index(_k)] = 1;
+        quantity[clr][get_index(_q)] = 1;
+        quantity[clr][get_index(_r)] = 2;
+        quantity[clr][get_index(_b)] = 2;
+        quantity[clr][get_index(_n)] = 2;
+        quantity[clr][get_index(_p)] = 8;
     }
 
 }
@@ -152,7 +152,7 @@ bool BoardToMen()
         if(!ONBRD(i) || b[i] == __)
             continue;
         coords[b[i] & white].push_back(i);
-        quantity[b[i] & white][GET_INDEX(TO_BLACK(b[i]))]++;
+        quantity[b[i] & white][get_index(to_black(b[i]))]++;
     }
 
     coords[black].sort(PieceListCompare);
@@ -181,7 +181,7 @@ bool FenToBoard(char *p)
     for(int row = 7; row >= 0; row--)
         for(int col = 0; col <= 7; col++)
         {
-            int to = XY2SQ(col, row);
+            int to = get_coord(col, row);
             int ip = *p - '0';
             if(ip >= 1 && ip <= 8)
             {
@@ -206,9 +206,9 @@ bool FenToBoard(char *p)
                         break;
                 if(i >= 12)
                     return false;
-                if(TO_BLACK(pcs[i]) == _p && (row == 0 || row == 7))
+                if(to_black(pcs[i]) == _p && (row == 0 || row == 7))
                     return false;
-                b[XY2SQ(col, row)] = pcs[i];
+                b[get_coord(col, row)] = pcs[i];
                 material[i >= 6]  += mtr[i];
                 pieces[i >= 6]++;
                 p++;
@@ -236,16 +236,16 @@ bool FenToBoard(char *p)
         }
 
     if((cstl & 0x01)
-    && (b[XY2SQ(4, 0)] != _K || b[XY2SQ(7, 0 )] != _R))
+    && (b[get_coord(4, 0)] != _K || b[get_coord(7, 0 )] != _R))
         cstl &= ~0x01;
     if((cstl & 0x02)
-    && (b[XY2SQ(4, 0)] != _K || b[XY2SQ(0, 0 )] != _R))
+    && (b[get_coord(4, 0)] != _K || b[get_coord(0, 0 )] != _R))
         cstl &= ~0x02;
     if((cstl & 0x04)
-    && (b[XY2SQ(4, 7)] != _k || b[XY2SQ(7, 7 )] != _r))
+    && (b[get_coord(4, 7)] != _k || b[get_coord(7, 7 )] != _r))
         cstl &= ~0x04;
     if((cstl & 0x08)
-    && (b[XY2SQ(4, 7)] != _k || b[XY2SQ(0, 7 )] != _r))
+    && (b[get_coord(4, 7)] != _k || b[get_coord(0, 7 )] != _r))
         cstl &= ~0x08;
 
     b_state[prev_states + 0].cstl = cstl;
@@ -257,7 +257,7 @@ bool FenToBoard(char *p)
         int row = *(p++) - '1';
         int s = wtm ? -1 : 1;
         piece_t pawn = wtm ? _P : _p;
-        if(b[XY2SQ(col-1, row+s)] == pawn || b[XY2SQ(col+1, row+s)] == pawn)
+        if(b[get_coord(col-1, row+s)] == pawn || b[get_coord(col+1, row+s)] == pawn)
             b_state[prev_states + 0].ep = col + 1;
     }
     if(*(++p) && *(++p))
@@ -284,10 +284,10 @@ bool FenToBoard(char *p)
 void ShowMove(coord_t fr, coord_t to)
 {
     char *cur = cur_moves + 5*(ply - 1);
-    *(cur++) = COL(fr) + 'a';
-    *(cur++) = ROW(fr) + '1';
-    *(cur++) = COL(to) + 'a';
-    *(cur++) = ROW(to) + '1';
+    *(cur++) = get_col(fr) + 'a';
+    *(cur++) = get_row(fr) + '1';
+    *(cur++) = get_col(to) + 'a';
+    *(cur++) = get_row(to) + '1';
     *(cur++) = ' ';
     *cur     = '\0';
 }
@@ -427,8 +427,8 @@ bool Attack(coord_t to, side_to_move_t xtm)
     do
     {
         coord_t fr = *it;
-        piece_index_t pt = GET_INDEX(b[fr]);
-        if(pt == GET_INDEX(_p))
+        piece_index_t pt = get_index(b[fr]);
+        if(pt == get_index(_p))
             break;
 
         attack_t att = attacks[120 + to - fr] & (1 << pt);
@@ -476,15 +476,15 @@ bool LegalSlider(coord_t fr, coord_t to, piece_t pt)
 //--------------------------------
 bool Legal(move_c m, bool ic)
 {
-    if(ic || TO_BLACK(b[m.to]) == _k)
+    if(ic || to_black(b[m.to]) == _k)
         return !Attack(*king_coord[!wtm], wtm);
     coord_t fr = b_state[prev_states + ply].fr;
     coord_t to = *king_coord[!wtm];
     assert(120 + to - fr >= 0);
     assert(120 + to - fr < 240);
-    if(attacks[120 + to - fr] & (1 << GET_INDEX(_r)))
+    if(attacks[120 + to - fr] & (1 << get_index(_r)))
         return LegalSlider(fr, to, _r);
-    if(attacks[120 + to - fr] & (1 << GET_INDEX(_b)))
+    if(attacks[120 + to - fr] & (1 << get_index(_b)))
         return LegalSlider(fr, to, _b);
 
     return true;
@@ -497,7 +497,7 @@ bool Legal(move_c m, bool ic)
 //-----------------------------
 bool PieceListCompare(coord_t men1, coord_t men2)
 {
-    return sort_streng[GET_INDEX(b[men1])] > sort_streng[GET_INDEX(b[men2])];
+    return sort_streng[get_index(b[men1])] > sort_streng[get_index(b[men2])];
 }
 
 
@@ -528,13 +528,13 @@ void MakeCapture(move_c m, coord_t targ)
     {
         targ += wtm ? -16 : 16;
         material[!wtm]--;
-        quantity[!wtm][GET_INDEX(_p)]--;
+        quantity[!wtm][get_index(_p)]--;
     }
     else
     {
         material[!wtm] -=
-                pc_streng[GET_INDEX(b_state[prev_states + ply].capt)];
-        quantity[!wtm][GET_INDEX(b_state[prev_states + ply].capt)]--;
+                pc_streng[get_index(b_state[prev_states + ply].capt)];
+        quantity[!wtm][get_index(b_state[prev_states + ply].capt)]--;
     }
 
     auto it_cap = coords[!wtm].begin();
@@ -561,10 +561,10 @@ void MakePromotion(move_c m, iterator it)
     if(prIx)
     {
         b[m.to] = prPc[prIx] ^ wtm;
-        material[wtm] += pc_streng[GET_INDEX(prPc[prIx])]
-                - pc_streng[GET_INDEX(_p)];
-        quantity[wtm][GET_INDEX(_p)]--;
-        quantity[wtm][GET_INDEX(prPc[prIx])]++;
+        material[wtm] += pc_streng[get_index(prPc[prIx])]
+                - pc_streng[get_index(_p)];
+        quantity[wtm][get_index(_p)]--;
+        quantity[wtm][get_index(prPc[prIx])]++;
         b_state[prev_states + ply].nprom = ++it;
         --it;
         coords[wtm].move_element(king_coord[wtm], it);
@@ -628,7 +628,7 @@ void UnmakeCapture(move_c m)
     if(m.flg & mENPS)
     {
         material[!wtm]++;
-        quantity[!wtm][GET_INDEX(_p)]++;
+        quantity[!wtm][get_index(_p)]++;
         if(wtm)
         {
             b[m.to - 16] = _p;
@@ -643,8 +643,8 @@ void UnmakeCapture(move_c m)
     else
     {
         material[!wtm]
-            += pc_streng[GET_INDEX(b_state[prev_states + ply].capt)];
-        quantity[!wtm][GET_INDEX(b_state[prev_states + ply].capt)]++;
+            += pc_streng[get_index(b_state[prev_states + ply].capt)];
+        quantity[!wtm][get_index(b_state[prev_states + ply].capt)]++;
     }
 
     coords[!wtm].restore(it_cap);
@@ -667,10 +667,10 @@ void UnmakePromotion(move_c m)
     auto before_king = king_coord[wtm];
     --before_king;
     coords[wtm].move_element(it_prom, before_king);
-    material[wtm] -= pc_streng[GET_INDEX(prPc[prIx])]
-            - pc_streng[GET_INDEX(_p)];
-    quantity[wtm][GET_INDEX(_p)]++;
-    quantity[wtm][GET_INDEX(prPc[prIx])]--;
+    material[wtm] -= pc_streng[get_index(prPc[prIx])]
+            - pc_streng[get_index(_p)];
+    quantity[wtm][get_index(_p)]++;
+    quantity[wtm][get_index(prPc[prIx])]--;
 }
 
 
@@ -721,7 +721,7 @@ bool ONBRD(coord_t coord)
 
 
 //--------------------------------
-coord_t XY2SQ(coord_t col, coord_t row)
+coord_t get_coord(coord_t col, coord_t row)
 {
     return (row << 4) + col;
 }
@@ -729,7 +729,7 @@ coord_t XY2SQ(coord_t col, coord_t row)
 
 
 //--------------------------------
-coord_t COL(coord_t coord)
+coord_t get_col(coord_t coord)
 {
     return coord & 7;
 }
@@ -739,7 +739,7 @@ coord_t COL(coord_t coord)
 
 
 //--------------------------------
-coord_t ROW(coord_t coord)
+coord_t get_row(coord_t coord)
 {
     return coord >> 4;
 }
@@ -749,7 +749,7 @@ coord_t ROW(coord_t coord)
 
 
 //--------------------------------
-coord_t GET_INDEX(piece_t piece)
+coord_t get_index(piece_t piece)
 {
     return piece/2;
 }
@@ -759,7 +759,7 @@ coord_t GET_INDEX(piece_t piece)
 
 
 //--------------------------------
-coord_t TO_BLACK(piece_t piece)
+coord_t to_black(piece_t piece)
 {
     return piece & ~white;
 }

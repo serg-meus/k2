@@ -148,8 +148,8 @@ score_t Search(depth_t depth, score_t alpha, score_t beta,
             lmr = 0;
         else if(legal_moves < 4)
             lmr = 0;
-        else if(TO_BLACK(b[cur_move.to]) == _p
-        && IsPasser(COL(cur_move.to), !wtm))
+        else if(to_black(b[cur_move.to]) == _p
+        && IsPasser(get_col(cur_move.to), !wtm))
             lmr = 0;
         else if(depth <= 4 && legal_moves > 8)
             lmr = 2;
@@ -269,11 +269,11 @@ score_t QSearch(score_t alpha, score_t beta)
 #ifndef DONT_USE_DELTA_PRUNING
         if(material[white] + material[black]
                 - pieces[white] - pieces[black] > 24
-        && TO_BLACK(b[cur_move.to]) != _k
+        && to_black(b[cur_move.to]) != _k
         && !(cur_move.flg & mPROM))
         {
             score_t cur_eval = ReturnEval(wtm);
-            score_t capture = 100*pc_streng[GET_INDEX(b[cur_move.to])];
+            score_t capture = 100*pc_streng[get_index(b[cur_move.to])];
             score_t margin = 100;
             if(cur_eval + capture + margin < alpha)
                 break;
@@ -285,7 +285,7 @@ score_t QSearch(score_t alpha, score_t beta)
         if((!stop_ply || root_ply == stop_ply) && strcmp(stop_str, cv) == 0)
             ply = ply;
 #endif // NDEBUG
-        if(TO_BLACK(b_state[prev_states + ply].capt) == _k)
+        if(to_black(b_state[prev_states + ply].capt) == _k)
         {
             UnMoveAndEval(cur_move);
             return king_value;
@@ -402,7 +402,7 @@ void UpdateStatistics(move_c move, depth_t depth, movcr_t move_cr)
     auto it = coords[wtm].begin();
     it = move.pc;
     coord_t fr = *it;
-    unsigned &h = history[wtm][GET_INDEX(b[fr]) - 1][move.to];
+    unsigned &h = history[wtm][get_index(b[fr]) - 1][move.to];
     h += depth*depth + 1;
 #else
     UNUSED(depth);
@@ -763,10 +763,10 @@ void MoveToStr(move_c move, bool stm, char *out)
     auto it = coords[stm].begin();
     it      = move.pc;
     coord_t  f  = *it;
-    out[0]  = COL(f) + 'a';
-    out[1]  = ROW(f) + '1';
-    out[2]  = COL(move.to) + 'a';
-    out[3]  = ROW(move.to) + '1';
+    out[0]  = get_col(f) + 'a';
+    out[1]  = get_row(f) + '1';
+    out[2]  = get_col(move.to) + 'a';
+    out[3]  = get_row(move.to) + '1';
     out[4]  = (move.flg & mPROM) ? proms[move.flg & mPROM] : '\0';
     out[5]  = '\0';
 }
@@ -992,9 +992,9 @@ bool ShowPV(depth_t cur_ply)
             auto it = coords[wtm].begin();
             it = cur_move.pc;
             coord_t from_coord = *it;
-            std::cout  << (char)(COL(from_coord) + 'a')
-                << (char)(ROW(from_coord) + '1')
-                << (char)(COL(cur_move.to) + 'a') << (char)(ROW(cur_move.to) + '1');
+            std::cout  << (char)(get_col(from_coord) + 'a')
+                << (char)(get_row(from_coord) + '1')
+                << (char)(get_col(cur_move.to) + 'a') << (char)(get_row(cur_move.to) + '1');
             char proms[] = {'?', 'q', 'n', 'r', 'b'};
             if(cur_move.flg & mPROM)
                 std::cout << proms[cur_move.flg & mPROM];
@@ -1013,10 +1013,10 @@ bool ShowPV(depth_t cur_ply)
             auto it = coords[wtm].begin();
             it = cur_move.pc;
             char piece_char = pc2chr[b[*it]];
-            if(piece_char == 'K' && COL(*it) == 4 && COL(cur_move.to) == 6)
+            if(piece_char == 'K' && get_col(*it) == 4 && get_col(cur_move.to) == 6)
                 std::cout << "OO";
-            else if(piece_char == 'K' && COL(*it) == 4
-                    && COL(cur_move.to) == 2)
+            else if(piece_char == 'K' && get_col(*it) == 4
+                    && get_col(cur_move.to) == 2)
                 std::cout << "OOO";
             else if(piece_char != 'P')
             {
@@ -1024,21 +1024,21 @@ bool ShowPV(depth_t cur_ply)
                 FindAndPrintForAmbiguousMoves(cur_move);
                 if(cur_move.flg & mCAPT)
                     std::cout << 'x';
-                std::cout << (char)(COL(cur_move.to) + 'a');
-                std::cout << (char)(ROW(cur_move.to) + '1');
+                std::cout << (char)(get_col(cur_move.to) + 'a');
+                std::cout << (char)(get_row(cur_move.to) + '1');
             }
             else if(cur_move.flg & mCAPT)
             {
                 it = coords[wtm].begin();
                 it = cur_move.pc;
-                std::cout << (char)(COL(*it) + 'a')
+                std::cout << (char)(get_col(*it) + 'a')
                     << "x"
-                    << (char)(COL(cur_move.to) + 'a')
-                    << (char)(ROW(cur_move.to) + '1');
+                    << (char)(get_col(cur_move.to) + 'a')
+                    << (char)(get_row(cur_move.to) + '1');
             }
             else
-                std::cout << (char)(COL(cur_move.to) + 'a')
-                    << (char)(ROW(cur_move.to) + '1');
+                std::cout << (char)(get_col(cur_move.to) + 'a')
+                    << (char)(get_row(cur_move.to) + '1');
             char proms[] = "?QNRB";
             if(piece_char == 'P' && (cur_move.flg & mPROM))
                 std::cout << proms[cur_move.flg& mPROM];
@@ -1066,7 +1066,7 @@ void FindAndPrintForAmbiguousMoves(move_c move)
     auto it = coords[wtm].begin();
     it = move.pc;
     coord_t init_from_coord = *it;
-    piece_index_t init_piece_type = GET_INDEX(b[init_from_coord]);
+    piece_index_t init_piece_type = get_index(b[init_from_coord]);
 
     for(it = coords[wtm].begin(); it != coords[wtm].end(); ++it)
     {
@@ -1074,7 +1074,7 @@ void FindAndPrintForAmbiguousMoves(move_c move)
             continue;
         coord_t from_coord = *it;
 
-        piece_index_t piece_type = GET_INDEX(b[from_coord]);
+        piece_index_t piece_type = get_index(b[from_coord]);
         if(piece_type != init_piece_type)
             continue;
         if(!(attacks[120 + from_coord - move.to] & (1 << piece_type)))
@@ -1092,17 +1092,17 @@ void FindAndPrintForAmbiguousMoves(move_c move)
     bool same_cols = false, same_rows = false;
     for(unsigned i = 0; i < amb_cr; i++)
     {
-        if(COL(move_array[i].scr) == COL(init_from_coord))
+        if(get_col(move_array[i].scr) == get_col(init_from_coord))
             same_cols = true;
-        if(ROW(move_array[i].scr) == ROW(init_from_coord))
+        if(get_row(move_array[i].scr) == get_row(init_from_coord))
             same_rows = true;
     }
     if(same_cols && same_rows)
-        std::cout << (char)(COL(init_from_coord) + 'a') << (char)(ROW(init_from_coord) + '1');
+        std::cout << (char)(get_col(init_from_coord) + 'a') << (char)(get_row(init_from_coord) + '1');
     else if(same_cols)
-        std::cout << (char)(ROW(init_from_coord) + '1');
+        std::cout << (char)(get_row(init_from_coord) + '1');
     else
-        std::cout << (char)(COL(init_from_coord) + 'a');
+        std::cout << (char)(get_col(init_from_coord) + 'a');
 
 }
 
@@ -1127,10 +1127,10 @@ bool MakeMoveFinaly(char *move_str)
         move_c cur_move  = root_moves.at(i).second;
         auto it = coords[wtm].begin();
         it = cur_move.pc;
-        cur_move_str[0] = COL(*it) + 'a';
-        cur_move_str[1] = ROW(*it) + '1';
-        cur_move_str[2] = COL(cur_move.to) + 'a';
-        cur_move_str[3] = ROW(cur_move.to) + '1';
+        cur_move_str[0] = get_col(*it) + 'a';
+        cur_move_str[1] = get_row(*it) + '1';
+        cur_move_str[2] = get_col(cur_move.to) + 'a';
+        cur_move_str[3] = get_row(cur_move.to) + '1';
         cur_move_str[4] = (cur_move.flg & mPROM) ? proms[cur_move.flg & mPROM] : '\0';
         cur_move_str[5] = '\0';
 
@@ -1432,7 +1432,7 @@ void ShowFen()
         size_t blank_cr = 0;
         for(score_t col = 0; col < 8; ++col)
         {
-            piece_t piece = b[XY2SQ(col, row)];
+            piece_t piece = b[get_coord(col, row)];
             if(piece == __)
             {
                 blank_cr++;
@@ -1442,9 +1442,9 @@ void ShowFen()
                 std::cout << blank_cr;
             blank_cr = 0;
             if(piece & white)
-                std::cout << whites[GET_INDEX(piece) - 1];
+                std::cout << whites[get_index(piece) - 1];
             else
-                std::cout << blacks[GET_INDEX(piece) - 1];
+                std::cout << blacks[get_index(piece) - 1];
         }
         if(blank_cr != 0)
             std::cout << blank_cr;
@@ -1549,33 +1549,33 @@ bool MoveIsPseudoLegal(move_c &move, bool stm)
     it = move.pc;
     coord_t from_coord = *it;
     piece_t piece = b[move.to];
-    score_t delta_col = COL(move.to) - COL(from_coord);
-    score_t delta_row = ROW(move.to) - ROW(from_coord);
+    score_t delta_col = get_col(move.to) - get_col(from_coord);
+    score_t delta_row = get_row(move.to) - get_row(from_coord);
     if(!delta_col && !delta_row)
         return false;
-    if(!LIGHT(b[from_coord], stm))
+    if(!is_light(b[from_coord], stm))
         return false;
-    if(TO_BLACK(b[from_coord]) != _p
-       && ((!DARK(piece, stm) && (move.flg & mCAPT))
+    if(to_black(b[from_coord]) != _p
+       && ((!is_dark(piece, stm) && (move.flg & mCAPT))
     || (piece != __ && !(move.flg & mCAPT))))
         return false;
-    if(TO_BLACK(b[from_coord]) != _p && (move.flg & mPROM))
+    if(to_black(b[from_coord]) != _p && (move.flg & mPROM))
         return false;
     bool long_move;
-    switch (TO_BLACK(b[from_coord]))
+    switch (to_black(b[from_coord]))
     {
         case _p :
-            if((move.flg & mPROM) && ((stm && ROW(from_coord) != 6)
-            || (!stm && ROW(from_coord) != 1)))
+            if((move.flg & mPROM) && ((stm && get_row(from_coord) != 6)
+            || (!stm && get_row(from_coord) != 1)))
                 return false;
             if((move.flg & mCAPT) && (std::abs(delta_col) != 1
             || (stm && delta_row != 1) || (!stm && delta_row != -1)
-            || (!(move.flg & mENPS) && !DARK(piece, stm))))
+            || (!(move.flg & mENPS) && !is_dark(piece, stm))))
                 return false;
             if((move.flg & mENPS)
             && (piece != __ || b_state[prev_states + ply].ep == 0))
                 return false;
-            if(ROW(move.to) == (stm ? 7 : 0)
+            if(get_row(move.to) == (stm ? 7 : 0)
             && !(move.flg & mPROM))
                 return false;
             if(!(move.flg & mCAPT))
@@ -1585,11 +1585,11 @@ bool MoveIsPseudoLegal(move_c &move, bool stm)
                 if(piece != __ || delta_col != 0
                 || (stm && delta_row <= 0))
                     return false;
-                long_move = (ROW(from_coord) == (stm ? 1 : 6));
+                long_move = (get_row(from_coord) == (stm ? 1 : 6));
                 if(long_move ? delta_row > 2 : delta_row != 1)
                     return false;
                 if(long_move && delta_row == 2
-                && b[XY2SQ(COL(from_coord), (ROW(from_coord) + ROW(move.to))/2)] != __)
+                && b[get_coord(get_col(from_coord), (get_row(from_coord) + get_row(move.to))/2)] != __)
                     return false;
             }
 
@@ -1605,7 +1605,7 @@ bool MoveIsPseudoLegal(move_c &move, bool stm)
         case _r :
         case _q :
             move.flg &= mCAPT;
-            if(!(attacks[120 + move.to - from_coord] & (1 << GET_INDEX(b[from_coord])))
+            if(!(attacks[120 + move.to - from_coord] & (1 << get_index(b[from_coord])))
             || !SliderAttack(move.to, from_coord))
                 return false;
             break;
@@ -1619,20 +1619,20 @@ bool MoveIsPseudoLegal(move_c &move, bool stm)
             }
             if(std::abs(delta_col) != 2 || std::abs(delta_row) != 0)
                 return false;
-            if(COL(from_coord) != 4 || ROW(from_coord) != stm ? 0 : 7)
+            if(get_col(from_coord) != 4 || get_row(from_coord) != stm ? 0 : 7)
                 return false;
             if((b_state[prev_states + ply].cstl &
             (move.flg >> 3 >> (2*stm))) == 0)
                 return false;
-            if(b[XY2SQ(COL(move.to), ROW(from_coord))] != __)
+            if(b[get_coord(get_col(move.to), get_row(from_coord))] != __)
                 return false;
-            if(b[XY2SQ((COL(move.to)+COL(from_coord))/2, ROW(from_coord))] != __)
+            if(b[get_coord((get_col(move.to)+get_col(from_coord))/2, get_row(from_coord))] != __)
                 return false;
             if((move.flg &mCS_K)
-            && TO_BLACK(b[XY2SQ(7, ROW(from_coord))]) != _r)
+            && to_black(b[get_coord(7, get_row(from_coord))]) != _r)
                 return false;
             if((move.flg &mCS_Q)
-            && TO_BLACK(b[XY2SQ(0, ROW(from_coord))]) != _r)
+            && to_black(b[get_coord(0, get_row(from_coord))]) != _r)
                 return false;
             break;
 
@@ -1846,8 +1846,8 @@ void ShowCurrentUciInfo()
     move_c move = root_moves.at(root_move_cr).second;
     coord_t from_coord = b_state[prev_states + 1].fr;
     std::cout << " currmove "
-        << (char)(COL(from_coord) + 'a') << (char)(ROW(from_coord) + '1')
-        << (char)(COL(move.to) + 'a') << (char)(ROW(move.to) + '1');
+        << (char)(get_col(from_coord) + 'a') << (char)(get_row(from_coord) + '1')
+        << (char)(get_col(move.to) + 'a') << (char)(get_row(move.to) + '1');
     char proms[] = {'?', 'q', 'n', 'r', 'b'};
     if(move.flg & mPROM)
         std::cout << proms[move.flg & mPROM];

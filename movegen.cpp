@@ -52,8 +52,8 @@ movcr_t GenMoves(move_c *move_array, move_c *best_move, u8 apprice)
     for(;it != coords[wtm].end(); ++it)
     {
         coord_t fr = *it;
-        piece_index_t at = GET_INDEX(b[fr]);
-        if(at == GET_INDEX(_p))
+        piece_index_t at = get_index(b[fr]);
+        if(at == get_index(_p))
         {
             GenPawn(move_array, &moveCr, it);
             continue;
@@ -64,7 +64,7 @@ movcr_t GenMoves(move_c *move_array, move_c *best_move, u8 apprice)
             for(ray = 0; ray < rays[at]; ray++)
             {
                 to = fr + shifts[at][ray];
-                if(ONBRD(to) && !LIGHT(b[to], wtm))
+                if(ONBRD(to) && !is_light(b[to], wtm))
                     PushMove(move_array, &moveCr, it, to, b[to] ? mCAPT : 0);
             }
             continue;
@@ -84,7 +84,7 @@ movcr_t GenMoves(move_c *move_array, move_c *best_move, u8 apprice)
                     PushMove(move_array, &moveCr, it, to, 0);
                     continue;
                 }
-                if(DARK(b[to], wtm))
+                if(is_dark(b[to], wtm))
                     PushMove(move_array, &moveCr, it, to, mCAPT);
                 break;
             }// for(i
@@ -108,7 +108,7 @@ void GenPawn(move_c *move_array, movcr_t *moveCr, iterator it)
     coord_t to;
     move_flag_t pBeg, pEnd;
     coord_t fr = *it;
-    if((wtm && ROW(fr) == 6) || (!wtm && ROW(fr) == 1))
+    if((wtm && get_row(fr) == 6) || (!wtm && get_row(fr) == 1))
     {
         pBeg = mPR_Q;
         pEnd = mPR_B;
@@ -122,37 +122,37 @@ void GenPawn(move_c *move_array, movcr_t *moveCr, iterator it)
         if(wtm)
         {
             to = fr + 17;
-            if(ONBRD(to) && DARK(b[to], wtm))
+            if(ONBRD(to) && is_dark(b[to], wtm))
                 PushMove(move_array, moveCr, it, to, mCAPT | i);
             to = fr + 15;
-            if(ONBRD(to) && DARK(b[to], wtm))
+            if(ONBRD(to) && is_dark(b[to], wtm))
                 PushMove(move_array, moveCr, it, to, mCAPT | i);
             to = fr + 16;
             if(ONBRD(to) && !b[to])                 // ONBRD not needed
                 PushMove(move_array, moveCr, it, to, i);
-            if(ROW(fr) == 1 && !b[fr + 16] && !b[fr + 32])
+            if(get_row(fr) == 1 && !b[fr + 16] && !b[fr + 32])
                 PushMove(move_array, moveCr, it, fr + 32, 0);
             enpass_t ep = b_state[prev_states + ply].ep;
-            shifts_t delta = ep - 1 - COL(fr);
-            if(ep && std::abs(delta) == 1 && ROW(fr) == 4)
+            shifts_t delta = ep - 1 - get_col(fr);
+            if(ep && std::abs(delta) == 1 && get_row(fr) == 4)
                 PushMove(move_array, moveCr, it, fr + 16 + delta, mCAPT | mENPS);
         }
         else
         {
             to = fr - 17;
-            if(ONBRD(to) && DARK(b[to], wtm))
+            if(ONBRD(to) && is_dark(b[to], wtm))
                 PushMove(move_array, moveCr, it, to, mCAPT | i);
             to = fr - 15;
-            if(ONBRD(to) && DARK(b[to], wtm))
+            if(ONBRD(to) && is_dark(b[to], wtm))
                 PushMove(move_array, moveCr, it, to, mCAPT | i);
             to = fr - 16;
             if(ONBRD(to) && !b[to])                  // ONBRD not needed
                 PushMove(move_array, moveCr, it, to, i);
-            if(ROW(fr) == 6 && !b[fr - 16] && !b[fr - 32])
+            if(get_row(fr) == 6 && !b[fr - 16] && !b[fr - 32])
                 PushMove(move_array, moveCr, it, fr - 32, 0);
             enpass_t ep = b_state[prev_states + ply].ep;
-            shifts_t delta = ep - 1 - COL(fr);
-            if(ep && std::abs(delta) == 1 && ROW(fr) == 3)
+            shifts_t delta = ep - 1 - get_col(fr);
+            if(ep && std::abs(delta) == 1 && get_row(fr) == 3)
                 PushMove(move_array, moveCr, it, fr - 16 + delta, mCAPT | mENPS);
         }
 }
@@ -167,7 +167,7 @@ void GenPawnCap(move_c *move_array, movcr_t *moveCr, iterator it)
     coord_t to;
     size_t pBeg, pEnd;
     coord_t fr = *it;
-    if((wtm && ROW(fr) == 6) || (!wtm && ROW(fr) == 1))
+    if((wtm && get_row(fr) == 6) || (!wtm && get_row(fr) == 1))
     {
         pBeg = mPR_Q;
         pEnd = mPR_Q;
@@ -181,33 +181,33 @@ void GenPawnCap(move_c *move_array, movcr_t *moveCr, iterator it)
         if(wtm)
         {
             to = fr + 17;
-            if(ONBRD(to) && DARK(b[to], wtm))
+            if(ONBRD(to) && is_dark(b[to], wtm))
                 PushMove(move_array, moveCr, it, to, mCAPT | i);
             to = fr + 15;
-            if(ONBRD(to) && DARK(b[to], wtm))
+            if(ONBRD(to) && is_dark(b[to], wtm))
                 PushMove(move_array, moveCr, it, to, mCAPT | i);
             to = fr + 16;
             if(pBeg && !b[to])
                 PushMove(move_array, moveCr, it, to, i);
             enpass_t ep = b_state[prev_states + ply].ep;
-            shifts_t delta = ep - 1 - COL(fr);
-            if(ep && std::abs(delta) == 1 && ROW(fr) == 4)
+            shifts_t delta = ep - 1 - get_col(fr);
+            if(ep && std::abs(delta) == 1 && get_row(fr) == 4)
                 PushMove(move_array, moveCr, it, fr + 16 + delta, mCAPT | mENPS);
         }
         else
         {
             to = fr - 17;
-            if(ONBRD(to) && DARK(b[to], wtm))
+            if(ONBRD(to) && is_dark(b[to], wtm))
                 PushMove(move_array, moveCr, it, to, mCAPT | i);
             to = fr - 15;
-            if(ONBRD(to) && DARK(b[to], wtm))
+            if(ONBRD(to) && is_dark(b[to], wtm))
                 PushMove(move_array, moveCr, it, to, mCAPT | i);
             to = fr - 16;
             if(pBeg && !b[to])
                 PushMove(move_array, moveCr, it, to, i);
             enpass_t ep = b_state[prev_states + ply].ep;
-            shifts_t delta = ep - 1 - COL(fr);
-            if(ep && std::abs(delta) == 1 && ROW(fr) == 3)
+            shifts_t delta = ep - 1 - get_col(fr);
+            if(ep && std::abs(delta) == 1 && get_row(fr) == 3)
                 PushMove(move_array, moveCr, it, fr - 16 + delta, mCAPT | mENPS);
         }
 }
@@ -277,8 +277,8 @@ movcr_t GenCaptures(move_c *move_array)
     for(; it != coords[wtm].end(); ++it)
     {
         coord_t fr = *it;
-        piece_index_t at = GET_INDEX(b[fr]);
-        if(at == GET_INDEX(_p))
+        piece_index_t at = get_index(b[fr]);
+        if(at == get_index(_p))
         {
             GenPawnCap(move_array, &moveCr, it);
             continue;
@@ -288,7 +288,7 @@ movcr_t GenCaptures(move_c *move_array)
             for(ray = 0; ray < rays[at]; ray++)
             {
                 to = fr + shifts[at][ray];
-                if(ONBRD(to) && DARK(b[to], wtm))
+                if(ONBRD(to) && is_dark(b[to], wtm))
                     PushMove(move_array, &moveCr, it, to, mCAPT);
             }
             continue;
@@ -305,7 +305,7 @@ movcr_t GenCaptures(move_c *move_array)
                 piece_t tt = b[to];
                 if(!tt)
                     continue;
-                if(DARK(tt, wtm))
+                if(is_dark(tt, wtm))
                     PushMove(move_array, &moveCr, it, to, mCAPT);
                 break;
             }// for(i
@@ -355,23 +355,23 @@ void AppriceMoves(move_c *move_array, movcr_t moveCr, move_c *bestMove)
             {
 #ifndef DONT_USE_HISTORY
                 coord_t fr = *it;
-                unsigned h = history[wtm][GET_INDEX(b[fr]) - 1][m.to];
+                unsigned h = history[wtm][get_index(b[fr]) - 1][m.to];
                 if(h > max_history)
                     max_history = h;
                 if(h < min_history)
                     min_history = h;
 #endif // DONT_USE_HISTORY
-                coord_t y   = ROW(m.to);
-                coord_t x   = COL(m.to);
-                coord_t y0  = ROW(*it);
-                coord_t x0  = COL(*it);
+                coord_t y   = get_row(m.to);
+                coord_t x   = get_col(m.to);
+                coord_t y0  = get_row(*it);
+                coord_t x0  = get_col(*it);
                 if(wtm)
                 {
                     y   = 7 - y;
                     y0  = 7 - y0;
                 }
-                pst_t pstVal   = pst[GET_INDEX(fr_pc) - 1][0][y][x]
-                            - pst[GET_INDEX(fr_pc) - 1][0][y0][x0];
+                pst_t pstVal   = pst[get_index(fr_pc) - 1][0][y][x]
+                            - pst[get_index(fr_pc) - 1][0][y0][x0];
                 pstVal      = 96 + pstVal/2;
                 move_array[i].scr = pstVal;
             } // else (ordinary move)
@@ -379,8 +379,8 @@ void AppriceMoves(move_c *move_array, movcr_t moveCr, move_c *bestMove)
         else
         {
             streng_t ans;
-            streng_t src = streng[GET_INDEX(fr_pc)];
-            streng_t dst = (m.flg & mCAPT) ? streng[GET_INDEX(to_pc)] : 0;
+            streng_t src = streng[get_index(fr_pc)];
+            streng_t dst = (m.flg & mCAPT) ? streng[get_index(to_pc)] : 0;
 
 #ifndef DONT_USE_SEE_SORTING
             if(dst && dst - src <= 0)
@@ -420,7 +420,7 @@ void AppriceMoves(move_c *move_array, movcr_t moveCr, move_c *bestMove)
             }
             else
             {
-                if(TO_BLACK(b[*it]) != _k)
+                if(to_black(b[*it]) != _k)
                 {
                     assert(-ans/2 >= 0);
                     assert(-ans/2 <= BAD_CAPTURES);
@@ -445,7 +445,7 @@ void AppriceMoves(move_c *move_array, movcr_t moveCr, move_c *bestMove)
             continue;
         it      = m.pc;
         coord_t fr   = *it;
-        unsigned h = history[wtm][GET_INDEX(b[fr]) - 1][m.to];
+        unsigned h = history[wtm][get_index(b[fr]) - 1][m.to];
         if(h > 3)
         {
             h -= min_history;
@@ -474,8 +474,8 @@ void AppriceQuiesceMoves(move_c *move_array, movcr_t moveCr)
         coord_t fr = b[*it];
         piece_t pt = b[m.to];
 
-        streng_t src = sort_streng[GET_INDEX(fr)];
-        streng_t dst = (m.flg & mCAPT) ? sort_streng[GET_INDEX(pt)] : 0;
+        streng_t src = sort_streng[get_index(fr)];
+        streng_t dst = (m.flg & mCAPT) ? sort_streng[get_index(pt)] : 0;
 
         if(dst > 120)
         {
@@ -511,7 +511,7 @@ void AppriceQuiesceMoves(move_c *move_array, movcr_t moveCr)
         }
         else
         {
-            if(TO_BLACK(fr) != _k)
+            if(to_black(fr) != _k)
             {
                 assert(-ans/2 >= 0);
                 assert(-ans/2 <= BAD_CAPTURES);
@@ -549,7 +549,7 @@ streng_t SEE(coord_t to, streng_t frStreng, score_t val, bool stm)
     b[*storeMen] = __;
     wtm = !wtm;
 
-    streng_t tmp2 = -SEE(to, streng[GET_INDEX(storeBrd)], -val, stm);
+    streng_t tmp2 = -SEE(to, streng[get_index(storeBrd)], -val, stm);
 
     wtm = !wtm;
     val = std::min(tmp1, tmp2);
@@ -589,8 +589,8 @@ iterator SeeMinAttacker(coord_t to)
     for(; it != coords[!wtm].end(); ++it)
     {
         coord_t fr = *it;
-        piece_index_t pt  = GET_INDEX(b[fr]);
-        if(pt == GET_INDEX(_p))
+        piece_index_t pt  = get_index(b[fr]);
+        if(pt == get_index(_p))
             continue;
         attack_t att = attacks[120 + to - fr] & (1 << pt);
         if(!att)
@@ -615,8 +615,8 @@ streng_t SEE_main(move_c m)
     it = m.pc;
     piece_t fr_pc = b[*it];
     piece_t to_pc = b[m.to];
-    streng_t src = streng[GET_INDEX(fr_pc)];
-    streng_t dst = (m.flg & mCAPT) ? streng[GET_INDEX(to_pc)] : 0;
+    streng_t src = streng[get_index(fr_pc)];
+    streng_t dst = (m.flg & mCAPT) ? streng[get_index(to_pc)] : 0;
     auto storeMen = coords[wtm].begin();
     storeMen = m.pc;
     piece_t storeBrd = b[*storeMen];
@@ -655,5 +655,3 @@ void SortQuiesceMoves(move_c *move_array, movcr_t moveCr)
             break;
     }
 }
-
-
