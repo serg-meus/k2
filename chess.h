@@ -51,11 +51,32 @@ typedef i8 pst_t;
 
 
 
+
 //--------------------------------
-enum {__ = 0,  _k = 2, _q = 4, _r = 6, _b = 8, _n = 10, _p = 12,
-               _K = 3, _Q = 5, _R = 7, _B = 9, _N = 11, _P = 13};
-enum {mCAPT = 0x10, mCS_K = 0x20, mCS_Q = 0x40, mCSTL = 0x60, mENPS = 0x80,
-      mPR_Q = 0x01, mPR_N = 0x02, mPR_R = 0x03, mPR_B = 0x04, mPROM = 0x07};
+const piece_t   __ = 0,
+                _k = 2,
+                _q = 4,
+                _r = 6,
+                _b = 8,
+                _n = 10,
+                _p = 12,
+                _K = 3,
+                _Q = 5,
+                _R = 7,
+                _B = 9,
+                _N = 11,
+                _P = 13;
+
+const move_flag_t   mCAPT = 0x10,
+                    mCS_K = 0x20,
+                    mCS_Q = 0x40,
+                    mCSTL = 0x60,
+                    mENPS = 0x80,
+                    mPR_Q = 0x01,
+                    mPR_N = 0x02,
+                    mPR_R = 0x03,
+                    mPR_B = 0x04,
+                    mPROM = 0x07;
 
 
 
