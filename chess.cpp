@@ -65,8 +65,7 @@ void InitBrd()
 
     InitAttacks();
 
-    coord_t i;
-    for(i = 0; i < 8; i++)
+    for(auto i = 0; i < 8; i++)
     {
         b[get_coord(i, 1)]      = _P;
         coords[white].push_front(get_coord(7 - i, 1));
@@ -94,7 +93,7 @@ void InitBrd()
     king_coord[white] = --coords[white].end();
     king_coord[black] = --coords[black].end();
 
-    for(side_to_move_t clr = black; clr <= white; clr++)
+    for(auto clr = black; clr <= white; clr++)
     {
         quantity[clr][get_index(_k)] = 1;
         quantity[clr][get_index(_q)] = 1;
@@ -113,18 +112,17 @@ void InitBrd()
 //--------------------------------
 void InitAttacks()
 {
-    int i, j, k;
-    for(i = 1; i < 6; i++)
+    for(auto i = 1; i < 6; i++)
     {
         if(!slider[i])
-            for(j = 0; j < rays[i]; j++)
+            for(auto j = 0; j < rays[i]; j++)
                 attacks[120 + shifts[i][j]] |= (1 << i);
         else
         {
-            for(j = 0; j < rays[i]; j++)
-                for(k = 1; k < 8; k++)
+            for(auto j = 0; j < rays[i]; j++)
+                for(auto k = 1; k < 8; k++)
                 {
-                    int to = 120 + k*shifts[i][j];
+                    auto to = 120 + k*shifts[i][j];
                     if(to >= 0 && to < 240)
                     {
                         attacks[to] |= (1 << i);
@@ -143,13 +141,11 @@ void InitAttacks()
 //--------------------------------
 bool BoardToMen()
 {
-    size_t i;
-
     coords[black].clear();
     coords[white].clear();
-    for(i = 0; i < sizeof(b)/sizeof(*b); i++)
+    for(size_t i = 0; i < sizeof(b)/sizeof(*b); i++)
     {
-        if(!ONBRD(i) || b[i] == __)
+        if(!within_board(i) || b[i] == __)
             continue;
         coords[b[i] & white].push_back(i);
         quantity[b[i] & white][get_index(to_black(b[i]))]++;
@@ -178,16 +174,16 @@ bool FenToBoard(char *p)
     reversible_moves = 0;
     memset(quantity, 0, sizeof(quantity));
 
-    for(int row = 7; row >= 0; row--)
-        for(int col = 0; col <= 7; col++)
+    for(auto row = 7; row >= 0; row--)
+        for(auto col = 0; col <= 7; col++)
         {
             int to = get_coord(col, row);
             int ip = *p - '0';
             if(ip >= 1 && ip <= 8)
             {
-                for(int j = 0; j < ip; ++j)
+                for(auto j = 0; j < ip; ++j)
                 {
-                    assert(ONBRD(to + j));
+                    assert(within_board(to + j));
                     b[to + j] = 0;
                 }
                 col += *p++ - '1';
@@ -299,7 +295,7 @@ void ShowMove(coord_t fr, coord_t to)
 //--------------------------------
 bool MakeCastle(move_c m, coord_t fr)
 {
-    castle_t cs = b_state[prev_states + ply].cstl;
+    auto cs = b_state[prev_states + ply].cstl;
     if(m.pc == king_coord[wtm])                     // K moves
         b_state[prev_states + ply].cstl &= wtm ? 0xFC : 0xF3;
     if(king_coord[wtm] != --coords[wtm].end())
@@ -365,8 +361,8 @@ void UnMakeCastle(move_c m)
 {
     auto rMen = coords[wtm].begin();
     rMen = b_state[prev_states + ply].castled_rook_it;
-    coord_t rFr =*rMen;
-    coord_t rTo = rFr + (m.flg == mCS_K ? 2 : -3);
+    auto rFr =*rMen;
+    auto rTo = rFr + (m.flg == mCS_K ? 2 : -3);
     b[rTo] = b[rFr];
     b[rFr] = __;
     *rMen = rTo;
@@ -380,7 +376,7 @@ void UnMakeCastle(move_c m)
 bool MakeEP(move_c m, coord_t fr)
 {
     int delta = m.to - fr;
-    coord_t to = m.to;
+    int to = m.to;
     if(std::abs(delta) == 0x20
     && (b[m.to + 1] == (_P ^ wtm) || b[to - 1] == (_P ^ wtm)))
     {
@@ -399,9 +395,9 @@ bool MakeEP(move_c m, coord_t fr)
 //--------------------------------
 bool SliderAttack(coord_t fr, coord_t to)
 {
-    shifts_t shift = get_shift[120 + to - fr];
-    dist_t delta = get_delta[120 + to - fr];
-    for(int i = 0; i < delta - 1; i++)
+    auto shift = get_shift[120 + to - fr];
+    auto delta = get_delta[120 + to - fr];
+    for(auto i = 0; i < delta - 1; i++)
     {
         fr += shift;
         if(b[fr])
@@ -426,12 +422,12 @@ bool Attack(coord_t to, side_to_move_t xtm)
     auto it = king_coord[xtm];
     do
     {
-        coord_t fr = *it;
-        piece_index_t pt = get_index(b[fr]);
+        auto fr = *it;
+        auto pt = get_index(b[fr]);
         if(pt == get_index(_p))
             break;
 
-        attack_t att = attacks[120 + to - fr] & (1 << pt);
+        auto att = attacks[120 + to - fr] & (1 << pt);
         if(!att)
             continue;
         if(!slider[pt])
@@ -452,11 +448,11 @@ bool LegalSlider(coord_t fr, coord_t to, piece_t pt)
 {
     assert(120 + to - fr >= 0);
     assert(120 + to - fr < 240);
-    shifts_t shift = get_shift[120 + to - fr];
-    for(size_t i = 0; i < 7; i++)
+    auto shift = get_shift[120 + to - fr];
+    for(auto i = 0; i < 7; i++)
     {
         to -= shift;
-        if(!ONBRD(to))
+        if(!within_board(to))
             return true;
         if(b[to])
             break;
@@ -478,8 +474,8 @@ bool Legal(move_c m, bool ic)
 {
     if(ic || to_black(b[m.to]) == _k)
         return !Attack(*king_coord[!wtm], wtm);
-    coord_t fr = b_state[prev_states + ply].fr;
-    coord_t to = *king_coord[!wtm];
+    auto fr = b_state[prev_states + ply].fr;
+    auto to = *king_coord[!wtm];
     assert(120 + to - fr >= 0);
     assert(120 + to - fr < 240);
     if(attacks[120 + to - fr] & (1 << get_index(_r)))
@@ -556,7 +552,7 @@ void MakeCapture(move_c m, coord_t targ)
 //--------------------------------
 void MakePromotion(move_c m, iterator it)
 {
-    move_flag_t prIx = m.flg & mPROM;
+    auto prIx = m.flg & mPROM;
     piece_t prPc[] = {0, _q, _n, _r, _b};
     if(prIx)
     {
@@ -583,8 +579,8 @@ bool MkMoveFast(move_c m)
     ply++;
     auto it = coords[wtm].begin();
     it      = m.pc;
-    coord_t fr   = *it;
-    coord_t targ = m.to;
+    auto fr   = *it;
+    auto targ = m.to;
     StoreCurrentBoardState(m, fr, targ);
 
     if(m.flg & mCAPT)
@@ -680,7 +676,7 @@ void UnmakePromotion(move_c m)
 //--------------------------------
 void UnMoveFast(move_c m)
 {
-    coord_t fr = b_state[prev_states + ply].fr;
+    auto fr = b_state[prev_states + ply].fr;
     auto it = coords[!wtm].begin();
     it = m.pc;
     *it = fr;
@@ -711,7 +707,7 @@ void UnMoveFast(move_c m)
 
 
 //--------------------------------
-bool ONBRD(coord_t coord)
+bool within_board(coord_t coord)
 {
     return !(coord & 0x88);
 }

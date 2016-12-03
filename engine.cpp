@@ -64,7 +64,7 @@ score_t Search(depth_t depth, score_t alpha, score_t beta,
 #endif // DONT_USE_RECAPTURE_EXTENSION
 
 #ifndef DONT_USE_MATE_DISTANCE_PRUNING
-    score_t mate_sc = king_value - ply;
+    auto mate_sc = king_value - ply;
     if(alpha >= mate_sc)
        return alpha;
     if(beta <= -mate_sc)
@@ -143,7 +143,7 @@ score_t Search(depth_t depth, score_t alpha, score_t beta,
         FastEval(cur_move);
 
 #ifndef DONT_USE_LMR
-        depth_t lmr = 1;
+        auto lmr = 1;
         if(depth < 3 || cur_move.flg || in_check)
             lmr = 0;
         else if(legal_moves < 4)
@@ -154,7 +154,7 @@ score_t Search(depth_t depth, score_t alpha, score_t beta,
         else if(depth <= 4 && legal_moves > 8)
             lmr = 2;
 #else
-        depth_t lmr = 0;
+        auto lmr = 0;
 #endif  // DONT_USE_LMR
 
         if(legal_moves == 0)
@@ -238,7 +238,7 @@ score_t QSearch(score_t alpha, score_t beta)
     && ReturnEval(wtm) > beta + 250)
         return beta;
 
-    score_t x = Eval();
+    auto x = Eval();
 
     if(-x >= beta)
         return beta;
@@ -272,9 +272,9 @@ score_t QSearch(score_t alpha, score_t beta)
         && to_black(b[cur_move.to]) != _k
         && !(cur_move.flg & mPROM))
         {
-            score_t cur_eval = ReturnEval(wtm);
-            score_t capture = 100*pc_streng[get_index(b[cur_move.to])];
-            score_t margin = 100;
+            auto cur_eval = ReturnEval(wtm);
+            auto capture = 100*pc_streng[get_index(b[cur_move.to])];
+            auto margin = 100;
             if(cur_eval + capture + margin < alpha)
                 break;
         }
@@ -332,14 +332,14 @@ void Perft(depth_t depth)
 {
     move_c move_array[MAX_MOVES];
     bool in_check = Attack(*king_coord[wtm], !wtm);
-    movcr_t max_moves = GenMoves(move_array, nullptr, APPRICE_NONE);
-    for(movcr_t move_cr = 0; move_cr < max_moves; move_cr++)
+    auto max_moves = GenMoves(move_array, nullptr, APPRICE_NONE);
+    for(auto move_cr = 0; move_cr < max_moves; move_cr++)
     {
 #ifndef NDEBUG
         if(depth == max_search_depth)
             tmpCr = nodes;
 #endif
-        move_c cur_move = move_array[move_cr];
+        auto cur_move = move_array[move_cr];
         MkMoveFast(cur_move);
 #ifndef NDEBUG
         if(strcmp(stop_str, cv) == 0)
@@ -366,7 +366,7 @@ void Perft(depth_t depth)
 //-----------------------------
 void StorePV(move_c move)
 {
-    move_flag_t nextLen = pv[ply + 1][0].flg;
+    auto nextLen = pv[ply + 1][0].flg;
     pv[ply][0].flg = nextLen + 1;
     pv[ply][1] = move;
     memcpy(&pv[ply][2], &pv[ply + 1][1], sizeof(move_c)*nextLen);
@@ -401,8 +401,8 @@ void UpdateStatistics(move_c move, depth_t depth, movcr_t move_cr)
 #ifndef DONT_USE_HISTORY
     auto it = coords[wtm].begin();
     it = move.pc;
-    coord_t fr = *it;
-    unsigned &h = history[wtm][get_index(b[fr]) - 1][move.to];
+    auto fr = *it;
+    auto &h = history[wtm][get_index(b[fr]) - 1][move.to];
     h += depth*depth + 1;
 #else
     UNUSED(depth);
@@ -537,7 +537,7 @@ score_t RootSearch(depth_t depth, score_t alpha, score_t beta)
 #endif // NDEBUG
 
         FastEval(cur_move);
-        node_t prev_nodes = nodes;
+        auto prev_nodes = nodes;
 
         if(uci && root_ply > 6)
             ShowCurrentUciInfo();
@@ -558,7 +558,7 @@ score_t RootSearch(depth_t depth, score_t alpha, score_t beta)
                 fail_high = true;
                 ShowPVfailHighOrLow(cur_move, x, '!');
 
-                score_t x_ = -Search(depth - 1, -beta, -alpha, pv_node);
+                auto x_ = -Search(depth - 1, -beta, -alpha, pv_node);
                 if(!stop)
                     x = x_;
                 if(x > alpha)
@@ -576,7 +576,7 @@ score_t RootSearch(depth_t depth, score_t alpha, score_t beta)
         if(stop && !fail_high)
             x = -infinit_score;
 
-        node_t delta_nodes = nodes - prev_nodes;
+        auto delta_nodes = nodes - prev_nodes;
 
         if(root_moves.at(root_move_cr).first != unconfirmed_fail_high)
             root_moves.at(root_move_cr).first = delta_nodes;
@@ -637,8 +637,8 @@ void ShowPVfailHighOrLow(move_c m, score_t x, char type_of_bound)
     char mstr[6];
     MoveToStr(m, wtm, mstr);
 
-    move_c tmp0       = pv[0][0];
-    move_c tmp1       = pv[0][1];
+    auto tmp0       = pv[0][0];
+    auto tmp1       = pv[0][1];
     pv[0][0].flg    = 1;
     pv[0][1]        = m;
 
@@ -658,7 +658,7 @@ void ShowPVfailHighOrLow(move_c m, score_t x, char type_of_bound)
 void RootMoveGen(bool in_check)
 {
     move_c move_array[MAX_MOVES], cur_move;
-    movcr_t max_moves = init_max_moves;
+    auto max_moves = init_max_moves;
 
     score_t alpha = -infinit_score, beta = infinit_score;
     cur_move.flg = not_a_move;
@@ -688,7 +688,7 @@ void RootMoveGen(bool in_check)
         return;
     std::srand(std::time(nullptr));
     const movcr_t max_moves_to_shuffle = 4;
-    movcr_t moves_to_shuffle = std::min(max_root_moves, max_moves_to_shuffle);
+    auto moves_to_shuffle = std::min(max_root_moves, max_moves_to_shuffle);
     for(movcr_t i = 0; i < moves_to_shuffle; ++i)
     {
         movcr_t rand_ix = std::rand() % moves_to_shuffle;
@@ -762,7 +762,7 @@ void MoveToStr(move_c move, bool stm, char *out)
 
     auto it = coords[stm].begin();
     it      = move.pc;
-    coord_t  f  = *it;
+    auto  f  = *it;
     out[0]  = get_col(f) + 'a';
     out[1]  = get_row(f) + '1';
     out[2]  = get_col(move.to) + 'a';
@@ -982,7 +982,8 @@ bool ShowPV(depth_t cur_ply)
 {
     char pc2chr[] = "??KKQQRRBBNNPP";
     bool ans = true;
-    size_t ply_cr = 0, pv_len = pv[cur_ply][0].flg;
+    depth_t ply_cr = 0;
+    auto pv_len = pv[cur_ply][0].flg;
 
     if(uci)
     {
@@ -991,7 +992,7 @@ bool ShowPV(depth_t cur_ply)
             move_c cur_move = pv[cur_ply][ply_cr + 1];
             auto it = coords[wtm].begin();
             it = cur_move.pc;
-            coord_t from_coord = *it;
+            auto from_coord = *it;
             std::cout  << (char)(get_col(from_coord) + 'a')
                 << (char)(get_row(from_coord) + '1')
                 << (char)(get_col(cur_move.to) + 'a') << (char)(get_row(cur_move.to) + '1');
@@ -1009,7 +1010,7 @@ bool ShowPV(depth_t cur_ply)
     {
         for(; ply_cr < pv_len; ply_cr++)
         {
-            move_c cur_move = pv[cur_ply][ply_cr + 1];
+            auto cur_move = pv[cur_ply][ply_cr + 1];
             auto it = coords[wtm].begin();
             it = cur_move.pc;
             char piece_char = pc2chr[b[*it]];
@@ -1062,26 +1063,26 @@ bool ShowPV(depth_t cur_ply)
 void FindAndPrintForAmbiguousMoves(move_c move)
 {
     move_c move_array[8];
-    unsigned amb_cr = 0;
+    auto amb_cr = 0;
     auto it = coords[wtm].begin();
     it = move.pc;
-    coord_t init_from_coord = *it;
-    piece_index_t init_piece_type = get_index(b[init_from_coord]);
+    auto init_from_coord = *it;
+    auto init_piece_type = get_index(b[init_from_coord]);
 
     for(it = coords[wtm].begin(); it != coords[wtm].end(); ++it)
     {
         if(it == move.pc)
             continue;
-        coord_t from_coord = *it;
+        auto from_coord = *it;
 
-        piece_index_t piece_type = get_index(b[from_coord]);
+        auto piece_type = get_index(b[from_coord]);
         if(piece_type != init_piece_type)
             continue;
         if(!(attacks[120 + from_coord - move.to] & (1 << piece_type)))
             continue;
         if(slider[piece_type] && !SliderAttack(from_coord, move.to))
             continue;
-        move_c tmp = move;
+        auto tmp = move;
         tmp.scr = from_coord;
         move_array[amb_cr++] = tmp;
     }
@@ -1090,7 +1091,7 @@ void FindAndPrintForAmbiguousMoves(move_c move)
         return;
 
     bool same_cols = false, same_rows = false;
-    for(unsigned i = 0; i < amb_cr; i++)
+    for(auto i = 0; i < amb_cr; i++)
     {
         if(get_col(move_array[i].scr) == get_col(init_from_coord))
             same_cols = true;
@@ -1113,7 +1114,7 @@ void FindAndPrintForAmbiguousMoves(move_c move)
 //-----------------------------
 bool MakeMoveFinaly(char *move_str)
 {
-    size_t ln = strlen(move_str);
+    auto ln = strlen(move_str);
     if(ln < 4 || ln > 5)
         return false;
     bool in_check = Attack(*king_coord[wtm], !wtm);
@@ -1124,7 +1125,7 @@ bool MakeMoveFinaly(char *move_str)
     char proms[] = {'?', 'q', 'n', 'r', 'b'};
     for(movcr_t i = 0; i < max_root_moves; ++i)
     {
-        move_c cur_move  = root_moves.at(i).second;
+        auto cur_move  = root_moves.at(i).second;
         auto it = coords[wtm].begin();
         it = cur_move.pc;
         cur_move_str[0] = get_col(*it) + 'a';
@@ -1143,8 +1144,8 @@ bool MakeMoveFinaly(char *move_str)
         MkMove(cur_move);
         FastEval(cur_move);
 
-        score_t store_val_opn = val_opn;
-        score_t store_val_end = val_end;
+        auto store_val_opn = val_opn;
+        auto store_val_end = val_end;
 
         memmove(&b_state[0], &b_state[1],
                 (prev_states + 2)*sizeof(state_s));
@@ -1158,7 +1159,7 @@ bool MakeMoveFinaly(char *move_str)
                     << std::endl << "resign"
                     << std::endl;
         }
-        for(size_t j = 0; j < FIFTY_MOVES; ++j)
+        for(auto j = 0; j < FIFTY_MOVES; ++j)
             doneHashKeys[j] = doneHashKeys[j + 1];
 
         finaly_made_moves++;
@@ -1252,7 +1253,7 @@ void CheckForInterrupt()
     if(infinite_analyze || pondering_in_process)
         return;
 
-    const unsigned nodes_to_check_stop2 =
+    const node_t nodes_to_check_stop2 =
             (16*(nodes_to_check_stop + 1) - 1);
     double margin = 20000; //0.02s
     if(spent_exact_time)
@@ -1333,18 +1334,18 @@ bool NullMove(depth_t depth, score_t beta, bool in_check)
       )
         return false;
 
-    enpass_t store_ep  = b_state[prev_states + ply].ep;
-    coord_t store_to = b_state[prev_states + ply].to;
-    depth_t store_rv = reversible_moves;
+    auto store_ep  = b_state[prev_states + ply].ep;
+    auto store_to = b_state[prev_states + ply].to;
+    auto store_rv = reversible_moves;
     reversible_moves = 0;
 
     MakeNullMove();
     if(store_ep)
         hash_key = InitHashKey();
 
-    depth_t r = depth > 6 ? 3 : 2;
+    auto r = depth > 6 ? 3 : 2;
 
-    score_t x = -Search(depth - r - 1, -beta, -beta + 1, all_node);
+    auto x = -Search(depth - r - 1, -beta, -beta + 1, all_node);
 
     UnMakeNullMove();
     b_state[prev_states + ply].to = store_to;
@@ -1376,8 +1377,8 @@ bool Futility(depth_t depth, score_t beta)
 #ifndef DONT_SHOW_STATISTICS
             futility_probes++;
 #endif // DONT_SHOW_STATISTICS
-        score_t margin = depth < 2 ? 185 : 255;
-        score_t score = ReturnEval(wtm);
+        auto margin = depth < 2 ? 185 : 255;
+        auto score = ReturnEval(wtm);
         if(score > margin + beta)
         {
 #ifndef DONT_SHOW_STATISTICS
@@ -1407,8 +1408,8 @@ bool DrawByRepetition()
 
     if(max_count > FIFTY_MOVES + (depth_t)ply)
         max_count = FIFTY_MOVES + ply;                                  // on case that GUI does not recognize 50 move rule
-    depth_t i;
-    for(i = 4; i <= max_count; i += 2)
+
+    for(auto i = 4; i <= max_count; i += 2)
     {
         if(hash_key == doneHashKeys[FIFTY_MOVES + ply - i])
             return true;
@@ -1427,12 +1428,12 @@ void ShowFen()
     char whites[] = "KQRBNP";
     char blacks[] = "kqrbnp";
 
-    for(score_t row = 7; row >= 0; --row)
+    for(int row = 7; row >= 0; --row)
     {
-        size_t blank_cr = 0;
-        for(score_t col = 0; col < 8; ++col)
+        auto blank_cr = 0;
+        for(auto col = 0; col < 8; ++col)
         {
-            piece_t piece = b[get_coord(col, row)];
+            auto piece = b[get_coord(col, row)];
             if(piece == __)
             {
                 blank_cr++;
@@ -1453,7 +1454,7 @@ void ShowFen()
     }
     std::cout << " " << (wtm ? 'w' : 'b') << " ";
 
-    castle_t cstl = b_state[prev_states + 0].cstl;
+    auto cstl = b_state[prev_states + 0].cstl;
     if(cstl & 0x0F)
     {
         if(cstl & 0x01)
@@ -1503,10 +1504,10 @@ hash_entry_s* HashProbe(depth_t depth, score_t *alpha, score_t beta)
 #ifndef DONT_SHOW_STATISTICS
     hash_probe_cr++;
 #endif // DONT_SHOW_STATISTICS
-    u8 hbnd = entry->bound_type;
+    auto hbnd = entry->bound_type;
     if(entry->depth >= depth)
     {
-        score_t hval = entry->value;
+        auto hval = entry->value;
         if(hval > mate_score && hval != infinit_score)
             hval += entry->depth - ply;
         else if(hval < -mate_score && hval != -infinit_score)
@@ -1547,10 +1548,10 @@ bool MoveIsPseudoLegal(move_c &move, bool stm)
     if(it == coords[stm].end())
         return false;
     it = move.pc;
-    coord_t from_coord = *it;
-    piece_t piece = b[move.to];
-    score_t delta_col = get_col(move.to) - get_col(from_coord);
-    score_t delta_row = get_row(move.to) - get_row(from_coord);
+    auto from_coord = *it;
+    auto piece = b[move.to];
+    int delta_col = get_col(move.to) - get_col(from_coord);
+    int delta_row = get_row(move.to) - get_row(from_coord);
     if(!delta_col && !delta_row)
         return false;
     if(!is_light(b[from_coord], stm))
@@ -1679,8 +1680,8 @@ move_c Next(move_c *move_array, movcr_t cur_move, movcr_t *max_moves,
 
             bool pseudo_legal = MoveIsPseudoLegal(ans, stm);
 #ifndef NDEBUG
-            movcr_t mx_ = GenMoves(move_array, nullptr, APPRICE_NONE);
-            movcr_t i = 0;
+            auto mx_ = GenMoves(move_array, nullptr, APPRICE_NONE);
+            auto i = 0;
             for(; i < mx_; ++i)
                 if(move_array[i] == ans)
                     break;
@@ -1731,7 +1732,7 @@ move_c Next(move_c *move_array, movcr_t cur_move, movcr_t *max_moves,
             *max_moves = 0;
             return move_array[0];
         }
-        movcr_t i = 0;
+        auto i = 0;
         for(; i < *max_moves; i++)
             if(move_array[i].scr == PV_FOLLOW)
             {
@@ -1747,8 +1748,8 @@ move_c Next(move_c *move_array, movcr_t cur_move, movcr_t *max_moves,
 #ifndef DONT_USE_ONE_REPLY_EXTENSION
     if(in_check && (cur_move == 0 || (cur_move == 1 && entry != nullptr)))
     {
-        movcr_t move_cr, legal_cr = cur_move;
-        for(move_cr = cur_move; move_cr < *max_moves; ++move_cr)
+        auto legal_cr = cur_move;
+        for(auto move_cr = cur_move; move_cr < *max_moves; ++move_cr)
         {
             Move m = move_array[move_cr];
             MkMoveFast(m);
@@ -1766,12 +1767,12 @@ move_c Next(move_c *move_array, movcr_t cur_move, movcr_t *max_moves,
     }
 #endif //DONT_USE_ONE_REPLY_EXTENSION
 
-    move_score_t max_score = 0;
-    movcr_t max_index = cur_move;
+    auto max_score = 0;
+    auto max_index = cur_move;
 
-    for(movcr_t i = cur_move; i < *max_moves; i++)
+    for(auto i = cur_move; i < *max_moves; i++)
     {
-        move_score_t score = move_array[i].scr;
+        auto score = move_array[i].scr;
         if(score > max_score)
         {
             max_score = score;
@@ -1843,8 +1844,8 @@ void ShowCurrentUciInfo()
     std::cout << "info nodes " << nodes
         << " nps " << (i32)(1000000 * nodes / (t - time0 + 1));
 
-    move_c move = root_moves.at(root_move_cr).second;
-    coord_t from_coord = b_state[prev_states + 1].fr;
+    auto move = root_moves.at(root_move_cr).second;
+    auto from_coord = b_state[prev_states + 1].fr;
     std::cout << " currmove "
         << (char)(get_col(from_coord) + 'a') << (char)(get_row(from_coord) + '1')
         << (char)(get_col(move.to) + 'a') << (char)(get_row(move.to) + '1');

@@ -156,7 +156,7 @@ void UnmakeCapture(move_c m);
 void UnmakePromotion(move_c m);
 bool MkMoveFast(move_c m);
 void UnMoveFast(move_c m);
-bool ONBRD(coord_t coord);
+bool within_board(coord_t coord);
 coord_t get_coord(coord_t col, coord_t row);
 coord_t get_col(coord_t coord);
 coord_t get_row(coord_t coord);

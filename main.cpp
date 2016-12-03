@@ -91,7 +91,7 @@ int main(int argc, char* argv[])
     UNUSED(argv);
 
 #ifdef TUNE_PARAMETERS
-    for(int i = 0; i < NPARAMS; ++i)
+    for(auto i = 0; i < NPARAMS; ++i)
         param.push_back(1);
 #endif
     InitEngine();
@@ -153,8 +153,7 @@ bool CmdProcess(std::string in)
 
     GetFirstArg(in, &firstWord, &remains);
 
-    unsigned i;
-    for(i = 0; i < sizeof(commands) / sizeof(cmdStruct); ++i)
+    for(size_t i = 0; i < sizeof(commands) / sizeof(cmdStruct); ++i)
     {
         if(firstWord == commands[i].command)
         {
@@ -261,7 +260,7 @@ void SetboardCommand(std::string in)
     if(busy)
         return;
 
-    int firstSymbol = in.find_first_not_of(" \t");
+    auto firstSymbol = in.find_first_not_of(" \t");
     in.erase(0, firstSymbol);
 
     if(!FenStringToEngine((char *)in.c_str()))
@@ -606,7 +605,7 @@ void SetOptionCommand(std::string in)
         if(arg1 != "value")
             return;
         GetFirstArg(arg2, &arg1, &arg2);
-        int size_MB = atoi(arg1.c_str());
+        auto size_MB = atoi(arg1.c_str());
         ReHash(size_MB);
     }
 }
@@ -636,7 +635,7 @@ void PositionCommand(std::string in)
     if(arg1 == "fen")
     {
         std::string fenstring;
-        int beg = arg2.find_first_not_of(" \t");
+        auto beg = arg2.find_first_not_of(" \t");
         fenstring = arg2.substr(beg, arg2.size());
         if(!FenStringToEngine((char *)fenstring.c_str()))
         {
@@ -651,8 +650,8 @@ void PositionCommand(std::string in)
     if(moves == -1)
         return;
 
-    std::string mov_seq = arg2.substr(moves + 5, in.size());
-    int beg = mov_seq.find_first_not_of(" \t");
+    auto mov_seq = arg2.substr(moves + 5, in.size());
+    auto beg = mov_seq.find_first_not_of(" \t");
     mov_seq = mov_seq.substr(beg, mov_seq.size());
 
     ProcessMoveSequence(mov_seq);
@@ -817,7 +816,7 @@ void MemoryCommand(std::string in)
     std::string arg1, arg2;
     arg1 = in;
     GetFirstArg(arg2, &arg1, &arg2);
-    int size_MB = atoi(arg1.c_str());
+    auto size_MB = atoi(arg1.c_str());
     ReHash(size_MB);
 }
 

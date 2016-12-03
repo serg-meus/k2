@@ -43,7 +43,6 @@ void PushMove(move_c *move_array, movcr_t *movCr, iterator it, coord_t to,
 //--------------------------------
 movcr_t GenMoves(move_c *move_array, move_c *best_move, u8 apprice)
 {
-    coord_t i, to, ray;
     movcr_t moveCr = 0;
 
     GenCastles(move_array, &moveCr);
@@ -51,8 +50,8 @@ movcr_t GenMoves(move_c *move_array, move_c *best_move, u8 apprice)
     auto it = coords[wtm].begin();
     for(;it != coords[wtm].end(); ++it)
     {
-        coord_t fr = *it;
-        piece_index_t at = get_index(b[fr]);
+        auto fr = *it;
+        auto at = get_index(b[fr]);
         if(at == get_index(_p))
         {
             GenPawn(move_array, &moveCr, it);
@@ -61,24 +60,24 @@ movcr_t GenMoves(move_c *move_array, move_c *best_move, u8 apprice)
 
         if(!slider[at])
         {
-            for(ray = 0; ray < rays[at]; ray++)
+            for(auto ray = 0; ray < rays[at]; ray++)
             {
-                to = fr + shifts[at][ray];
-                if(ONBRD(to) && !is_light(b[to], wtm))
+                auto to = fr + shifts[at][ray];
+                if(within_board(to) && !is_light(b[to], wtm))
                     PushMove(move_array, &moveCr, it, to, b[to] ? mCAPT : 0);
             }
             continue;
         }
 
-        for(ray = 0; ray < rays[at]; ray++)
+        for(auto ray = 0; ray < rays[at]; ray++)
         {
-            to = fr;
-            for(i = 0; i < 8; i++)
+            auto to = fr;
+            for(auto i = 0; i < 8; i++)
             {
                 to += shifts[at][ray];
-                if(!ONBRD(to))
+                if(!within_board(to))
                     break;
-                piece_t tt = b[to];
+                auto tt = b[to];
                 if(!tt)
                 {
                     PushMove(move_array, &moveCr, it, to, 0);
@@ -105,9 +104,8 @@ movcr_t GenMoves(move_c *move_array, move_c *best_move, u8 apprice)
 //--------------------------------
 void GenPawn(move_c *move_array, movcr_t *moveCr, iterator it)
 {
-    coord_t to;
     move_flag_t pBeg, pEnd;
-    coord_t fr = *it;
+    auto fr = *it;
     if((wtm && get_row(fr) == 6) || (!wtm && get_row(fr) == 1))
     {
         pBeg = mPR_Q;
@@ -118,40 +116,40 @@ void GenPawn(move_c *move_array, movcr_t *moveCr, iterator it)
         pBeg = 0;
         pEnd = 0;
     }
-    for(size_t i = pBeg; i <= pEnd; ++i)
+    for(auto i = pBeg; i <= pEnd; ++i)
         if(wtm)
         {
-            to = fr + 17;
-            if(ONBRD(to) && is_dark(b[to], wtm))
+            auto to = fr + 17;
+            if(within_board(to) && is_dark(b[to], wtm))
                 PushMove(move_array, moveCr, it, to, mCAPT | i);
             to = fr + 15;
-            if(ONBRD(to) && is_dark(b[to], wtm))
+            if(within_board(to) && is_dark(b[to], wtm))
                 PushMove(move_array, moveCr, it, to, mCAPT | i);
             to = fr + 16;
-            if(ONBRD(to) && !b[to])                 // ONBRD not needed
+            if(within_board(to) && !b[to])                 // within_board not needed
                 PushMove(move_array, moveCr, it, to, i);
             if(get_row(fr) == 1 && !b[fr + 16] && !b[fr + 32])
                 PushMove(move_array, moveCr, it, fr + 32, 0);
-            enpass_t ep = b_state[prev_states + ply].ep;
-            shifts_t delta = ep - 1 - get_col(fr);
+            auto ep = b_state[prev_states + ply].ep;
+            auto delta = ep - 1 - get_col(fr);
             if(ep && std::abs(delta) == 1 && get_row(fr) == 4)
                 PushMove(move_array, moveCr, it, fr + 16 + delta, mCAPT | mENPS);
         }
         else
         {
-            to = fr - 17;
-            if(ONBRD(to) && is_dark(b[to], wtm))
+            auto to = fr - 17;
+            if(within_board(to) && is_dark(b[to], wtm))
                 PushMove(move_array, moveCr, it, to, mCAPT | i);
             to = fr - 15;
-            if(ONBRD(to) && is_dark(b[to], wtm))
+            if(within_board(to) && is_dark(b[to], wtm))
                 PushMove(move_array, moveCr, it, to, mCAPT | i);
             to = fr - 16;
-            if(ONBRD(to) && !b[to])                  // ONBRD not needed
+            if(within_board(to) && !b[to])                  // within_board not needed
                 PushMove(move_array, moveCr, it, to, i);
             if(get_row(fr) == 6 && !b[fr - 16] && !b[fr - 32])
                 PushMove(move_array, moveCr, it, fr - 32, 0);
-            enpass_t ep = b_state[prev_states + ply].ep;
-            shifts_t delta = ep - 1 - get_col(fr);
+            auto ep = b_state[prev_states + ply].ep;
+            auto delta = ep - 1 - get_col(fr);
             if(ep && std::abs(delta) == 1 && get_row(fr) == 3)
                 PushMove(move_array, moveCr, it, fr - 16 + delta, mCAPT | mENPS);
         }
@@ -164,9 +162,8 @@ void GenPawn(move_c *move_array, movcr_t *moveCr, iterator it)
 //--------------------------------
 void GenPawnCap(move_c *move_array, movcr_t *moveCr, iterator it)
 {
-    coord_t to;
     size_t pBeg, pEnd;
-    coord_t fr = *it;
+    auto fr = *it;
     if((wtm && get_row(fr) == 6) || (!wtm && get_row(fr) == 1))
     {
         pBeg = mPR_Q;
@@ -177,36 +174,36 @@ void GenPawnCap(move_c *move_array, movcr_t *moveCr, iterator it)
         pBeg = 0;
         pEnd = 0;
     }
-    for(size_t i = pBeg; i <= pEnd; ++i)
+    for(auto i = pBeg; i <= pEnd; ++i)
         if(wtm)
         {
-            to = fr + 17;
-            if(ONBRD(to) && is_dark(b[to], wtm))
+            auto to = fr + 17;
+            if(within_board(to) && is_dark(b[to], wtm))
                 PushMove(move_array, moveCr, it, to, mCAPT | i);
             to = fr + 15;
-            if(ONBRD(to) && is_dark(b[to], wtm))
+            if(within_board(to) && is_dark(b[to], wtm))
                 PushMove(move_array, moveCr, it, to, mCAPT | i);
             to = fr + 16;
             if(pBeg && !b[to])
                 PushMove(move_array, moveCr, it, to, i);
-            enpass_t ep = b_state[prev_states + ply].ep;
-            shifts_t delta = ep - 1 - get_col(fr);
+            auto ep = b_state[prev_states + ply].ep;
+            auto delta = ep - 1 - get_col(fr);
             if(ep && std::abs(delta) == 1 && get_row(fr) == 4)
                 PushMove(move_array, moveCr, it, fr + 16 + delta, mCAPT | mENPS);
         }
         else
         {
-            to = fr - 17;
-            if(ONBRD(to) && is_dark(b[to], wtm))
+            auto to = fr - 17;
+            if(within_board(to) && is_dark(b[to], wtm))
                 PushMove(move_array, moveCr, it, to, mCAPT | i);
             to = fr - 15;
-            if(ONBRD(to) && is_dark(b[to], wtm))
+            if(within_board(to) && is_dark(b[to], wtm))
                 PushMove(move_array, moveCr, it, to, mCAPT | i);
             to = fr - 16;
             if(pBeg && !b[to])
                 PushMove(move_array, moveCr, it, to, i);
-            enpass_t ep = b_state[prev_states + ply].ep;
-            shifts_t delta = ep - 1 - get_col(fr);
+            auto ep = b_state[prev_states + ply].ep;
+            auto delta = ep - 1 - get_col(fr);
             if(ep && std::abs(delta) == 1 && get_row(fr) == 3)
                 PushMove(move_array, moveCr, it, fr - 16 + delta, mCAPT | mENPS);
         }
@@ -220,7 +217,7 @@ void GenPawnCap(move_c *move_array, movcr_t *moveCr, iterator it)
 void GenCastles(move_c *move_array, movcr_t *moveCr)
 {
     castle_t msk = wtm ? 0x03 : 0x0C;
-    castle_t cst = b_state[prev_states + ply].cstl & msk;
+    auto cst = b_state[prev_states + ply].cstl & msk;
     bool check = false, not_seen = true;
     if(!cst)
         return;
@@ -271,13 +268,12 @@ void GenCastles(move_c *move_array, movcr_t *moveCr)
 //--------------------------------
 movcr_t GenCaptures(move_c *move_array)
 {
-    coord_t i, to, ray;
     movcr_t moveCr = 0;
     auto it = coords[wtm].begin();
     for(; it != coords[wtm].end(); ++it)
     {
-        coord_t fr = *it;
-        piece_index_t at = get_index(b[fr]);
+        auto fr = *it;
+        auto at = get_index(b[fr]);
         if(at == get_index(_p))
         {
             GenPawnCap(move_array, &moveCr, it);
@@ -285,24 +281,24 @@ movcr_t GenCaptures(move_c *move_array)
         }
         if(!slider[at])
         {
-            for(ray = 0; ray < rays[at]; ray++)
+            for(auto  ray = 0; ray < rays[at]; ray++)
             {
-                to = fr + shifts[at][ray];
-                if(ONBRD(to) && is_dark(b[to], wtm))
+                auto to = fr + shifts[at][ray];
+                if(within_board(to) && is_dark(b[to], wtm))
                     PushMove(move_array, &moveCr, it, to, mCAPT);
             }
             continue;
         }
 
-        for(ray = 0; ray < rays[at]; ray++)
+        for(auto ray = 0; ray < rays[at]; ray++)
         {
-            to = fr;
-            for(i = 0; i < 8; i++)
+            auto to = fr;
+            for(auto i = 0; i < 8; i++)
             {
                 to += shifts[at][ray];
-                if(!ONBRD(to))
+                if(!within_board(to))
                     break;
-                piece_t tt = b[to];
+                auto tt = b[to];
                 if(!tt)
                     continue;
                 if(is_dark(tt, wtm))
@@ -329,18 +325,18 @@ void AppriceMoves(move_c *move_array, movcr_t moveCr, move_c *bestMove)
 #endif
 
     auto it = coords[wtm].begin();
-    move_c bm = *move_array;
+    auto bm = *move_array;
     if(bestMove == nullptr)
         bm.flg = 0xFF;
     else
         bm = *bestMove;
-    for(movcr_t i = 0; i < moveCr; i++)
+    for(auto i = 0; i < moveCr; i++)
     {
-        move_c m = move_array[i];
+        auto m = move_array[i];
 
         it = m.pc;
-        piece_t fr_pc = b[*it];
-        piece_t to_pc = b[m.to];
+        auto fr_pc = b[*it];
+        auto to_pc = b[m.to];
 
         if(m == bm)
             move_array[i].scr = PV_FOLLOW;
@@ -354,23 +350,23 @@ void AppriceMoves(move_c *move_array, movcr_t moveCr, move_c *bestMove)
             else
             {
 #ifndef DONT_USE_HISTORY
-                coord_t fr = *it;
-                unsigned h = history[wtm][get_index(b[fr]) - 1][m.to];
+                auto fr = *it;
+                auto h = history[wtm][get_index(b[fr]) - 1][m.to];
                 if(h > max_history)
                     max_history = h;
                 if(h < min_history)
                     min_history = h;
 #endif // DONT_USE_HISTORY
-                coord_t y   = get_row(m.to);
-                coord_t x   = get_col(m.to);
-                coord_t y0  = get_row(*it);
-                coord_t x0  = get_col(*it);
+                auto y   = get_row(m.to);
+                auto x   = get_col(m.to);
+                auto y0  = get_row(*it);
+                auto x0  = get_col(*it);
                 if(wtm)
                 {
                     y   = 7 - y;
                     y0  = 7 - y0;
                 }
-                pst_t pstVal   = pst[get_index(fr_pc) - 1][0][y][x]
+                auto pstVal   = pst[get_index(fr_pc) - 1][0][y][x]
                             - pst[get_index(fr_pc) - 1][0][y0][x0];
                 pstVal      = 96 + pstVal/2;
                 move_array[i].scr = pstVal;
@@ -378,14 +374,13 @@ void AppriceMoves(move_c *move_array, movcr_t moveCr, move_c *bestMove)
         }// if(to_pc == __ &&
         else
         {
-            streng_t ans;
-            streng_t src = streng[get_index(fr_pc)];
-            streng_t dst = (m.flg & mCAPT) ? streng[get_index(to_pc)] : 0;
+            auto src = streng[get_index(fr_pc)];
+            auto dst = (m.flg & mCAPT) ? streng[get_index(to_pc)] : 0;
 
 #ifndef DONT_USE_SEE_SORTING
             if(dst && dst - src <= 0)
             {
-                streng_t tmp = SEE_main(m);
+                auto tmp = SEE_main(m);
                 dst = tmp;
                 src = 0;
             }
@@ -407,10 +402,7 @@ void AppriceMoves(move_c *move_array, movcr_t moveCr, move_c *bestMove)
             if(dst <= 120 && (m.flg & mPROM))
                 dst += prms[m.flg & mPROM];
 
-            if(dst >= src)
-                ans = dst - src/16;
-            else
-                ans = dst - src;
+            auto ans = dst >= src ? dst - src/16 : dst - src;
 
             if(dst - src >= 0)
             {
@@ -437,15 +429,15 @@ void AppriceMoves(move_c *move_array, movcr_t moveCr, move_c *bestMove)
     }// for( i
 
 #ifndef DONT_USE_HISTORY
-    for(movcr_t i = 0; i < moveCr; i++)
+    for(auto i = 0; i < moveCr; i++)
     {
-        move_c m = move_array[i];
+        auto m = move_array[i];
         if(m.scr >= std::min(MOVE_FROM_PV, SECOND_KILLER)
         || (m.flg & mCAPT))
             continue;
         it      = m.pc;
-        coord_t fr   = *it;
-        unsigned h = history[wtm][get_index(b[fr]) - 1][m.to];
+        auto fr   = *it;
+        auto h = history[wtm][get_index(b[fr]) - 1][m.to];
         if(h > 3)
         {
             h -= min_history;
@@ -466,16 +458,16 @@ void AppriceMoves(move_c *move_array, movcr_t moveCr, move_c *bestMove)
 void AppriceQuiesceMoves(move_c *move_array, movcr_t moveCr)
 {
     auto it = coords[wtm].begin();
-    for(movcr_t i = 0; i < moveCr; i++)
+    for(auto i = 0; i < moveCr; i++)
     {
-        move_c m = move_array[i];
+        auto m = move_array[i];
 
         it = m.pc;
-        coord_t fr = b[*it];
-        piece_t pt = b[m.to];
+        auto fr = b[*it];
+        auto pt = b[m.to];
 
-        streng_t src = sort_streng[get_index(fr)];
-        streng_t dst = (m.flg & mCAPT) ? sort_streng[get_index(pt)] : 0;
+        auto src = sort_streng[get_index(fr)];
+        auto dst = (m.flg & mCAPT) ? sort_streng[get_index(pt)] : 0;
 
         if(dst > 120)
         {
@@ -539,17 +531,17 @@ streng_t SEE(coord_t to, streng_t frStreng, score_t val, bool stm)
         return -val;
 
     val -= frStreng;
-    score_t tmp1 = -val;
+    auto tmp1 = -val;
     if(wtm != stm && tmp1 < -2)
         return tmp1;
 
     auto storeMen = it;
-    piece_t storeBrd = b[*storeMen];
+    auto storeBrd = b[*storeMen];
     coords[!wtm].erase(it);
     b[*storeMen] = __;
     wtm = !wtm;
 
-    streng_t tmp2 = -SEE(to, streng[get_index(storeBrd)], -val, stm);
+    auto tmp2 = -SEE(to, streng[get_index(storeBrd)], -val, stm);
 
     wtm = !wtm;
     val = std::min(tmp1, tmp2);
@@ -588,11 +580,11 @@ iterator SeeMinAttacker(coord_t to)
     auto it = coords[!wtm].begin();
     for(; it != coords[!wtm].end(); ++it)
     {
-        coord_t fr = *it;
-        piece_index_t pt  = get_index(b[fr]);
+        auto fr = *it;
+        auto pt  = get_index(b[fr]);
         if(pt == get_index(_p))
             continue;
-        attack_t att = attacks[120 + to - fr] & (1 << pt);
+        auto att = attacks[120 + to - fr] & (1 << pt);
         if(!att)
             continue;
         if(!slider[pt])
@@ -613,17 +605,17 @@ streng_t SEE_main(move_c m)
 {
     auto it = coords[wtm].begin();
     it = m.pc;
-    piece_t fr_pc = b[*it];
-    piece_t to_pc = b[m.to];
-    streng_t src = streng[get_index(fr_pc)];
-    streng_t dst = (m.flg & mCAPT) ? streng[get_index(to_pc)] : 0;
+    auto fr_pc = b[*it];
+    auto to_pc = b[m.to];
+    auto src = streng[get_index(fr_pc)];
+    auto dst = (m.flg & mCAPT) ? streng[get_index(to_pc)] : 0;
     auto storeMen = coords[wtm].begin();
     storeMen = m.pc;
-    piece_t storeBrd = b[*storeMen];
+    auto storeBrd = b[*storeMen];
     coords[wtm].erase(storeMen);
     b[*storeMen] = __;
 
-    streng_t see_score = -SEE(m.to, src, dst, wtm);
+    auto see_score = -SEE(m.to, src, dst, wtm);
     see_score = std::min(dst, see_score);
 
     coords[wtm].restore(storeMen);
@@ -640,10 +632,10 @@ void SortQuiesceMoves(move_c *move_array, movcr_t moveCr)
 {
     if(moveCr <= 1)
         return;
-    for(movcr_t i = 0; i < moveCr; ++i)
+    for(auto i = 0; i < moveCr; ++i)
     {
         bool swoped_around = false;
-        for(movcr_t j = 0; j < moveCr - i - 1; ++j)
+        for(auto j = 0; j < moveCr - i - 1; ++j)
         {
             if(move_array[j + 1].scr > move_array[j].scr)
             {
