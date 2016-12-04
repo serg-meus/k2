@@ -336,6 +336,7 @@ void Perft(depth_t depth)
     for(auto move_cr = 0; move_cr < max_moves; move_cr++)
     {
 #ifndef NDEBUG
+        node_t tmpCr;
         if(depth == max_search_depth)
             tmpCr = nodes;
 #endif
