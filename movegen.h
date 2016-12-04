@@ -8,13 +8,12 @@
 //#define DONT_USE_SEE_SORTING
 //#define DONT_USE_SEE_CUTOFF
 
-
-#define MOVE_FROM_PV    200
-#define SECOND_KILLER   198
-#define FIRST_KILLER    199
-#define PV_FOLLOW       255
-#define KING_CAPTURE    255
-#define BAD_CAPTURES    63
+const priority_t
+    second_killer = 198,
+    first_killer  = 199,
+    move_from_hash = std::numeric_limits<priority_t>::max(),
+    king_capture = std::numeric_limits<priority_t>::max(),
+    bad_captures = 63;
 
 #define APPRICE_NONE    0
 #define APPRICE_CAPT    1

@@ -57,8 +57,8 @@ score_t Search(depth_t depth, score_t alpha, score_t beta,
     && b_state[prev_states + ply - 1].capt
     && b_state[prev_states + ply].capt
     && b_state[prev_states + ply].to == b_state[prev_states + ply - 1].to
-    && b_state[prev_states + ply - 1].scr > BAD_CAPTURES
-    && b_state[prev_states + ply].scr > BAD_CAPTURES
+    && b_state[prev_states + ply - 1].scr > bad_captures
+    && b_state[prev_states + ply].scr > bad_captures
     )
         depth++;
 #endif // DONT_USE_RECAPTURE_EXTENSION
@@ -210,9 +210,9 @@ score_t Search(depth_t depth, score_t alpha, score_t beta,
         {
             if(entry != nullptr && entry->best_move.flg != not_a_move)
                 hash_cutoff_by_best_move_cr++;
-            else if(cur_move.scr == FIRST_KILLER)
+            else if(cur_move.scr == first_killer)
                 killer1_hits++;
-            else if(cur_move.scr == SECOND_KILLER)
+            else if(cur_move.scr == second_killer)
                 killer2_hits++;
         }
 #endif // DONT_SHOW_STATISTICS
@@ -262,7 +262,7 @@ score_t QSearch(score_t alpha, score_t beta)
             break;
 
 #ifndef DONT_USE_SEE_CUTOFF
-        if(cur_move.scr <= BAD_CAPTURES)
+        if(cur_move.scr <= bad_captures)
             break;
 #endif
 
@@ -384,9 +384,9 @@ void UpdateStatistics(move_c move, depth_t depth, movcr_t move_cr)
         cut_cr++;
         if(move_cr < sizeof(cut_num_cr)/sizeof(*cut_num_cr))
             cut_num_cr[move_cr]++;
-        if(move.scr == FIRST_KILLER)
+        if(move.scr == first_killer)
             killer1_probes++;
-        if(move.scr == SECOND_KILLER)
+        if(move.scr == second_killer)
             killer2_probes++;
 #else
     UNUSED(move_cr);
@@ -1668,7 +1668,7 @@ move_c Next(move_c *move_array, movcr_t cur_move, movcr_t *max_moves,
                 *max_moves = GenCaptures(move_array);
 
             if(*max_moves > 1
-            && move_array[0].scr > BAD_CAPTURES
+            && move_array[0].scr > bad_captures
             && move_array[0].scr == move_array[1].scr)
             {
                 if(SEE_main(move_array[0]) < SEE_main(move_array[1]))
@@ -1693,7 +1693,7 @@ move_c Next(move_c *move_array, movcr_t cur_move, movcr_t *max_moves,
 #endif
             if(pseudo_legal)
             {
-                ans.scr = PV_FOLLOW;
+                ans.scr = move_from_hash;
 #ifndef DONT_USE_ONE_REPLY_EXTENSION
                 if(entry->one_reply)
                 {
@@ -1735,7 +1735,7 @@ move_c Next(move_c *move_array, movcr_t cur_move, movcr_t *max_moves,
         }
         auto i = 0;
         for(; i < *max_moves; i++)
-            if(move_array[i].scr == PV_FOLLOW)
+            if(move_array[i].scr == move_from_hash)
             {
                 std::swap(move_array[0], move_array[i]);
                 break;

@@ -339,14 +339,14 @@ void AppriceMoves(move_c *move_array, movcr_t moveCr, move_c *bestMove)
         auto to_pc = b[m.to];
 
         if(m == bm)
-            move_array[i].scr = PV_FOLLOW;
+            move_array[i].scr = move_from_hash;
         else
         if(to_pc == __ && !(m.flg & mPROM))
         {
             if(m == killers[ply][0])
-                move_array[i].scr = FIRST_KILLER;
+                move_array[i].scr = first_killer;
             else if(m == killers[ply][1])
-                move_array[i].scr = SECOND_KILLER;
+                move_array[i].scr = second_killer;
             else
             {
 #ifndef DONT_USE_HISTORY
@@ -406,7 +406,7 @@ void AppriceMoves(move_c *move_array, movcr_t moveCr, move_c *bestMove)
 
             if(dst - src >= 0)
             {
-                assert(200 + ans/8 > FIRST_KILLER);
+                assert(200 + ans/8 > first_killer);
                 assert(200 + ans/8 <= 250);
                 move_array[i].scr = (200 + ans/8);
             }
@@ -415,13 +415,13 @@ void AppriceMoves(move_c *move_array, movcr_t moveCr, move_c *bestMove)
                 if(to_black(b[*it]) != _k)
                 {
                     assert(-ans/2 >= 0);
-                    assert(-ans/2 <= BAD_CAPTURES);
+                    assert(-ans/2 <= bad_captures);
                     move_array[i].scr = -ans/2;
                 }
                 else
                 {
                     assert(dst/10 >= 0);
-                    assert(dst/10 <= BAD_CAPTURES);
+                    assert(dst/10 <= bad_captures);
                     move_array[i].scr = dst/10;
                 }
             }
@@ -432,8 +432,7 @@ void AppriceMoves(move_c *move_array, movcr_t moveCr, move_c *bestMove)
     for(auto i = 0; i < moveCr; i++)
     {
         auto m = move_array[i];
-        if(m.scr >= std::min(MOVE_FROM_PV, SECOND_KILLER)
-        || (m.flg & mCAPT))
+        if(m.scr >= second_killer || (m.flg & mCAPT))
             continue;
         it      = m.pc;
         auto fr   = *it;
@@ -471,7 +470,7 @@ void AppriceQuiesceMoves(move_c *move_array, movcr_t moveCr)
 
         if(dst > 120)
         {
-            move_array[i].scr = KING_CAPTURE;
+            move_array[i].scr = king_capture;
             return;
         }
 
@@ -497,7 +496,7 @@ void AppriceQuiesceMoves(move_c *move_array, movcr_t moveCr)
 
         if(dst >= src)
         {
-            assert(200 + ans/8 > FIRST_KILLER);
+            assert(200 + ans/8 > first_killer);
             assert(200 + ans/8 <= 250);
             move_array[i].scr = (200 + ans/8);
         }
@@ -506,13 +505,13 @@ void AppriceQuiesceMoves(move_c *move_array, movcr_t moveCr)
             if(to_black(fr) != _k)
             {
                 assert(-ans/2 >= 0);
-                assert(-ans/2 <= BAD_CAPTURES);
+                assert(-ans/2 <= bad_captures);
                 move_array[i].scr = -ans/2;
             }
             else
             {
                 assert(dst/10 >= 0);
-                assert(dst/10 <= BAD_CAPTURES);
+                assert(dst/10 <= bad_captures);
                 move_array[i].scr = dst/10;
             }
         }
