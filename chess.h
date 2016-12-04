@@ -32,7 +32,7 @@ typedef short_list<coord_t, lst_sz>::iterator iterator;
 typedef i16 score_t;
 typedef i16 streng_t;
 typedef u8 side_to_move_t;
-typedef u8 move_score_t;
+typedef u8 priority_t;
 typedef i16 tropism_t;
 typedef u8 move_flag_t;
 typedef u8 piece_index_t;
@@ -89,7 +89,7 @@ public:
     coord_t to;
     iterator_entity pc;
     move_flag_t flg;
-    move_score_t scr;
+    priority_t scr;
 
     bool operator == (move_c m)   {return to == m.to && pc == m.pc && flg == m.flg;}
     bool operator != (move_c m)   {return to != m.to || pc != m.pc || flg != m.flg;}
@@ -124,7 +124,7 @@ struct state_s
     coord_t to;                                                              // to point, 7 bits (for simple repetition draw detection)
     score_t val_opn;                                                    // store material and PST value considered all material is on the board
     score_t val_end;                                                    // store material and PST value considered deep endgame (kings and pawns only)
-    move_score_t scr;                                                             // move priority by move genererator
+    priority_t scr;                                                             // move priority by move genererator
     tropism_t tropism[2];
 };
 
