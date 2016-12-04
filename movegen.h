@@ -8,6 +8,13 @@
 //#define DONT_USE_SEE_SORTING
 //#define DONT_USE_SEE_CUTOFF
 
+
+
+typedef u8 movcr_t;
+typedef u8 apprice_t;
+
+
+
 const priority_t
     second_killer = 198,
     first_killer  = 199,
@@ -15,19 +22,18 @@ const priority_t
     king_capture = std::numeric_limits<priority_t>::max(),
     bad_captures = 63;
 
-#define APPRICE_NONE    0
-#define APPRICE_CAPT    1
-#define APPRICE_ALL     2
+const apprice_t
+    not_apprice = 0,
+    apprice_only_captures = 1,
+    apprice_all  = 2;
 
 
 
-
-typedef u8  movcr_t;
 
 
 //--------------------------------
 void    InitMoveGen();
-movcr_t GenMoves(move_c *list, move_c *best_move, u8 apprice);
+movcr_t GenMoves(move_c *list, move_c *best_move, priority_t apprice);
 void    GenPawn(move_c *list, movcr_t *movCr, iterator it);
 void    GenPawnCap(move_c *list, movcr_t *movCr, iterator it);
 void    GenCastles(move_c *list, movcr_t *movCr);

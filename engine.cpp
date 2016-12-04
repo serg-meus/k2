@@ -332,7 +332,7 @@ void Perft(depth_t depth)
 {
     move_c move_array[MAX_MOVES];
     bool in_check = Attack(*king_coord[wtm], !wtm);
-    auto max_moves = GenMoves(move_array, nullptr, APPRICE_NONE);
+    auto max_moves = GenMoves(move_array, nullptr, not_apprice);
     for(auto move_cr = 0; move_cr < max_moves; move_cr++)
     {
 #ifndef NDEBUG
@@ -1663,7 +1663,7 @@ move_c Next(move_c *move_array, movcr_t cur_move, movcr_t *max_moves,
         if(entry == nullptr)
         {
             if(!only_captures)
-                *max_moves = GenMoves(move_array, nullptr, APPRICE_ALL);
+                *max_moves = GenMoves(move_array, nullptr, apprice_all);
             else
                 *max_moves = GenCaptures(move_array);
 
@@ -1681,7 +1681,7 @@ move_c Next(move_c *move_array, movcr_t cur_move, movcr_t *max_moves,
 
             bool pseudo_legal = MoveIsPseudoLegal(ans, stm);
 #ifndef NDEBUG
-            auto mx_ = GenMoves(move_array, nullptr, APPRICE_NONE);
+            auto mx_ = GenMoves(move_array, nullptr, not_apprice);
             auto i = 0;
             for(; i < mx_; ++i)
                 if(move_array[i] == ans)
@@ -1702,7 +1702,7 @@ move_c Next(move_c *move_array, movcr_t cur_move, movcr_t *max_moves,
                     {
                         UnMoveFast(ans);
                         *entry = nullptr;
-                        *max_moves = GenMoves(move_array, nullptr, APPRICE_ALL);
+                        *max_moves = GenMoves(move_array, nullptr, apprice_all);
                     }
                     else
                     {
@@ -1721,13 +1721,13 @@ move_c Next(move_c *move_array, movcr_t cur_move, movcr_t *max_moves,
             else
             {
                 entry = nullptr;
-                *max_moves = GenMoves(move_array, nullptr, APPRICE_ALL);
+                *max_moves = GenMoves(move_array, nullptr, apprice_all);
             }
         }// else (entry == nullptr)
     }// if cur == 0
     else if(cur_move == 1 && entry != nullptr)
     {
-        *max_moves = GenMoves(move_array, &prev_move, APPRICE_ALL);
+        *max_moves = GenMoves(move_array, &prev_move, apprice_all);
         if(*max_moves <= 1)
         {
             *max_moves = 0;

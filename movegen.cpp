@@ -41,7 +41,7 @@ void PushMove(move_c *move_array, movcr_t *movCr, iterator it, coord_t to,
 
 
 //--------------------------------
-movcr_t GenMoves(move_c *move_array, move_c *best_move, u8 apprice)
+movcr_t GenMoves(move_c *move_array, move_c *best_move, priority_t apprice)
 {
     movcr_t moveCr = 0;
 
@@ -89,9 +89,9 @@ movcr_t GenMoves(move_c *move_array, move_c *best_move, u8 apprice)
             }// for(i
         }// for(ray
     }// for(it
-    if(apprice == APPRICE_ALL)
+    if(apprice == apprice_all)
         AppriceMoves(move_array, moveCr, best_move);
-    else if(apprice == APPRICE_CAPT)
+    else if(apprice == apprice_only_captures)
         AppriceQuiesceMoves(move_array, moveCr);
 
     return moveCr;
