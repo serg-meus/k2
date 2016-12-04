@@ -34,10 +34,7 @@
 //--------------------------------
 #define UNUSED(x) (void)(x)
 
-#define MAX_MOVES       256
-#define RESIGN_VALUE    850
-#define RESIGN_MOVES    3
-#define MOVE_IS_NULL 0xFF
+
 
 
 
@@ -45,24 +42,23 @@
 typedef u64 count_t;
 typedef i8 node_type_t;
 
+const node_type_t all_node = -1, pv_node = 0, cut_node = 1;
 
-const score_t mate_score = king_value - (short)max_ply;
+const score_t mate_score = king_value - (depth_t)max_ply;
 const bool all_moves = false;
 const bool captures_only = true;
 const node_t nodes_to_check_stop = 7;
 const movcr_t init_max_moves = 2;  // any number greater than 1
 const depth_t moves_for_time_exact_mode = 8;
 const move_flag_t not_a_move = 0xFF;
+const size_t move_array_size = 256;
+const score_t score_to_resign = 850;
+const depth_t moves_to_resign = 3;
+const coord_t is_null_move = 0xFF;
 
 #ifdef TUNE_PARAMETERS
 extern std::vector <float> param;
 #endif
-
-
-
-
-
-enum {all_node = -1, pv_node = 0, cut_node = 1};
 
 
 

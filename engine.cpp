@@ -97,7 +97,7 @@ score_t Search(depth_t depth, score_t alpha, score_t beta,
     if((nodes & nodes_to_check_stop) == nodes_to_check_stop)
         CheckForInterrupt();
 
-    move_c move_array[MAX_MOVES], cur_move;
+    move_c move_array[move_array_size], cur_move;
     movcr_t move_cr = 0, legal_moves = 0, first_legal = 0;
     movcr_t max_moves = init_max_moves;
     bool beta_cutoff = false;
@@ -250,7 +250,7 @@ score_t QSearch(score_t alpha, score_t beta)
     if((nodes & nodes_to_check_stop) == nodes_to_check_stop)
         CheckForInterrupt();
 
-    move_c move_array[MAX_MOVES];
+    move_c move_array[move_array_size];
     movcr_t move_cr = 0, legal_moves = 0, max_moves = init_max_moves;
     bool beta_cutoff = false;
 
@@ -330,7 +330,7 @@ score_t QSearch(score_t alpha, score_t beta)
 //--------------------------------
 void Perft(depth_t depth)
 {
-    move_c move_array[MAX_MOVES];
+    move_c move_array[move_array_size];
     bool in_check = Attack(*king_coord[wtm], !wtm);
     auto max_moves = GenMoves(move_array, nullptr, not_apprice);
     for(auto move_cr = 0; move_cr < max_moves; move_cr++)
@@ -479,13 +479,13 @@ void MainSearch()
         pondering_in_process = false;
         spent_exact_time = false;
     }
-    if(x < -RESIGN_VALUE)
+    if(x < -score_to_resign)
         resign_cr++;
     else
         resign_cr = 0;
 
     if((!stop && !infinite_analyze && x < -mate_score)
-    || (!infinite_analyze && resign_cr > RESIGN_MOVES))
+    || (!infinite_analyze && resign_cr > moves_to_resign))
     {
         std::cout << "resign" << std::endl;
         busy = false;
@@ -658,7 +658,7 @@ void ShowPVfailHighOrLow(move_c m, score_t x, char type_of_bound)
 //--------------------------------
 void RootMoveGen(bool in_check)
 {
-    move_c move_array[MAX_MOVES], cur_move;
+    move_c move_array[move_array_size], cur_move;
     auto max_moves = init_max_moves;
 
     score_t alpha = -infinit_score, beta = infinit_score;
@@ -1292,7 +1292,7 @@ void MakeNullMove()
 #endif // NDEBUG
 
     b_state[prev_states + ply + 1] = b_state[prev_states + ply];
-    b_state[prev_states + ply].to = MOVE_IS_NULL;
+    b_state[prev_states + ply].to = is_null_move;
     b_state[prev_states + ply  + 1].ep = 0;
 
     ply++;
@@ -1330,8 +1330,8 @@ bool NullMove(depth_t depth, score_t beta, bool in_check)
     null_probe_cr++;
 #endif // DONT_SHOW_STATISTICS
 
-    if(b_state[prev_states + ply - 1].to == MOVE_IS_NULL
-    && b_state[prev_states + ply - 2].to == MOVE_IS_NULL
+    if(b_state[prev_states + ply - 1].to == is_null_move
+    && b_state[prev_states + ply - 2].to == is_null_move
       )
         return false;
 
@@ -1372,7 +1372,7 @@ bool NullMove(depth_t depth, score_t beta, bool in_check)
 bool Futility(depth_t depth, score_t beta)
 {
     if(b_state[prev_states + ply].capt == 0
-    && b_state[prev_states + ply - 1].to != MOVE_IS_NULL
+    && b_state[prev_states + ply - 1].to != is_null_move
     )
     {
 #ifndef DONT_SHOW_STATISTICS
