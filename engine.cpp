@@ -1514,9 +1514,9 @@ hash_entry_s* HashProbe(depth_t depth, score_t *alpha, score_t beta)
         else if(hval < -mate_score && hval != -infinit_score)
             hval -= entry->depth - ply;
 
-        if( hbnd == hEXACT
-        || (hbnd == hUPPER && hval >= -*alpha)  //-alpha = beta for parent node
-        || (hbnd == hLOWER && hval <= -beta) )  //-beta = alpha for parent node
+        if( hbnd == exact_value
+        || (hbnd == upper_bound && hval >= -*alpha)  //-alpha = beta for parent node
+        || (hbnd == lower_bound && hval <= -beta) )  //-beta = alpha for parent node
         {
 #ifndef DONT_SHOW_STATISTICS
             hash_cut_cr++;
@@ -1807,7 +1807,7 @@ void StoreResultInHash(depth_t depth, score_t init_alpha, score_t alpha,
         else if(beta < -mate_score && beta != -infinit_score)
             beta -= ply - depth - 1;
         hash_table.add(hash_key, -beta, best_move, depth,
-               hLOWER, finaly_made_moves/2, one_reply);
+               lower_bound, finaly_made_moves/2, one_reply);
 
     }
     else if(alpha > init_alpha && pv[ply][0].flg > 0)
@@ -1817,7 +1817,7 @@ void StoreResultInHash(depth_t depth, score_t init_alpha, score_t alpha,
         else if(alpha < - mate_score && alpha != -infinit_score)
             alpha -= ply - depth;
         hash_table.add(hash_key, -alpha, pv[ply][1], depth,
-                hEXACT, finaly_made_moves/2, one_reply);
+                exact_value, finaly_made_moves/2, one_reply);
     }
     else if(alpha <= init_alpha)
     {
@@ -1829,7 +1829,7 @@ void StoreResultInHash(depth_t depth, score_t init_alpha, score_t alpha,
         no_move.flg = not_a_move;
         hash_table.add(hash_key, -init_alpha,
                legals > 0 ? best_move : no_move, depth,
-               hUPPER, finaly_made_moves/2, one_reply);
+               upper_bound, finaly_made_moves/2, one_reply);
     }
 }
 

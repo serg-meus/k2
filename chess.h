@@ -22,10 +22,6 @@ typedef u8 piece_t;
 typedef u8 coord_t;
 
 const i32 lst_sz  = 32;                                                 // size of piece list for one colour
-const depth_t max_ply  = 100;                                                // maximum search depth
-const depth_t prev_states   = 4;
-const piece_t white = 1;
-const piece_t black = 0;
 
 typedef short_list<coord_t, lst_sz>::iterator_entity iterator_entity;
 typedef short_list<coord_t, lst_sz>::iterator iterator;
@@ -53,6 +49,11 @@ typedef i8 pst_t;
 
 
 //--------------------------------
+const depth_t max_ply  = 100;                                                // maximum search depth
+const depth_t prev_states   = 4;
+const piece_t white = 1;
+const piece_t black = 0;
+
 const piece_t   __ = 0,
                 _k = 2,
                 _q = 4,

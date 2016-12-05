@@ -75,7 +75,7 @@ bool uci    = false;
 bool pondering_in_process = false;
 bool pondering_enabled = false;
 
-#ifdef USE_THREAD_FOR_INPUT
+#ifndef DONT_USE_THREAD_FOR_INPUT
     std::thread t;                                                      // for compilers with C++11 support
 #endif // USE_THREAD_FOR_INPUT                                          // under Linux -pthread must be used for gcc linker
 
@@ -90,10 +90,9 @@ int main(int argc, char* argv[])
     UNUSED(argc);
     UNUSED(argv);
 
-#ifdef TUNE_PARAMETERS
-    for(auto i = 0; i < NPARAMS; ++i)
-        param.push_back(1);
-#endif
+//    for(auto i = 0; i < NPARAMS; ++i)
+//        param.push_back(1);
+
     InitEngine();
     hash_table.clear();
 
@@ -126,7 +125,7 @@ int main(int argc, char* argv[])
                 std::cout << "Illegal move" << std::endl;
             else if(!force)
             {
-#ifdef USE_THREAD_FOR_INPUT
+#ifndef DONT_USE_THREAD_FOR_INPUT
                 if(t.joinable())
                     t.join();
                 t = std::thread(MainSearch);
@@ -216,7 +215,7 @@ bool LooksLikeMove(std::string in)
 //--------------------------------
 void StopEngine()
 {
-#ifdef USE_THREAD_FOR_INPUT
+#ifndef DONT_USE_THREAD_FOR_INPUT
         stop = true;
         t.join();
 #endif // USE_THREAD_FOR_INPUT
@@ -277,7 +276,7 @@ void SetboardCommand(std::string in)
 void QuitCommand(std::string in)
 {
     UNUSED(in);
-#ifdef USE_THREAD_FOR_INPUT
+#ifndef DONT_USE_THREAD_FOR_INPUT
     if(busy || t.joinable())
         StopEngine();
 #endif // USE_THREAD_FOR_INPUT
@@ -326,7 +325,7 @@ void GoCommand(std::string in)
         UciGoCommand(in);
     else
         force = false;
-#ifdef USE_THREAD_FOR_INPUT
+#ifndef DONT_USE_THREAD_FOR_INPUT
     if(t.joinable())
         t.join();
     t = std::thread(MainSearch);
@@ -473,7 +472,7 @@ void ProtoverCommand(std::string in)
 void StopCommand(std::string in)
 {
     UNUSED(in);
-#ifdef USE_THREAD_FOR_INPUT
+#ifndef DONT_USE_THREAD_FOR_INPUT
     if(busy)
     {
         stop = true;
@@ -831,7 +830,7 @@ void AnalyzeCommand(std::string in)
     force = false;
     infinite_analyze = true;
 
-    #ifdef USE_THREAD_FOR_INPUT
+    #ifndef DONT_USE_THREAD_FOR_INPUT
     if(t.joinable())
         t.join();
     t = std::thread(MainSearch);
@@ -858,28 +857,25 @@ void ExitCommand(std::string in)
 //--------------------------------
 void SetvalueCommand(std::string in)
 {
-#ifdef TUNE_PARAMETERS
     std::string arg1, arg2;
     GetFirstArg(in, &arg1, &arg2);
+/*
     if(arg1 == "k_saf")
     {
         param.at(0) = atof(arg2.c_str());
     }
-/*
+
     else if(arg1 == "k_saf1")
     {
         param.at(1) = atof(arg2.c_str());
     }
-*/
+
     else
     {
         std::cout << "error: wrong parameter name" << std ::endl
                      << "resign" << std::endl;
         param.clear();
     }
-
+*/
     InitEngine();
-#else
-    UNUSED(in);
-#endif
 }

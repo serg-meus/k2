@@ -1,21 +1,5 @@
 #include "engine.h"
-
-
-
-
-
-//--------------------------------
-#ifdef NDEBUG
-    #define USE_THREAD_FOR_INPUT
-#endif // NDEBUG
-
-#ifdef USE_THREAD_FOR_INPUT
-    #include <thread>                                                   // for std::thread
-#endif // USE_THREAD_FOR_INPUT
-
-#if (defined(NDEBUG) && !defined(USE_THREAD_FOR_INPUT))
-    #warning("Thread is off")
-#endif
+#include <thread>
 
 
 
@@ -36,9 +20,9 @@ extern double total_time_spent;
 extern bool time_command_sent;
 extern hash_table_c hash_table;
 
-#ifdef TUNE_PARAMETERS
-    extern std::vector <float> param;
-#endif // TUNE_PARAMETERS
+
+//extern std::vector <float> param;
+
 
 
 

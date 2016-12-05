@@ -19,9 +19,8 @@ tropism_t tropism_factor[2][7] =
     {0, 0, 21, 21, 10,  0, 10}  // dist < 3
 };
 
-#ifdef TUNE_PARAMETERS
-    std::vector <float> param;
-#endif // TUNE_PARAMETERS
+
+//std::vector <float> param;
 
 
 

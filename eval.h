@@ -3,18 +3,7 @@
 #include <fstream>                  // to work with files (ifstream, getline())
 #include <cstdlib>                  // to convert strings to floats (atof())
 #include <iostream>
-
-
-
-
-
-//--------------------------------
-//#define TUNE_PARAMETERS
-#define NPARAMS 1
-
-#ifdef TUNE_PARAMETERS
-    #include <vector>
-#endif // TUNE_PARAMETERS
+#include <vector>
 
 
 

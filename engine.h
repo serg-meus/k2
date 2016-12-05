@@ -56,9 +56,8 @@ const score_t score_to_resign = 850;
 const depth_t moves_to_resign = 3;
 const coord_t is_null_move = 0xFF;
 
-#ifdef TUNE_PARAMETERS
-extern std::vector <float> param;
-#endif
+//extern std::vector <float> param;
+
 
 
 

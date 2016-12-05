@@ -7,22 +7,23 @@
 
 
 //--------------------------------
-const depth_t FIFTY_MOVES = 101;       // because last 50th move can be a mate
-const hash_key_t key_for_side_to_move = -1ULL;
-
-
-
-
-//--------------------------------
-enum {hNONE, hEXACT, hUPPER, hLOWER};
-
-
-
-
-
 typedef u8 hbound_t;
 typedef u8 hdepth_t;
 typedef u32 short_key_t;
+
+
+
+
+
+const depth_t FIFTY_MOVES = 101;       // because last 50th move can be a mate
+const hash_key_t key_for_side_to_move = -1ULL;
+const hbound_t
+    exact_value = 1,
+    upper_bound = 2,
+    lower_bound = 3;
+
+
+
 
 
 //--------------------------------
