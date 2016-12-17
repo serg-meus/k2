@@ -57,14 +57,12 @@
 		<Unit filename="engine.h" />
 		<Unit filename="eval.cpp" />
 		<Unit filename="eval.h" />
-		<Unit filename="extern.h" />
 		<Unit filename="hash.cpp" />
 		<Unit filename="hash.h" />
 		<Unit filename="main.cpp" />
 		<Unit filename="main.h" />
 		<Unit filename="movegen.cpp" />
 		<Unit filename="movegen.h" />
-		<Unit filename="pst.cpp" />
 		<Unit filename="short_list.h" />
 		<Extensions>
 			<code_completion />

@@ -4,40 +4,17 @@
 
 
 
-//--------------------------------
-char        stop_str[] = "";
-depth_t     stop_ply   = 0;
-
-Timer       timer;
-double      time0;
-double      time_spent, time_to_think;
-node_t      q_nodes, max_nodes_to_search, total_nodes;
-depth_t     max_search_depth, root_ply;
-movcr_t     max_root_moves, root_move_cr;
-bool        stop, infinite_analyze, busy;
-count_t     cut_cr, cut_num_cr[5], q_cut_cr, q_cut_num_cr[5];
-count_t     null_probe_cr, null_cut_cr, hash_probe_cr;
-count_t     hash_hit_cr, hash_cut_cr;
-count_t     hash_best_move_cr, hash_cutoff_by_best_move_cr;
-count_t     futility_probes, futility_hits;
-count_t     killer1_probes, killer1_hits, killer2_probes, killer2_hits;
-double      time_base, time_inc, time_remains, total_time_spent;
-depth_t     moves_per_session;
-depth_t     finaly_made_moves, moves_remains;
-bool        spent_exact_time;
-depth_t     resign_cr;
-bool        time_command_sent;
-
-
-std::vector<std::pair<node_t, move_c> > root_moves;
-hash_table_c hash_table;
-
+k2engine::k2engine() :  stop_str{""},
+                        stop_ply{0}
+{
+    InitEngine();
+}
 
 
 
 
 //--------------------------------
-score_t Search(depth_t depth, score_t alpha, score_t beta,
+k2chess::score_t k2engine::Search(depth_t depth, score_t alpha, score_t beta,
                node_type_t node_type)
 {
     if(ply >= max_ply - 1 || DrawDetect())
@@ -227,7 +204,7 @@ score_t Search(depth_t depth, score_t alpha, score_t beta,
 
 
 //-----------------------------
-score_t QSearch(score_t alpha, score_t beta)
+k2chess::score_t k2engine::QSearch(score_t alpha, score_t beta)
 {
     if(ply >= max_ply - 1)
         return 0;
@@ -328,7 +305,7 @@ score_t QSearch(score_t alpha, score_t beta)
 
 
 //--------------------------------
-void Perft(depth_t depth)
+void k2engine::Perft(depth_t depth)
 {
     move_c move_array[move_array_size];
     bool in_check = Attack(*king_coord[wtm], !wtm);
@@ -365,7 +342,7 @@ void Perft(depth_t depth)
 
 
 //-----------------------------
-void StorePV(move_c move)
+void k2engine::StorePV(move_c move)
 {
     auto nextLen = pv[ply + 1][0].flg;
     pv[ply][0].flg = nextLen + 1;
@@ -378,7 +355,7 @@ void StorePV(move_c move)
 
 
 //-----------------------------
-void UpdateStatistics(move_c move, depth_t depth, movcr_t move_cr)
+void k2engine::UpdateStatistics(move_c move, depth_t depth, movcr_t move_cr)
 {
 #ifndef DONT_SHOW_STATISTICS
         cut_cr++;
@@ -415,7 +392,7 @@ void UpdateStatistics(move_c move, depth_t depth, movcr_t move_cr)
 
 
 //--------------------------------
-void MainSearch()
+void k2engine::MainSearch()
 {
     busy = true;
     InitSearch();
@@ -509,7 +486,7 @@ void MainSearch()
 
 
 //--------------------------------
-score_t RootSearch(depth_t depth, score_t alpha, score_t beta)
+k2chess::score_t k2engine::RootSearch(depth_t depth, score_t alpha, score_t beta)
 {
     bool in_check = Attack(*king_coord[wtm], !wtm);
     if(max_root_moves == 0)
@@ -632,7 +609,7 @@ score_t RootSearch(depth_t depth, score_t alpha, score_t beta)
 
 
 //--------------------------------
-void ShowPVfailHighOrLow(move_c m, score_t x, char type_of_bound)
+void k2engine::ShowPVfailHighOrLow(move_c m, score_t x, char type_of_bound)
 {
     UnMove(m);
     char mstr[6];
@@ -656,7 +633,7 @@ void ShowPVfailHighOrLow(move_c m, score_t x, char type_of_bound)
 
 
 //--------------------------------
-void RootMoveGen(bool in_check)
+void k2engine::RootMoveGen(bool in_check)
 {
     move_c move_array[move_array_size], cur_move;
     auto max_moves = init_max_moves;
@@ -704,7 +681,7 @@ void RootMoveGen(bool in_check)
 
 
 //--------------------------------
-void InitSearch()
+void k2engine::InitSearch()
 {
     InitTime();
     timer.start();
@@ -757,7 +734,7 @@ void InitSearch()
 
 
 //--------------------------------
-void MoveToStr(move_c move, bool stm, char *out)
+void k2engine::MoveToStr(move_c move, bool stm, char *out)
 {
     char proms[] = {'?', 'q', 'n', 'r', 'b'};
 
@@ -777,7 +754,7 @@ void MoveToStr(move_c move, bool stm, char *out)
 
 
 //--------------------------------
-void PrintFinalSearchResult()
+void k2engine::PrintFinalSearchResult()
 {
     char move_str[6];
     MoveToStr(pv[0][1], wtm, move_str);
@@ -883,7 +860,7 @@ void PrintFinalSearchResult()
 
 
 //--------------------------------
-void PrintCurrentSearchResult(score_t max_value, char type_of_bound)
+void k2engine::PrintCurrentSearchResult(score_t max_value, char type_of_bound)
 {
     using namespace std;
 
@@ -930,7 +907,7 @@ void PrintCurrentSearchResult(score_t max_value, char type_of_bound)
 
 
 //-----------------------------
-void InitTime()                                                         // too complex
+void k2engine::InitTime()                                                         // too complex
 {
     if(!time_command_sent)
         time_remains -= time_spent;
@@ -979,7 +956,7 @@ void InitTime()                                                         // too c
 
 
 //-----------------------------
-bool ShowPV(depth_t cur_ply)
+bool k2engine::ShowPV(depth_t cur_ply)
 {
     char pc2chr[] = "??KKQQRRBBNNPP";
     bool ans = true;
@@ -1061,7 +1038,7 @@ bool ShowPV(depth_t cur_ply)
 
 
 //-----------------------------
-void FindAndPrintForAmbiguousMoves(move_c move)
+void k2engine::FindAndPrintForAmbiguousMoves(move_c move)
 {
     move_c move_array[8];
     auto amb_cr = 0;
@@ -1113,7 +1090,7 @@ void FindAndPrintForAmbiguousMoves(move_c move)
 
 
 //-----------------------------
-bool MakeMoveFinaly(char *move_str)
+bool k2engine::MakeMoveFinaly(char *move_str)
 {
     auto ln = strlen(move_str);
     if(ln < 4 || ln > 5)
@@ -1174,7 +1151,7 @@ bool MakeMoveFinaly(char *move_str)
 
 
 //--------------------------------
-void InitEngine()
+void k2engine::InitEngine()
 {
     InitHashTable();
     hash_key = InitHashKey();
@@ -1201,7 +1178,7 @@ void InitEngine()
 
 
 //--------------------------------
-bool FenStringToEngine(char *fen)
+bool k2engine::FenStringToEngine(char *fen)
 {
     bool ans = FenToBoard(fen);
 
@@ -1222,7 +1199,7 @@ bool FenStringToEngine(char *fen)
 
 
 //--------------------------------
-bool DrawDetect()
+bool k2engine::DrawDetect()
 {
     if(material[0] + material[1] == 0)
         return true;
@@ -1244,7 +1221,7 @@ bool DrawDetect()
 
 
 //--------------------------------
-void CheckForInterrupt()
+void k2engine::CheckForInterrupt()
 {
     if(max_nodes_to_search != 0)
     {
@@ -1283,7 +1260,7 @@ void CheckForInterrupt()
 
 
 //--------------------------------------
-void MakeNullMove()
+void k2engine::MakeNullMove()
 {
 #ifndef NDEBUG
     strcpy(&cur_moves[5*ply], "NULL ");
@@ -1308,7 +1285,7 @@ void MakeNullMove()
 
 
 //--------------------------------------
-void UnMakeNullMove()
+void k2engine::UnMakeNullMove()
 {
     wtm ^= white;
     cur_moves[5*ply] = '\0';
@@ -1321,7 +1298,7 @@ void UnMakeNullMove()
 
 
 //-----------------------------
-bool NullMove(depth_t depth, score_t beta, bool in_check)
+bool k2engine::NullMove(depth_t depth, score_t beta, bool in_check)
 {
     if(in_check || depth < 2
     || material[wtm] - pieces[wtm] < 3)
@@ -1369,7 +1346,7 @@ bool NullMove(depth_t depth, score_t beta, bool in_check)
 
 
 //-----------------------------
-bool Futility(depth_t depth, score_t beta)
+bool k2engine::Futility(depth_t depth, score_t beta)
 {
     if(b_state[prev_states + ply].capt == 0
     && b_state[prev_states + ply - 1].to != is_null_move
@@ -1396,7 +1373,7 @@ bool Futility(depth_t depth, score_t beta)
 
 
 //--------------------------------
-bool DrawByRepetition()
+bool k2engine::DrawByRepetition()
 {
     if(reversible_moves < 4)
         return false;
@@ -1424,7 +1401,7 @@ bool DrawByRepetition()
 
 
 //--------------------------------
-void ShowFen()
+void k2engine::ShowFen()
 {
     char whites[] = "KQRBNP";
     char blacks[] = "kqrbnp";
@@ -1484,7 +1461,7 @@ void ShowFen()
 
 
 //--------------------------------
-void ReHash(size_t size_mb)
+void k2engine::ReHash(size_t size_mb)
 {
     busy = true;
     hash_table.resize(size_mb);
@@ -1496,7 +1473,7 @@ void ReHash(size_t size_mb)
 
 
 //--------------------------------
-hash_entry_s* HashProbe(depth_t depth, score_t *alpha, score_t beta)
+k2hash::hash_entry_s* k2engine::HashProbe(depth_t depth, score_t *alpha, score_t beta)
 {
     hash_entry_s* entry = hash_table.count(hash_key);
     if(entry == nullptr || stop)
@@ -1538,7 +1515,7 @@ hash_entry_s* HashProbe(depth_t depth, score_t *alpha, score_t beta)
 
 
 //-----------------------------
-bool MoveIsPseudoLegal(move_c &move, bool stm)
+bool k2engine::MoveIsPseudoLegal(move_c &move, bool stm)
 {
     if(move.flg == not_a_move)
         return false;
@@ -1649,9 +1626,10 @@ bool MoveIsPseudoLegal(move_c &move, bool stm)
 
 
 //--------------------------------
-move_c Next(move_c *move_array, movcr_t cur_move, movcr_t *max_moves,
-          hash_entry_s *entry, side_to_move_t stm, bool only_captures,
-          bool in_check, move_c prev_move)
+k2chess::move_c k2engine::Next(move_c *move_array, movcr_t cur_move,
+                                movcr_t *max_moves, hash_entry_s *entry,
+                                side_to_move_t stm, bool only_captures,
+                                bool in_check, move_c prev_move)
 {
 #ifdef DONT_USE_ONE_REPLY_EXTENSION
     UNUSED(in_check);
@@ -1794,7 +1772,7 @@ move_c Next(move_c *move_array, movcr_t cur_move, movcr_t *max_moves,
 
 
 //-----------------------------
-void StoreResultInHash(depth_t depth, score_t init_alpha, score_t alpha,
+void k2engine::StoreResultInHash(depth_t depth, score_t init_alpha, score_t alpha,
                        score_t beta, movcr_t legals,
                        bool beta_cutoff, move_c best_move, bool one_reply)
 {
@@ -1807,7 +1785,7 @@ void StoreResultInHash(depth_t depth, score_t init_alpha, score_t alpha,
         else if(beta < -mate_score && beta != -infinit_score)
             beta -= ply - depth - 1;
         hash_table.add(hash_key, -beta, best_move, depth,
-               lower_bound, finaly_made_moves/2, one_reply);
+               lower_bound, finaly_made_moves/2, one_reply, nodes);
 
     }
     else if(alpha > init_alpha && pv[ply][0].flg > 0)
@@ -1817,7 +1795,7 @@ void StoreResultInHash(depth_t depth, score_t init_alpha, score_t alpha,
         else if(alpha < - mate_score && alpha != -infinit_score)
             alpha -= ply - depth;
         hash_table.add(hash_key, -alpha, pv[ply][1], depth,
-                exact_value, finaly_made_moves/2, one_reply);
+                exact_value, finaly_made_moves/2, one_reply, nodes);
     }
     else if(alpha <= init_alpha)
     {
@@ -1829,7 +1807,7 @@ void StoreResultInHash(depth_t depth, score_t init_alpha, score_t alpha,
         no_move.flg = not_a_move;
         hash_table.add(hash_key, -init_alpha,
                legals > 0 ? best_move : no_move, depth,
-               upper_bound, finaly_made_moves/2, one_reply);
+               upper_bound, finaly_made_moves/2, one_reply, nodes);
     }
 }
 
@@ -1838,7 +1816,7 @@ void StoreResultInHash(depth_t depth, score_t init_alpha, score_t alpha,
 
 
 //-----------------------------
-void ShowCurrentUciInfo()
+void k2engine::ShowCurrentUciInfo()
 {
     double t = timer.getElapsedTimeInMicroSec();
 
@@ -1866,7 +1844,7 @@ void ShowCurrentUciInfo()
 
 
 //-----------------------------
-void PonderHit()
+void k2engine::PonderHit()
 {
     double time1 = timer.getElapsedTimeInMicroSec();
     time_spent = time1 - time0;
@@ -1880,6 +1858,11 @@ void PonderHit()
 
 
 
+//-----------------------------
+void k2engine::ClearHash()
+{
+    hash_table.clear();
+}
 /*
 r4rk1/ppqn1pp1/4pn1p/2b2N1P/8/5N2/PPPBQPP1/2KRR3 w - - 0 18 Nxh6?! speed test position
 2k1r2r/1pp3pp/p2b4/2p1n2q/6b1/1NQ1B3/PPP2PPP/R3RNK1 b - - bm Nf3+; speed test position

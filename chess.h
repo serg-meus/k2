@@ -5,8 +5,16 @@
 #include "short_list.h"
 
 
+class k2chess
+{
+
+public:
 
 
+    k2chess();
+
+
+protected:
 
 //--------------------------------
 typedef uint8_t u8;
@@ -21,15 +29,11 @@ typedef i16 depth_t;
 typedef u8 piece_t;
 typedef u8 coord_t;
 
-const i32 lst_sz  = 32;                                                 // size of piece list for one colour
+const static i32 lst_sz  = 32;                                                 // size of piece list for one colour
 
 typedef short_list<coord_t, lst_sz>::iterator_entity iterator_entity;
 typedef short_list<coord_t, lst_sz>::iterator iterator;
-typedef i16 score_t;
 typedef i16 streng_t;
-typedef u8 side_to_move_t;
-typedef u8 priority_t;
-typedef i16 tropism_t;
 typedef u8 move_flag_t;
 typedef u8 piece_index_t;
 typedef u8 castle_t;
@@ -37,24 +41,26 @@ typedef u8 enpass_t;
 typedef u8 attack_t;
 typedef u8 dist_t;
 typedef i8 shifts_t;
-typedef u64 hash_key_t;
-typedef u64 node_t;
-typedef u32 history_t;
 typedef u8 piece_num_t;
-typedef u8 rank_t;
-typedef i8 pst_t;
+typedef u8 priority_t;
+typedef i16 score_t;
+typedef i16 tropism_t;
 
 
+public:
+
+typedef u8 side_to_move_t;
+const static depth_t max_ply  = 100;  // maximum search depth
 
 
+protected:
 
-//--------------------------------
-const depth_t max_ply  = 100;                                                // maximum search depth
-const depth_t prev_states   = 4;
-const piece_t white = 1;
-const piece_t black = 0;
 
-const piece_t   __ = 0,
+const static depth_t prev_states   = 4;
+const static piece_t white = 1;
+const static piece_t black = 0;
+
+const static piece_t   __ = 0,
                 _k = 2,
                 _q = 4,
                 _r = 6,
@@ -130,31 +136,42 @@ struct state_s
 };
 
 
+piece_t b[137];  // array representing the chess board in "0x88" style
+short_list<coord_t, lst_sz> coords[2];  // black and white piece coordinates
+attack_t attacks[240];  // table for quick detection of possible attacks
+dist_t get_delta[240];  // for quick detection of slider attack distance
+shifts_t get_shift[240];  // for quick detection of slider attack direction
+dist_t rays[7];  // number of directions to move for each kind of piece
+shifts_t shifts[6][8];  // biases defining directions for 'rays'
+streng_t pc_streng[7];
+streng_t streng[7];
+streng_t sort_streng[7];
+bool  slider[7];
+
+streng_t material[2], pieces[2];
+state_s  b_state[prev_states + max_ply];
+depth_t ply;
+char *cv;
+depth_t reversible_moves;
+
+char cur_moves[5*max_ply];
+
+iterator king_coord[2];
+piece_num_t quantity[2][6 + 1];
 
 
+public:
 
-//--------------------------------
-void InitChess();
-void InitAttacks();
-void InitBrd();
-bool BoardToMen();
+
+side_to_move_t wtm;
 bool FenToBoard(char *p);
-void ShowMove(coord_t fr, coord_t to);
-bool MakeCastle(move_c m, coord_t fr);
-void UnMakeCastle(move_c m);
-bool MakeEP(move_c m, coord_t fr);
+
+protected:
+
+void InitChess();
 bool SliderAttack(coord_t fr, coord_t to);
 bool Attack(coord_t to, side_to_move_t xtm);
-bool LegalSlider(coord_t fr, coord_t to, piece_t pt);
 bool Legal(move_c m, bool ic);
-void SetPawnStruct(coord_t col);
-void InitPawnStruct();
-bool PieceListCompare(coord_t men1, coord_t men2);
-void StoreCurrentBoardState(move_c m, coord_t fr, coord_t targ);
-void MakeCapture(move_c m, coord_t targ);
-void MakePromotion(move_c m, iterator it);
-void UnmakeCapture(move_c m);
-void UnmakePromotion(move_c m);
 bool MkMoveFast(move_c m);
 void UnMoveFast(move_c m);
 bool within_board(coord_t coord);
@@ -163,3 +180,23 @@ coord_t get_col(coord_t coord);
 coord_t get_row(coord_t coord);
 coord_t get_index(piece_t X);
 piece_t to_black(piece_t piece);
+
+
+private:
+
+void InitAttacks();
+void InitBrd();
+bool BoardToMen();
+void ShowMove(coord_t fr, coord_t to);
+bool LegalSlider(coord_t fr, coord_t to, piece_t pt);
+bool PieceListCompare(coord_t men1, coord_t men2);
+void StoreCurrentBoardState(move_c m, coord_t fr, coord_t targ);
+void MakeCapture(move_c m, coord_t targ);
+void MakePromotion(move_c m, iterator it);
+void UnmakeCapture(move_c m);
+void UnmakePromotion(move_c m);
+bool MakeCastle(move_c m, coord_t fr);
+void UnMakeCastle(move_c m);
+bool MakeEP(move_c m, coord_t fr);
+
+};  // class k2chess

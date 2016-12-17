@@ -5,22 +5,7 @@
 
 
 //--------------------------------
-hash_key_t hash_key;
-
-hash_key_t zorb[12][8][8],
-    zorb_en_passant[9],
-    zorb_castling[16];
-
-hash_key_t doneHashKeys[FIFTY_MOVES + max_ply];
-
-node_t nodes;
-
-
-
-
-
-//--------------------------------
-bool InitHashTable()
+bool k2hash::InitHashTable()
 {
     InitMoveGen();
 
@@ -45,8 +30,6 @@ bool InitHashTable()
     zorb_en_passant[0] = 0;
     zorb_castling[0] = 0;
 
-    nodes = 0;
-
     return true;
 }
 
@@ -55,7 +38,7 @@ bool InitHashTable()
 
 
 //--------------------------------
-hash_key_t InitHashKey()
+k2hash::hash_key_t k2hash::InitHashKey()
 {
     hash_key_t ans = 0;
 
@@ -78,7 +61,7 @@ hash_key_t InitHashKey()
 
 
 //--------------------------------
-void MoveHashKey(move_c m, bool special)
+void k2hash::MoveHashKey(move_c m, bool special)
 {
     doneHashKeys[FIFTY_MOVES + ply - 1] = hash_key;
     auto fr = b_state[prev_states + ply].fr;
@@ -146,7 +129,7 @@ void MoveHashKey(move_c m, bool special)
 
 
 //--------------------------------
-hash_table_c::hash_table_c() : entries_in_a_bucket(4)
+k2hash::hash_table_c::hash_table_c() : entries_in_a_bucket(4)
 {
     set_size(64);
 }
@@ -156,7 +139,7 @@ hash_table_c::hash_table_c() : entries_in_a_bucket(4)
 
 
 //--------------------------------
-hash_table_c::hash_table_c(size_t size_mb) : entries_in_a_bucket(4)
+k2hash::hash_table_c::hash_table_c(size_t size_mb) : entries_in_a_bucket(4)
 {
     set_size(size_mb);
 }
@@ -166,7 +149,7 @@ hash_table_c::hash_table_c(size_t size_mb) : entries_in_a_bucket(4)
 
 
 //--------------------------------
-hash_table_c::~hash_table_c()
+k2hash::hash_table_c::~hash_table_c()
 {
     delete[] data;
 }
@@ -176,7 +159,7 @@ hash_table_c::~hash_table_c()
 
 
 //--------------------------------
-bool hash_table_c::set_size(size_t size_mb)
+bool k2hash::hash_table_c::set_size(size_t size_mb)
 {
     bool ans = true;
     buckets = 0;
@@ -219,7 +202,7 @@ bool hash_table_c::set_size(size_t size_mb)
 
 
 //--------------------------------
-void hash_table_c::clear()
+void k2hash::hash_table_c::clear()
 {
     _size = 0;
     memset(data, 0,
@@ -231,9 +214,9 @@ void hash_table_c::clear()
 
 
 //--------------------------------
-void hash_table_c::add(hash_key_t key, score_t value, move_c best,
+void k2hash::hash_table_c::add(hash_key_t key, score_t value, move_c best,
                               depth_t depth, hbound_t bound_type, depth_t age,
-                              bool one_reply)
+                              bool one_reply, node_t nodes)
 {
     size_t i;
     auto *bucket = &data[entries_in_a_bucket*(key & mask)];          // looking for already existed entries for the same position
@@ -280,7 +263,7 @@ void hash_table_c::add(hash_key_t key, score_t value, move_c best,
 
 
 //--------------------------------
-hash_entry_s* hash_table_c::count(hash_key_t key)
+k2hash::hash_entry_s* k2hash::hash_table_c::count(hash_key_t key)
 {
     hash_entry_s *bucket = &data[entries_in_a_bucket*(key & mask)];
     hash_entry_s *ans = nullptr;
@@ -298,7 +281,7 @@ hash_entry_s* hash_table_c::count(hash_key_t key)
 
 
 //--------------------------------
-hash_entry_s& hash_table_c::operator [](hash_key_t key)
+k2hash::hash_entry_s& k2hash::hash_table_c::operator [](hash_key_t key)
 {
     size_t i, ans = 0;
     hash_entry_s *bucket = &data[entries_in_a_bucket*(key & mask)];
@@ -314,7 +297,7 @@ hash_entry_s& hash_table_c::operator [](hash_key_t key)
 
 
 //--------------------------------
-bool hash_table_c::resize(size_t size_mb)
+bool k2hash::hash_table_c::resize(size_t size_mb)
 {
     delete[] data;
 
@@ -326,7 +309,7 @@ bool hash_table_c::resize(size_t size_mb)
 
 
 //--------------------------------
-void MkMove(move_c m)
+void k2hash::MkMove(move_c m)
 {
     bool special_move = MkMoveAndEval(m);
     MoveHashKey(m, special_move);
@@ -337,7 +320,7 @@ void MkMove(move_c m)
 
 
 //--------------------------------
-void UnMove(move_c m)
+void k2hash::UnMove(move_c m)
 {
     UnMoveAndEval(m);
     hash_key = doneHashKeys[FIFTY_MOVES + ply];
@@ -348,7 +331,7 @@ void UnMove(move_c m)
 
 
 //--------------------------------
-void MkMoveIncrementally(move_c m, bool special_move)
+void k2hash::MkMoveIncrementally(move_c m, bool special_move)
 {
     MkEvalAfterFastMove(m);
     MoveHashKey(m, special_move);
@@ -359,7 +342,7 @@ void MkMoveIncrementally(move_c m, bool special_move)
 
 
 //--------------------------------
-piece_t piece_hash_index(piece_t piece)
+k2chess::piece_t k2hash::piece_hash_index(piece_t piece)
 {
     return piece - 2;
 }

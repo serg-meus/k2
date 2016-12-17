@@ -5,17 +5,7 @@
 
 
 //--------------------------------
-move_c pv[max_ply][max_ply + 1];          // the 'flg' property of first element in a row is length of PV at that depth
-move_c killers[max_ply][2];
-history_t history[2][6][128];
-history_t min_history, max_history;
-
-
-
-
-
-//--------------------------------
-void InitMoveGen()
+void k2movegen::InitMoveGen()
 {
     InitEval();
 }
@@ -25,8 +15,8 @@ void InitMoveGen()
 
 
 //--------------------------------
-void PushMove(move_c *move_array, movcr_t *movCr, iterator it, coord_t to,
-              move_flag_t flg)
+void k2movegen::PushMove(move_c *move_array, movcr_t *movCr, iterator it,
+                         coord_t to, move_flag_t flg)
 {
     move_c    m;
     m.pc    = it;
@@ -41,7 +31,9 @@ void PushMove(move_c *move_array, movcr_t *movCr, iterator it, coord_t to,
 
 
 //--------------------------------
-movcr_t GenMoves(move_c *move_array, move_c *best_move, priority_t apprice)
+k2movegen::movcr_t k2movegen::GenMoves(move_c *move_array,
+                                       move_c *best_move,
+                                       priority_t apprice)
 {
     movcr_t moveCr = 0;
 
@@ -102,7 +94,7 @@ movcr_t GenMoves(move_c *move_array, move_c *best_move, priority_t apprice)
 
 
 //--------------------------------
-void GenPawn(move_c *move_array, movcr_t *moveCr, iterator it)
+void k2movegen::GenPawn(move_c *move_array, movcr_t *moveCr, iterator it)
 {
     move_flag_t pBeg, pEnd;
     auto fr = *it;
@@ -160,7 +152,7 @@ void GenPawn(move_c *move_array, movcr_t *moveCr, iterator it)
 
 
 //--------------------------------
-void GenPawnCap(move_c *move_array, movcr_t *moveCr, iterator it)
+void k2movegen::GenPawnCap(move_c *move_array, movcr_t *moveCr, iterator it)
 {
     size_t pBeg, pEnd;
     auto fr = *it;
@@ -214,7 +206,7 @@ void GenPawnCap(move_c *move_array, movcr_t *moveCr, iterator it)
 
 
 //--------------------------------
-void GenCastles(move_c *move_array, movcr_t *moveCr)
+void k2movegen::GenCastles(move_c *move_array, movcr_t *moveCr)
 {
     castle_t msk = wtm ? 0x03 : 0x0C;
     auto cst = b_state[prev_states + ply].cstl & msk;
@@ -266,7 +258,7 @@ void GenCastles(move_c *move_array, movcr_t *moveCr)
 
 
 //--------------------------------
-movcr_t GenCaptures(move_c *move_array)
+k2movegen::movcr_t k2movegen::GenCaptures(move_c *move_array)
 {
     movcr_t moveCr = 0;
     auto it = coords[wtm].begin();
@@ -317,7 +309,7 @@ movcr_t GenCaptures(move_c *move_array)
 
 
 //--------------------------------
-void AppriceMoves(move_c *move_array, movcr_t moveCr, move_c *bestMove)
+void k2movegen::AppriceMoves(move_c *move_array, movcr_t moveCr, move_c *bestMove)
 {
 #ifndef DONT_USE_HISTORY
     min_history = std::numeric_limits<history_t>::max();
@@ -454,7 +446,7 @@ void AppriceMoves(move_c *move_array, movcr_t moveCr, move_c *bestMove)
 
 
 //--------------------------------
-void AppriceQuiesceMoves(move_c *move_array, movcr_t moveCr)
+void k2movegen::AppriceQuiesceMoves(move_c *move_array, movcr_t moveCr)
 {
     auto it = coords[wtm].begin();
     for(auto i = 0; i < moveCr; i++)
@@ -523,7 +515,7 @@ void AppriceQuiesceMoves(move_c *move_array, movcr_t moveCr)
 
 
 //-----------------------------
-streng_t SEE(coord_t to, streng_t frStreng, score_t val, bool stm)
+k2chess::streng_t k2movegen::SEE(coord_t to, streng_t frStreng, score_t val, bool stm)
 {
     auto it = SeeMinAttacker(to);
     if(it == coords[!wtm].end())
@@ -556,7 +548,7 @@ streng_t SEE(coord_t to, streng_t frStreng, score_t val, bool stm)
 
 
 //-----------------------------
-iterator SeeMinAttacker(coord_t to)
+k2chess::iterator k2movegen::SeeMinAttacker(coord_t to)
 {
     shifts_t shft_l[] = {15, -17};
     shifts_t shft_r[] = {17, -15};
@@ -600,7 +592,7 @@ iterator SeeMinAttacker(coord_t to)
 
 
 //-----------------------------
-streng_t SEE_main(move_c m)
+k2chess::streng_t k2movegen::SEE_main(move_c m)
 {
     auto it = coords[wtm].begin();
     it = m.pc;
@@ -627,7 +619,7 @@ streng_t SEE_main(move_c m)
 
 
 //--------------------------------
-void SortQuiesceMoves(move_c *move_array, movcr_t moveCr)
+void k2movegen::SortQuiesceMoves(move_c *move_array, movcr_t moveCr)
 {
     if(moveCr <= 1)
         return;

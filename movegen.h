@@ -1,5 +1,4 @@
 #include "eval.h"
-#include "extern.h"
 #include <limits>
 
 
@@ -9,10 +8,16 @@
 //#define DONT_USE_SEE_CUTOFF
 
 
+class k2movegen : public k2eval
+{
+
+
+protected:
+
 
 typedef u8 movcr_t;
 typedef u8 apprice_t;
-
+typedef u32 history_t;
 
 
 const priority_t
@@ -31,19 +36,32 @@ const apprice_t
 
 
 
-//--------------------------------
+move_c pv[max_ply][max_ply + 1];          // the 'flg' property of first element in a row is length of PV at that depth
+move_c killers[max_ply][2];
+history_t history[2][6][128];
+history_t min_history, max_history;
+
+protected:
+
+
 void    InitMoveGen();
 movcr_t GenMoves(move_c *list, move_c *best_move, priority_t apprice);
+streng_t SEE_main(move_c m);
+movcr_t GenCaptures(move_c *list);
+
+
+private:
+
+
 void    GenPawn(move_c *list, movcr_t *movCr, iterator it);
 void    GenPawnCap(move_c *list, movcr_t *movCr, iterator it);
 void    GenCastles(move_c *list, movcr_t *movCr);
-movcr_t GenCaptures(move_c *list);
 void    AppriceMoves(move_c *list, movcr_t moveCr, move_c *best_move);
 void    AppriceQuiesceMoves(move_c *list, movcr_t moveCr);
 streng_t SEE(coord_t to, streng_t frStreng, score_t val, bool stm);
 iterator SeeMinAttacker(coord_t to);
-streng_t SEE_main(move_c m);
 void    SortQuiesceMoves(move_c *move_array, movcr_t moveCr);
 void    PushMove(move_c *move_array, movcr_t *movCr, iterator it,
-                 coord_t to, move_flag_t flg);
-//--------------------------------
+                         coord_t to, move_flag_t flg);
+
+};

@@ -5,7 +5,6 @@ CONFIG -= qt
 
 SOURCES += \
     Timer.cpp \
-    pst.cpp \
     movegen.cpp \
     main.cpp \
     hash.cpp \
@@ -20,7 +19,6 @@ HEADERS += \
     movegen.h \
     main.h \
     hash.h \
-    extern.h \
     eval.h \
     engine.h \
     chess.h \
