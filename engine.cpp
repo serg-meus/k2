@@ -29,7 +29,6 @@ k2chess::score_t k2engine::Search(depth_t depth, score_t alpha, score_t beta,
     if(in_check)
         depth++;
 
-#ifndef DONT_USE_RECAPTURE_EXTENSION
     if(!in_check
     && b_state[prev_states + ply - 1].capt
     && b_state[prev_states + ply].capt
@@ -38,28 +37,21 @@ k2chess::score_t k2engine::Search(depth_t depth, score_t alpha, score_t beta,
     && b_state[prev_states + ply].scr > bad_captures
     )
         depth++;
-#endif // DONT_USE_RECAPTURE_EXTENSION
 
-#ifndef DONT_USE_MATE_DISTANCE_PRUNING
     auto mate_sc = king_value - ply;
     if(alpha >= mate_sc)
        return alpha;
     if(beta <= -mate_sc)
         return beta;
-#endif // DONT_USE_MATE_DISTANCE_PRUNING
 
-#ifndef DONT_USE_FUTILITY
     if(depth <= 2 && !in_check
 //    && alpha < mate_score && beta >= -mate_score
     && beta < mate_score
     && Futility(depth, beta))
         return beta;
-#endif // DONT_USE_FUTILITY
 
-#ifndef DONT_USE_NULL_MOVE
     if(NullMove(depth, beta, in_check))
         return beta;
-#endif // DONT_USE_NULL_MOVE
 
     score_t x, initial_alpha = alpha;
     hash_entry_s *entry;
@@ -107,19 +99,18 @@ k2chess::score_t k2engine::Search(depth_t depth, score_t alpha, score_t beta,
             continue;
         }
 
-#ifndef DONT_USE_LMP
+
         if(depth <= 2 && !cur_move.flg && !in_check
         && node_type == all_node && legal_moves > 4)
         {
             UnMoveFast(cur_move);
             break;
         }
-#endif // DONT_USE_LMP
+
 
         MkMoveIncrementally(cur_move, is_special_move);
         FastEval(cur_move);
 
-#ifndef DONT_USE_LMR
         auto lmr = 1;
         if(depth < 3 || cur_move.flg || in_check)
             lmr = 0;
@@ -130,9 +121,6 @@ k2chess::score_t k2engine::Search(depth_t depth, score_t alpha, score_t beta,
             lmr = 0;
         else if(depth <= 4 && legal_moves > 8)
             lmr = 2;
-#else
-        auto lmr = 0;
-#endif  // DONT_USE_LMR
 
         if(legal_moves == 0)
             x = -Search(depth - 1, -beta, -alpha, -node_type);
@@ -180,7 +168,6 @@ k2chess::score_t k2engine::Search(depth_t depth, score_t alpha, score_t beta,
                           in_check && max_moves == 1);
     if(beta_cutoff)
     {
-#ifndef DONT_SHOW_STATISTICS
         if(entry != nullptr && entry->best_move.flg != not_a_move)
             hash_best_move_cr++;
         if(legal_moves == 1)
@@ -192,7 +179,6 @@ k2chess::score_t k2engine::Search(depth_t depth, score_t alpha, score_t beta,
             else if(cur_move.scr == second_killer)
                 killer2_hits++;
         }
-#endif // DONT_SHOW_STATISTICS
         UpdateStatistics(cur_move, depth, legal_moves - 1);
         return beta;
     }
@@ -238,12 +224,9 @@ k2chess::score_t k2engine::QSearch(score_t alpha, score_t beta)
         if(max_moves <= 0)
             break;
 
-#ifndef DONT_USE_SEE_CUTOFF
         if(cur_move.scr <= bad_captures)
             break;
-#endif
 
-#ifndef DONT_USE_DELTA_PRUNING
         if(material[white] + material[black]
                 - pieces[white] - pieces[black] > 24
         && to_black(b[cur_move.to]) != _k
@@ -255,7 +238,6 @@ k2chess::score_t k2engine::QSearch(score_t alpha, score_t beta)
             if(cur_eval + capture + margin < alpha)
                 break;
         }
-#endif
         MkMoveAndEval(cur_move);
         legal_moves++;
 #ifndef NDEBUG
@@ -290,11 +272,9 @@ k2chess::score_t k2engine::QSearch(score_t alpha, score_t beta)
 
     if(beta_cutoff)
     {
-#ifndef DONT_SHOW_STATISTICS
         q_cut_cr++;
         if(legal_moves < 1 + (sizeof(q_cut_num_cr)/sizeof(*q_cut_num_cr)))
             q_cut_num_cr[legal_moves - 1]++;
-#endif // DONT_SHOW_STATISTICS
         return beta;
     }
     return alpha;
@@ -357,17 +337,15 @@ void k2engine::StorePV(move_c move)
 //-----------------------------
 void k2engine::UpdateStatistics(move_c move, depth_t depth, movcr_t move_cr)
 {
-#ifndef DONT_SHOW_STATISTICS
-        cut_cr++;
-        if(move_cr < sizeof(cut_num_cr)/sizeof(*cut_num_cr))
-            cut_num_cr[move_cr]++;
-        if(move.scr == first_killer)
-            killer1_probes++;
-        if(move.scr == second_killer)
-            killer2_probes++;
-#else
-    UNUSED(move_cr);
-#endif // DONT_SHOW_STATISTICS
+
+    cut_cr++;
+    if(move_cr < sizeof(cut_num_cr)/sizeof(*cut_num_cr))
+        cut_num_cr[move_cr]++;
+    if(move.scr == first_killer)
+        killer1_probes++;
+    if(move.scr == second_killer)
+        killer2_probes++;
+
     if(move.flg)
         return;
     if(move != killers[ply][0] && move != killers[ply][1])
@@ -376,15 +354,11 @@ void k2engine::UpdateStatistics(move_c move, depth_t depth, movcr_t move_cr)
         killers[ply][0] = move;
     }
 
-#ifndef DONT_USE_HISTORY
     auto it = coords[wtm].begin();
     it = move.pc;
     auto fr = *it;
     auto &h = history[wtm][get_index(b[fr]) - 1][move.to];
     h += depth*depth + 1;
-#else
-    UNUSED(depth);
-#endif // DONT_USE_HISTORY
 }
 
 
@@ -408,7 +382,7 @@ void k2engine::MainSearch()
     {
         prev_x = x;
         const score_t asp_margin = 47;
-#ifndef DONT_USE_ASPIRATION_WINDOWS
+
         x = RootSearch(root_ply, x - asp_margin, x + asp_margin);
         if(!stop && x <= prev_x - asp_margin)
         {
@@ -422,9 +396,6 @@ void k2engine::MainSearch()
             if(!stop && x <= prev_x + asp_margin)
                 x = RootSearch(root_ply, -infinit_score, infinit_score);
         }
-#else
-        x = RootSearch(root_ply, -INF, INF);
-#endif //DONT_USE_ASPIRATION_WINDOWS
 
         if(stop && x == -infinit_score)
             x = prev_x;
@@ -521,7 +492,7 @@ k2chess::score_t k2engine::RootSearch(depth_t depth, score_t alpha, score_t beta
             ShowCurrentUciInfo();
 
         bool fail_high = false;
-#ifndef DONT_USE_PVS_IN_ROOT
+
         if(root_move_cr == 0)
         {
             x = -Search(depth - 1, -beta, -alpha, pv_node);
@@ -548,9 +519,7 @@ k2chess::score_t k2engine::RootSearch(depth_t depth, score_t alpha, score_t beta
                     root_moves.at(root_move_cr).first = unconfirmed_fail_high;
             }
         }
-#else
-    x = -Search(depth - 1, -beta, -alpha, pv_node);
-#endif // DONT_USE_PVS_IN_ROOT
+
         if(stop && !fail_high)
             x = -infinit_score;
 
@@ -661,7 +630,7 @@ void k2engine::RootMoveGen(bool in_check)
         }
         UnMoveFast(cur_move);
     }
-#if (!defined(DONT_USE_RANDOMNESS) && defined(NDEBUG))
+#ifdef NDEBUG
     if(root_ply != 1)
         return;
     std::srand(std::time(nullptr));
@@ -672,7 +641,7 @@ void k2engine::RootMoveGen(bool in_check)
         movcr_t rand_ix = std::rand() % moves_to_shuffle;
         std::swap(root_moves.at(i), root_moves.at(rand_ix));
     }
-#endif // NDEBUG, RANDOMNESS
+#endif // NDEBUG
     pv[0][1] = (*root_moves.begin()).second;
 }
 
@@ -720,13 +689,8 @@ void k2engine::InitSearch()
                 << " )" << std::endl;
     std::cout   << "Ply Value  Time    Nodes        Principal Variation" << std::endl;
     }
-#ifdef CLEAR_HASH_TABLE_AFTER_EACH_MOVE
-    tt.clear();
-#endif // CLEAR_HASH_TABLE_AFTER_EACH_MOVE
 
-#ifndef DONT_USE_HISTORY
     memset(history, 0, sizeof(history));
-#endif // DONT_USE_HISTORY
 }
 
 
@@ -779,7 +743,6 @@ void k2engine::PrintFinalSearchResult()
     if(xboard || uci)
         return;
 
-#ifndef DONT_SHOW_STATISTICS
     std::cout << "( nodes = " << nodes
               << ", cuts = [";
     if(cut_cr == 0)
@@ -820,7 +783,7 @@ void k2engine::PrintFinalSearchResult()
                 << "% (" << hash_table.size()/sizeof(hash_entry_s)
                 << "/" << hash_table.max_size()/sizeof(hash_entry_s)
                 << " entries )" << std::endl;
-#ifndef DONT_USE_NULL_MOVE
+
     if(null_probe_cr == 0)
         null_probe_cr = 1;
     std::cout   << "( null move probes = " << hash_probe_cr
@@ -828,16 +791,14 @@ void k2engine::PrintFinalSearchResult()
                 << std::setprecision(1) << std::fixed
                 << 100.*null_cut_cr/null_probe_cr << "% )"
                 << std::endl;
-#endif // DONT_USE_NULL_MOVE
 
-#ifndef DONT_USE_FUTILITY
     if(futility_probes == 0)
         futility_probes = 1;
     std::cout << "( futility probes = " << futility_probes
               << ", hits = " << std::setprecision(1) << std::fixed
               << 100.*futility_hits/futility_probes
               << "% )" << std::endl;
-#endif // DONT_USE_FUTILITY
+
     if(killer1_probes == 0)
         killer1_probes = 1;
     std::cout << "( killer1 probes = " << killer1_probes
@@ -852,7 +813,6 @@ void k2engine::PrintFinalSearchResult()
               << "% )" << std::endl;
     std::cout   << "( time spent =" << time_spent/1.e6
                 << "s )" << std::endl;
-#endif // DONT_SHOW_STATISTICS
 }
 
 
@@ -1168,9 +1128,7 @@ void k2engine::InitEngine()
     resign_cr = 0;
     time_spent = 0;
 
-#ifndef DONT_USE_HISTORY
     memset(history, 0, sizeof(history));
-#endif // DONT_USE_HISTORY
 }
 
 
@@ -1303,9 +1261,8 @@ bool k2engine::NullMove(depth_t depth, score_t beta, bool in_check)
     if(in_check || depth < 2
     || material[wtm] - pieces[wtm] < 3)
         return false;
-#ifndef DONT_SHOW_STATISTICS
+
     null_probe_cr++;
-#endif // DONT_SHOW_STATISTICS
 
     if(b_state[prev_states + ply - 1].to == is_null_move
     && b_state[prev_states + ply - 2].to == is_null_move
@@ -1333,10 +1290,8 @@ bool k2engine::NullMove(depth_t depth, score_t beta, bool in_check)
     if(store_ep)
         hash_key = InitHashKey();
 
-#ifndef DONT_SHOW_STATISTICS
     if(x >= beta)
         null_cut_cr++;
-#endif // DONT_SHOW_STATISTICS
 
     return (x >= beta);
 }
@@ -1352,16 +1307,13 @@ bool k2engine::Futility(depth_t depth, score_t beta)
     && b_state[prev_states + ply - 1].to != is_null_move
     )
     {
-#ifndef DONT_SHOW_STATISTICS
-            futility_probes++;
-#endif // DONT_SHOW_STATISTICS
+        futility_probes++;
+
         auto margin = depth < 2 ? 185 : 255;
         auto score = ReturnEval(wtm);
         if(score > margin + beta)
         {
-#ifndef DONT_SHOW_STATISTICS
             futility_hits++;
-#endif // DONT_SHOW_STATISTICS
             return true;
         }
     }
@@ -1479,9 +1431,8 @@ k2hash::hash_entry_s* k2engine::HashProbe(depth_t depth, score_t *alpha, score_t
     if(entry == nullptr || stop)
         return nullptr;
 
-#ifndef DONT_SHOW_STATISTICS
     hash_probe_cr++;
-#endif // DONT_SHOW_STATISTICS
+
     auto hbnd = entry->bound_type;
     if(entry->depth >= depth)
     {
@@ -1495,18 +1446,16 @@ k2hash::hash_entry_s* k2engine::HashProbe(depth_t depth, score_t *alpha, score_t
         || (hbnd == upper_bound && hval >= -*alpha)  //-alpha = beta for parent node
         || (hbnd == lower_bound && hval <= -beta) )  //-beta = alpha for parent node
         {
-#ifndef DONT_SHOW_STATISTICS
             hash_cut_cr++;
-#endif // DONT_SHOW_STATISTICS
             pv[ply][0].flg = 0;
             *alpha = hval;
             return entry;
         }// if(bnd
     }// if((*entry).depth >= depth
-#ifndef DONT_SHOW_STATISTICS
+
     if(entry->best_move.flg != not_a_move)
         hash_hit_cr++;
-#endif // DONT_SHOW_STATISTICS
+
     return entry;
 }
 

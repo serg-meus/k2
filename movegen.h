@@ -3,9 +3,6 @@
 
 
 
-//--------------------------------
-//#define DONT_USE_SEE_SORTING
-//#define DONT_USE_SEE_CUTOFF
 
 
 class k2movegen : public k2eval

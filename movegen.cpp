@@ -311,10 +311,8 @@ k2movegen::movcr_t k2movegen::GenCaptures(move_c *move_array)
 //--------------------------------
 void k2movegen::AppriceMoves(move_c *move_array, movcr_t moveCr, move_c *bestMove)
 {
-#ifndef DONT_USE_HISTORY
     min_history = std::numeric_limits<history_t>::max();
     max_history = 0;
-#endif
 
     auto it = coords[wtm].begin();
     auto bm = *move_array;
@@ -341,14 +339,13 @@ void k2movegen::AppriceMoves(move_c *move_array, movcr_t moveCr, move_c *bestMov
                 move_array[i].scr = second_killer;
             else
             {
-#ifndef DONT_USE_HISTORY
                 auto fr = *it;
                 auto h = history[wtm][get_index(b[fr]) - 1][m.to];
                 if(h > max_history)
                     max_history = h;
                 if(h < min_history)
                     min_history = h;
-#endif // DONT_USE_HISTORY
+
                 auto y   = get_row(m.to);
                 auto x   = get_col(m.to);
                 auto y0  = get_row(*it);
@@ -369,21 +366,13 @@ void k2movegen::AppriceMoves(move_c *move_array, movcr_t moveCr, move_c *bestMov
             auto src = streng[get_index(fr_pc)];
             auto dst = (m.flg & mCAPT) ? streng[get_index(to_pc)] : 0;
 
-#ifndef DONT_USE_SEE_SORTING
             if(dst && dst - src <= 0)
             {
                 auto tmp = SEE_main(m);
                 dst = tmp;
                 src = 0;
             }
-#else
-            if(src > 120)
-            {
-                move_array[i].scr = EQUAL_CAPTURE;
-                continue;
-            }
-            else
-#endif // DONT_USE_SEE_SORTING
+
             if(dst > 120)
             {
                 move_array[i].scr = 0;
@@ -420,7 +409,6 @@ void k2movegen::AppriceMoves(move_c *move_array, movcr_t moveCr, move_c *bestMov
        }// else on captures
     }// for( i
 
-#ifndef DONT_USE_HISTORY
     for(auto i = 0; i < moveCr; i++)
     {
         auto m = move_array[i];
@@ -438,7 +426,6 @@ void k2movegen::AppriceMoves(move_c *move_array, movcr_t moveCr, move_c *bestMov
             continue;
         }
     }// for( i
-#endif
 }
 
 
