@@ -139,25 +139,44 @@ bool k2chess::BoardToMen()
 //    coords[white].sort(PieceListCompare);
     for(auto color = black; color <= white; ++color)
     {
-        auto cur_iter = coords[color].begin();
-        auto nxt_iter = ++cur_iter;
-        for(size_t i = 0; i < lst_sz - 1; ++i)
+        bool replaced = true;
+        while(replaced)
         {
-            while(nxt_iter != coords[color].end())
+            replaced = false;
+            for(auto cur_iter = coords[color].begin();
+                cur_iter != --(coords[color].end());
+                ++cur_iter)
             {
+                auto nxt_iter = cur_iter;
+                ++nxt_iter;
                 auto cur_coord = *cur_iter;
                 auto nxt_coord = *nxt_iter;
                 auto cur_piece = b[cur_coord];
                 auto nxt_piece = b[nxt_coord];
                 auto cur_streng = sort_streng[get_index(cur_piece)];
                 auto nxt_streng = sort_streng[get_index(nxt_piece)];
-                if(nxt_streng > cur_streng)
+                if(cur_streng > nxt_streng)
+                {
                     coords[color].move_element(cur_iter, nxt_iter);
-                ++nxt_iter;
-                ++cur_iter;
+                    cur_iter = nxt_iter;
+                    replaced = true;
+                }
             }
         }
+#ifndef NDEBUG
+        for(auto it = coords[color].begin();
+            it != --(coords[color].end());
+            ++it)
+        {
+            auto nx = it;
+            ++nx;
+            assert(sort_streng[get_index(b[*nx])] >=
+                   sort_streng[get_index(b[*it])]);
+        }
+#endif //NDEBUG
     }
+
+
 
     return true;
 }
