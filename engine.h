@@ -67,7 +67,7 @@ node_t  nodes, max_nodes_to_search, total_nodes;
 protected:
 
 
-char        stop_str[5*50];
+const char  *stop_str;
 depth_t     stop_ply;
 
 Timer       timer;
