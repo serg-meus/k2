@@ -97,14 +97,34 @@ protected:
 
 bool InitHashTable();
 hash_key_t  InitHashKey();
-void MkMove(move_c m);
-void UnMove(move_c m);
-void MkMoveIncrementally(move_c m, bool special_move);
+
+void MkMove(move_c m)
+{
+    bool special_move = MkMoveAndEval(m);
+    MoveHashKey(m, special_move);
+}
+
+void UnMove(move_c m)
+{
+    UnMoveAndEval(m);
+    hash_key = doneHashKeys[FIFTY_MOVES + ply];
+}
+
+void MkMoveIncrementally(move_c m, bool special_move)
+{
+    MkEvalAfterFastMove(m);
+    MoveHashKey(m, special_move);
+}
 
 
 private:
 
+
 void MoveHashKey(move_c m, bool special);
-piece_t piece_hash_index(piece_t piece);
+
+piece_t piece_hash_index(piece_t piece)
+{
+    return piece - 2;
+}
 
 };

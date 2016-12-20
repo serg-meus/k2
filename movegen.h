@@ -59,6 +59,14 @@ streng_t SEE(coord_t to, streng_t frStreng, score_t val, bool stm);
 iterator SeeMinAttacker(coord_t to);
 void    SortQuiesceMoves(move_c *move_array, movcr_t moveCr);
 void    PushMove(move_c *move_array, movcr_t *movCr, iterator it,
-                         coord_t to, move_flag_t flg);
+                         coord_t to, move_flag_t flg)
+{
+    move_c    m;
+    m.pc    = it;
+    m.to    = to;
+    m.flg   = flg;
+
+    move_array[(*movCr)++] = m;
+}
 
 };

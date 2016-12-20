@@ -53,7 +53,13 @@ public:
 
 
 score_t EvalDebug();
-bool FenToBoard(char *);
+
+bool FenToBoard(char *p)
+{
+    bool ans = k2chess::FenToBoard(p);
+    InitPawnStruct();
+    return ans;
+}
 
 
 protected:
@@ -63,15 +69,31 @@ void  InitEval();
 void  FastEval(move_c m);
 score_t Eval();
 void  InitEvaOfMaterialAndPst();
-score_t ReturnEval(side_to_move_t stm);
 void InitPawnStruct();
 void SetPawnStruct(coord_t col);
 bool  IsPasser(coord_t col, side_to_move_t stm);
 bool  MkMoveAndEval(move_c m);
 void  UnMoveAndEval(move_c m);
 void  MkEvalAfterFastMove(move_c m);
-bool is_light(piece_t piece, side_to_move_t stm);
-bool is_dark(piece_t piece, side_to_move_t stm);
+
+score_t ReturnEval(side_to_move_t stm)
+{
+    i32 X, Y;
+    X = material[0] + 1 + material[1] + 1 - pieces[0] - pieces[1];
+
+    Y = ((val_opn - val_end)*X + 80*val_end)/80;
+    return stm ? (score_t)(Y) : (score_t)(-Y);
+}
+
+bool is_light(piece_t piece, side_to_move_t stm)
+{
+    return piece != __ && (piece & white) == stm;
+}
+
+bool is_dark(piece_t piece, side_to_move_t stm)
+{
+    return piece != __ && (piece & white) != stm;
+}
 
 
 private:

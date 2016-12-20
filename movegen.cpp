@@ -15,22 +15,6 @@ void k2movegen::InitMoveGen()
 
 
 //--------------------------------
-void k2movegen::PushMove(move_c *move_array, movcr_t *movCr, iterator it,
-                         coord_t to, move_flag_t flg)
-{
-    move_c    m;
-    m.pc    = it;
-    m.to    = to;
-    m.flg   = flg;
-
-    move_array[(*movCr)++] = m;
-}
-
-
-
-
-
-//--------------------------------
 k2movegen::movcr_t k2movegen::GenMoves(move_c *move_array,
                                        move_c *best_move,
                                        priority_t apprice)

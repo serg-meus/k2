@@ -174,12 +174,36 @@ bool Attack(coord_t to, side_to_move_t xtm);
 bool Legal(move_c m, bool ic);
 bool MkMoveFast(move_c m);
 void UnMoveFast(move_c m);
-bool within_board(coord_t coord);
-coord_t get_coord(coord_t col, coord_t row);
-coord_t get_col(coord_t coord);
-coord_t get_row(coord_t coord);
-coord_t get_index(piece_t X);
-piece_t to_black(piece_t piece);
+
+bool within_board(coord_t coord)
+{
+    return !(coord & 0x88);
+}
+
+coord_t get_coord(coord_t col, coord_t row)
+{
+    return (row << 4) + col;
+}
+
+coord_t get_col(coord_t coord)
+{
+    return coord & 7;
+}
+
+coord_t get_row(coord_t coord)
+{
+    return coord >> 4;
+}
+
+coord_t get_index(piece_t piece)
+{
+    return piece/2;
+}
+
+piece_t to_black(piece_t piece)
+{
+    return piece & ~white;
+}
 
 
 private:

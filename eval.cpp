@@ -71,20 +71,6 @@ void k2eval::InitEval()
 
 
 //-----------------------------
-k2chess::score_t k2eval::ReturnEval(side_to_move_t stm)
-{
-    i32 X, Y;
-    X = material[0] + 1 + material[1] + 1 - pieces[0] - pieces[1];
-
-    Y = ((val_opn - val_end)*X + 80*val_end)/80;
-    return stm ? (score_t)(Y) : (score_t)(-Y);
-}
-
-
-
-
-
-//-----------------------------
 void k2eval::FastEval(move_c m)
 {
     score_t ansO = 0, ansE = 0;
@@ -1173,36 +1159,6 @@ void k2eval::KingSafety(side_to_move_t king_color)
 
 }
 
-
-
-
-
-//--------------------------------
-bool k2eval::is_light(piece_t piece, side_to_move_t stm)
-{
-    return piece != __ && (piece & white) == stm;
-}
-
-
-
-
-
-//--------------------------------
-bool k2eval::is_dark(piece_t piece, side_to_move_t stm)
-{
-    return piece != __ && (piece & white) != stm;
-}
-
-
-
-
-
-bool k2eval::FenToBoard(char *p)
-{
-    bool ans = k2chess::FenToBoard(p);
-    InitPawnStruct();
-    return ans;
-}
 
 
 
