@@ -128,7 +128,7 @@ int main(int argc, char* argv[])
                     t.join();
                 t = std::thread(&k2engine::MainSearch, &eng);
 #else
-                MainSearch();
+                eng.MainSearch();
 #endif // USE_THREAD_FOR_INPUT
             }
         }
@@ -328,7 +328,7 @@ void GoCommand(std::string in)
         t.join();
     t = std::thread(&k2engine::MainSearch, &eng);
 #else
-    MainSearch();
+    eng.MainSearch();
 #endif // USE_THREAD_FOR_INPUT
 
 }
@@ -835,7 +835,7 @@ void AnalyzeCommand(std::string in)
         t.join();
     t = std::thread(&k2engine::MainSearch, &eng);
     #else
-    MainSearch();
+    eng.MainSearch();
     #endif // USE_THREAD_FOR_INPUT
 }
 
