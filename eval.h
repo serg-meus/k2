@@ -74,7 +74,18 @@ void SetPawnStruct(coord_t col);
 bool  IsPasser(coord_t col, side_to_move_t stm);
 bool  MkMoveAndEval(move_c m);
 void  UnMoveAndEval(move_c m);
-void  MkEvalAfterFastMove(move_c m);
+
+void MkEvalAfterFastMove(move_c m)
+{
+    b_state[prev_states + ply - 1].val_opn = val_opn;
+    b_state[prev_states + ply - 1].val_end = val_end;
+
+    auto fr = b_state[prev_states + ply].fr;
+
+    MoveKingTropism(fr, m, wtm);
+
+    MovePawnStruct(b[m.to], fr, m);
+}
 
 score_t ReturnEval(side_to_move_t stm)
 {

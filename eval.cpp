@@ -370,7 +370,7 @@ void k2eval::BishopMobility(side_to_move_t stm)
 
 
 //-----------------------------
-void k2eval::ClampedRook(side_to_move_t stm)
+inline void k2eval::ClampedRook(side_to_move_t stm)
 {
     const score_t clamped_rook  = 82;
     auto k = *king_coord[stm];
@@ -969,23 +969,6 @@ void k2eval::UnMoveAndEval(move_c m)
 
     val_opn = b_state[prev_states + ply].val_opn;
     val_end = b_state[prev_states + ply].val_end;
-}
-
-
-
-
-
-//-----------------------------
-void k2eval::MkEvalAfterFastMove(move_c m)
-{
-    b_state[prev_states + ply - 1].val_opn = val_opn;
-    b_state[prev_states + ply - 1].val_end = val_end;
-
-    auto fr = b_state[prev_states + ply].fr;
-
-    MoveKingTropism(fr, m, wtm);
-
-    MovePawnStruct(b[m.to], fr, m);
 }
 
 
