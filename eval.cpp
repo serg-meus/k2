@@ -88,26 +88,26 @@ void k2eval::FastEval(move_c m)
     }
 
     piece_index_t idx;
-    auto flag = m.flg & mPROM;
+    auto flag = m.flg & is_promotion;
     if(flag)
     {
-        idx = get_index(_p);
+        idx = get_index(black_pawn);
         ansO -= material_values_opn[idx] + pst[idx - 1][0][y0][x0];
         ansE -= material_values_end[idx] + pst[idx - 1][1][y0][x0];
 
-        piece_t promo_pieces[] = {_q, _n, _r, _b};
+        piece_t promo_pieces[] = {black_queen, black_knight, black_rook, black_bishop};
         idx = get_index(promo_pieces[flag - 1]);
         ansO += material_values_opn[idx] + pst[idx - 1][0][y0][x0];
         ansE += material_values_end[idx] + pst[idx - 1][1][y0][x0];
 
     }
 
-    if(m.flg & mCAPT)
+    if(m.flg & is_capture)
     {
         auto capt = to_black(b_state[prev_states + ply].capt);
-        if(m.flg & mENPS)
+        if(m.flg & is_en_passant)
         {
-            idx = get_index(_p);
+            idx = get_index(black_pawn);
             ansO += material_values_opn[idx] + pst[idx - 1][0][7 - y0][x];
             ansE += material_values_end[idx] + pst[idx - 1][1][7 - y0][x];
         }
@@ -118,15 +118,15 @@ void k2eval::FastEval(move_c m)
             ansE += material_values_end[idx] + pst[idx - 1][1][7 - y][x];
         }
     }
-    else if(m.flg & mCS_K)
+    else if(m.flg & is_castle_kingside)
     {
-        idx = get_index(_r);
+        idx = get_index(black_rook);
         ansO += pst[idx - 1][0][7][5] - pst[idx - 1][0][7][7];
         ansE += pst[idx - 1][1][7][5] - pst[idx - 1][1][7][7];
     }
-    else if(m.flg & mCS_Q)
+    else if(m.flg & is_castle_queenside)
     {
-        idx = get_index(_r);
+        idx = get_index(black_rook);
         ansO += pst[idx - 1][0][7][3] - pst[idx - 1][0][7][0];
         ansE += pst[idx - 1][1][7][3] - pst[idx - 1][1][7][0];
     }
@@ -152,7 +152,7 @@ void k2eval::InitEvaOfMaterialAndPst()
         if(!within_board(col))
             continue;
         auto pt = b[col];
-        if(pt == __)
+        if(pt == empty_square)
             continue;
         auto x0 = get_col(col);
         auto y0 = get_row(col);
@@ -251,7 +251,7 @@ void k2eval::EvalPawns(side_to_move_t stm)
                 auto y_coord = stm ? mx + 1 : 7 - mx - 1;
                 auto op_piece = b[get_coord(col, y_coord)];
                 bool occupied = is_dark(op_piece, stm)
-                && to_black(op_piece) != _p;
+                && to_black(op_piece) != black_pawn;
                 if(occupied)
                     ansO -= 30;
             }
@@ -285,7 +285,7 @@ void k2eval::EvalPawns(side_to_move_t stm)
         // passed pawn evaluation
         score_t pass[] =         {0, 0, 21, 40, 85, 150, 200};
         score_t blocked_pass[] = {0, 0, 10, 20, 40,  50,  60};
-        bool blocked = b[get_coord(col, stm ? mx + 1 : 7 - mx - 1)] != __;
+        bool blocked = b[get_coord(col, stm ? mx + 1 : 7 - mx - 1)] != empty_square;
         auto delta = blocked ? blocked_pass[mx] : pass[mx];
 
         ansE += delta;
@@ -328,8 +328,8 @@ k2chess::score_t k2eval::OneBishopMobility(coord_t b_coord)
         auto coord = b_coord;
         for(auto col = 0; col < 8; ++col)
         {
-            coord += shifts[get_index(_b)][ray];
-            if(!within_board(coord) || to_black(b[coord]) == _p)
+            coord += shifts[get_index(black_bishop)][ray];
+            if(!within_board(coord) || to_black(b[coord]) == black_pawn)
                 break;
             empty_squares++;
         }
@@ -350,7 +350,7 @@ void k2eval::BishopMobility(side_to_move_t stm)
     auto rit = coords[stm].rbegin();
 
     while(rit != coords[stm].rend()
-    && to_black(b[*rit]) != _b)
+    && to_black(b[*rit]) != black_bishop)
         ++rit;
     if(rit == coords[stm].rend())
         return;
@@ -358,7 +358,7 @@ void k2eval::BishopMobility(side_to_move_t stm)
     ans += OneBishopMobility(*rit);
 
     ++rit;
-    if(rit != coords[stm].rend() && to_black(b[*rit]) == _b)
+    if(rit != coords[stm].rend() && to_black(b[*rit]) == black_bishop)
         ans += OneBishopMobility(*rit);
 
     val_opn += stm ? ans : -ans;
@@ -377,47 +377,47 @@ inline void k2eval::ClampedRook(side_to_move_t stm)
 
     if(stm)
     {
-        if(k == 0x06 && b[0x07] == _R && pawn_max[7 + 1][1])
+        if(k == 0x06 && b[0x07] == white_rook && pawn_max[7 + 1][1])
             val_opn -= clamped_rook;
         else if(k == 0x05)
         {
-            if(pawn_max[7 + 1][1] && b[0x07] == _R)
+            if(pawn_max[7 + 1][1] && b[0x07] == white_rook)
                 val_opn -= clamped_rook;
             else
-            if(pawn_max[6 + 1][1] && b[0x06] == _R)
+            if(pawn_max[6 + 1][1] && b[0x06] == white_rook)
                 val_opn -= clamped_rook;
         }
-        else if(k == 0x01 && b[0x00] == _R && pawn_max[0 + 1][1])
+        else if(k == 0x01 && b[0x00] == white_rook && pawn_max[0 + 1][1])
             val_opn -= clamped_rook;
         else if(k == 0x02)
         {
-            if(pawn_max[0 + 1][1] && b[0x00] == _R)
+            if(pawn_max[0 + 1][1] && b[0x00] == white_rook)
                 val_opn -= clamped_rook;
             else
-            if(pawn_max[1 + 1][1] && b[0x01] == _R)
+            if(pawn_max[1 + 1][1] && b[0x01] == white_rook)
                 val_opn -= clamped_rook;
         }
      }
      else
      {
-        if(k == 0x76 && b[0x77] == _r && pawn_max[7 + 1][0])
+        if(k == 0x76 && b[0x77] == black_rook && pawn_max[7 + 1][0])
             val_opn += clamped_rook;
         else if(k == 0x75)
         {
-            if(pawn_max[7 + 1][0] && b[0x77] == _r)
+            if(pawn_max[7 + 1][0] && b[0x77] == black_rook)
                 val_opn += clamped_rook;
             else
-            if(pawn_max[6 + 1][0] && b[0x76] == _r)
+            if(pawn_max[6 + 1][0] && b[0x76] == black_rook)
                 val_opn += clamped_rook;
         }
-        else if(k == 0x71 && b[0x70] == _r && pawn_max[0 + 1][0])
+        else if(k == 0x71 && b[0x70] == black_rook && pawn_max[0 + 1][0])
             val_opn += clamped_rook;
         else if(k == 0x72)
         {
-            if(pawn_max[0 + 1][0] && b[0x70] == _r)
+            if(pawn_max[0 + 1][0] && b[0x70] == black_rook)
                 val_opn += clamped_rook;
             else
-            if(pawn_max[1 + 1][0] && b[0x71] == _r)
+            if(pawn_max[1 + 1][0] && b[0x71] == black_rook)
                 val_opn += clamped_rook;
         }
     }
@@ -426,7 +426,7 @@ inline void k2eval::ClampedRook(side_to_move_t stm)
     auto rit = coords[stm].rbegin();
 
     while(rit != coords[stm].rend()
-    && to_black(b[*rit]) != _r)
+    && to_black(b[*rit]) != black_rook)
         ++rit;
     if(rit == coords[stm].rend())
         return;
@@ -434,36 +434,36 @@ inline void k2eval::ClampedRook(side_to_move_t stm)
     auto rook_on_7th_cr = 0;
     if((stm && get_row(*rit) >= 6) || (!stm && get_row(*rit) <= 1))
         rook_on_7th_cr++;
-    if(quantity[stm][get_index(_p)] >= 4
+    if(quantity[stm][get_index(black_pawn)] >= 4
     && pawn_max[get_col(*rit) + 1][stm] == 0)
         ans += (pawn_max[get_col(*rit) + 1][!stm] == 0 ? 54 : 22);
 
     auto empty_sq = 0;
     for(auto i = 1; i <= 2; ++i)
     {
-        if(get_col(*rit) + i < 7 && b[*rit + i] == __)
+        if(get_col(*rit) + i < 7 && b[*rit + i] == empty_square)
             empty_sq++;
-        if(get_col(*rit) - i > 0 && b[*rit - i] == __)
+        if(get_col(*rit) - i > 0 && b[*rit - i] == empty_square)
             empty_sq++;
     }
     if(empty_sq <= 1)
         ans -= 15;
 
     ++rit;
-    if(rit != coords[stm].rend() && to_black(b[*rit]) == _r)
+    if(rit != coords[stm].rend() && to_black(b[*rit]) == black_rook)
     {
         if((stm && get_row(*rit) >= 6) || (!stm && get_row(*rit) <= 1))
             rook_on_7th_cr++;
-        if(quantity[stm][get_index(_p)] >= 4
+        if(quantity[stm][get_index(black_pawn)] >= 4
         && pawn_max[get_col(*rit) + 1][stm] == 0)
             ans += (pawn_max[get_col(*rit) + 1][!stm] == 0 ? 54 : 22);
 
         empty_sq = 0;
         for(coord_t i = 1; i <= 2; ++i)
         {
-            if(get_col(*rit) + i < 7 && b[*rit + i] == __)
+            if(get_col(*rit) + i < 7 && b[*rit + i] == empty_square)
                 empty_sq++;
-            if(get_col(*rit) - i > 0 && b[*rit - i] == __)
+            if(get_col(*rit) - i > 0 && b[*rit - i] == empty_square)
                 empty_sq++;
         }
         if(empty_sq <= 1)
@@ -522,25 +522,25 @@ void k2eval::MaterialImbalances()
     // KNNk, KBNk, KBBk, etc
     else if(X == 6 && (material[0] == 0 || material[1] == 0))
     {
-        if(quantity[white][get_index(_n)] == 2
-        || quantity[black][get_index(_n)] == 2)
+        if(quantity[white][get_index(black_knight)] == 2
+        || quantity[black][get_index(black_knight)] == 2)
         {
             val_opn = 0;
             val_end = 0;
             return;
         }
         // many code for mating with only bishop and knight
-        else if((quantity[white][get_index(_n)] == 1
-                 && quantity[white][get_index(_b)] == 1)
-             || (quantity[black][get_index(_n)] == 1
-                 && quantity[black][get_index(_b)] == 1))
+        else if((quantity[white][get_index(black_knight)] == 1
+                 && quantity[white][get_index(black_bishop)] == 1)
+             || (quantity[black][get_index(black_knight)] == 1
+                 && quantity[black][get_index(black_bishop)] == 1))
         {
-            auto stm = quantity[white][get_index(_n)] == 1 ? white : black;
+            auto stm = quantity[white][get_index(black_knight)] == 1 ? white : black;
             auto rit = coords[stm].begin();
             for(; rit != coords[stm].end(); ++rit)
-                if(to_black(b[*rit]) == _b)
+                if(to_black(b[*rit]) == black_bishop)
                     break;
-            assert(to_black(b[*rit]) == _b);
+            assert(to_black(b[*rit]) == black_bishop);
 
             score_t ans = 0;
             auto ok = *king_coord[!stm];
@@ -606,36 +606,36 @@ void k2eval::MaterialImbalances()
     }
 
     // two bishops
-    if(quantity[white][get_index(_b)] == 2)
+    if(quantity[white][get_index(black_bishop)] == 2)
     {
         val_opn += 30;
         val_end += 30;
     }
-    if(quantity[black][get_index(_b)] == 2)
+    if(quantity[black][get_index(black_bishop)] == 2)
     {
         val_opn -= 30;
         val_end -= 30;
     }
 
     // pawn absence for both sides
-    if(quantity[white][get_index(_p)] == 0
-       && quantity[black][get_index(_p)] == 0
+    if(quantity[white][get_index(black_pawn)] == 0
+       && quantity[black][get_index(black_pawn)] == 0
     && material[white] != 0 && material[black] != 0)
         val_end /= 3;
 
     // multicolored bishops
-    if(quantity[white][get_index(_b)] == 1
-    && quantity[black][get_index(_b)] == 1)
+    if(quantity[white][get_index(black_bishop)] == 1
+    && quantity[black][get_index(black_bishop)] == 1)
     {
         auto w_it = coords[white].rbegin();
         while(w_it != coords[white].rend()
-        && b[*w_it] != _B)
+        && b[*w_it] != white_bishop)
             ++w_it;
         assert(w_it != coords[white].rend());
 
         auto b_it = coords[black].rbegin();
         while(b_it != coords[black].rend()
-        && b[*b_it] != _b)
+        && b[*b_it] != black_bishop)
             ++b_it;
         assert(b_it != coords[white].rend());
 
@@ -769,24 +769,24 @@ void k2eval::SetPawnStruct(k2chess::coord_t col)
     if(wtm)
     {
         y = 1;
-        while(b[get_coord(col, 7 - y)] != _p && y < 7)
+        while(b[get_coord(col, 7 - y)] != black_pawn && y < 7)
             y++;
         pawn_min[col + 1][black] = y;
 
         y = 6;
-        while(b[get_coord(col, 7 - y)] != _p && y > 0)
+        while(b[get_coord(col, 7 - y)] != black_pawn && y > 0)
             y--;
         pawn_max[col + 1][black] = y;
     }
     else
     {
         y = 1;
-        while(b[get_coord(col, y)] != _P && y < 7)
+        while(b[get_coord(col, y)] != white_pawn && y < 7)
             y++;
         pawn_min[col + 1][white] = y;
 
         y = 6;
-        while(b[get_coord(col, y)] != _P && y > 0)
+        while(b[get_coord(col, y)] != white_pawn && y > 0)
             y--;
         pawn_max[col + 1][white] = y;
     }
@@ -799,14 +799,14 @@ void k2eval::SetPawnStruct(k2chess::coord_t col)
 //-----------------------------
 void k2eval::MovePawnStruct(piece_t moved_piece, coord_t from_coord, move_c move)
 {
-    if(to_black(moved_piece) == _p || (move.flg & mPROM))
+    if(to_black(moved_piece) == black_pawn || (move.flg & is_promotion))
     {
         SetPawnStruct(get_col(move.to));
         if(move.flg)
             SetPawnStruct(get_col(from_coord));
     }
-    if(to_black(b_state[prev_states + ply].capt) == _p
-    || (move.flg & mENPS))                                    // mENPS not needed
+    if(to_black(b_state[prev_states + ply].capt) == black_pawn
+    || (move.flg & is_en_passant))                                    // is_en_passant not needed
     {
         wtm ^= white;
         SetPawnStruct(get_col(move.to));
@@ -828,25 +828,25 @@ void k2eval::InitPawnStruct()
         pawn_min[x + 1][0] = 7;
         pawn_min[x + 1][1] = 7;
         for(auto y = 1; y < 7; y++)
-            if(b[get_coord(x, y)] == _P)
+            if(b[get_coord(x, y)] == white_pawn)
             {
                 pawn_min[x + 1][1] = y;
                 break;
             }
         for(auto y = 6; y >= 1; y--)
-            if(b[get_coord(x, y)] == _P)
+            if(b[get_coord(x, y)] == white_pawn)
             {
                 pawn_max[x + 1][1] = y;
                 break;
             }
         for(auto y = 6; y >= 1; y--)
-            if(b[get_coord(x, y)] == _p)
+            if(b[get_coord(x, y)] == black_pawn)
             {
                 pawn_min[x + 1][0] = 7 - y;
                 break;
             }
          for(auto y = 1; y < 7; y++)
-            if(b[get_coord(x, y)] == _p)
+            if(b[get_coord(x, y)] == black_pawn)
             {
                 pawn_max[x + 1][0] = 7 - y;
                 break;
@@ -866,7 +866,7 @@ k2chess::score_t k2eval::CountKingTropism(side_to_move_t king_color)
     for(; rit != coords[!king_color].rend(); ++rit)
     {
         auto cur_piece = to_black(b[*rit]);
-        if(cur_piece == _p)
+        if(cur_piece == black_pawn)
             break;
         auto dist = king_dist[std::abs(*king_coord[king_color] - *rit)];
         if(dist >= 4)
@@ -888,7 +888,7 @@ void k2eval::MoveKingTropism(coord_t from_coord, move_c move, side_to_move_t kin
 
     auto cur_piece = b[move.to];
 
-    if(to_black(cur_piece) == _k)
+    if(to_black(cur_piece) == black_king)
     {
         king_tropism[king_color]  = CountKingTropism(king_color);
         king_tropism[!king_color] = CountKingTropism(!king_color);
@@ -900,7 +900,7 @@ void k2eval::MoveKingTropism(coord_t from_coord, move_c move, side_to_move_t kin
     auto dist_fr = king_dist[std::abs(*king_coord[king_color] - from_coord)];
 
 
-    if(dist_fr < 4 && !(move.flg & mPROM))
+    if(dist_fr < 4 && !(move.flg & is_promotion))
         king_tropism[king_color] -= tropism_factor[dist_fr < 3]
                                                   [get_index(cur_piece)];
     if(dist_to < 4)
@@ -908,7 +908,7 @@ void k2eval::MoveKingTropism(coord_t from_coord, move_c move, side_to_move_t kin
                                                   [get_index(cur_piece)];
 
     auto cap = b_state[prev_states + ply].capt;
-    if(move.flg & mCAPT)
+    if(move.flg & is_capture)
     {
         dist_to = king_dist[std::abs(*king_coord[!king_color] - move.to)];
         if(dist_to < 4)
@@ -918,10 +918,10 @@ void k2eval::MoveKingTropism(coord_t from_coord, move_c move, side_to_move_t kin
 
 #ifndef NDEBUG
     auto tmp = CountKingTropism(king_color);
-    if(king_tropism[king_color] != tmp && to_black(cap) != _k)
+    if(king_tropism[king_color] != tmp && to_black(cap) != black_king)
         ply = ply;
     tmp = CountKingTropism(!king_color);
-    if(king_tropism[!king_color] != tmp && to_black(cap) != _k)
+    if(king_tropism[!king_color] != tmp && to_black(cap) != black_king)
         ply = ply;
 #endif // NDEBUG
 }
@@ -1008,11 +1008,11 @@ k2chess::score_t k2eval::KingOpenFiles(side_to_move_t king_color)
     for(; rit != coords[!king_color].rend(); ++rit)
     {
         auto pt = b[*rit];
-        if(to_black(pt) != _q && to_black(pt) != _r)
+        if(to_black(pt) != black_queen && to_black(pt) != black_rook)
             break;
         auto k = pawn_max[get_col(*rit) + 1][king_color] ? 1 : 2;
         rooks_queens_on_file[get_col(*rit)] +=
-                k*(to_black(pt) == _r ? 2 : 1);
+                k*(to_black(pt) == black_rook ? 2 : 1);
     }
 
     for(auto i = 0; i < 3; ++i)
@@ -1066,7 +1066,7 @@ k2chess::score_t k2eval::KingWeakness(side_to_move_t king_color)
             continue;
         auto pt1 = b[col + k + shft - 1];
         auto pt2 = b[col + k + 2*shft - 1];
-        const piece_t pwn = _p | king_color;
+        const piece_t pwn = black_pawn | king_color;
         if(pt1 == pwn || pt2 == pwn)
             continue;
 
@@ -1105,7 +1105,7 @@ void k2eval::KingSafety(side_to_move_t king_color)
 {
     auto trp = king_tropism[king_color];
 
-    if(quantity[!king_color][get_index(_q)] == 0)
+    if(quantity[!king_color][get_index(black_queen)] == 0)
     {
         trp += trp*trp/15;
         val_opn += king_color ? -trp : trp;

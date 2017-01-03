@@ -98,12 +98,12 @@ score_t ReturnEval(side_to_move_t stm)
 
 bool is_light(piece_t piece, side_to_move_t stm)
 {
-    return piece != __ && (piece & white) == stm;
+    return piece != empty_square && (piece & white) == stm;
 }
 
 bool is_dark(piece_t piece, side_to_move_t stm)
 {
-    return piece != __ && (piece & white) != stm;
+    return piece != empty_square && (piece & white) != stm;
 }
 
 

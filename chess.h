@@ -60,30 +60,32 @@ const static depth_t prev_states   = 4;
 const static piece_t white = 1;
 const static piece_t black = 0;
 
-const static piece_t   __ = 0,
-                _k = 2,
-                _q = 4,
-                _r = 6,
-                _b = 8,
-                _n = 10,
-                _p = 12,
-                _K = 3,
-                _Q = 5,
-                _R = 7,
-                _B = 9,
-                _N = 11,
-                _P = 13;
+const static piece_t
+    empty_square = 0,
+    black_king = 2,
+    black_queen = 4,
+    black_rook = 6,
+    black_bishop = 8,
+    black_knight = 10,
+    black_pawn = 12,
+    white_king = 3,
+    white_queen = 5,
+    white_rook = 7,
+    white_bishop = 9,
+    white_knight = 11,
+    white_pawn = 13;
 
-const move_flag_t   mCAPT = 0x10,
-                    mCS_K = 0x20,
-                    mCS_Q = 0x40,
-                    mCSTL = 0x60,
-                    mENPS = 0x80,
-                    mPR_Q = 0x01,
-                    mPR_N = 0x02,
-                    mPR_R = 0x03,
-                    mPR_B = 0x04,
-                    mPROM = 0x07;
+const move_flag_t
+    is_capture = 0x10,
+    is_castle_kingside = 0x20,
+    is_castle_queenside = 0x40,
+    is_castle = 0x60,
+    is_en_passant = 0x80,
+    is_promotion_to_queen = 0x01,
+    is_promotion_to_knight = 0x02,
+    is_promotion_to_rook = 0x03,
+    is_promotion_to_bishop = 0x04,
+    is_promotion = 0x07;
 
 
 
@@ -104,7 +106,7 @@ public:
 };
                                                                         // 'to' - coords for piece to move to (8 bit);
                                                                         // 'pc' - number of piece in 'men' array (8 bit);
-                                                                        // 'flg' - flags (mCAPT, etc) - (8 bit)
+                                                                        // 'flg' - flags (is_capture, etc) - (8 bit)
                                                                         // 'scr' - unsigned score (priority) by move generator (8 bit)
                                                                         //      0..63    - bad captures
                                                                         //      64..127  - silent moves without history (pst value)
@@ -122,7 +124,7 @@ struct state_s
     piece_t capt;                                                            // taken piece, 6 bits
     iterator_entity captured_it;                                        // iterator to captured piece
     coord_t fr;                                                         // from point, 7 bits
-    castle_t cstl;                                                      // castling rights, bits 0..3: _K, _Q, _k, _q, 4 bits
+    castle_t cstl;                                                      // castling rights, bits 0..3: white_king, white_queen, black_king, black_queen, 4 bits
 
     iterator_entity castled_rook_it;                                    // iterator to castled rook, 8 bits
     enpass_t ep;                                                        // 0 = no_ep, else ep=get_col(x) + 1, not null only if opponent pawn is near, 4 bits

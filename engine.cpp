@@ -116,7 +116,7 @@ k2chess::score_t k2engine::Search(depth_t depth, score_t alpha, score_t beta,
             lmr = 0;
         else if(legal_moves < 4)
             lmr = 0;
-        else if(to_black(b[cur_move.to]) == _p
+        else if(to_black(b[cur_move.to]) == black_pawn
         && IsPasser(get_col(cur_move.to), !wtm))
             lmr = 0;
         else if(depth <= 4 && legal_moves > 8)
@@ -229,8 +229,8 @@ k2chess::score_t k2engine::QSearch(score_t alpha, score_t beta)
 
         if(material[white] + material[black]
                 - pieces[white] - pieces[black] > 24
-        && to_black(b[cur_move.to]) != _k
-        && !(cur_move.flg & mPROM))
+        && to_black(b[cur_move.to]) != black_king
+        && !(cur_move.flg & is_promotion))
         {
             auto cur_eval = ReturnEval(wtm);
             auto capture = 100*pc_streng[get_index(b[cur_move.to])];
@@ -244,7 +244,7 @@ k2chess::score_t k2engine::QSearch(score_t alpha, score_t beta)
         if((!stop_ply || root_ply == stop_ply) && strcmp(stop_str, cv) == 0)
             ply = ply;
 #endif // NDEBUG
-        if(to_black(b_state[prev_states + ply].capt) == _k)
+        if(to_black(b_state[prev_states + ply].capt) == black_king)
         {
             UnMoveAndEval(cur_move);
             return king_value;
@@ -709,7 +709,7 @@ void k2engine::MoveToStr(move_c move, bool stm, char *out)
     out[1]  = get_row(f) + '1';
     out[2]  = get_col(move.to) + 'a';
     out[3]  = get_row(move.to) + '1';
-    out[4]  = (move.flg & mPROM) ? proms[move.flg & mPROM] : '\0';
+    out[4]  = (move.flg & is_promotion) ? proms[move.flg & is_promotion] : '\0';
     out[5]  = '\0';
 }
 
@@ -935,8 +935,8 @@ bool k2engine::ShowPV(depth_t cur_ply)
                 << (char)(get_row(from_coord) + '1')
                 << (char)(get_col(cur_move.to) + 'a') << (char)(get_row(cur_move.to) + '1');
             char proms[] = {'?', 'q', 'n', 'r', 'b'};
-            if(cur_move.flg & mPROM)
-                std::cout << proms[cur_move.flg & mPROM];
+            if(cur_move.flg & is_promotion)
+                std::cout << proms[cur_move.flg & is_promotion];
             std::cout << " ";
             MkMoveFast(cur_move);
             bool in_check = Attack(*king_coord[wtm], !wtm);
@@ -961,12 +961,12 @@ bool k2engine::ShowPV(depth_t cur_ply)
             {
                 std::cout << piece_char;
                 FindAndPrintForAmbiguousMoves(cur_move);
-                if(cur_move.flg & mCAPT)
+                if(cur_move.flg & is_capture)
                     std::cout << 'x';
                 std::cout << (char)(get_col(cur_move.to) + 'a');
                 std::cout << (char)(get_row(cur_move.to) + '1');
             }
-            else if(cur_move.flg & mCAPT)
+            else if(cur_move.flg & is_capture)
             {
                 it = coords[wtm].begin();
                 it = cur_move.pc;
@@ -979,8 +979,8 @@ bool k2engine::ShowPV(depth_t cur_ply)
                 std::cout << (char)(get_col(cur_move.to) + 'a')
                     << (char)(get_row(cur_move.to) + '1');
             char proms[] = "?QNRB";
-            if(piece_char == 'P' && (cur_move.flg & mPROM))
-                std::cout << proms[cur_move.flg& mPROM];
+            if(piece_char == 'P' && (cur_move.flg & is_promotion))
+                std::cout << proms[cur_move.flg& is_promotion];
             std::cout << ' ';
             MkMoveFast(cur_move);
             bool in_check = Attack(*king_coord[wtm], !wtm);
@@ -1070,7 +1070,7 @@ bool k2engine::MakeMoveFinaly(char *move_str)
         cur_move_str[1] = get_row(*it) + '1';
         cur_move_str[2] = get_col(cur_move.to) + 'a';
         cur_move_str[3] = get_row(cur_move.to) + '1';
-        cur_move_str[4] = (cur_move.flg & mPROM) ? proms[cur_move.flg & mPROM] : '\0';
+        cur_move_str[4] = (cur_move.flg & is_promotion) ? proms[cur_move.flg & is_promotion] : '\0';
         cur_move_str[5] = '\0';
 
         if(strcmp(move_str, cur_move_str) != 0)
@@ -1364,7 +1364,7 @@ void k2engine::ShowFen()
         for(auto col = 0; col < 8; ++col)
         {
             auto piece = b[get_coord(col, row)];
-            if(piece == __)
+            if(piece == empty_square)
             {
                 blank_cr++;
                 continue;
@@ -1483,62 +1483,62 @@ bool k2engine::MoveIsPseudoLegal(move_c &move, bool stm)
         return false;
     if(!is_light(b[from_coord], stm))
         return false;
-    if(to_black(b[from_coord]) != _p
-       && ((!is_dark(piece, stm) && (move.flg & mCAPT))
-    || (piece != __ && !(move.flg & mCAPT))))
+    if(to_black(b[from_coord]) != black_pawn
+       && ((!is_dark(piece, stm) && (move.flg & is_capture))
+    || (piece != empty_square && !(move.flg & is_capture))))
         return false;
-    if(to_black(b[from_coord]) != _p && (move.flg & mPROM))
+    if(to_black(b[from_coord]) != black_pawn && (move.flg & is_promotion))
         return false;
     bool long_move;
     switch (to_black(b[from_coord]))
     {
-        case _p :
-            if((move.flg & mPROM) && ((stm && get_row(from_coord) != 6)
+        case black_pawn :
+            if((move.flg & is_promotion) && ((stm && get_row(from_coord) != 6)
             || (!stm && get_row(from_coord) != 1)))
                 return false;
-            if((move.flg & mCAPT) && (std::abs(delta_col) != 1
+            if((move.flg & is_capture) && (std::abs(delta_col) != 1
             || (stm && delta_row != 1) || (!stm && delta_row != -1)
-            || (!(move.flg & mENPS) && !is_dark(piece, stm))))
+            || (!(move.flg & is_en_passant) && !is_dark(piece, stm))))
                 return false;
-            if((move.flg & mENPS)
-            && (piece != __ || b_state[prev_states + ply].ep == 0))
+            if((move.flg & is_en_passant)
+            && (piece != empty_square || b_state[prev_states + ply].ep == 0))
                 return false;
             if(get_row(move.to) == (stm ? 7 : 0)
-            && !(move.flg & mPROM))
+            && !(move.flg & is_promotion))
                 return false;
-            if(!(move.flg & mCAPT))
+            if(!(move.flg & is_capture))
             {
                 if(!stm)
                     delta_row = -delta_row;
-                if(piece != __ || delta_col != 0
+                if(piece != empty_square || delta_col != 0
                 || (stm && delta_row <= 0))
                     return false;
                 long_move = (get_row(from_coord) == (stm ? 1 : 6));
                 if(long_move ? delta_row > 2 : delta_row != 1)
                     return false;
                 if(long_move && delta_row == 2
-                && b[get_coord(get_col(from_coord), (get_row(from_coord) + get_row(move.to))/2)] != __)
+                && b[get_coord(get_col(from_coord), (get_row(from_coord) + get_row(move.to))/2)] != empty_square)
                     return false;
             }
 
             break;
-        case _n :
-            move.flg &= mCAPT;
+        case black_knight :
+            move.flg &= is_capture;
             if(std::abs(delta_col) + std::abs(delta_row) != 3)
                 return false;
             if(std::abs(delta_col) != 1 && std::abs(delta_row) != 1)
                 return false;
             break;
-        case _b :
-        case _r :
-        case _q :
-            move.flg &= mCAPT;
+        case black_bishop :
+        case black_rook :
+        case black_queen :
+            move.flg &= is_capture;
             if(!(attacks[120 + move.to - from_coord] & (1 << get_index(b[from_coord])))
             || !SliderAttack(move.to, from_coord))
                 return false;
             break;
-        case _k :
-            if(!(move.flg & mCSTL))
+        case black_king :
+            if(!(move.flg & is_castle))
             {
                 if((std::abs(delta_col) > 1 || std::abs(delta_row) > 1))
                     return false;
@@ -1552,15 +1552,15 @@ bool k2engine::MoveIsPseudoLegal(move_c &move, bool stm)
             if((b_state[prev_states + ply].cstl &
             (move.flg >> 3 >> (2*stm))) == 0)
                 return false;
-            if(b[get_coord(get_col(move.to), get_row(from_coord))] != __)
+            if(b[get_coord(get_col(move.to), get_row(from_coord))] != empty_square)
                 return false;
-            if(b[get_coord((get_col(move.to)+get_col(from_coord))/2, get_row(from_coord))] != __)
+            if(b[get_coord((get_col(move.to)+get_col(from_coord))/2, get_row(from_coord))] != empty_square)
                 return false;
-            if((move.flg &mCS_K)
-            && to_black(b[get_coord(7, get_row(from_coord))]) != _r)
+            if((move.flg &is_castle_kingside)
+            && to_black(b[get_coord(7, get_row(from_coord))]) != black_rook)
                 return false;
-            if((move.flg &mCS_Q)
-            && to_black(b[get_coord(0, get_row(from_coord))]) != _r)
+            if((move.flg &is_castle_queenside)
+            && to_black(b[get_coord(0, get_row(from_coord))]) != black_rook)
                 return false;
             break;
 
@@ -1778,8 +1778,8 @@ void k2engine::ShowCurrentUciInfo()
         << (char)(get_col(from_coord) + 'a') << (char)(get_row(from_coord) + '1')
         << (char)(get_col(move.to) + 'a') << (char)(get_row(move.to) + '1');
     char proms[] = {'?', 'q', 'n', 'r', 'b'};
-    if(move.flg & mPROM)
-        std::cout << proms[move.flg & mPROM];
+    if(move.flg & is_promotion)
+        std::cout << proms[move.flg & is_promotion];
 
     std::cout << " currmovenumber " << root_move_cr + 1;
     std::cout << " hashfull ";
