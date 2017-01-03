@@ -1,6 +1,7 @@
 #include <iostream>
 #include <cstring>
-#include <stdint.h>
+#include <cstdint>
+#include <cstdlib>
 #include <assert.h>
 #include "short_list.h"
 
