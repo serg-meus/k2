@@ -18,13 +18,13 @@ bool k2hash::InitHashTable()
                 zorb[i][j][k] = zorb_distr(rnd_gen);
 
     for(size_t i = 1;
-    i < sizeof(zorb_en_passant)/sizeof(*zorb_en_passant);
-    ++i)
+            i < sizeof(zorb_en_passant)/sizeof(*zorb_en_passant);
+            ++i)
         zorb_en_passant[i] = zorb_distr(rnd_gen);
 
     for(size_t i = 1;
-    i < sizeof(zorb_castling)/sizeof(*zorb_castling);
-    ++i)
+            i < sizeof(zorb_castling)/sizeof(*zorb_castling);
+            ++i)
         zorb_castling[i] = zorb_distr(rnd_gen);
 
     zorb_en_passant[0] = 0;
@@ -68,10 +68,10 @@ void k2hash::MoveHashKey(move_c m, bool special)
 
     auto pt   = b[m.to];
     auto &f = b_state[prev_states + ply],
-            &_f = b_state[prev_states + ply - 1];
+          &_f = b_state[prev_states + ply - 1];
 
     hash_key ^= zorb[piece_hash_index(pt)][get_col(fr)][get_row(fr)]
-           ^ zorb[piece_hash_index(pt)][get_col(m.to)][get_row(m.to)];
+                ^ zorb[piece_hash_index(pt)][get_col(m.to)][get_row(m.to)];
 
     if(f.capt)
         hash_key ^= zorb[piece_hash_index(f.capt)][get_col(m.to)][get_row(m.to)];
@@ -80,32 +80,32 @@ void k2hash::MoveHashKey(move_c m, bool special)
 
     if(m.flg & is_promotion)
         hash_key ^= zorb[piece_hash_index(white_pawn ^ wtm)][get_col(fr)][get_row(fr)]
-               ^ zorb[piece_hash_index(pt)][get_col(fr)][get_row(fr)];
+                    ^ zorb[piece_hash_index(pt)][get_col(fr)][get_row(fr)];
     else if(m.flg & is_en_passant)
         hash_key ^= zorb[piece_hash_index(black_pawn ^ wtm)][get_col(m.to)]
-            [get_row(m.to) + (wtm ? 1 : -1)];
+                    [get_row(m.to) + (wtm ? 1 : -1)];
     else if(m.flg & is_castle)
     {
         if(!wtm)
         {
             if(m.flg & is_castle_kingside)
                 hash_key ^= zorb[piece_hash_index(white_rook)][7][0]
-                         ^  zorb[piece_hash_index(white_rook)][5][0];
+                            ^  zorb[piece_hash_index(white_rook)][5][0];
             else
                 hash_key ^= zorb[piece_hash_index(white_rook)][0][0]
-                         ^  zorb[piece_hash_index(white_rook)][3][0];
+                            ^  zorb[piece_hash_index(white_rook)][3][0];
         }
         else
         {
             if(m.flg & is_castle_kingside)
                 hash_key ^= zorb[piece_hash_index(black_rook)][7][7]
-                         ^  zorb[piece_hash_index(black_rook)][5][7];
+                            ^  zorb[piece_hash_index(black_rook)][5][7];
             else
                 hash_key ^= zorb[piece_hash_index(black_rook)][0][7]
-                         ^  zorb[piece_hash_index(black_rook)][3][7];
+                            ^  zorb[piece_hash_index(black_rook)][3][7];
         }
         hash_key ^= zorb_castling[_f.cstl]
-                 ^  zorb_castling[f.cstl];
+                    ^  zorb_castling[f.cstl];
     }
     hash_key ^= key_for_side_to_move;
     if(special)
@@ -215,8 +215,8 @@ void k2hash::hash_table_c::clear()
 
 //--------------------------------
 void k2hash::hash_table_c::add(hash_key_t key, score_t value, move_c best,
-                              depth_t depth, hbound_t bound_type, depth_t age,
-                              bool one_reply, node_t nodes)
+                               depth_t depth, hbound_t bound_type, depth_t age,
+                               bool one_reply, node_t nodes)
 {
     size_t i;
     auto *bucket = &data[entries_in_a_bucket*(key & mask)];          // looking for already existed entries for the same position
@@ -246,7 +246,7 @@ void k2hash::hash_table_c::add(hash_key_t key, score_t value, move_c best,
 
             if(i >= entries_in_a_bucket)                                // if not found anything, rewrite random entry in a bucket
                 i = (unsigned)(nodes ^ key)
-                        & (entries_in_a_bucket - 1);
+                    & (entries_in_a_bucket - 1);
         }
     }
     bucket[i].key           = key >> 32;

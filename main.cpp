@@ -73,7 +73,7 @@ bool quit   = false;
 bool pondering_enabled = false;
 
 #ifndef DONT_USE_THREAD_FOR_INPUT
-    std::thread t;                                                      // for compilers with C++11 support
+std::thread t;                                                      // for compilers with C++11 support
 #endif // USE_THREAD_FOR_INPUT                                          // under Linux -pthread must be used for gcc linker
 
 
@@ -214,8 +214,8 @@ bool LooksLikeMove(std::string in)
 void StopEngine()
 {
 #ifndef DONT_USE_THREAD_FOR_INPUT
-        eng.stop = true;
-        t.join();
+    eng.stop = true;
+    t.join();
 #endif // USE_THREAD_FOR_INPUT
 }
 
@@ -304,8 +304,8 @@ void PerftCommand(std::string in)
     deltaTick = tick2 - tick1;
 
     std::cout << std::endl << "nodes = " << eng.nodes << std::endl
-        << "dt = " << deltaTick / 1000000. << std::endl
-        << "Mnps = " << eng.nodes / (deltaTick + 1) << std::endl << std::endl;
+              << "dt = " << deltaTick / 1000000. << std::endl
+              << "Mnps = " << eng.nodes / (deltaTick + 1) << std::endl << std::endl;
 }
 
 
@@ -447,19 +447,19 @@ void ProtoverCommand(std::string in)
     eng.uci     = false;
 
     std::cout << "feature "
-            "myname=\"K2 v." ENGINE_VERSION "\" "
-            "setboard=1 "
-            "analyze=1 "
-            "san=0 "
-            "colors=0 "
-            "pause=0 "
-            "usermove=0 "
-            "time=1 "
-            "draw=0 "
-            "sigterm=0 "
-            "sigint=0 "
-            "memory=1 "
-            "done=1 " << std::endl;
+              "myname=\"K2 v." ENGINE_VERSION "\" "
+              "setboard=1 "
+              "analyze=1 "
+              "san=0 "
+              "colors=0 "
+              "pause=0 "
+              "usermove=0 "
+              "time=1 "
+              "draw=0 "
+              "sigterm=0 "
+              "sigint=0 "
+              "memory=1 "
+              "done=1 " << std::endl;
 }
 
 
@@ -701,7 +701,7 @@ void UciGoCommand(std::string in)
             char clr = arg1[0];
             GetFirstArg(arg2, &arg1, &arg2);
             if((clr == 'w' && eng.WhiteIsOnMove())
-               || (clr == 'b' && !eng.WhiteIsOnMove()))
+                    || (clr == 'b' && !eng.WhiteIsOnMove()))
             {
                 eng.time_base        = 1000.*atof(arg1.c_str());
                 eng.time_remains     = eng.time_base;
@@ -716,7 +716,7 @@ void UciGoCommand(std::string in)
             char clr = arg1[0];
             GetFirstArg(arg2, &arg1, &arg2);
             if((clr == 'w' && eng.WhiteIsOnMove())
-               || (clr == 'b' && !eng.WhiteIsOnMove()))
+                    || (clr == 'b' && !eng.WhiteIsOnMove()))
                 eng.time_inc         = 1000.*atof(arg1.c_str());
             arg1 = arg2;
         }
@@ -830,13 +830,13 @@ void AnalyzeCommand(std::string in)
     force = false;
     eng.infinite_analyze = true;
 
-    #ifndef DONT_USE_THREAD_FOR_INPUT
+#ifndef DONT_USE_THREAD_FOR_INPUT
     if(t.joinable())
         t.join();
     t = std::thread(&k2engine::MainSearch, &eng);
-    #else
+#else
     eng.MainSearch();
-    #endif // USE_THREAD_FOR_INPUT
+#endif // USE_THREAD_FOR_INPUT
 }
 
 
@@ -859,23 +859,23 @@ void SetvalueCommand(std::string in)
 {
     std::string arg1, arg2;
     GetFirstArg(in, &arg1, &arg2);
-/*
-    if(arg1 == "k_saf")
-    {
-        param.at(0) = atof(arg2.c_str());
-    }
+    /*
+        if(arg1 == "k_saf")
+        {
+            param.at(0) = atof(arg2.c_str());
+        }
 
-    else if(arg1 == "k_saf1")
-    {
-        param.at(1) = atof(arg2.c_str());
-    }
+        else if(arg1 == "k_saf1")
+        {
+            param.at(1) = atof(arg2.c_str());
+        }
 
-    else
-    {
-        std::cout << "error: wrong parameter name" << std ::endl
-                     << "resign" << std::endl;
-        param.clear();
-    }
-*/
+        else
+        {
+            std::cout << "error: wrong parameter name" << std ::endl
+                         << "resign" << std::endl;
+            param.clear();
+        }
+    */
     eng.InitEngine();
 }

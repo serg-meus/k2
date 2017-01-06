@@ -191,8 +191,8 @@ bool k2eval::IsPasser(coord_t col, side_to_move_t stm)
     auto mx = pawn_max[col + 1][stm];
 
     if(mx >= 7 - pawn_min[col + 1][!stm]
-    && mx >= 7 - pawn_min[col - 0][!stm]
-    && mx >= 7 - pawn_min[col + 2][!stm])
+            && mx >= 7 - pawn_min[col - 0][!stm]
+            && mx >= 7 - pawn_min[col + 2][!stm])
         return true;
     else
         return false;
@@ -246,19 +246,19 @@ void k2eval::EvalPawns(side_to_move_t stm)
         {
             // pawn holes occupied by enemy pieces
             if(col > 0 && col < 7 && mx < pawn_min[col + 0][stm]
-            && mx < pawn_min[col + 2][stm])
+                    && mx < pawn_min[col + 2][stm])
             {
                 auto y_coord = stm ? mx + 1 : 7 - mx - 1;
                 auto op_piece = b[get_coord(col, y_coord)];
                 bool occupied = is_dark(op_piece, stm)
-                && to_black(op_piece) != black_pawn;
+                                && to_black(op_piece) != black_pawn;
                 if(occupied)
                     ansO -= 30;
             }
 
             // gaps in pawn structure
             if(pawn_max[col + 0][stm]
-            && std::abs(mx - pawn_max[col + 0][stm]) > 1)
+                    && std::abs(mx - pawn_max[col + 0][stm]) > 1)
                 ansE -= 33;
 
             prev_passer = false;
@@ -302,7 +302,7 @@ void k2eval::EvalPawns(side_to_move_t stm)
 
         // unstoppable
         if(opp_only_pawns
-        && IsUnstoppablePawn(col, 7 - pawn_max[col + 1][stm], stm))
+                && IsUnstoppablePawn(col, 7 - pawn_max[col + 1][stm], stm))
         {
             ansO += 120*mx + 350;
             ansE += 120*mx + 350;
@@ -350,7 +350,7 @@ void k2eval::BishopMobility(side_to_move_t stm)
     auto rit = coords[stm].rbegin();
 
     while(rit != coords[stm].rend()
-    && to_black(b[*rit]) != black_bishop)
+            && to_black(b[*rit]) != black_bishop)
         ++rit;
     if(rit == coords[stm].rend())
         return;
@@ -383,8 +383,7 @@ inline void k2eval::ClampedRook(side_to_move_t stm)
         {
             if(pawn_max[7 + 1][1] && b[0x07] == white_rook)
                 val_opn -= clamped_rook;
-            else
-            if(pawn_max[6 + 1][1] && b[0x06] == white_rook)
+            else if(pawn_max[6 + 1][1] && b[0x06] == white_rook)
                 val_opn -= clamped_rook;
         }
         else if(k == 0x01 && b[0x00] == white_rook && pawn_max[0 + 1][1])
@@ -393,21 +392,19 @@ inline void k2eval::ClampedRook(side_to_move_t stm)
         {
             if(pawn_max[0 + 1][1] && b[0x00] == white_rook)
                 val_opn -= clamped_rook;
-            else
-            if(pawn_max[1 + 1][1] && b[0x01] == white_rook)
+            else if(pawn_max[1 + 1][1] && b[0x01] == white_rook)
                 val_opn -= clamped_rook;
         }
-     }
-     else
-     {
+    }
+    else
+    {
         if(k == 0x76 && b[0x77] == black_rook && pawn_max[7 + 1][0])
             val_opn += clamped_rook;
         else if(k == 0x75)
         {
             if(pawn_max[7 + 1][0] && b[0x77] == black_rook)
                 val_opn += clamped_rook;
-            else
-            if(pawn_max[6 + 1][0] && b[0x76] == black_rook)
+            else if(pawn_max[6 + 1][0] && b[0x76] == black_rook)
                 val_opn += clamped_rook;
         }
         else if(k == 0x71 && b[0x70] == black_rook && pawn_max[0 + 1][0])
@@ -416,8 +413,7 @@ inline void k2eval::ClampedRook(side_to_move_t stm)
         {
             if(pawn_max[0 + 1][0] && b[0x70] == black_rook)
                 val_opn += clamped_rook;
-            else
-            if(pawn_max[1 + 1][0] && b[0x71] == black_rook)
+            else if(pawn_max[1 + 1][0] && b[0x71] == black_rook)
                 val_opn += clamped_rook;
         }
     }
@@ -426,7 +422,7 @@ inline void k2eval::ClampedRook(side_to_move_t stm)
     auto rit = coords[stm].rbegin();
 
     while(rit != coords[stm].rend()
-    && to_black(b[*rit]) != black_rook)
+            && to_black(b[*rit]) != black_rook)
         ++rit;
     if(rit == coords[stm].rend())
         return;
@@ -435,7 +431,7 @@ inline void k2eval::ClampedRook(side_to_move_t stm)
     if((stm && get_row(*rit) >= 6) || (!stm && get_row(*rit) <= 1))
         rook_on_7th_cr++;
     if(quantity[stm][get_index(black_pawn)] >= 4
-    && pawn_max[get_col(*rit) + 1][stm] == 0)
+            && pawn_max[get_col(*rit) + 1][stm] == 0)
         ans += (pawn_max[get_col(*rit) + 1][!stm] == 0 ? 54 : 22);
 
     auto empty_sq = 0;
@@ -455,7 +451,7 @@ inline void k2eval::ClampedRook(side_to_move_t stm)
         if((stm && get_row(*rit) >= 6) || (!stm && get_row(*rit) <= 1))
             rook_on_7th_cr++;
         if(quantity[stm][get_index(black_pawn)] >= 4
-        && pawn_max[get_col(*rit) + 1][stm] == 0)
+                && pawn_max[get_col(*rit) + 1][stm] == 0)
             ans += (pawn_max[get_col(*rit) + 1][!stm] == 0 ? 54 : 22);
 
         empty_sq = 0;
@@ -488,7 +484,7 @@ bool k2eval::IsUnstoppablePawn(coord_t col, coord_t row, side_to_move_t stm)
     auto psq = get_coord(col, stm ? 7 : 0);
     auto d = king_dist[std::abs(k - psq)];
     if(get_col(*king_coord[stm]) == col
-    && king_dist[std::abs(*king_coord[stm] - psq)] <= row)
+            && king_dist[std::abs(*king_coord[stm] - psq)] <= row)
         row++;
     return (score_t)d - (stm != wtm) > row;
 }
@@ -501,7 +497,7 @@ bool k2eval::IsUnstoppablePawn(coord_t col, coord_t row, side_to_move_t stm)
 void k2eval::MaterialImbalances()
 {
     auto X = material[black] + 1 + material[white] + 1
-            - pieces[black] - pieces[white];
+             - pieces[black] - pieces[white];
 
     if(X == 3 && (material[black] == 4 || material[white] == 4))
     {
@@ -523,7 +519,7 @@ void k2eval::MaterialImbalances()
     else if(X == 6 && (material[0] == 0 || material[1] == 0))
     {
         if(quantity[white][get_index(black_knight)] == 2
-        || quantity[black][get_index(black_knight)] == 2)
+                || quantity[black][get_index(black_knight)] == 2)
         {
             val_opn = 0;
             val_end = 0;
@@ -532,8 +528,8 @@ void k2eval::MaterialImbalances()
         // many code for mating with only bishop and knight
         else if((quantity[white][get_index(black_knight)] == 1
                  && quantity[white][get_index(black_bishop)] == 1)
-             || (quantity[black][get_index(black_knight)] == 1
-                 && quantity[black][get_index(black_bishop)] == 1))
+                || (quantity[black][get_index(black_knight)] == 1
+                    && quantity[black][get_index(black_bishop)] == 1))
         {
             auto stm = quantity[white][get_index(black_knight)] == 1 ? white : black;
             auto rit = coords[stm].begin();
@@ -545,10 +541,10 @@ void k2eval::MaterialImbalances()
             score_t ans = 0;
             auto ok = *king_coord[!stm];
             if(ok == 0x06 || ok == 0x07 || ok == 0x17
-            || ok == 0x70 || ok == 0x71 || ok == 0x60)
+                    || ok == 0x70 || ok == 0x71 || ok == 0x60)
                 ans = 200;
             if(ok == 0x00 || ok == 0x01 || ok == 0x10
-            || ok == 0x77 || ok == 0x76 || ok == 0x67)
+                    || ok == 0x77 || ok == 0x76 || ok == 0x67)
                 ans = -200;
 
             bool bishop_on_light_square = ((get_col(*rit)) + get_row(*rit)) & 1;
@@ -566,14 +562,14 @@ void k2eval::MaterialImbalances()
         {
             auto k = *king_coord[white];
             if((pawn_max[1 + 0][black] != 0 && king_dist[std::abs(k - 0x00)] <= 1)
-            || (pawn_max[1 + 7][black] != 0 && king_dist[std::abs(k - 0x07)] <= 1))
+                    || (pawn_max[1 + 7][black] != 0 && king_dist[std::abs(k - 0x07)] <= 1))
                 val_end += 750;
         }
         else if(material[black] == 0)
         {
             auto k = *king_coord[black];
             if((pawn_max[1 + 0][white] != 0 && king_dist[std::abs(k - 0x70)] <= 1)
-            || (pawn_max[1 + 7][white] != 0 && king_dist[std::abs(k - 0x77)] <= 1))
+                    || (pawn_max[1 + 7][white] != 0 && king_dist[std::abs(k - 0x77)] <= 1))
                 val_end -= 750;
         }
     }
@@ -596,8 +592,8 @@ void k2eval::MaterialImbalances()
                 val_end = 0;
             }
             else if((colp == 0 || colp == 7)
-            && king_dist[std::abs(*king_coord[!stm] -
-                              (colp + (stm ? 0x70 : 0)))] <= 1)
+                    && king_dist[std::abs(*king_coord[!stm] -
+                                          (colp + (stm ? 0x70 : 0)))] <= 1)
             {
                 val_opn = 0;
                 val_end = 0;
@@ -619,23 +615,23 @@ void k2eval::MaterialImbalances()
 
     // pawn absence for both sides
     if(quantity[white][get_index(black_pawn)] == 0
-       && quantity[black][get_index(black_pawn)] == 0
-    && material[white] != 0 && material[black] != 0)
+            && quantity[black][get_index(black_pawn)] == 0
+            && material[white] != 0 && material[black] != 0)
         val_end /= 3;
 
     // multicolored bishops
     if(quantity[white][get_index(black_bishop)] == 1
-    && quantity[black][get_index(black_bishop)] == 1)
+            && quantity[black][get_index(black_bishop)] == 1)
     {
         auto w_it = coords[white].rbegin();
         while(w_it != coords[white].rend()
-        && b[*w_it] != white_bishop)
+                && b[*w_it] != white_bishop)
             ++w_it;
         assert(w_it != coords[white].rend());
 
         auto b_it = coords[black].rbegin();
         while(b_it != coords[black].rend()
-        && b[*b_it] != black_bishop)
+                && b[*b_it] != black_bishop)
             ++b_it;
         assert(b_it != coords[white].rend());
 
@@ -645,7 +641,7 @@ void k2eval::MaterialImbalances()
         if((sum_coord_w & 1) != (sum_coord_b & 1))
         {
             if(material[white] - pieces[white] == 4 - 2
-            && material[black] - pieces[black] == 4 - 2)
+                    && material[black] - pieces[black] == 4 - 2)
                 val_end /= 2;
             else
                 val_end = val_end*4/5;
@@ -806,7 +802,7 @@ void k2eval::MovePawnStruct(piece_t moved_piece, coord_t from_coord, move_c move
             SetPawnStruct(get_col(from_coord));
     }
     if(to_black(b_state[prev_states + ply].capt) == black_pawn
-    || (move.flg & is_en_passant))                                    // is_en_passant not needed
+            || (move.flg & is_en_passant))                                    // is_en_passant not needed
     {
         wtm ^= white;
         SetPawnStruct(get_col(move.to));
@@ -845,7 +841,7 @@ void k2eval::InitPawnStruct()
                 pawn_min[x + 1][0] = 7 - y;
                 break;
             }
-         for(auto y = 1; y < 7; y++)
+        for(auto y = 1; y < 7; y++)
             if(b[get_coord(x, y)] == black_pawn)
             {
                 pawn_max[x + 1][0] = 7 - y;
@@ -902,10 +898,10 @@ void k2eval::MoveKingTropism(coord_t from_coord, move_c move, side_to_move_t kin
 
     if(dist_fr < 4 && !(move.flg & is_promotion))
         king_tropism[king_color] -= tropism_factor[dist_fr < 3]
-                                                  [get_index(cur_piece)];
+                                    [get_index(cur_piece)];
     if(dist_to < 4)
         king_tropism[king_color] += tropism_factor[dist_to < 3]
-                                                  [get_index(cur_piece)];
+                                    [get_index(cur_piece)];
 
     auto cap = b_state[prev_states + ply].capt;
     if(move.flg & is_capture)
@@ -913,7 +909,7 @@ void k2eval::MoveKingTropism(coord_t from_coord, move_c move, side_to_move_t kin
         dist_to = king_dist[std::abs(*king_coord[!king_color] - move.to)];
         if(dist_to < 4)
             king_tropism[!king_color] -= tropism_factor[dist_to < 3]
-                                                       [get_index(cap)];
+                                         [get_index(cap)];
     }
 
 #ifndef NDEBUG
@@ -1012,7 +1008,7 @@ k2chess::score_t k2eval::KingOpenFiles(side_to_move_t king_color)
             break;
         auto k = pawn_max[get_col(*rit) + 1][king_color] ? 1 : 2;
         rooks_queens_on_file[get_col(*rit)] +=
-                k*(to_black(pt) == black_rook ? 2 : 1);
+            k*(to_black(pt) == black_rook ? 2 : 1);
     }
 
     for(auto i = 0; i < 3; ++i)
@@ -1052,7 +1048,7 @@ k2chess::score_t k2eval::KingWeakness(side_to_move_t king_color)
             ans += 60;
     }
     if((king_color == white && get_row(k) > 1)
-    || (king_color == black && get_row(k) < 6))
+            || (king_color == black && get_row(k) < 6))
     {
         ans += 60;
     }
@@ -1062,7 +1058,7 @@ k2chess::score_t k2eval::KingWeakness(side_to_move_t king_color)
     for(auto col = 0; col < 3; ++col)
     {
         if(col + k + 2*shft - 1 < 0
-        || col + k + 2*shft - 1 >= (score_t)(sizeof(b)/sizeof(*b)))
+                || col + k + 2*shft - 1 >= (score_t)(sizeof(b)/sizeof(*b)))
             continue;
         auto pt1 = b[col + k + shft - 1];
         auto pt2 = b[col + k + 2*shft - 1];
@@ -1071,14 +1067,14 @@ k2chess::score_t k2eval::KingWeakness(side_to_move_t king_color)
             continue;
 
         if(is_light(pt1, king_color)
-        && is_light(pt2, king_color))
+                && is_light(pt2, king_color))
             continue;
 
         if(col + k + shft - 2 < 0)
             continue;
 
         if(is_light(pt2, king_color)
-        && (b[col + k + shft - 2] == pwn || b[col + k + shft + 0] == pwn))
+                && (b[col + k + shft - 2] == pwn || b[col + k + shft + 0] == pwn))
             continue;
 
         idx += (1 << col);
@@ -1148,146 +1144,154 @@ void k2eval::KingSafety(side_to_move_t king_color)
 
 //-----------------------------
 k2eval::k2eval() :  material_values_opn {  0, 0, queen_val_opn, rook_val_opn,
-                        bishop_val_opn, kinght_val_opn, pawn_val_opn},
-                    material_values_end {  0, 0, queen_val_end, rook_val_end,
-                        bishop_val_end, kinght_val_end, pawn_val_end},
-                    tropism_factor  {//  k  Q   R   B   N   P
-                                        {0, 0, 10, 10, 10,  4, 4},  // 4 >= dist > 3
-                                        {0, 0, 21, 21, 10,  0, 10}  // dist < 3
-                                    },
-                    pst {
-                  {         // KING
-                    {   {-8,   -18,   -18,   -28,   -28,   -18,   -18,    -8},
-                        {-8,   -18,   -18,   -28,   -28,   -18,   -18,    -8},
-                        {-8,   -18,   -18,   -28,   -28,   -18,   -18,    -8},
-                        {-8,   -18,   -18,   -28,   -28,   -18,   -18,    -8},
-                        { 2,    -8,    -8,   -18,   -18,    -8,    -8,     2},
-                        {12,     2,     2,     2,     2,     2,     2,    12},
-                        {42,    42,    22,    22,    22,    22,    42,    42},
-                        {42,    62,    32,    22,    22,    32,    62,    42}
-                    },
+            bishop_val_opn, kinght_val_opn, pawn_val_opn},
+    material_values_end {  0, 0, queen_val_end, rook_val_end,
+                           bishop_val_end, kinght_val_end, pawn_val_end},
+    tropism_factor   //  k  Q   R   B   N   P
+{
+    {0, 0, 10, 10, 10,  4, 4},  // 4 >= dist > 3
+    {0, 0, 21, 21, 10,  0, 10}  // dist < 3
+},
+pst
+{
+    {
+        // KING
+        {   {-8,   -18,   -18,   -28,   -28,   -18,   -18,    -8},
+            {-8,   -18,   -18,   -28,   -28,   -18,   -18,    -8},
+            {-8,   -18,   -18,   -28,   -28,   -18,   -18,    -8},
+            {-8,   -18,   -18,   -28,   -28,   -18,   -18,    -8},
+            { 2,    -8,    -8,   -18,   -18,    -8,    -8,     2},
+            {12,     2,     2,     2,     2,     2,     2,    12},
+            {42,    42,    22,    22,    22,    22,    42,    42},
+            {42,    62,    32,    22,    22,    32,    62,    42}
+        },
 
-                    {   {-60,   -45,   -31,   -16,   -16,   -31,   -45,   -60},
-                        {-40,   -15,    -1,    14,    14,    -1,   -15,   -40},
-                        {-30,     0,    34,    40,    40,    34,     0,   -30},
-                        {-30,     0,    40,    50,    50,    40,     0,   -30},
-                        {-30,     0,    40,    50,    50,    40,     0,   -30},
-                        {-30,     0,    34,    40,    40,    34,     0,   -30},
-                        {-40,   -15,    -1,    14,    14,    -1,   -15,   -40},
-                        {-60,   -45,   -31,   -16,   -16,   -31,   -45,   -60}
-                    }
-                  },
+        {   {-60,   -45,   -31,   -16,   -16,   -31,   -45,   -60},
+            {-40,   -15,    -1,    14,    14,    -1,   -15,   -40},
+            {-30,     0,    34,    40,    40,    34,     0,   -30},
+            {-30,     0,    40,    50,    50,    40,     0,   -30},
+            {-30,     0,    40,    50,    50,    40,     0,   -30},
+            {-30,     0,    34,    40,    40,    34,     0,   -30},
+            {-40,   -15,    -1,    14,    14,    -1,   -15,   -40},
+            {-60,   -45,   -31,   -16,   -16,   -31,   -45,   -60}
+        }
+    },
 
-                  {         // QUEEN
-                    {   {-16,    -6,    -6,    -1,    -1,    -6,    -6,   -16},
-                        { -6,     4,     4,     4,     4,     4,     4,    -6},
-                        { -6,     4,     4,     4,     4,     4,     4,    -6},
-                        { -1,     4,     4,     4,     4,     4,     4,    -1},
-                        { -1,     4,     4,     4,     4,     4,     4,    -1},
-                        { -6,     4,     4,     4,     4,     4,     4,    -6},
-                        { -6,     4,     4,     4,     4,     4,     4,    -6},
-                        {-16,    -6,    -6,    -1,    -1,    -6,    -6,   -16}
-                    },
+    {
+        // QUEEN
+        {   {-16,    -6,    -6,    -1,    -1,    -6,    -6,   -16},
+            { -6,     4,     4,     4,     4,     4,     4,    -6},
+            { -6,     4,     4,     4,     4,     4,     4,    -6},
+            { -1,     4,     4,     4,     4,     4,     4,    -1},
+            { -1,     4,     4,     4,     4,     4,     4,    -1},
+            { -6,     4,     4,     4,     4,     4,     4,    -6},
+            { -6,     4,     4,     4,     4,     4,     4,    -6},
+            {-16,    -6,    -6,    -1,    -1,    -6,    -6,   -16}
+        },
 
-                    {   {-17,    -7,    -7,    -2,    -2,    -7,    -7,   -17},
-                        { -7,     3,     3,     3,     3,     3,     3,    -7},
-                        { -7,     3,     8,     8,     8,     8,     3,    -7},
-                        { -2,     3,     8,     8,     8,     8,     3,    -2},
-                        { -2,     3,     8,     8,     8,     8,     3,    -2},
-                        { -7,     3,     8,     8,     8,     8,     3,    -7},
-                        { -7,     3,     3,     3,     3,     3,     3,    -7},
-                        {-17,    -7,    -7,    -7,    -7,    -7,    -7,   -17},
-                    }
-                  },
+        {   {-17,    -7,    -7,    -2,    -2,    -7,    -7,   -17},
+            { -7,     3,     3,     3,     3,     3,     3,    -7},
+            { -7,     3,     8,     8,     8,     8,     3,    -7},
+            { -2,     3,     8,     8,     8,     8,     3,    -2},
+            { -2,     3,     8,     8,     8,     8,     3,    -2},
+            { -7,     3,     8,     8,     8,     8,     3,    -7},
+            { -7,     3,     3,     3,     3,     3,     3,    -7},
+            {-17,    -7,    -7,    -7,    -7,    -7,    -7,   -17},
+        }
+    },
 
-                  {      // ROOK
-                    {   {  0,     0,     0,     0,     0,     0,     0,     0},
-                        { -5,     0,     0,     0,     0,     0,     0,    -5},
-                        { -5,     0,     0,     0,     0,     0,     0,    -5},
-                        { -5,     0,     0,     0,     0,     0,     0,    -5},
-                        { -5,     0,     0,     0,     0,     0,     0,    -5},
-                        { -5,     0,     0,     0,     0,     0,     0,    -5},
-                        { -5,     0,     0,     0,     0,     0,     0,    -5},
-                        {  0,     0,     0,     0,     0,     0,     0,     0}
-                    },
+    {
+        // ROOK
+        {   {  0,     0,     0,     0,     0,     0,     0,     0},
+            { -5,     0,     0,     0,     0,     0,     0,    -5},
+            { -5,     0,     0,     0,     0,     0,     0,    -5},
+            { -5,     0,     0,     0,     0,     0,     0,    -5},
+            { -5,     0,     0,     0,     0,     0,     0,    -5},
+            { -5,     0,     0,     0,     0,     0,     0,    -5},
+            { -5,     0,     0,     0,     0,     0,     0,    -5},
+            {  0,     0,     0,     0,     0,     0,     0,     0}
+        },
 
-                    {   {  0,     0,     0,     0,     0,     0,     0,     0},
-                        { -5,     0,     0,     0,     0,     0,     0,    -5},
-                        { -5,     0,     0,     0,     0,     0,     0,    -5},
-                        { -5,     0,     0,     0,     0,     0,     0,    -5},
-                        { -5,     0,     0,     0,     0,     0,     0,    -5},
-                        { -5,     0,     0,     0,     0,     0,     0,    -5},
-                        { -5,     0,     0,     0,     0,     0,     0,    -5},
-                        {  0,     0,     0,     0,     0,     0,     0,     0}
-                    }
-                  },
+        {   {  0,     0,     0,     0,     0,     0,     0,     0},
+            { -5,     0,     0,     0,     0,     0,     0,    -5},
+            { -5,     0,     0,     0,     0,     0,     0,    -5},
+            { -5,     0,     0,     0,     0,     0,     0,    -5},
+            { -5,     0,     0,     0,     0,     0,     0,    -5},
+            { -5,     0,     0,     0,     0,     0,     0,    -5},
+            { -5,     0,     0,     0,     0,     0,     0,    -5},
+            {  0,     0,     0,     0,     0,     0,     0,     0}
+        }
+    },
 
-                  {      //BISHOP
-                    {   {-20,   -10,   -10,   -10,   -10,   -10,   -10,   -20},
-                        {-10,     0,     0,     0,     0,     0,     0,   -10},
-                        {-10,     0,     5,    10,    10,     5,     0,   -10},
-                        {-10,     5,     5,    10,    10,     5,     5,   -10},
-                        {-10,     0,    10,    10,    10,    10,     0,   -10},
-                        {-10,    10,    10,    10,    10,    10,    10,   -10},
-                        {-10,     5,     0,     0,     0,     0,     5,   -10},
-                        {-20,   -10,   -10,   -10,   -10,   -10,   -10,   -20}
-                    },
+    {
+        //BISHOP
+        {   {-20,   -10,   -10,   -10,   -10,   -10,   -10,   -20},
+            {-10,     0,     0,     0,     0,     0,     0,   -10},
+            {-10,     0,     5,    10,    10,     5,     0,   -10},
+            {-10,     5,     5,    10,    10,     5,     5,   -10},
+            {-10,     0,    10,    10,    10,    10,     0,   -10},
+            {-10,    10,    10,    10,    10,    10,    10,   -10},
+            {-10,     5,     0,     0,     0,     0,     5,   -10},
+            {-20,   -10,   -10,   -10,   -10,   -10,   -10,   -20}
+        },
 
-                    {   {-18,    -8,    -8,    -8,    -8,    -8,    -8,   -18},
-                        { -8,     2,     2,     2,     2,     2,     2,    -8},
-                        { -8,     2,     7,    12,    12,     7,     2,    -8},
-                        { -8,     7,     7,    12,    12,     7,     7,    -8},
-                        { -8,     2,    12,    12,    12,    12,     2,    -8},
-                        { -8,    12,    12,    12,    12,    12,    12,    -8},
-                        { -8,     7,     2,     2,     2,     2,     7,    -8},
-                        {-18,    -8,    -8,    -8,    -8,    -8,    -8,   -18}
-                    }
-                  },
+        {   {-18,    -8,    -8,    -8,    -8,    -8,    -8,   -18},
+            { -8,     2,     2,     2,     2,     2,     2,    -8},
+            { -8,     2,     7,    12,    12,     7,     2,    -8},
+            { -8,     7,     7,    12,    12,     7,     7,    -8},
+            { -8,     2,    12,    12,    12,    12,     2,    -8},
+            { -8,    12,    12,    12,    12,    12,    12,    -8},
+            { -8,     7,     2,     2,     2,     2,     7,    -8},
+            {-18,    -8,    -8,    -8,    -8,    -8,    -8,   -18}
+        }
+    },
 
-                  {      //KNIGHT
-                    {   {-38,   -28,   -18,   -18,   -18,   -18,   -28,   -38},
-                        {-28,    -8,    12,    12,    12,    12,    -8,   -28},
-                        {  0,    25,    30,    40,    40,    30,    25,     0},
-                        {-10,    17,    42,    50,    50,    42,    17,   -10},
-                        {-18,    12,    27,    32,    32,    27,    12,   -18},
-                        {-18,    17,    22,    27,    27,    22,    17,   -18},
-                        {-28,    -8,    12,    17,    17,    12,    -8,   -28},
-                        {-38,   -28,   -18,   -18,   -18,   -18,   -28,   -38}
-                    },
+    {
+        //KNIGHT
+        {   {-38,   -28,   -18,   -18,   -18,   -18,   -28,   -38},
+            {-28,    -8,    12,    12,    12,    12,    -8,   -28},
+            {  0,    25,    30,    40,    40,    30,    25,     0},
+            {-10,    17,    42,    50,    50,    42,    17,   -10},
+            {-18,    12,    27,    32,    32,    27,    12,   -18},
+            {-18,    17,    22,    27,    27,    22,    17,   -18},
+            {-28,    -8,    12,    17,    17,    12,    -8,   -28},
+            {-38,   -28,   -18,   -18,   -18,   -18,   -28,   -38}
+        },
 
-                    {   {-75,   -25,   -15,   -15,   -15,   -15,   -25,   -75},
-                        {-25,    -5,    15,    15,    15,    15,    -5,   -25},
-                        {-15,    15,    25,    30,    30,    25,    15,   -15},
-                        {-15,    20,    30,    35,    35,    30,    20,   -15},
-                        {-15,    15,    30,    35,    35,    30,    15,   -15},
-                        {-15,    20,    25,    30,    30,    25,    20,   -15},
-                        {-25,    -5,    15,    20,    20,    15,    -5,   -25},
-                        {-75,   -25,   -15,   -15,   -15,   -15,   -25,   -75}
-                    }
-                  },
+        {   {-75,   -25,   -15,   -15,   -15,   -15,   -25,   -75},
+            {-25,    -5,    15,    15,    15,    15,    -5,   -25},
+            {-15,    15,    25,    30,    30,    25,    15,   -15},
+            {-15,    20,    30,    35,    35,    30,    20,   -15},
+            {-15,    15,    30,    35,    35,    30,    15,   -15},
+            {-15,    20,    25,    30,    30,    25,    20,   -15},
+            {-25,    -5,    15,    20,    20,    15,    -5,   -25},
+            {-75,   -25,   -15,   -15,   -15,   -15,   -25,   -75}
+        }
+    },
 
-                  {     //PAWN
-                    {   {-11,   -11,   -11,   -11,   -11,   -11,   -11,   -11},
-                        { 39,    39,    39,    39,    39,    39,    39,    39},
-                        { -1,    -1,     9,    19,    19,     9,    -1,    -1},
-                        { -6,    -6,    -1,    14,    14,    -1,    -6,    -6},
-                        {-11,   -11,   -11,     9,     9,   -11,   -11,   -11},
-                        { -6,   -16,   -21,   -11,   -11,   -21,   -16,    -6},
-                        { -6,    -1,    -1,   -31,   -31,    -1,    -1,    -6},
-                        {-11,   -11,   -11,   -11,   -11,   -11,   -11,   -11},
-                    },
+    {
+        //PAWN
+        {   {-11,   -11,   -11,   -11,   -11,   -11,   -11,   -11},
+            { 39,    39,    39,    39,    39,    39,    39,    39},
+            { -1,    -1,     9,    19,    19,     9,    -1,    -1},
+            { -6,    -6,    -1,    14,    14,    -1,    -6,    -6},
+            {-11,   -11,   -11,     9,     9,   -11,   -11,   -11},
+            { -6,   -16,   -21,   -11,   -11,   -21,   -16,    -6},
+            { -6,    -1,    -1,   -31,   -31,    -1,    -1,    -6},
+            {-11,   -11,   -11,   -11,   -11,   -11,   -11,   -11},
+        },
 
-                    {   { 0,      0,     0,     0,     0,     0,     0,     0},
-                        { 0,      0,     0,     0,     0,     0,     0,     0},
-                        { 0,      0,     0,     0,     0,     0,     0,     0},
-                        { 0,      0,     0,     0,     0,     0,     0,     0},
-                        { 0,      0,     0,     0,     0,     0,     0,     0},
-                        { 0,      0,     0,     0,     0,     0,     0,     0},
-                        { 0,      0,     0,     0,     0,     0,     0,     0},
-                        { 0,      0,     0,     0,     0,     0,     0,     0},
-                    }
-                  }
-                }// pst
+        {   { 0,      0,     0,     0,     0,     0,     0,     0},
+            { 0,      0,     0,     0,     0,     0,     0,     0},
+            { 0,      0,     0,     0,     0,     0,     0,     0},
+            { 0,      0,     0,     0,     0,     0,     0,     0},
+            { 0,      0,     0,     0,     0,     0,     0,     0},
+            { 0,      0,     0,     0,     0,     0,     0,     0},
+            { 0,      0,     0,     0,     0,     0,     0,     0},
+            { 0,      0,     0,     0,     0,     0,     0,     0},
+        }
+    }
+}// pst
 
 {
     InitEval();

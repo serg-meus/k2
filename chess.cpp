@@ -5,18 +5,21 @@
 
 
 //--------------------------------
-k2chess::k2chess() :    rays{0, 8, 8, 4, 4, 8, 0},
-                        shifts{
-                                { 0,  0,  0,  0,  0,  0,  0,  0},
-                                { 1, 17, 16, 15, -1,-17,-16,-15},
-                                { 1, 17, 16, 15, -1,-17,-16,-15},
-                                { 1, 16, -1,-16, 0,  0,  0,  0},
-                                {17, 15,-17,-15, 0,  0,  0,  0},
-                                {18, 33, 31, 14,-18,-33,-31,-14}},
-                        pc_streng{0, 0, 12, 6, 4, 4, 1},
-                        streng{0, 15000, 120, 60, 40, 40, 10},
-                        sort_streng{0, 15000, 120, 60, 41, 39, 10},
-                        slider{false, false, true, true, true, false, false}
+k2chess::k2chess() :
+    rays{0, 8, 8, 4, 4, 8, 0},
+    shifts
+    {
+        { 0,  0,  0,  0,  0,  0,  0,  0},
+        { 1, 17, 16, 15, -1,-17,-16,-15},
+        { 1, 17, 16, 15, -1,-17,-16,-15},
+        { 1, 16, -1,-16, 0,  0,  0,  0},
+        {17, 15,-17,-15, 0,  0,  0,  0},
+        {18, 33, 31, 14,-18,-33,-31,-14},
+    },
+    pc_streng{0, 0, 12, 6, 4, 4, 1},
+    streng{0, 15000, 120, 60, 40, 40, 10},
+    sort_streng{0, 15000, 120, 60, 41, 39, 10},
+    slider{false, false, true, true, true, false, false}
 
 {
     InitChess();
@@ -144,8 +147,8 @@ bool k2chess::BoardToMen()
         {
             replaced = false;
             for(auto cur_iter = coords[color].begin();
-                cur_iter != --(coords[color].end());
-                ++cur_iter)
+                    cur_iter != --(coords[color].end());
+                    ++cur_iter)
             {
                 auto nxt_iter = cur_iter;
                 ++nxt_iter;
@@ -165,8 +168,8 @@ bool k2chess::BoardToMen()
         }
 #ifndef NDEBUG
         for(auto it = coords[color].begin();
-            it != --(coords[color].end());
-            ++it)
+                it != --(coords[color].end());
+                ++it)
         {
             auto nx = it;
             ++nx;
@@ -246,26 +249,42 @@ bool k2chess::FenToBoard(char *p)
     while(*p != ' ')
         switch(*p)
         {
-            case 'K' : cstl |= 0x01; p++; break;
-            case 'Q' : cstl |= 0x02; p++; break;
-            case 'k' : cstl |= 0x04; p++; break;
-            case 'q' : cstl |= 0x08; p++; break;
-            case '-' : p++; break;
-            case ' ' : break;
-            default : return false;
+        case 'K' :
+            cstl |= 0x01;
+            p++;
+            break;
+        case 'Q' :
+            cstl |= 0x02;
+            p++;
+            break;
+        case 'k' :
+            cstl |= 0x04;
+            p++;
+            break;
+        case 'q' :
+            cstl |= 0x08;
+            p++;
+            break;
+        case '-' :
+            p++;
+            break;
+        case ' ' :
+            break;
+        default :
+            return false;
         }
 
     if((cstl & 0x01)
-    && (b[get_coord(4, 0)] != white_king || b[get_coord(7, 0 )] != white_rook))
+            && (b[get_coord(4, 0)] != white_king || b[get_coord(7, 0 )] != white_rook))
         cstl &= ~0x01;
     if((cstl & 0x02)
-    && (b[get_coord(4, 0)] != white_king || b[get_coord(0, 0 )] != white_rook))
+            && (b[get_coord(4, 0)] != white_king || b[get_coord(0, 0 )] != white_rook))
         cstl &= ~0x02;
     if((cstl & 0x04)
-    && (b[get_coord(4, 7)] != black_king || b[get_coord(7, 7 )] != black_rook))
+            && (b[get_coord(4, 7)] != black_king || b[get_coord(7, 7 )] != black_rook))
         cstl &= ~0x04;
     if((cstl & 0x08)
-    && (b[get_coord(4, 7)] != black_king || b[get_coord(0, 7 )] != black_rook))
+            && (b[get_coord(4, 7)] != black_king || b[get_coord(0, 7 )] != black_rook))
         cstl &= ~0x08;
 
     b_state[prev_states + 0].cstl = cstl;
@@ -399,7 +418,7 @@ bool k2chess::MakeEP(move_c m, coord_t fr)
     int delta = m.to - fr;
     int to = m.to;
     if(std::abs(delta) == 0x20
-    && (b[m.to + 1] == (white_pawn ^ wtm) || b[to - 1] == (white_pawn ^ wtm)))
+            && (b[m.to + 1] == (white_pawn ^ wtm) || b[to - 1] == (white_pawn ^ wtm)))
     {
         b_state[prev_states + ply].ep = (to & 0x07) + 1;
         return true;
@@ -435,8 +454,8 @@ bool k2chess::SliderAttack(coord_t fr, coord_t to)
 bool k2chess::Attack(coord_t to, side_to_move_t xtm)
 {
     if((!xtm && (b[to+15] == black_pawn || b[to+17] == black_pawn))
-    ||  (xtm && ((to >= 15 && b[to-15] == white_pawn)
-    || (to >= 17 && b[to-17] == white_pawn))))
+            ||  (xtm && ((to >= 15 && b[to-15] == white_pawn)
+                         || (to >= 17 && b[to-17] == white_pawn))))
 
         return true;
 
@@ -454,8 +473,9 @@ bool k2chess::Attack(coord_t to, side_to_move_t xtm)
         if(!slider[pt])
             return true;
         if(SliderAttack(to, fr))
-             return true;
-    } while(it-- != coords[xtm].begin());
+            return true;
+    }
+    while(it-- != coords[xtm].begin());
 
     return false;
 }
@@ -479,8 +499,8 @@ bool k2chess::LegalSlider(coord_t fr, coord_t to, piece_t pt)
             break;
     }
     if(b[to] == (black_queen ^ wtm)
-    || (pt == black_bishop && b[to] == (black_bishop ^ wtm))
-    || (pt == black_rook && b[to] == (black_rook ^ wtm)))
+            || (pt == black_bishop && b[to] == (black_bishop ^ wtm))
+            || (pt == black_rook && b[to] == (black_rook ^ wtm)))
         return false;
 
     return true;
@@ -550,7 +570,7 @@ void k2chess::MakeCapture(move_c m, coord_t targ)
     else
     {
         material[!wtm] -=
-                pc_streng[get_index(b_state[prev_states + ply].capt)];
+            pc_streng[get_index(b_state[prev_states + ply].capt)];
         quantity[!wtm][get_index(b_state[prev_states + ply].capt)]--;
     }
 
@@ -579,7 +599,7 @@ void k2chess::MakePromotion(move_c m, iterator it)
     {
         b[m.to] = prPc[prIx] ^ wtm;
         material[wtm] += pc_streng[get_index(prPc[prIx])]
-                - pc_streng[get_index(black_pawn)];
+                         - pc_streng[get_index(black_pawn)];
         quantity[wtm][get_index(black_pawn)]--;
         quantity[wtm][get_index(prPc[prIx])]++;
         b_state[prev_states + ply].nprom = ++it;
@@ -660,7 +680,7 @@ void k2chess::UnmakeCapture(move_c m)
     else
     {
         material[!wtm]
-            += pc_streng[get_index(b_state[prev_states + ply].capt)];
+        += pc_streng[get_index(b_state[prev_states + ply].capt)];
         quantity[!wtm][get_index(b_state[prev_states + ply].capt)]++;
     }
 
@@ -685,7 +705,7 @@ void k2chess::UnmakePromotion(move_c m)
     --before_king;
     coords[wtm].move_element(it_prom, before_king);
     material[wtm] -= pc_streng[get_index(prPc[prIx])]
-            - pc_streng[get_index(black_pawn)];
+                     - pc_streng[get_index(black_pawn)];
     quantity[wtm][get_index(black_pawn)]++;
     quantity[wtm][get_index(prPc[prIx])]--;
 }

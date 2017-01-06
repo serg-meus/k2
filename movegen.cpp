@@ -24,7 +24,7 @@ k2movegen::movcr_t k2movegen::GenMoves(move_c *move_array,
     GenCastles(move_array, &moveCr);
 
     auto it = coords[wtm].begin();
-    for(;it != coords[wtm].end(); ++it)
+    for(; it != coords[wtm].end(); ++it)
     {
         auto fr = *it;
         auto at = get_index(b[fr]);
@@ -314,8 +314,7 @@ void k2movegen::AppriceMoves(move_c *move_array, movcr_t moveCr, move_c *bestMov
 
         if(m == bm)
             move_array[i].scr = move_from_hash;
-        else
-        if(to_pc == empty_square && !(m.flg & is_promotion))
+        else if(to_pc == empty_square && !(m.flg & is_promotion))
         {
             if(m == killers[ply][0])
                 move_array[i].scr = first_killer;
@@ -340,7 +339,7 @@ void k2movegen::AppriceMoves(move_c *move_array, movcr_t moveCr, move_c *bestMov
                     y0  = 7 - y0;
                 }
                 auto pstVal   = pst[get_index(fr_pc) - 1][0][y][x]
-                            - pst[get_index(fr_pc) - 1][0][y0][x0];
+                                - pst[get_index(fr_pc) - 1][0][y0][x0];
                 pstVal      = 96 + pstVal/2;
                 move_array[i].scr = pstVal;
             } // else (ordinary move)
@@ -390,7 +389,7 @@ void k2movegen::AppriceMoves(move_c *move_array, movcr_t moveCr, move_c *bestMov
                     move_array[i].scr = dst/10;
                 }
             }
-       }// else on captures
+        }// else on captures
     }// for( i
 
     for(auto i = 0; i < moveCr; i++)
@@ -527,15 +526,15 @@ k2chess::iterator k2movegen::SeeMinAttacker(coord_t to)
 
     if(to + shft_l[!wtm] > 0 && b[to + shft_l[!wtm]] == pw[!wtm])
         for(auto it = coords[!wtm].begin();
-            it != coords[!wtm].end();
-            ++it)
+                it != coords[!wtm].end();
+                ++it)
             if(*it == to + shft_l[!wtm])
                 return it;
 
     if(to + shft_r[!wtm] > 0 && b[to + shft_r[!wtm]] == pw[!wtm])
         for(auto it = coords[!wtm].begin();
-            it != coords[!wtm].end();
-            ++it)
+                it != coords[!wtm].end();
+                ++it)
             if(*it == to + shft_r[!wtm])
                 return it;
 
@@ -552,7 +551,7 @@ k2chess::iterator k2movegen::SeeMinAttacker(coord_t to)
         if(!slider[pt])
             return it;
         if(SliderAttack(to, fr))
-             return it;
+            return it;
     }// for (menCr
 
     return it;
