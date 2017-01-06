@@ -80,11 +80,11 @@ protected:
         b_state[prev_states + ply - 1].val_opn = val_opn;
         b_state[prev_states + ply - 1].val_end = val_end;
 
-        auto fr = b_state[prev_states + ply].fr;
+        auto from_coord = b_state[prev_states + ply].from_coord;
 
-        MoveKingTropism(fr, m, wtm);
+        MoveKingTropism(from_coord, m, wtm);
 
-        MovePawnStruct(b[m.to], fr, m);
+        MovePawnStruct(b[m.to_coord], from_coord, m);
     }
 
     score_t ReturnEval(side_to_move_t stm)
@@ -118,9 +118,9 @@ private:
     void  MaterialImbalances();
     score_t KingWeakness(side_to_move_t king_color);
     score_t CountKingTropism(side_to_move_t king_color);
-    void  MoveKingTropism(coord_t fr, move_c m, side_to_move_t king_color);
+    void  MoveKingTropism(coord_t from_coord, move_c m, side_to_move_t king_color);
     score_t KingOpenFiles(side_to_move_t king_color);
-    void  MovePawnStruct(piece_t movedPiece, coord_t fr, move_c m);
+    void  MovePawnStruct(piece_t movedPiece, coord_t from_coord, move_c m);
     score_t OneBishopMobility(coord_t b_coord);
 
 };

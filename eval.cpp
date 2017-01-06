@@ -75,11 +75,11 @@ void k2eval::FastEval(move_c m)
 {
     score_t ansO = 0, ansE = 0;
 
-    auto x  = get_col(m.to);
-    auto y  = get_row(m.to);
-    auto x0 = get_col(b_state[prev_states + ply].fr);
-    auto y0 = get_row(b_state[prev_states + ply].fr);
-    auto pt = get_index(b[m.to]);
+    auto x  = get_col(m.to_coord);
+    auto y  = get_row(m.to_coord);
+    auto x0 = get_col(b_state[prev_states + ply].from_coord);
+    auto y0 = get_row(b_state[prev_states + ply].from_coord);
+    auto pt = get_index(b[m.to_coord]);
 
     if(!wtm)
     {
@@ -88,7 +88,7 @@ void k2eval::FastEval(move_c m)
     }
 
     piece_index_t idx;
-    auto flag = m.flg & is_promotion;
+    auto flag = m.flag & is_promotion;
     if(flag)
     {
         idx = get_index(black_pawn);
@@ -102,10 +102,10 @@ void k2eval::FastEval(move_c m)
 
     }
 
-    if(m.flg & is_capture)
+    if(m.flag & is_capture)
     {
         auto capt = to_black(b_state[prev_states + ply].capt);
-        if(m.flg & is_en_passant)
+        if(m.flag & is_en_passant)
         {
             idx = get_index(black_pawn);
             ansO += material_values_opn[idx] + pst[idx - 1][0][7 - y0][x];
@@ -118,13 +118,13 @@ void k2eval::FastEval(move_c m)
             ansE += material_values_end[idx] + pst[idx - 1][1][7 - y][x];
         }
     }
-    else if(m.flg & is_castle_kingside)
+    else if(m.flag & is_castle_kingside)
     {
         idx = get_index(black_rook);
         ansO += pst[idx - 1][0][7][5] - pst[idx - 1][0][7][7];
         ansE += pst[idx - 1][1][7][5] - pst[idx - 1][1][7][7];
     }
-    else if(m.flg & is_castle_queenside)
+    else if(m.flag & is_castle_queenside)
     {
         idx = get_index(black_rook);
         ansO += pst[idx - 1][0][7][3] - pst[idx - 1][0][7][0];
@@ -795,17 +795,17 @@ void k2eval::SetPawnStruct(k2chess::coord_t col)
 //-----------------------------
 void k2eval::MovePawnStruct(piece_t moved_piece, coord_t from_coord, move_c move)
 {
-    if(to_black(moved_piece) == black_pawn || (move.flg & is_promotion))
+    if(to_black(moved_piece) == black_pawn || (move.flag & is_promotion))
     {
-        SetPawnStruct(get_col(move.to));
-        if(move.flg)
+        SetPawnStruct(get_col(move.to_coord));
+        if(move.flag)
             SetPawnStruct(get_col(from_coord));
     }
     if(to_black(b_state[prev_states + ply].capt) == black_pawn
-            || (move.flg & is_en_passant))                                    // is_en_passant not needed
+            || (move.flag & is_en_passant))                                    // is_en_passant not needed
     {
         wtm ^= white;
-        SetPawnStruct(get_col(move.to));
+        SetPawnStruct(get_col(move.to_coord));
         wtm ^= white;
     }
 }
@@ -882,7 +882,7 @@ void k2eval::MoveKingTropism(coord_t from_coord, move_c move, side_to_move_t kin
     b_state[prev_states + ply].tropism[black] = king_tropism[black];
     b_state[prev_states + ply].tropism[white] = king_tropism[white];
 
-    auto cur_piece = b[move.to];
+    auto cur_piece = b[move.to_coord];
 
     if(to_black(cur_piece) == black_king)
     {
@@ -892,11 +892,11 @@ void k2eval::MoveKingTropism(coord_t from_coord, move_c move, side_to_move_t kin
         return;
     }
 
-    auto dist_to = king_dist[std::abs(*king_coord[king_color] - move.to)];
+    auto dist_to = king_dist[std::abs(*king_coord[king_color] - move.to_coord)];
     auto dist_fr = king_dist[std::abs(*king_coord[king_color] - from_coord)];
 
 
-    if(dist_fr < 4 && !(move.flg & is_promotion))
+    if(dist_fr < 4 && !(move.flag & is_promotion))
         king_tropism[king_color] -= tropism_factor[dist_fr < 3]
                                     [get_index(cur_piece)];
     if(dist_to < 4)
@@ -904,9 +904,9 @@ void k2eval::MoveKingTropism(coord_t from_coord, move_c move, side_to_move_t kin
                                     [get_index(cur_piece)];
 
     auto cap = b_state[prev_states + ply].capt;
-    if(move.flg & is_capture)
+    if(move.flag & is_capture)
     {
-        dist_to = king_dist[std::abs(*king_coord[!king_color] - move.to)];
+        dist_to = king_dist[std::abs(*king_coord[!king_color] - move.to_coord)];
         if(dist_to < 4)
             king_tropism[!king_color] -= tropism_factor[dist_to < 3]
                                          [get_index(cap)];
@@ -934,11 +934,11 @@ bool k2eval::MkMoveAndEval(move_c m)
 
     bool is_special_move = MkMoveFast(m);
 
-    auto fr = b_state[prev_states + ply].fr;
+    auto from_coord = b_state[prev_states + ply].from_coord;
 
-    MoveKingTropism(fr, m, wtm);
+    MoveKingTropism(from_coord, m, wtm);
 
-    MovePawnStruct(b[m.to], fr, m);
+    MovePawnStruct(b[m.to_coord], from_coord, m);
 
     return is_special_move;
 }
@@ -953,13 +953,13 @@ void k2eval::UnMoveAndEval(move_c m)
     king_tropism[black] = b_state[prev_states + ply].tropism[black];
     king_tropism[white] = b_state[prev_states + ply].tropism[white];
 
-    auto fr = b_state[prev_states + ply].fr;
+    auto from_coord = b_state[prev_states + ply].from_coord;
 
     UnMoveFast(m);
 
     ply++;
     wtm ^= white;
-    MovePawnStruct(b[fr], fr, m);
+    MovePawnStruct(b[from_coord], from_coord, m);
     wtm ^= white;
     ply--;
 

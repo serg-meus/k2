@@ -26,8 +26,8 @@ k2movegen::movcr_t k2movegen::GenMoves(move_c *move_array,
     auto it = coords[wtm].begin();
     for(; it != coords[wtm].end(); ++it)
     {
-        auto fr = *it;
-        auto at = get_index(b[fr]);
+        auto from_coord = *it;
+        auto at = get_index(b[from_coord]);
         if(at == get_index(black_pawn))
         {
             GenPawn(move_array, &moveCr, it);
@@ -38,29 +38,29 @@ k2movegen::movcr_t k2movegen::GenMoves(move_c *move_array,
         {
             for(auto ray = 0; ray < rays[at]; ray++)
             {
-                auto to = fr + shifts[at][ray];
-                if(within_board(to) && !is_light(b[to], wtm))
-                    PushMove(move_array, &moveCr, it, to, b[to] ? is_capture : 0);
+                auto to_coord = from_coord + shifts[at][ray];
+                if(within_board(to_coord) && !is_light(b[to_coord], wtm))
+                    PushMove(move_array, &moveCr, it, to_coord, b[to_coord] ? is_capture : 0);
             }
             continue;
         }
 
         for(auto ray = 0; ray < rays[at]; ray++)
         {
-            auto to = fr;
+            auto to_coord = from_coord;
             for(auto i = 0; i < 8; i++)
             {
-                to += shifts[at][ray];
-                if(!within_board(to))
+                to_coord += shifts[at][ray];
+                if(!within_board(to_coord))
                     break;
-                auto tt = b[to];
+                auto tt = b[to_coord];
                 if(!tt)
                 {
-                    PushMove(move_array, &moveCr, it, to, 0);
+                    PushMove(move_array, &moveCr, it, to_coord, 0);
                     continue;
                 }
-                if(is_dark(b[to], wtm))
-                    PushMove(move_array, &moveCr, it, to, is_capture);
+                if(is_dark(b[to_coord], wtm))
+                    PushMove(move_array, &moveCr, it, to_coord, is_capture);
                 break;
             }// for(i
         }// for(ray
@@ -81,8 +81,8 @@ k2movegen::movcr_t k2movegen::GenMoves(move_c *move_array,
 void k2movegen::GenPawn(move_c *move_array, movcr_t *moveCr, iterator it)
 {
     move_flag_t pBeg, pEnd;
-    auto fr = *it;
-    if((wtm && get_row(fr) == 6) || (!wtm && get_row(fr) == 1))
+    auto from_coord = *it;
+    if((wtm && get_row(from_coord) == 6) || (!wtm && get_row(from_coord) == 1))
     {
         pBeg = is_promotion_to_queen;
         pEnd = is_promotion_to_bishop;
@@ -95,39 +95,39 @@ void k2movegen::GenPawn(move_c *move_array, movcr_t *moveCr, iterator it)
     for(auto i = pBeg; i <= pEnd; ++i)
         if(wtm)
         {
-            auto to = fr + 17;
-            if(within_board(to) && is_dark(b[to], wtm))
-                PushMove(move_array, moveCr, it, to, is_capture | i);
-            to = fr + 15;
-            if(within_board(to) && is_dark(b[to], wtm))
-                PushMove(move_array, moveCr, it, to, is_capture | i);
-            to = fr + 16;
-            if(within_board(to) && !b[to])                 // within_board not needed
-                PushMove(move_array, moveCr, it, to, i);
-            if(get_row(fr) == 1 && !b[fr + 16] && !b[fr + 32])
-                PushMove(move_array, moveCr, it, fr + 32, 0);
+            auto to_coord = from_coord + 17;
+            if(within_board(to_coord) && is_dark(b[to_coord], wtm))
+                PushMove(move_array, moveCr, it, to_coord, is_capture | i);
+            to_coord = from_coord + 15;
+            if(within_board(to_coord) && is_dark(b[to_coord], wtm))
+                PushMove(move_array, moveCr, it, to_coord, is_capture | i);
+            to_coord = from_coord + 16;
+            if(within_board(to_coord) && !b[to_coord])                 // within_board not needed
+                PushMove(move_array, moveCr, it, to_coord, i);
+            if(get_row(from_coord) == 1 && !b[from_coord + 16] && !b[from_coord + 32])
+                PushMove(move_array, moveCr, it, from_coord + 32, 0);
             auto ep = b_state[prev_states + ply].ep;
-            auto delta = ep - 1 - get_col(fr);
-            if(ep && std::abs(delta) == 1 && get_row(fr) == 4)
-                PushMove(move_array, moveCr, it, fr + 16 + delta, is_capture | is_en_passant);
+            auto delta = ep - 1 - get_col(from_coord);
+            if(ep && std::abs(delta) == 1 && get_row(from_coord) == 4)
+                PushMove(move_array, moveCr, it, from_coord + 16 + delta, is_capture | is_en_passant);
         }
         else
         {
-            auto to = fr - 17;
-            if(within_board(to) && is_dark(b[to], wtm))
-                PushMove(move_array, moveCr, it, to, is_capture | i);
-            to = fr - 15;
-            if(within_board(to) && is_dark(b[to], wtm))
-                PushMove(move_array, moveCr, it, to, is_capture | i);
-            to = fr - 16;
-            if(within_board(to) && !b[to])                  // within_board not needed
-                PushMove(move_array, moveCr, it, to, i);
-            if(get_row(fr) == 6 && !b[fr - 16] && !b[fr - 32])
-                PushMove(move_array, moveCr, it, fr - 32, 0);
+            auto to_coord = from_coord - 17;
+            if(within_board(to_coord) && is_dark(b[to_coord], wtm))
+                PushMove(move_array, moveCr, it, to_coord, is_capture | i);
+            to_coord = from_coord - 15;
+            if(within_board(to_coord) && is_dark(b[to_coord], wtm))
+                PushMove(move_array, moveCr, it, to_coord, is_capture | i);
+            to_coord = from_coord - 16;
+            if(within_board(to_coord) && !b[to_coord])                  // within_board not needed
+                PushMove(move_array, moveCr, it, to_coord, i);
+            if(get_row(from_coord) == 6 && !b[from_coord - 16] && !b[from_coord - 32])
+                PushMove(move_array, moveCr, it, from_coord - 32, 0);
             auto ep = b_state[prev_states + ply].ep;
-            auto delta = ep - 1 - get_col(fr);
-            if(ep && std::abs(delta) == 1 && get_row(fr) == 3)
-                PushMove(move_array, moveCr, it, fr - 16 + delta, is_capture | is_en_passant);
+            auto delta = ep - 1 - get_col(from_coord);
+            if(ep && std::abs(delta) == 1 && get_row(from_coord) == 3)
+                PushMove(move_array, moveCr, it, from_coord - 16 + delta, is_capture | is_en_passant);
         }
 }
 
@@ -139,8 +139,8 @@ void k2movegen::GenPawn(move_c *move_array, movcr_t *moveCr, iterator it)
 void k2movegen::GenPawnCap(move_c *move_array, movcr_t *moveCr, iterator it)
 {
     size_t pBeg, pEnd;
-    auto fr = *it;
-    if((wtm && get_row(fr) == 6) || (!wtm && get_row(fr) == 1))
+    auto from_coord = *it;
+    if((wtm && get_row(from_coord) == 6) || (!wtm && get_row(from_coord) == 1))
     {
         pBeg = is_promotion_to_queen;
         pEnd = is_promotion_to_queen;
@@ -153,35 +153,35 @@ void k2movegen::GenPawnCap(move_c *move_array, movcr_t *moveCr, iterator it)
     for(auto i = pBeg; i <= pEnd; ++i)
         if(wtm)
         {
-            auto to = fr + 17;
-            if(within_board(to) && is_dark(b[to], wtm))
-                PushMove(move_array, moveCr, it, to, is_capture | i);
-            to = fr + 15;
-            if(within_board(to) && is_dark(b[to], wtm))
-                PushMove(move_array, moveCr, it, to, is_capture | i);
-            to = fr + 16;
-            if(pBeg && !b[to])
-                PushMove(move_array, moveCr, it, to, i);
+            auto to_coord = from_coord + 17;
+            if(within_board(to_coord) && is_dark(b[to_coord], wtm))
+                PushMove(move_array, moveCr, it, to_coord, is_capture | i);
+            to_coord = from_coord + 15;
+            if(within_board(to_coord) && is_dark(b[to_coord], wtm))
+                PushMove(move_array, moveCr, it, to_coord, is_capture | i);
+            to_coord = from_coord + 16;
+            if(pBeg && !b[to_coord])
+                PushMove(move_array, moveCr, it, to_coord, i);
             auto ep = b_state[prev_states + ply].ep;
-            auto delta = ep - 1 - get_col(fr);
-            if(ep && std::abs(delta) == 1 && get_row(fr) == 4)
-                PushMove(move_array, moveCr, it, fr + 16 + delta, is_capture | is_en_passant);
+            auto delta = ep - 1 - get_col(from_coord);
+            if(ep && std::abs(delta) == 1 && get_row(from_coord) == 4)
+                PushMove(move_array, moveCr, it, from_coord + 16 + delta, is_capture | is_en_passant);
         }
         else
         {
-            auto to = fr - 17;
-            if(within_board(to) && is_dark(b[to], wtm))
-                PushMove(move_array, moveCr, it, to, is_capture | i);
-            to = fr - 15;
-            if(within_board(to) && is_dark(b[to], wtm))
-                PushMove(move_array, moveCr, it, to, is_capture | i);
-            to = fr - 16;
-            if(pBeg && !b[to])
-                PushMove(move_array, moveCr, it, to, i);
+            auto to_coord = from_coord - 17;
+            if(within_board(to_coord) && is_dark(b[to_coord], wtm))
+                PushMove(move_array, moveCr, it, to_coord, is_capture | i);
+            to_coord = from_coord - 15;
+            if(within_board(to_coord) && is_dark(b[to_coord], wtm))
+                PushMove(move_array, moveCr, it, to_coord, is_capture | i);
+            to_coord = from_coord - 16;
+            if(pBeg && !b[to_coord])
+                PushMove(move_array, moveCr, it, to_coord, i);
             auto ep = b_state[prev_states + ply].ep;
-            auto delta = ep - 1 - get_col(fr);
-            if(ep && std::abs(delta) == 1 && get_row(fr) == 3)
-                PushMove(move_array, moveCr, it, fr - 16 + delta, is_capture | is_en_passant);
+            auto delta = ep - 1 - get_col(from_coord);
+            if(ep && std::abs(delta) == 1 && get_row(from_coord) == 3)
+                PushMove(move_array, moveCr, it, from_coord - 16 + delta, is_capture | is_en_passant);
         }
 }
 
@@ -248,8 +248,8 @@ k2movegen::movcr_t k2movegen::GenCaptures(move_c *move_array)
     auto it = coords[wtm].begin();
     for(; it != coords[wtm].end(); ++it)
     {
-        auto fr = *it;
-        auto at = get_index(b[fr]);
+        auto from_coord = *it;
+        auto at = get_index(b[from_coord]);
         if(at == get_index(black_pawn))
         {
             GenPawnCap(move_array, &moveCr, it);
@@ -259,30 +259,30 @@ k2movegen::movcr_t k2movegen::GenCaptures(move_c *move_array)
         {
             for(auto  ray = 0; ray < rays[at]; ray++)
             {
-                auto to = fr + shifts[at][ray];
-                if(within_board(to) && is_dark(b[to], wtm))
-                    PushMove(move_array, &moveCr, it, to, is_capture);
+                auto to_coord = from_coord + shifts[at][ray];
+                if(within_board(to_coord) && is_dark(b[to_coord], wtm))
+                    PushMove(move_array, &moveCr, it, to_coord, is_capture);
             }
             continue;
         }
 
         for(auto ray = 0; ray < rays[at]; ray++)
         {
-            auto to = fr;
+            auto to_coord = from_coord;
             for(auto i = 0; i < 8; i++)
             {
-                to += shifts[at][ray];
-                if(!within_board(to))
+                to_coord += shifts[at][ray];
+                if(!within_board(to_coord))
                     break;
-                auto tt = b[to];
+                auto tt = b[to_coord];
                 if(!tt)
                     continue;
                 if(is_dark(tt, wtm))
-                    PushMove(move_array, &moveCr, it, to, is_capture);
+                    PushMove(move_array, &moveCr, it, to_coord, is_capture);
                 break;
             }// for(i
         }// for(ray
-    }// for(pc
+    }// for(piece_iterator
     AppriceQuiesceMoves(move_array, moveCr);
     SortQuiesceMoves(move_array, moveCr);
     return moveCr;
@@ -301,36 +301,36 @@ void k2movegen::AppriceMoves(move_c *move_array, movcr_t moveCr, move_c *bestMov
     auto it = coords[wtm].begin();
     auto bm = *move_array;
     if(bestMove == nullptr)
-        bm.flg = 0xFF;
+        bm.flag = 0xFF;
     else
         bm = *bestMove;
     for(auto i = 0; i < moveCr; i++)
     {
         auto m = move_array[i];
 
-        it = m.pc;
+        it = m.piece_iterator;
         auto fr_pc = b[*it];
-        auto to_pc = b[m.to];
+        auto to_pc = b[m.to_coord];
 
         if(m == bm)
-            move_array[i].scr = move_from_hash;
-        else if(to_pc == empty_square && !(m.flg & is_promotion))
+            move_array[i].priority = move_from_hash;
+        else if(to_pc == empty_square && !(m.flag & is_promotion))
         {
             if(m == killers[ply][0])
-                move_array[i].scr = first_killer;
+                move_array[i].priority = first_killer;
             else if(m == killers[ply][1])
-                move_array[i].scr = second_killer;
+                move_array[i].priority = second_killer;
             else
             {
-                auto fr = *it;
-                auto h = history[wtm][get_index(b[fr]) - 1][m.to];
+                auto from_coord = *it;
+                auto h = history[wtm][get_index(b[from_coord]) - 1][m.to_coord];
                 if(h > max_history)
                     max_history = h;
                 if(h < min_history)
                     min_history = h;
 
-                auto y   = get_row(m.to);
-                auto x   = get_col(m.to);
+                auto y   = get_row(m.to_coord);
+                auto x   = get_col(m.to_coord);
                 auto y0  = get_row(*it);
                 auto x0  = get_col(*it);
                 if(wtm)
@@ -341,13 +341,13 @@ void k2movegen::AppriceMoves(move_c *move_array, movcr_t moveCr, move_c *bestMov
                 auto pstVal   = pst[get_index(fr_pc) - 1][0][y][x]
                                 - pst[get_index(fr_pc) - 1][0][y0][x0];
                 pstVal      = 96 + pstVal/2;
-                move_array[i].scr = pstVal;
+                move_array[i].priority = pstVal;
             } // else (ordinary move)
         }// if(to_pc == empty_square &&
         else
         {
             auto src = streng[get_index(fr_pc)];
-            auto dst = (m.flg & is_capture) ? streng[get_index(to_pc)] : 0;
+            auto dst = (m.flag & is_capture) ? streng[get_index(to_pc)] : 0;
 
             if(dst && dst - src <= 0)
             {
@@ -358,13 +358,13 @@ void k2movegen::AppriceMoves(move_c *move_array, movcr_t moveCr, move_c *bestMov
 
             if(dst > 120)
             {
-                move_array[i].scr = 0;
+                move_array[i].priority = 0;
                 continue;
             }
 
             streng_t prms[] = {0, 120, 40, 60, 40};
-            if(dst <= 120 && (m.flg & is_promotion))
-                dst += prms[m.flg & is_promotion];
+            if(dst <= 120 && (m.flag & is_promotion))
+                dst += prms[m.flag & is_promotion];
 
             auto ans = dst >= src ? dst - src/16 : dst - src;
 
@@ -372,7 +372,7 @@ void k2movegen::AppriceMoves(move_c *move_array, movcr_t moveCr, move_c *bestMov
             {
                 assert(200 + ans/8 > first_killer);
                 assert(200 + ans/8 <= 250);
-                move_array[i].scr = (200 + ans/8);
+                move_array[i].priority = (200 + ans/8);
             }
             else
             {
@@ -380,13 +380,13 @@ void k2movegen::AppriceMoves(move_c *move_array, movcr_t moveCr, move_c *bestMov
                 {
                     assert(-ans/2 >= 0);
                     assert(-ans/2 <= bad_captures);
-                    move_array[i].scr = -ans/2;
+                    move_array[i].priority = -ans/2;
                 }
                 else
                 {
                     assert(dst/10 >= 0);
                     assert(dst/10 <= bad_captures);
-                    move_array[i].scr = dst/10;
+                    move_array[i].priority = dst/10;
                 }
             }
         }// else on captures
@@ -395,17 +395,17 @@ void k2movegen::AppriceMoves(move_c *move_array, movcr_t moveCr, move_c *bestMov
     for(auto i = 0; i < moveCr; i++)
     {
         auto m = move_array[i];
-        if(m.scr >= second_killer || (m.flg & is_capture))
+        if(m.priority >= second_killer || (m.flag & is_capture))
             continue;
-        it      = m.pc;
-        auto fr   = *it;
-        auto h = history[wtm][get_index(b[fr]) - 1][m.to];
+        it      = m.piece_iterator;
+        auto from_coord   = *it;
+        auto h = history[wtm][get_index(b[from_coord]) - 1][m.to_coord];
         if(h > 3)
         {
             h -= min_history;
             h = 64*h / (max_history - min_history + 1);
             h += 128;
-            move_array[i].scr = h;
+            move_array[i].priority = h;
             continue;
         }
     }// for( i
@@ -423,22 +423,22 @@ void k2movegen::AppriceQuiesceMoves(move_c *move_array, movcr_t moveCr)
     {
         auto m = move_array[i];
 
-        it = m.pc;
-        auto fr = b[*it];
-        auto pt = b[m.to];
+        it = m.piece_iterator;
+        auto from_coord = b[*it];
+        auto pt = b[m.to_coord];
 
-        auto src = sort_streng[get_index(fr)];
-        auto dst = (m.flg & is_capture) ? sort_streng[get_index(pt)] : 0;
+        auto src = sort_streng[get_index(from_coord)];
+        auto dst = (m.flag & is_capture) ? sort_streng[get_index(pt)] : 0;
 
         if(dst > 120)
         {
-            move_array[i].scr = king_capture;
+            move_array[i].priority = king_capture;
             return;
         }
 
         streng_t prms[] = {0, 120, 40, 60, 40};
-        if(dst <= 120 && (m.flg & is_promotion))
-            dst += prms[m.flg & is_promotion];
+        if(dst <= 120 && (m.flag & is_promotion))
+            dst += prms[m.flag & is_promotion];
 
         streng_t ans;
         if(dst > src)
@@ -452,7 +452,7 @@ void k2movegen::AppriceQuiesceMoves(move_c *move_array, movcr_t moveCr)
         }
         if(dst > 120)
         {
-            move_array[i].scr = 0;
+            move_array[i].priority = 0;
             continue;
         }
 
@@ -460,21 +460,21 @@ void k2movegen::AppriceQuiesceMoves(move_c *move_array, movcr_t moveCr)
         {
             assert(200 + ans/8 > first_killer);
             assert(200 + ans/8 <= 250);
-            move_array[i].scr = (200 + ans/8);
+            move_array[i].priority = (200 + ans/8);
         }
         else
         {
-            if(to_black(fr) != black_king)
+            if(to_black(from_coord) != black_king)
             {
                 assert(-ans/2 >= 0);
                 assert(-ans/2 <= bad_captures);
-                move_array[i].scr = -ans/2;
+                move_array[i].priority = -ans/2;
             }
             else
             {
                 assert(dst/10 >= 0);
                 assert(dst/10 <= bad_captures);
-                move_array[i].scr = dst/10;
+                move_array[i].priority = dst/10;
             }
         }
     }
@@ -485,9 +485,9 @@ void k2movegen::AppriceQuiesceMoves(move_c *move_array, movcr_t moveCr)
 
 
 //-----------------------------
-k2chess::streng_t k2movegen::SEE(coord_t to, streng_t frStreng, score_t val, bool stm)
+k2chess::streng_t k2movegen::SEE(coord_t to_coord, streng_t frStreng, score_t val, bool stm)
 {
-    auto it = SeeMinAttacker(to);
+    auto it = SeeMinAttacker(to_coord);
     if(it == coords[!wtm].end())
         return -val;
 
@@ -502,7 +502,7 @@ k2chess::streng_t k2movegen::SEE(coord_t to, streng_t frStreng, score_t val, boo
     b[*storeMen] = empty_square;
     wtm = !wtm;
 
-    auto tmp2 = -SEE(to, streng[get_index(storeBrd)], -val, stm);
+    auto tmp2 = -SEE(to_coord, streng[get_index(storeBrd)], -val, stm);
 
     wtm = !wtm;
     val = std::min(tmp1, tmp2);
@@ -518,39 +518,39 @@ k2chess::streng_t k2movegen::SEE(coord_t to, streng_t frStreng, score_t val, boo
 
 
 //-----------------------------
-k2chess::iterator k2movegen::SeeMinAttacker(coord_t to)
+k2chess::iterator k2movegen::SeeMinAttacker(coord_t to_coord)
 {
     shifts_t shft_l[] = {15, -17};
     shifts_t shft_r[] = {17, -15};
     piece_t  pw[] = {black_pawn, white_pawn};
 
-    if(to + shft_l[!wtm] > 0 && b[to + shft_l[!wtm]] == pw[!wtm])
+    if(to_coord + shft_l[!wtm] > 0 && b[to_coord + shft_l[!wtm]] == pw[!wtm])
         for(auto it = coords[!wtm].begin();
                 it != coords[!wtm].end();
                 ++it)
-            if(*it == to + shft_l[!wtm])
+            if(*it == to_coord + shft_l[!wtm])
                 return it;
 
-    if(to + shft_r[!wtm] > 0 && b[to + shft_r[!wtm]] == pw[!wtm])
+    if(to_coord + shft_r[!wtm] > 0 && b[to_coord + shft_r[!wtm]] == pw[!wtm])
         for(auto it = coords[!wtm].begin();
                 it != coords[!wtm].end();
                 ++it)
-            if(*it == to + shft_r[!wtm])
+            if(*it == to_coord + shft_r[!wtm])
                 return it;
 
     auto it = coords[!wtm].begin();
     for(; it != coords[!wtm].end(); ++it)
     {
-        auto fr = *it;
-        auto pt  = get_index(b[fr]);
+        auto from_coord = *it;
+        auto pt  = get_index(b[from_coord]);
         if(pt == get_index(black_pawn))
             continue;
-        auto att = attacks[120 + to - fr] & (1 << pt);
+        auto att = attacks[120 + to_coord - from_coord] & (1 << pt);
         if(!att)
             continue;
         if(!slider[pt])
             return it;
-        if(SliderAttack(to, fr))
+        if(SliderAttack(to_coord, from_coord))
             return it;
     }// for (menCr
 
@@ -565,18 +565,18 @@ k2chess::iterator k2movegen::SeeMinAttacker(coord_t to)
 k2chess::streng_t k2movegen::SEE_main(move_c m)
 {
     auto it = coords[wtm].begin();
-    it = m.pc;
+    it = m.piece_iterator;
     auto fr_pc = b[*it];
-    auto to_pc = b[m.to];
+    auto to_pc = b[m.to_coord];
     auto src = streng[get_index(fr_pc)];
-    auto dst = (m.flg & is_capture) ? streng[get_index(to_pc)] : 0;
+    auto dst = (m.flag & is_capture) ? streng[get_index(to_pc)] : 0;
     auto storeMen = coords[wtm].begin();
-    storeMen = m.pc;
+    storeMen = m.piece_iterator;
     auto storeBrd = b[*storeMen];
     coords[wtm].erase(storeMen);
     b[*storeMen] = empty_square;
 
-    auto see_score = -SEE(m.to, src, dst, wtm);
+    auto see_score = -SEE(m.to_coord, src, dst, wtm);
     see_score = std::min(dst, see_score);
 
     coords[wtm].restore(storeMen);
@@ -598,7 +598,7 @@ void k2movegen::SortQuiesceMoves(move_c *move_array, movcr_t moveCr)
         bool swoped_around = false;
         for(auto j = 0; j < moveCr - i - 1; ++j)
         {
-            if(move_array[j + 1].scr > move_array[j].scr)
+            if(move_array[j + 1].priority > move_array[j].priority)
             {
                 std::swap(move_array[j], move_array[j + 1]);
                 swoped_around = true;

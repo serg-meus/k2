@@ -17,7 +17,7 @@ public:
 
 protected:
 
-//--------------------------------
+
     typedef uint8_t u8;
     typedef int8_t i8;
     typedef uint16_t u16;
@@ -30,7 +30,7 @@ protected:
     typedef u8 piece_t;
     typedef u8 coord_t;
 
-    const static i32 lst_sz  = 32;                                                 // size of piece list for one colour
+    const static i32 lst_sz  = 32;  // piece list capacity for each side
 
     typedef short_list<coord_t, lst_sz>::iterator_entity iterator_entity;
     typedef short_list<coord_t, lst_sz>::iterator iterator;
@@ -49,6 +49,7 @@ protected:
 
 
 public:
+
 
     typedef u8 side_to_move_t;
     const static depth_t max_ply  = 100;  // maximum search depth
@@ -89,100 +90,103 @@ protected:
     is_promotion = 0x07;
 
 
-
-
-
-//--------------------------------
+// Class representing move
     class move_c
     {
     public:
-        coord_t to;
-        iterator_entity pc;
-        move_flag_t flg;
-        priority_t scr;
+        coord_t to_coord;  // coordinate for piece to move to
+        iterator_entity piece_iterator; // pointer to piece in piece list
+        move_flag_t flag;  // special move flags (is_capture, etc)
+        priority_t priority;  // priority of move assigned by move generator
+                         // 0..63 -- bad captures
+                         // 64..127 -- silent moves with low history value (assigned by PST value)
+                         // 128..195 -- silent moves with high history value
+                         // 198 -- second killer
+                         // 199 -- first killer
+                         // 200..250 -- good captures and/or promotions
+                         // 255 -- king capture or hash hit
 
         bool operator == (move_c m)
         {
-            return to == m.to && pc == m.pc && flg == m.flg;
+            return to_coord == m.to_coord && piece_iterator == m.piece_iterator && flag == m.flag;
         }
+
         bool operator != (move_c m)
         {
-            return to != m.to || pc != m.pc || flg != m.flg;
+            return to_coord != m.to_coord || piece_iterator != m.piece_iterator || flag != m.flag;
         }
+
         bool operator < (const move_c m) const
         {
-            return scr < m.scr;
+            return priority < m.priority;
         }
     };
-    // 'to' - coords for piece to move to (8 bit);
-    // 'pc' - number of piece in 'men' array (8 bit);
-    // 'flg' - flags (is_capture, etc) - (8 bit)
-    // 'scr' - unsigned score (priority) by move generator (8 bit)
-    //      0..63    - bad captures
-    //      64..127  - silent moves without history (pst value)
-    //      128..195 - silent moves with history value
-    //      196 - equal capture
-    //      197 - move from pv
-    //      198 - second killer
-    //      199 - first killer
-    //      200..250 - good captures and/or promotions
-    //      255 - opp king capture or hash hit
 
-//--------------------------------
+// Structure for storing current state of engine
     struct state_s
     {
-        piece_t capt;                                                            // taken piece, 6 bits
-        iterator_entity captured_it;                                        // iterator to captured piece
-        coord_t fr;                                                         // from point, 7 bits
-        castle_t cstl;                                                      // castling rights, bits 0..3: white_king, white_queen, black_king, black_queen, 4 bits
-
-        iterator_entity castled_rook_it;                                    // iterator to castled rook, 8 bits
-        enpass_t ep;                                                        // 0 = no_ep, else ep=get_col(x) + 1, not null only if opponent pawn is near, 4 bits
-        iterator_entity nprom;                                              // number of next piece for promoted pawn, 6 bits
-        depth_t reversibleCr;                                                   // reversible halfmove counter
-        coord_t to;                                                              // to point, 7 bits (for simple repetition draw detection)
-        score_t val_opn;                                                    // store material and PST value considered all material is on the board
-        score_t val_end;                                                    // store material and PST value considered deep endgame (kings and pawns only)
-        priority_t scr;                                                             // move priority by move genererator
-        tropism_t tropism[2];
+        piece_t capt;  // captured piece
+        iterator_entity captured_it;  // iterator to captured piece
+        coord_t from_coord;  // square coordinate from which move was made
+        castle_t cstl;  // castling rights, bits 0..3: white king, white
+                        // queen, black_king, black_queen
+        iterator_entity castled_rook_it;  // iterator to castled rook
+        enpass_t ep;  // 0 = no_ep, else ep=get_col(x) + 1,
+                      // not null only if opponent pawn is near
+        iterator_entity nprom;  // next piece iterator for promoted pawn
+        depth_t reversibleCr;  // reversible halfmove counter
+        coord_t to_coord;  // to point, (for simple repetition draw detection)
+        score_t val_opn;  // store material and PST value considered
+                          // all material is on the board
+        score_t val_end;  // store material and PST value
+                          // considered deep endgame (kings and pawns only)
+        priority_t priority;  // move priority assigned by move genererator
+        tropism_t tropism[2];  // distance factors between pieces and enemy
+                               // kings for black and white
     };
 
 
     piece_t b[137];  // array representing the chess board in "0x88" style
-    short_list<coord_t, lst_sz> coords[2];  // black and white piece coordinates
-    attack_t attacks[240];  // table for quick detection of possible attacks
+    short_list<coord_t, lst_sz> coords[2];  // black/white piece coordinates
+
+    attack_t attacks[240];  // table for quick detection of attack candidates
     dist_t get_delta[240];  // for quick detection of slider attack distance
-    shifts_t get_shift[240];  // for quick detection of slider attack direction
+    shifts_t get_shift[240];  // quick detection of slider attack direction
     dist_t rays[7];  // number of directions to move for each kind of piece
     shifts_t shifts[6][8];  // biases defining directions for 'rays'
-    streng_t pc_streng[7];
-    streng_t streng[7];
-    streng_t sort_streng[7];
-    bool  slider[7];
+    bool  slider[7];  // for quick detection if piece is a slider
 
-    streng_t material[2], pieces[2];
-    state_s  b_state[prev_states + max_ply];
-    depth_t ply;
-    char *cv;
+    streng_t pc_streng[7];  // piece strength values for material counters
+    streng_t streng[7];  // piece strhengths for move priorities
+    streng_t sort_streng[7]; // piece strhengths for initial sort piece lists
+
+    streng_t material[2];  // material counters for black and white
+    streng_t pieces[2];  // piece counters, including kings
+    piece_num_t quantity[2][6 + 1];
+
+    state_s  b_state[prev_states + max_ply]; // engine state for each ply depth
+    depth_t ply;  // current ply depth
     depth_t reversible_moves;
 
-    char cur_moves[5*max_ply];
+    char cur_moves[5*max_ply];  // current variation (for debug mode only)
+    char *cv;  // current variation pointer (for debug mode only)
 
-    iterator king_coord[2];
-    piece_num_t quantity[2][6 + 1];
+    iterator king_coord[2];  // king coord iterators for black and white
 
 
 public:
 
 
-    side_to_move_t wtm;
+    side_to_move_t wtm;  // 0 = black to move, 1 = white to move
     bool FenToBoard(char *p);
+
 
 protected:
 
+
     void InitChess();
-    bool SliderAttack(coord_t fr, coord_t to);
-    bool Attack(coord_t to, side_to_move_t xtm);
+    bool SliderAttack(coord_t from_coord, coord_t to_coord);
+    bool Attack(coord_t to_coord, side_to_move_t xtm);
     bool Legal(move_c m, bool ic);
     bool MkMoveFast(move_c m);
     void UnMoveFast(move_c m);
@@ -220,19 +224,20 @@ protected:
 
 private:
 
+
     void InitAttacks();
     void InitBrd();
     bool BoardToMen();
-    void ShowMove(coord_t fr, coord_t to);
-    bool LegalSlider(coord_t fr, coord_t to, piece_t pt);
+    void ShowMove(coord_t from_coord, coord_t to_coord);
+    bool LegalSlider(coord_t from_coord, coord_t to_coord, piece_t pt);
     bool PieceListCompare(coord_t men1, coord_t men2);
-    void StoreCurrentBoardState(move_c m, coord_t fr, coord_t targ);
+    void StoreCurrentBoardState(move_c m, coord_t from_coord, coord_t targ);
     void MakeCapture(move_c m, coord_t targ);
     void MakePromotion(move_c m, iterator it);
     void UnmakeCapture(move_c m);
     void UnmakePromotion(move_c m);
-    bool MakeCastle(move_c m, coord_t fr);
+    bool MakeCastle(move_c m, coord_t from_coord);
     void UnMakeCastle(move_c m);
-    bool MakeEP(move_c m, coord_t fr);
+    bool MakeEP(move_c m, coord_t from_coord);
 
 };  // class k2chess

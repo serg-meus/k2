@@ -33,7 +33,7 @@ protected:
 
 
 
-    move_c pv[max_ply][max_ply + 1];          // the 'flg' property of first element in a row is length of PV at that depth
+    move_c pv[max_ply][max_ply + 1];          // the 'flag' property of first element in a row is length of PV at that depth
     move_c killers[max_ply][2];
     history_t history[2][6][128];
     history_t min_history, max_history;
@@ -55,16 +55,16 @@ private:
     void    GenCastles(move_c *list, movcr_t *movCr);
     void    AppriceMoves(move_c *list, movcr_t moveCr, move_c *best_move);
     void    AppriceQuiesceMoves(move_c *list, movcr_t moveCr);
-    streng_t SEE(coord_t to, streng_t frStreng, score_t val, bool stm);
-    iterator SeeMinAttacker(coord_t to);
+    streng_t SEE(coord_t to_coord, streng_t frStreng, score_t val, bool stm);
+    iterator SeeMinAttacker(coord_t to_coord);
     void    SortQuiesceMoves(move_c *move_array, movcr_t moveCr);
     void    PushMove(move_c *move_array, movcr_t *movCr, iterator it,
-                     coord_t to, move_flag_t flg)
+                     coord_t to_coord, move_flag_t flag)
     {
         move_c    m;
-        m.pc    = it;
-        m.to    = to;
-        m.flg   = flg;
+        m.piece_iterator    = it;
+        m.to_coord    = to_coord;
+        m.flag   = flag;
 
         move_array[(*movCr)++] = m;
     }

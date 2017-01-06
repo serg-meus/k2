@@ -42,11 +42,11 @@ k2hash::hash_key_t k2hash::InitHashKey()
 {
     hash_key_t ans = 0;
 
-    for(auto fr : coords[wtm])
-        ans ^= zorb[piece_hash_index(b[fr])][get_col(fr)][get_row(fr)];
+    for(auto from_coord : coords[wtm])
+        ans ^= zorb[piece_hash_index(b[from_coord])][get_col(from_coord)][get_row(from_coord)];
 
-    for(auto fr : coords[!wtm])
-        ans ^= zorb[piece_hash_index(b[fr])][get_col(fr)][get_row(fr)];
+    for(auto from_coord : coords[!wtm])
+        ans ^= zorb[piece_hash_index(b[from_coord])][get_col(from_coord)][get_row(from_coord)];
 
     if(!wtm)
         ans ^= key_for_side_to_move;
@@ -64,31 +64,31 @@ k2hash::hash_key_t k2hash::InitHashKey()
 void k2hash::MoveHashKey(move_c m, bool special)
 {
     doneHashKeys[FIFTY_MOVES + ply - 1] = hash_key;
-    auto fr = b_state[prev_states + ply].fr;
+    auto from_coord = b_state[prev_states + ply].from_coord;
 
-    auto pt   = b[m.to];
+    auto pt   = b[m.to_coord];
     auto &f = b_state[prev_states + ply],
           &_f = b_state[prev_states + ply - 1];
 
-    hash_key ^= zorb[piece_hash_index(pt)][get_col(fr)][get_row(fr)]
-                ^ zorb[piece_hash_index(pt)][get_col(m.to)][get_row(m.to)];
+    hash_key ^= zorb[piece_hash_index(pt)][get_col(from_coord)][get_row(from_coord)]
+                ^ zorb[piece_hash_index(pt)][get_col(m.to_coord)][get_row(m.to_coord)];
 
     if(f.capt)
-        hash_key ^= zorb[piece_hash_index(f.capt)][get_col(m.to)][get_row(m.to)];
+        hash_key ^= zorb[piece_hash_index(f.capt)][get_col(m.to_coord)][get_row(m.to_coord)];
     if(_f.ep)
         hash_key ^= zorb_en_passant[_f.ep];
 
-    if(m.flg & is_promotion)
-        hash_key ^= zorb[piece_hash_index(white_pawn ^ wtm)][get_col(fr)][get_row(fr)]
-                    ^ zorb[piece_hash_index(pt)][get_col(fr)][get_row(fr)];
-    else if(m.flg & is_en_passant)
-        hash_key ^= zorb[piece_hash_index(black_pawn ^ wtm)][get_col(m.to)]
-                    [get_row(m.to) + (wtm ? 1 : -1)];
-    else if(m.flg & is_castle)
+    if(m.flag & is_promotion)
+        hash_key ^= zorb[piece_hash_index(white_pawn ^ wtm)][get_col(from_coord)][get_row(from_coord)]
+                    ^ zorb[piece_hash_index(pt)][get_col(from_coord)][get_row(from_coord)];
+    else if(m.flag & is_en_passant)
+        hash_key ^= zorb[piece_hash_index(black_pawn ^ wtm)][get_col(m.to_coord)]
+                    [get_row(m.to_coord) + (wtm ? 1 : -1)];
+    else if(m.flag & is_castle)
     {
         if(!wtm)
         {
-            if(m.flg & is_castle_kingside)
+            if(m.flag & is_castle_kingside)
                 hash_key ^= zorb[piece_hash_index(white_rook)][7][0]
                             ^  zorb[piece_hash_index(white_rook)][5][0];
             else
@@ -97,7 +97,7 @@ void k2hash::MoveHashKey(move_c m, bool special)
         }
         else
         {
-            if(m.flg & is_castle_kingside)
+            if(m.flag & is_castle_kingside)
                 hash_key ^= zorb[piece_hash_index(black_rook)][7][7]
                             ^  zorb[piece_hash_index(black_rook)][5][7];
             else

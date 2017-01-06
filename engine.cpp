@@ -20,7 +20,7 @@ k2chess::score_t k2engine::Search(depth_t depth, score_t alpha, score_t beta,
 {
     if(ply >= max_ply - 1 || DrawDetect())
     {
-        pv[ply][0].flg = 0;
+        pv[ply][0].flag = 0;
         return 0;
     }
     bool in_check = Attack(*king_coord[wtm], !wtm);
@@ -33,9 +33,9 @@ k2chess::score_t k2engine::Search(depth_t depth, score_t alpha, score_t beta,
     if(!in_check
             && b_state[prev_states + ply - 1].capt
             && b_state[prev_states + ply].capt
-            && b_state[prev_states + ply].to == b_state[prev_states + ply - 1].to
-            && b_state[prev_states + ply - 1].scr > bad_captures
-            && b_state[prev_states + ply].scr > bad_captures
+            && b_state[prev_states + ply].to_coord == b_state[prev_states + ply - 1].to_coord
+            && b_state[prev_states + ply - 1].priority > bad_captures
+            && b_state[prev_states + ply].priority > bad_captures
       )
         depth++;
 
@@ -101,7 +101,7 @@ k2chess::score_t k2engine::Search(depth_t depth, score_t alpha, score_t beta,
         }
 
 
-        if(depth <= 2 && !cur_move.flg && !in_check
+        if(depth <= 2 && !cur_move.flag && !in_check
                 && node_type == all_node && legal_moves > 4)
         {
             UnMoveFast(cur_move);
@@ -113,12 +113,12 @@ k2chess::score_t k2engine::Search(depth_t depth, score_t alpha, score_t beta,
         FastEval(cur_move);
 
         auto lmr = 1;
-        if(depth < 3 || cur_move.flg || in_check)
+        if(depth < 3 || cur_move.flag || in_check)
             lmr = 0;
         else if(legal_moves < 4)
             lmr = 0;
-        else if(to_black(b[cur_move.to]) == black_pawn
-                && IsPasser(get_col(cur_move.to), !wtm))
+        else if(to_black(b[cur_move.to_coord]) == black_pawn
+                && IsPasser(get_col(cur_move.to_coord), !wtm))
             lmr = 0;
         else if(depth <= 4 && legal_moves > 8)
             lmr = 2;
@@ -159,7 +159,7 @@ k2chess::score_t k2engine::Search(depth_t depth, score_t alpha, score_t beta,
 
     if(legal_moves == 0 && initial_alpha <= mate_score)
     {
-        pv[ply][0].flg = 0;
+        pv[ply][0].flag = 0;
         return in_check ? -king_value + ply : 0;
     }
     else if(legal_moves)
@@ -169,15 +169,15 @@ k2chess::score_t k2engine::Search(depth_t depth, score_t alpha, score_t beta,
                           in_check && max_moves == 1);
     if(beta_cutoff)
     {
-        if(entry != nullptr && entry->best_move.flg != not_a_move)
+        if(entry != nullptr && entry->best_move.flag != not_a_move)
             hash_best_move_cr++;
         if(legal_moves == 1)
         {
-            if(entry != nullptr && entry->best_move.flg != not_a_move)
+            if(entry != nullptr && entry->best_move.flag != not_a_move)
                 hash_cutoff_by_best_move_cr++;
-            else if(cur_move.scr == first_killer)
+            else if(cur_move.priority == first_killer)
                 killer1_hits++;
-            else if(cur_move.scr == second_killer)
+            else if(cur_move.priority == second_killer)
                 killer2_hits++;
         }
         UpdateStatistics(cur_move, depth, legal_moves - 1);
@@ -196,7 +196,7 @@ k2chess::score_t k2engine::QSearch(score_t alpha, score_t beta)
     if(ply >= max_ply - 1)
         return 0;
 
-    pv[ply][0].flg = 0;
+    pv[ply][0].flag = 0;
 
     if(material[0] + material[1] > 24
             && ReturnEval(wtm) > beta + 250)
@@ -225,16 +225,16 @@ k2chess::score_t k2engine::QSearch(score_t alpha, score_t beta)
         if(max_moves <= 0)
             break;
 
-        if(cur_move.scr <= bad_captures)
+        if(cur_move.priority <= bad_captures)
             break;
 
         if(material[white] + material[black]
                 - pieces[white] - pieces[black] > 24
-                && to_black(b[cur_move.to]) != black_king
-                && !(cur_move.flg & is_promotion))
+                && to_black(b[cur_move.to_coord]) != black_king
+                && !(cur_move.flag & is_promotion))
         {
             auto cur_eval = ReturnEval(wtm);
-            auto capture = 100*pc_streng[get_index(b[cur_move.to])];
+            auto capture = 100*pc_streng[get_index(b[cur_move.to_coord])];
             auto margin = 100;
             if(cur_eval + capture + margin < alpha)
                 break;
@@ -325,8 +325,8 @@ void k2engine::Perft(depth_t depth)
 //-----------------------------
 void k2engine::StorePV(move_c move)
 {
-    auto nextLen = pv[ply + 1][0].flg;
-    pv[ply][0].flg = nextLen + 1;
+    auto nextLen = pv[ply + 1][0].flag;
+    pv[ply][0].flag = nextLen + 1;
     pv[ply][1] = move;
     memcpy(&pv[ply][2], &pv[ply + 1][1], sizeof(move_c)*nextLen);
 }
@@ -342,12 +342,12 @@ void k2engine::UpdateStatistics(move_c move, depth_t depth, movcr_t move_cr)
     cut_cr++;
     if(move_cr < sizeof(cut_num_cr)/sizeof(*cut_num_cr))
         cut_num_cr[move_cr]++;
-    if(move.scr == first_killer)
+    if(move.priority == first_killer)
         killer1_probes++;
-    if(move.scr == second_killer)
+    if(move.priority == second_killer)
         killer2_probes++;
 
-    if(move.flg)
+    if(move.flag)
         return;
     if(move != killers[ply][0] && move != killers[ply][1])
     {
@@ -356,9 +356,9 @@ void k2engine::UpdateStatistics(move_c move, depth_t depth, movcr_t move_cr)
     }
 
     auto it = coords[wtm].begin();
-    it = move.pc;
-    auto fr = *it;
-    auto &h = history[wtm][get_index(b[fr]) - 1][move.to];
+    it = move.piece_iterator;
+    auto from_coord = *it;
+    auto &h = history[wtm][get_index(b[from_coord]) - 1][move.to_coord];
     h += depth*depth + 1;
 }
 
@@ -376,7 +376,7 @@ void k2engine::MainSearch()
 
     root_ply = 1;
     x = QSearch(-infinit_score, infinit_score);
-    pv[0][0].flg = 0;
+    pv[0][0].flag = 0;
 
     max_root_moves = 0;
     for(; root_ply <= max_ply; ++root_ply)
@@ -513,7 +513,7 @@ k2chess::score_t k2engine::RootSearch(depth_t depth, score_t alpha, score_t beta
                     x = x_;
                 if(x > alpha)
                 {
-                    pv[0][0].flg = 1;
+                    pv[0][0].flag = 1;
                     pv[0][1] = cur_move;
                 }
                 else
@@ -563,7 +563,7 @@ k2chess::score_t k2engine::RootSearch(depth_t depth, score_t alpha, score_t beta
         PrintCurrentSearchResult(alpha, ' ');
     if(max_root_moves == 0)
     {
-        pv[0][0].flg = 0;
+        pv[0][0].flag = 0;
         return in_check ? -king_value + ply : 0;
     }
     if(beta_cutoff)
@@ -587,11 +587,11 @@ void k2engine::ShowPVfailHighOrLow(move_c m, score_t x, char type_of_bound)
 
     auto tmp0       = pv[0][0];
     auto tmp1       = pv[0][1];
-    pv[0][0].flg    = 1;
+    pv[0][0].flag    = 1;
     pv[0][1]        = m;
 
     PrintCurrentSearchResult(x, type_of_bound);
-    pv[0][0].flg    = tmp0.flg;
+    pv[0][0].flag    = tmp0.flag;
     pv[0][1]        = tmp1;
 
     MkMove(m);
@@ -609,7 +609,7 @@ void k2engine::RootMoveGen(bool in_check)
     auto max_moves = init_max_moves;
 
     score_t alpha = -infinit_score, beta = infinit_score;
-    cur_move.flg = not_a_move;
+    cur_move.flag = not_a_move;
 
     HashProbe(max_ply, &alpha, beta);
 
@@ -704,13 +704,13 @@ void k2engine::MoveToStr(move_c move, bool stm, char *out)
     char proms[] = {'?', 'q', 'n', 'r', 'b'};
 
     auto it = coords[stm].begin();
-    it      = move.pc;
+    it      = move.piece_iterator;
     auto  f  = *it;
     out[0]  = get_col(f) + 'a';
     out[1]  = get_row(f) + '1';
-    out[2]  = get_col(move.to) + 'a';
-    out[3]  = get_row(move.to) + '1';
-    out[4]  = (move.flg & is_promotion) ? proms[move.flg & is_promotion] : '\0';
+    out[2]  = get_col(move.to_coord) + 'a';
+    out[3]  = get_row(move.to_coord) + '1';
+    out[4]  = (move.flag & is_promotion) ? proms[move.flag & is_promotion] : '\0';
     out[5]  = '\0';
 }
 
@@ -732,7 +732,7 @@ void k2engine::PrintFinalSearchResult()
     else
     {
         std::cout << "bestmove " << move_str;
-        if(!infinite_analyze && pv[0][0].flg > 1)
+        if(!infinite_analyze && pv[0][0].flag > 1)
         {
             char pndr[6];
             MoveToStr(pv[0][2], !wtm, pndr);
@@ -922,7 +922,7 @@ bool k2engine::ShowPV(depth_t cur_ply)
     char pc2chr[] = "??KKQQRRBBNNPP";
     bool ans = true;
     depth_t ply_cr = 0;
-    auto pv_len = pv[cur_ply][0].flg;
+    auto pv_len = pv[cur_ply][0].flag;
 
     if(uci)
     {
@@ -930,14 +930,14 @@ bool k2engine::ShowPV(depth_t cur_ply)
         {
             move_c cur_move = pv[cur_ply][ply_cr + 1];
             auto it = coords[wtm].begin();
-            it = cur_move.pc;
+            it = cur_move.piece_iterator;
             auto from_coord = *it;
             std::cout  << (char)(get_col(from_coord) + 'a')
                        << (char)(get_row(from_coord) + '1')
-                       << (char)(get_col(cur_move.to) + 'a') << (char)(get_row(cur_move.to) + '1');
+                       << (char)(get_col(cur_move.to_coord) + 'a') << (char)(get_row(cur_move.to_coord) + '1');
             char proms[] = {'?', 'q', 'n', 'r', 'b'};
-            if(cur_move.flg & is_promotion)
-                std::cout << proms[cur_move.flg & is_promotion];
+            if(cur_move.flag & is_promotion)
+                std::cout << proms[cur_move.flag & is_promotion];
             std::cout << " ";
             MkMoveFast(cur_move);
             bool in_check = Attack(*king_coord[wtm], !wtm);
@@ -951,37 +951,37 @@ bool k2engine::ShowPV(depth_t cur_ply)
         {
             auto cur_move = pv[cur_ply][ply_cr + 1];
             auto it = coords[wtm].begin();
-            it = cur_move.pc;
+            it = cur_move.piece_iterator;
             char piece_char = pc2chr[b[*it]];
-            if(piece_char == 'K' && get_col(*it) == 4 && get_col(cur_move.to) == 6)
+            if(piece_char == 'K' && get_col(*it) == 4 && get_col(cur_move.to_coord) == 6)
                 std::cout << "OO";
             else if(piece_char == 'K' && get_col(*it) == 4
-                    && get_col(cur_move.to) == 2)
+                    && get_col(cur_move.to_coord) == 2)
                 std::cout << "OOO";
             else if(piece_char != 'P')
             {
                 std::cout << piece_char;
                 FindAndPrintForAmbiguousMoves(cur_move);
-                if(cur_move.flg & is_capture)
+                if(cur_move.flag & is_capture)
                     std::cout << 'x';
-                std::cout << (char)(get_col(cur_move.to) + 'a');
-                std::cout << (char)(get_row(cur_move.to) + '1');
+                std::cout << (char)(get_col(cur_move.to_coord) + 'a');
+                std::cout << (char)(get_row(cur_move.to_coord) + '1');
             }
-            else if(cur_move.flg & is_capture)
+            else if(cur_move.flag & is_capture)
             {
                 it = coords[wtm].begin();
-                it = cur_move.pc;
+                it = cur_move.piece_iterator;
                 std::cout << (char)(get_col(*it) + 'a')
                           << "x"
-                          << (char)(get_col(cur_move.to) + 'a')
-                          << (char)(get_row(cur_move.to) + '1');
+                          << (char)(get_col(cur_move.to_coord) + 'a')
+                          << (char)(get_row(cur_move.to_coord) + '1');
             }
             else
-                std::cout << (char)(get_col(cur_move.to) + 'a')
-                          << (char)(get_row(cur_move.to) + '1');
+                std::cout << (char)(get_col(cur_move.to_coord) + 'a')
+                          << (char)(get_row(cur_move.to_coord) + '1');
             char proms[] = "?QNRB";
-            if(piece_char == 'P' && (cur_move.flg & is_promotion))
-                std::cout << proms[cur_move.flg& is_promotion];
+            if(piece_char == 'P' && (cur_move.flag & is_promotion))
+                std::cout << proms[cur_move.flag & is_promotion];
             std::cout << ' ';
             MkMoveFast(cur_move);
             bool in_check = Attack(*king_coord[wtm], !wtm);
@@ -1004,25 +1004,25 @@ void k2engine::FindAndPrintForAmbiguousMoves(move_c move)
     move_c move_array[8];
     auto amb_cr = 0;
     auto it = coords[wtm].begin();
-    it = move.pc;
+    it = move.piece_iterator;
     auto init_from_coord = *it;
     auto init_piece_type = get_index(b[init_from_coord]);
 
     for(it = coords[wtm].begin(); it != coords[wtm].end(); ++it)
     {
-        if(it == move.pc)
+        if(it == move.piece_iterator)
             continue;
         auto from_coord = *it;
 
         auto piece_type = get_index(b[from_coord]);
         if(piece_type != init_piece_type)
             continue;
-        if(!(attacks[120 + from_coord - move.to] & (1 << piece_type)))
+        if(!(attacks[120 + from_coord - move.to_coord] & (1 << piece_type)))
             continue;
-        if(slider[piece_type] && !SliderAttack(from_coord, move.to))
+        if(slider[piece_type] && !SliderAttack(from_coord, move.to_coord))
             continue;
         auto tmp = move;
-        tmp.scr = from_coord;
+        tmp.priority = from_coord;
         move_array[amb_cr++] = tmp;
     }
 
@@ -1032,9 +1032,9 @@ void k2engine::FindAndPrintForAmbiguousMoves(move_c move)
     bool same_cols = false, same_rows = false;
     for(auto i = 0; i < amb_cr; i++)
     {
-        if(get_col(move_array[i].scr) == get_col(init_from_coord))
+        if(get_col(move_array[i].priority) == get_col(init_from_coord))
             same_cols = true;
-        if(get_row(move_array[i].scr) == get_row(init_from_coord))
+        if(get_row(move_array[i].priority) == get_row(init_from_coord))
             same_rows = true;
     }
     if(same_cols && same_rows)
@@ -1066,19 +1066,19 @@ bool k2engine::MakeMoveFinaly(char *move_str)
     {
         auto cur_move  = root_moves.at(i).second;
         auto it = coords[wtm].begin();
-        it = cur_move.pc;
+        it = cur_move.piece_iterator;
         cur_move_str[0] = get_col(*it) + 'a';
         cur_move_str[1] = get_row(*it) + '1';
-        cur_move_str[2] = get_col(cur_move.to) + 'a';
-        cur_move_str[3] = get_row(cur_move.to) + '1';
-        cur_move_str[4] = (cur_move.flg & is_promotion) ? proms[cur_move.flg & is_promotion] : '\0';
+        cur_move_str[2] = get_col(cur_move.to_coord) + 'a';
+        cur_move_str[3] = get_row(cur_move.to_coord) + '1';
+        cur_move_str[4] = (cur_move.flag & is_promotion) ? proms[cur_move.flag & is_promotion] : '\0';
         cur_move_str[5] = '\0';
 
         if(strcmp(move_str, cur_move_str) != 0)
             continue;
 
         it = coords[wtm].begin();
-        it = cur_move.pc;
+        it = cur_move.piece_iterator;
 
         MkMove(cur_move);
         FastEval(cur_move);
@@ -1228,7 +1228,7 @@ void k2engine::MakeNullMove()
 #endif // NDEBUG
 
     b_state[prev_states + ply + 1] = b_state[prev_states + ply];
-    b_state[prev_states + ply].to = is_null_move;
+    b_state[prev_states + ply].to_coord = is_null_move;
     b_state[prev_states + ply  + 1].ep = 0;
 
     ply++;
@@ -1265,13 +1265,13 @@ bool k2engine::NullMove(depth_t depth, score_t beta, bool in_check)
 
     null_probe_cr++;
 
-    if(b_state[prev_states + ply - 1].to == is_null_move
-            && b_state[prev_states + ply - 2].to == is_null_move
+    if(b_state[prev_states + ply - 1].to_coord == is_null_move
+            && b_state[prev_states + ply - 2].to_coord == is_null_move
       )
         return false;
 
     auto store_ep  = b_state[prev_states + ply].ep;
-    auto store_to = b_state[prev_states + ply].to;
+    auto store_to = b_state[prev_states + ply].to_coord;
     auto store_rv = reversible_moves;
     reversible_moves = 0;
 
@@ -1284,7 +1284,7 @@ bool k2engine::NullMove(depth_t depth, score_t beta, bool in_check)
     auto x = -Search(depth - r - 1, -beta, -beta + 1, all_node);
 
     UnMakeNullMove();
-    b_state[prev_states + ply].to = store_to;
+    b_state[prev_states + ply].to_coord = store_to;
     b_state[prev_states + ply].ep = store_ep;
     reversible_moves = store_rv;
 
@@ -1305,7 +1305,7 @@ bool k2engine::NullMove(depth_t depth, score_t beta, bool in_check)
 bool k2engine::Futility(depth_t depth, score_t beta)
 {
     if(b_state[prev_states + ply].capt == 0
-            && b_state[prev_states + ply - 1].to != is_null_move
+            && b_state[prev_states + ply - 1].to_coord != is_null_move
       )
     {
         futility_probes++;
@@ -1448,13 +1448,13 @@ k2hash::hash_entry_s* k2engine::HashProbe(depth_t depth, score_t *alpha, score_t
                 || (hbnd == lower_bound && hval <= -beta) )  //-beta = alpha for parent node
         {
             hash_cut_cr++;
-            pv[ply][0].flg = 0;
+            pv[ply][0].flag = 0;
             *alpha = hval;
             return entry;
         }// if(bnd
     }// if((*entry).depth >= depth
 
-    if(entry->best_move.flg != not_a_move)
+    if(entry->best_move.flag != not_a_move)
         hash_hit_cr++;
 
     return entry;
@@ -1467,47 +1467,47 @@ k2hash::hash_entry_s* k2engine::HashProbe(depth_t depth, score_t *alpha, score_t
 //-----------------------------
 bool k2engine::MoveIsPseudoLegal(move_c &move, bool stm)
 {
-    if(move.flg == not_a_move)
+    if(move.flag == not_a_move)
         return false;
     auto it = coords[stm].begin();
     for(; it != coords[stm].end(); ++it)
-        if(it == move.pc)
+        if(it == move.piece_iterator)
             break;
     if(it == coords[stm].end())
         return false;
-    it = move.pc;
+    it = move.piece_iterator;
     auto from_coord = *it;
-    auto piece = b[move.to];
-    int delta_col = get_col(move.to) - get_col(from_coord);
-    int delta_row = get_row(move.to) - get_row(from_coord);
+    auto piece = b[move.to_coord];
+    int delta_col = get_col(move.to_coord) - get_col(from_coord);
+    int delta_row = get_row(move.to_coord) - get_row(from_coord);
     if(!delta_col && !delta_row)
         return false;
     if(!is_light(b[from_coord], stm))
         return false;
     if(to_black(b[from_coord]) != black_pawn
-            && ((!is_dark(piece, stm) && (move.flg & is_capture))
-                || (piece != empty_square && !(move.flg & is_capture))))
+            && ((!is_dark(piece, stm) && (move.flag & is_capture))
+                || (piece != empty_square && !(move.flag & is_capture))))
         return false;
-    if(to_black(b[from_coord]) != black_pawn && (move.flg & is_promotion))
+    if(to_black(b[from_coord]) != black_pawn && (move.flag & is_promotion))
         return false;
     bool long_move;
     switch (to_black(b[from_coord]))
     {
     case black_pawn :
-        if((move.flg & is_promotion) && ((stm && get_row(from_coord) != 6)
+        if((move.flag & is_promotion) && ((stm && get_row(from_coord) != 6)
                                          || (!stm && get_row(from_coord) != 1)))
             return false;
-        if((move.flg & is_capture) && (std::abs(delta_col) != 1
+        if((move.flag & is_capture) && (std::abs(delta_col) != 1
                                        || (stm && delta_row != 1) || (!stm && delta_row != -1)
-                                       || (!(move.flg & is_en_passant) && !is_dark(piece, stm))))
+                                       || (!(move.flag & is_en_passant) && !is_dark(piece, stm))))
             return false;
-        if((move.flg & is_en_passant)
+        if((move.flag & is_en_passant)
                 && (piece != empty_square || b_state[prev_states + ply].ep == 0))
             return false;
-        if(get_row(move.to) == (stm ? 7 : 0)
-                && !(move.flg & is_promotion))
+        if(get_row(move.to_coord) == (stm ? 7 : 0)
+                && !(move.flag & is_promotion))
             return false;
-        if(!(move.flg & is_capture))
+        if(!(move.flag & is_capture))
         {
             if(!stm)
                 delta_row = -delta_row;
@@ -1518,13 +1518,13 @@ bool k2engine::MoveIsPseudoLegal(move_c &move, bool stm)
             if(long_move ? delta_row > 2 : delta_row != 1)
                 return false;
             if(long_move && delta_row == 2
-                    && b[get_coord(get_col(from_coord), (get_row(from_coord) + get_row(move.to))/2)] != empty_square)
+                    && b[get_coord(get_col(from_coord), (get_row(from_coord) + get_row(move.to_coord))/2)] != empty_square)
                 return false;
         }
 
         break;
     case black_knight :
-        move.flg &= is_capture;
+        move.flag &= is_capture;
         if(std::abs(delta_col) + std::abs(delta_row) != 3)
             return false;
         if(std::abs(delta_col) != 1 && std::abs(delta_row) != 1)
@@ -1533,13 +1533,13 @@ bool k2engine::MoveIsPseudoLegal(move_c &move, bool stm)
     case black_bishop :
     case black_rook :
     case black_queen :
-        move.flg &= is_capture;
-        if(!(attacks[120 + move.to - from_coord] & (1 << get_index(b[from_coord])))
-                || !SliderAttack(move.to, from_coord))
+        move.flag &= is_capture;
+        if(!(attacks[120 + move.to_coord - from_coord] & (1 << get_index(b[from_coord])))
+                || !SliderAttack(move.to_coord, from_coord))
             return false;
         break;
     case black_king :
-        if(!(move.flg & is_castle))
+        if(!(move.flag & is_castle))
         {
             if((std::abs(delta_col) > 1 || std::abs(delta_row) > 1))
                 return false;
@@ -1551,16 +1551,16 @@ bool k2engine::MoveIsPseudoLegal(move_c &move, bool stm)
         if(get_col(from_coord) != 4 || get_row(from_coord) != stm ? 0 : 7)
             return false;
         if((b_state[prev_states + ply].cstl &
-                (move.flg >> 3 >> (2*stm))) == 0)
+                (move.flag >> 3 >> (2*stm))) == 0)
             return false;
-        if(b[get_coord(get_col(move.to), get_row(from_coord))] != empty_square)
+        if(b[get_coord(get_col(move.to_coord), get_row(from_coord))] != empty_square)
             return false;
-        if(b[get_coord((get_col(move.to)+get_col(from_coord))/2, get_row(from_coord))] != empty_square)
+        if(b[get_coord((get_col(move.to_coord)+get_col(from_coord))/2, get_row(from_coord))] != empty_square)
             return false;
-        if((move.flg &is_castle_kingside)
+        if((move.flag &is_castle_kingside)
                 && to_black(b[get_coord(7, get_row(from_coord))]) != black_rook)
             return false;
-        if((move.flg &is_castle_queenside)
+        if((move.flag &is_castle_queenside)
                 && to_black(b[get_coord(0, get_row(from_coord))]) != black_rook)
             return false;
         break;
@@ -1596,8 +1596,8 @@ k2chess::move_c k2engine::Next(move_c *move_array, movcr_t cur_move,
                 *max_moves = GenCaptures(move_array);
 
             if(*max_moves > 1
-                    && move_array[0].scr > bad_captures
-                    && move_array[0].scr == move_array[1].scr)
+                    && move_array[0].priority > bad_captures
+                    && move_array[0].priority == move_array[1].priority)
             {
                 if(SEE_main(move_array[0]) < SEE_main(move_array[1]))
                     std::swap(move_array[0], move_array[1]);
@@ -1621,7 +1621,7 @@ k2chess::move_c k2engine::Next(move_c *move_array, movcr_t cur_move,
 #endif
             if(pseudo_legal)
             {
-                ans.scr = move_from_hash;
+                ans.priority = move_from_hash;
 #ifndef DONT_USE_ONE_REPLY_EXTENSION
                 if(entry->one_reply)
                 {
@@ -1663,7 +1663,7 @@ k2chess::move_c k2engine::Next(move_c *move_array, movcr_t cur_move,
         }
         auto i = 0;
         for(; i < *max_moves; i++)
-            if(move_array[i].scr == move_from_hash)
+            if(move_array[i].priority == move_from_hash)
             {
                 std::swap(move_array[0], move_array[i]);
                 break;
@@ -1701,7 +1701,7 @@ k2chess::move_c k2engine::Next(move_c *move_array, movcr_t cur_move,
 
     for(auto i = cur_move; i < *max_moves; i++)
     {
-        auto score = move_array[i].scr;
+        auto score = move_array[i].priority;
         if(score > max_score)
         {
             max_score = score;
@@ -1738,7 +1738,7 @@ void k2engine::StoreResultInHash(depth_t depth, score_t init_alpha, score_t alph
                        lower_bound, finaly_made_moves/2, one_reply, nodes);
 
     }
-    else if(alpha > init_alpha && pv[ply][0].flg > 0)
+    else if(alpha > init_alpha && pv[ply][0].flag > 0)
     {
         if(alpha > mate_score && alpha != infinit_score)
             alpha += ply - depth;
@@ -1754,7 +1754,7 @@ void k2engine::StoreResultInHash(depth_t depth, score_t init_alpha, score_t alph
         else if(init_alpha < -mate_score && init_alpha != -infinit_score)
             init_alpha -= ply - depth;
         move_c no_move;
-        no_move.flg = not_a_move;
+        no_move.flag = not_a_move;
         hash_table.add(hash_key, -init_alpha,
                        legals > 0 ? best_move : no_move, depth,
                        upper_bound, finaly_made_moves/2, one_reply, nodes);
@@ -1774,13 +1774,13 @@ void k2engine::ShowCurrentUciInfo()
               << " nps " << (i32)(1000000 * nodes / (t - time0 + 1));
 
     auto move = root_moves.at(root_move_cr).second;
-    auto from_coord = b_state[prev_states + 1].fr;
+    auto from_coord = b_state[prev_states + 1].from_coord;
     std::cout << " currmove "
               << (char)(get_col(from_coord) + 'a') << (char)(get_row(from_coord) + '1')
-              << (char)(get_col(move.to) + 'a') << (char)(get_row(move.to) + '1');
+              << (char)(get_col(move.to_coord) + 'a') << (char)(get_row(move.to_coord) + '1');
     char proms[] = {'?', 'q', 'n', 'r', 'b'};
-    if(move.flg & is_promotion)
-        std::cout << proms[move.flg & is_promotion];
+    if(move.flag & is_promotion)
+        std::cout << proms[move.flag & is_promotion];
 
     std::cout << " currmovenumber " << root_move_cr + 1;
     std::cout << " hashfull ";
