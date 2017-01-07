@@ -1,7 +1,7 @@
 #include "chess.h"
 
-#include <fstream>                  // to work with files (ifstream, getline())
-#include <cstdlib>                  // to convert strings to floats (atof())
+#include <fstream>  // to work with files (ifstream, getline())
+#include <cstdlib>  // to convert strings to floats (atof())
 #include <iostream>
 #include <vector>
 
@@ -65,15 +65,15 @@ public:
 protected:
 
 
-    void  InitEval();
-    void  FastEval(move_c m);
+    void InitEval();
+    void FastEval(move_c m);
     score_t Eval();
-    void  InitEvaOfMaterialAndPst();
+    void InitEvaOfMaterialAndPst();
     void InitPawnStruct();
     void SetPawnStruct(coord_t col);
-    bool  IsPasser(coord_t col, side_to_move_t stm);
-    bool  MkMoveAndEval(move_c m);
-    void  UnMoveAndEval(move_c m);
+    bool IsPasser(coord_t col, side_to_move_t stm);
+    bool MkMoveAndEval(move_c m);
+    void UnMoveAndEval(move_c m);
 
     void MkEvalAfterFastMove(move_c m)
     {
@@ -110,17 +110,18 @@ protected:
 private:
 
 
-    void  EvalPawns(side_to_move_t stm);
-    void  ClampedRook(side_to_move_t stm);
-    bool  IsUnstoppablePawn(coord_t x, coord_t y, side_to_move_t stm);
-    void  KingSafety(side_to_move_t king_color);
-    void  BishopMobility(side_to_move_t stm);
-    void  MaterialImbalances();
+    void EvalPawns(side_to_move_t stm);
+    void ClampedRook(side_to_move_t stm);
+    bool IsUnstoppablePawn(coord_t x, coord_t y, side_to_move_t stm);
+    void KingSafety(side_to_move_t king_color);
+    void BishopMobility(side_to_move_t stm);
+    void MaterialImbalances();
     score_t KingWeakness(side_to_move_t king_color);
     score_t CountKingTropism(side_to_move_t king_color);
-    void  MoveKingTropism(coord_t from_coord, move_c m, side_to_move_t king_color);
+    void MoveKingTropism(coord_t from_coord, move_c m,
+                          side_to_move_t king_color);
     score_t KingOpenFiles(side_to_move_t king_color);
-    void  MovePawnStruct(piece_t movedPiece, coord_t from_coord, move_c m);
+    void MovePawnStruct(piece_t movedPiece, coord_t from_coord, move_c m);
     score_t OneBishopMobility(coord_t b_coord);
 
 };

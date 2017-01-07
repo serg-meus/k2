@@ -25,7 +25,7 @@ k2chess::score_t k2eval::Eval()
     MaterialImbalances();
 
     auto ans = -ReturnEval(wtm);
-    ans -= 8;                                                           // bonus for side to move
+    ans -= 8;  // bonus for side to move
 
     val_opn = b_state[prev_states + ply].val_opn;
     val_end = b_state[prev_states + ply].val_end;
@@ -60,10 +60,10 @@ void k2eval::InitEval()
     pawn_max[1 - 1][1] = 0;
     pawn_min[1 - 1][0] = 7;
     pawn_min[1 - 1][1] = 7;
-    pawn_max[8 + 1][0]  = 0;
-    pawn_max[8 + 1][1]  = 0;
-    pawn_min[8 + 1][0]  = 7;
-    pawn_min[8 + 1][1]  = 7;
+    pawn_max[8 + 1][0] = 0;
+    pawn_max[8 + 1][1] = 0;
+    pawn_min[8 + 1][0] = 7;
+    pawn_min[8 + 1][1] = 7;
 }
 
 
@@ -75,15 +75,15 @@ void k2eval::FastEval(move_c m)
 {
     score_t ansO = 0, ansE = 0;
 
-    auto x  = get_col(m.to_coord);
-    auto y  = get_row(m.to_coord);
+    auto x = get_col(m.to_coord);
+    auto y = get_row(m.to_coord);
     auto x0 = get_col(b_state[prev_states + ply].from_coord);
     auto y0 = get_row(b_state[prev_states + ply].from_coord);
     auto pt = get_index(b[m.to_coord]);
 
     if(!wtm)
     {
-        y  = 7 - y;
+        y = 7 - y;
         y0 = 7 - y0;
     }
 
@@ -95,7 +95,10 @@ void k2eval::FastEval(move_c m)
         ansO -= material_values_opn[idx] + pst[idx - 1][0][y0][x0];
         ansE -= material_values_end[idx] + pst[idx - 1][1][y0][x0];
 
-        piece_t promo_pieces[] = {black_queen, black_knight, black_rook, black_bishop};
+        piece_t promo_pieces[] =
+        {
+            black_queen, black_knight, black_rook, black_bishop
+        };
         idx = get_index(promo_pieces[flag - 1]);
         ansO += material_values_opn[idx] + pst[idx - 1][0][y0][x0];
         ansE += material_values_end[idx] + pst[idx - 1][1][y0][x0];
@@ -285,14 +288,16 @@ void k2eval::EvalPawns(side_to_move_t stm)
         // passed pawn evaluation
         score_t pass[] =         {0, 0, 21, 40, 85, 150, 200};
         score_t blocked_pass[] = {0, 0, 10, 20, 40,  50,  60};
-        bool blocked = b[get_coord(col, stm ? mx + 1 : 7 - mx - 1)] != empty_square;
+        auto next_square = get_coord(col, stm ? mx + 1 : 7 - mx - 1);
+        bool blocked = b[next_square] != empty_square;
         auto delta = blocked ? blocked_pass[mx] : pass[mx];
 
         ansE += delta;
         ansO += delta/3;
 
         // connected passers
-        if(passer && prev_passer && std::abs(mx - pawn_max[col + 0][stm]) <= 1)
+        if(passer && prev_passer
+                && std::abs(mx - pawn_max[col + 0][stm]) <= 1)
         {
             auto mmx = std::max(pawn_max[col + 0][stm], mx);
             if(mmx > 4)
@@ -372,7 +377,7 @@ void k2eval::BishopMobility(side_to_move_t stm)
 //-----------------------------
 inline void k2eval::ClampedRook(side_to_move_t stm)
 {
-    const score_t clamped_rook  = 82;
+    const score_t clamped_rook = 82;
     auto k = *king_coord[stm];
 
     if(stm)
@@ -531,7 +536,8 @@ void k2eval::MaterialImbalances()
                 || (quantity[black][get_index(black_knight)] == 1
                     && quantity[black][get_index(black_bishop)] == 1))
         {
-            auto stm = quantity[white][get_index(black_knight)] == 1 ? white : black;
+            auto stm = quantity[white][get_index(black_knight)] == 1
+                       ? white : black;
             auto rit = coords[stm].begin();
             for(; rit != coords[stm].end(); ++rit)
                 if(to_black(b[*rit]) == black_bishop)
@@ -561,15 +567,19 @@ void k2eval::MaterialImbalances()
         if(material[white] == 0)
         {
             auto k = *king_coord[white];
-            if((pawn_max[1 + 0][black] != 0 && king_dist[std::abs(k - 0x00)] <= 1)
-                    || (pawn_max[1 + 7][black] != 0 && king_dist[std::abs(k - 0x07)] <= 1))
+            if((pawn_max[1 + 0][black] != 0
+                    && king_dist[std::abs(k - 0x00)] <= 1)
+                    || (pawn_max[1 + 7][black] != 0
+                        && king_dist[std::abs(k - 0x07)] <= 1))
                 val_end += 750;
         }
         else if(material[black] == 0)
         {
             auto k = *king_coord[black];
-            if((pawn_max[1 + 0][white] != 0 && king_dist[std::abs(k - 0x70)] <= 1)
-                    || (pawn_max[1 + 7][white] != 0 && king_dist[std::abs(k - 0x77)] <= 1))
+            if((pawn_max[1 + 0][white] != 0
+                    && king_dist[std::abs(k - 0x70)] <= 1)
+                    || (pawn_max[1 + 7][white] != 0
+                        && king_dist[std::abs(k - 0x77)] <= 1))
                 val_end -= 750;
         }
     }
@@ -582,7 +592,9 @@ void k2eval::MaterialImbalances()
             auto it = coords[stm].rbegin();
             ++it;
             auto colp = get_col(*it);
-            bool unstop = IsUnstoppablePawn(colp, 7 - pawn_max[colp + 1][stm], stm);
+            bool unstop = IsUnstoppablePawn(colp,
+                                            7 - pawn_max[colp + 1][stm],
+                                            stm);
             auto dist_k = king_dist[std::abs(*king_coord[stm] - *it)];
             auto dist_opp_k = king_dist[std::abs(*king_coord[!stm] - *it)];
 
@@ -738,9 +750,9 @@ k2chess::score_t k2eval::EvalDebug()
     store_sum = ReturnEval(white);
 
     auto ans = -ReturnEval(wtm);
-    ans -= 8;                                                           // bonus for side to move
+    ans -= 8;  // bonus for side to move
     std::cout << "Bonus for side to move\t\t\t";
-    std::cout <<  (wtm ? 8 : -8) << std::endl << std::endl;
+    std::cout << (wtm ? 8 : -8) << std::endl << std::endl;
 
     std::cout << std::endl << std::endl;
 
@@ -793,7 +805,8 @@ void k2eval::SetPawnStruct(k2chess::coord_t col)
 
 
 //-----------------------------
-void k2eval::MovePawnStruct(piece_t moved_piece, coord_t from_coord, move_c move)
+void k2eval::MovePawnStruct(piece_t moved_piece, coord_t from_coord,
+                            move_c move)
 {
     if(to_black(moved_piece) == black_pawn || (move.flag & is_promotion))
     {
@@ -802,7 +815,7 @@ void k2eval::MovePawnStruct(piece_t moved_piece, coord_t from_coord, move_c move
             SetPawnStruct(get_col(from_coord));
     }
     if(to_black(b_state[prev_states + ply].capt) == black_pawn
-            || (move.flag & is_en_passant))                                    // is_en_passant not needed
+            || (move.flag & is_en_passant))  // is_en_passant not needed
     {
         wtm ^= white;
         SetPawnStruct(get_col(move.to_coord));
@@ -877,7 +890,8 @@ k2chess::score_t k2eval::CountKingTropism(side_to_move_t king_color)
 
 
 //-----------------------------
-void k2eval::MoveKingTropism(coord_t from_coord, move_c move, side_to_move_t king_color)
+void k2eval::MoveKingTropism(coord_t from_coord, move_c move,
+                             side_to_move_t king_color)
 {
     b_state[prev_states + ply].tropism[black] = king_tropism[black];
     b_state[prev_states + ply].tropism[white] = king_tropism[white];
@@ -886,14 +900,14 @@ void k2eval::MoveKingTropism(coord_t from_coord, move_c move, side_to_move_t kin
 
     if(to_black(cur_piece) == black_king)
     {
-        king_tropism[king_color]  = CountKingTropism(king_color);
+        king_tropism[king_color] = CountKingTropism(king_color);
         king_tropism[!king_color] = CountKingTropism(!king_color);
 
         return;
     }
-
-    auto dist_to = king_dist[std::abs(*king_coord[king_color] - move.to_coord)];
-    auto dist_fr = king_dist[std::abs(*king_coord[king_color] - from_coord)];
+    auto k_coord = *king_coord[king_color];
+    auto dist_to = king_dist[std::abs(k_coord - move.to_coord)];
+    auto dist_fr = king_dist[std::abs(k_coord - from_coord)];
 
 
     if(dist_fr < 4 && !(move.flag & is_promotion))
@@ -906,7 +920,7 @@ void k2eval::MoveKingTropism(coord_t from_coord, move_c move, side_to_move_t kin
     auto cap = b_state[prev_states + ply].capt;
     if(move.flag & is_capture)
     {
-        dist_to = king_dist[std::abs(*king_coord[!king_color] - move.to_coord)];
+        dist_to = king_dist[std::abs(k_coord - move.to_coord)];
         if(dist_to < 4)
             king_tropism[!king_color] -= tropism_factor[dist_to < 3]
                                          [get_index(cap)];
@@ -1042,7 +1056,8 @@ k2chess::score_t k2eval::KingWeakness(side_to_move_t king_color)
         ans += 30;
     if(get_col(k) == 3 || get_col(k) == 4)
     {
-        if(b_state[prev_states + ply].cstl & (0x0C >> 2*king_color)) // able to castle
+        // if able to castle
+        if(b_state[prev_states + ply].cstl & (0x0C >> 2*king_color))
             ans += 30;
         else
             ans += 60;
@@ -1074,14 +1089,15 @@ k2chess::score_t k2eval::KingWeakness(side_to_move_t king_color)
             continue;
 
         if(is_light(pt2, king_color)
-                && (b[col + k + shft - 2] == pwn || b[col + k + shft + 0] == pwn))
+                && (b[col + k + shft - 2] == pwn
+                    || b[col + k + shft + 0] == pwn))
             continue;
 
         idx += (1 << col);
     }
     idx = 7 - idx;
     // cases: ___, __p, _p_, _pp, p__, p_p, pp_, ppp
-    size_t cases[]  = {0, 1, 1, 3, 1, 2, 3, 4};
+    size_t cases[] = {0, 1, 1, 3, 1, 2, 3, 4};
     score_t scores[] = {140, 75, 75, 10, 0};
 
     ans += scores[cases[idx]];
@@ -1126,8 +1142,8 @@ void k2eval::KingSafety(side_to_move_t king_color)
 
     if(trp > 500)
         trp = 500;
-
-    if(b_state[prev_states + ply].cstl & (0x0C >> 2*king_color)) // able to castle
+    // if able to castle
+    if(b_state[prev_states + ply].cstl & (0x0C >> 2*king_color))
         kw /= 4;
     else
         kw = (material[!king_color] + 24)*kw/72;
@@ -1143,11 +1159,11 @@ void k2eval::KingSafety(side_to_move_t king_color)
 
 
 //-----------------------------
-k2eval::k2eval() :  material_values_opn {  0, 0, queen_val_opn, rook_val_opn,
+k2eval::k2eval() : material_values_opn {0, 0, queen_val_opn, rook_val_opn,
             bishop_val_opn, kinght_val_opn, pawn_val_opn},
-    material_values_end {  0, 0, queen_val_end, rook_val_end,
+    material_values_end {0, 0, queen_val_end, rook_val_end,
                            bishop_val_end, kinght_val_end, pawn_val_end},
-    tropism_factor   //  k  Q   R   B   N   P
+    tropism_factor  //  k  Q   R   B   N   P
 {
     {0, 0, 10, 10, 10,  4, 4},  // 4 >= dist > 3
     {0, 0, 21, 21, 10,  0, 10}  // dist < 3

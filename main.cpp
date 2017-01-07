@@ -68,13 +68,15 @@ cmdStruct commands[]
 
 
 
-bool force  = false;
-bool quit   = false;
+bool force = false;
+bool quit = false;
 bool pondering_enabled = false;
 
 #ifndef DONT_USE_THREAD_FOR_INPUT
-std::thread t;                                                      // for compilers with C++11 support
-#endif // USE_THREAD_FOR_INPUT                                          // under Linux -pthread must be used for gcc linker
+std::thread t;
+// for compilers with C++11 support under Linux
+// -pthread option must be used for gcc linker
+#endif // USE_THREAD_FOR_INPUT
 
 
 
@@ -95,11 +97,11 @@ int main(int argc, char* argv[])
     eng.ClearHash();
 
     eng.max_search_depth = k2chess::max_ply;
-    eng.time_remains     = 300000000;
-    eng.time_base        = 300000000;
-    eng.time_inc         = 0;
+    eng.time_remains = 300000000;
+    eng.time_base = 300000000;
+    eng.time_inc = 0;
     eng.moves_per_session = 0;
-    eng.max_nodes_to_search    = 0;
+    eng.max_nodes_to_search = 0;
     eng.time_command_sent = false;
 
     char in[0x4000];
@@ -166,7 +168,8 @@ bool CmdProcess(std::string in)
 
 
 //--------------------------------
-void GetFirstArg(std::string in, std::string (*firstWord), std::string (*remainingWords))
+void GetFirstArg(std::string in, std::string (*firstWord),
+                 std::string (*remainingWords))
 {
     if(in.empty())
         return;
@@ -305,7 +308,8 @@ void PerftCommand(std::string in)
 
     std::cout << std::endl << "nodes = " << eng.nodes << std::endl
               << "dt = " << deltaTick / 1000000. << std::endl
-              << "Mnps = " << eng.nodes / (deltaTick + 1) << std::endl << std::endl;
+              << "Mnps = " << eng.nodes / (deltaTick + 1)
+              << std::endl << std::endl;
 }
 
 
@@ -367,12 +371,12 @@ void LevelCommand(std::string in)
 
     inc = atof(arg3.c_str());
 
-    eng.time_base        = 60*1000000.*base;
-    eng.time_inc         = 1000000*inc;
-    eng.moves_per_session         = mps;
-    eng.time_remains     = eng.time_base;
-    eng.max_nodes_to_search    = 0;
-    eng.max_search_depth      = k2chess::max_ply;
+    eng.time_base = 60*1000000.*base;
+    eng.time_inc = 1000000*inc;
+    eng.moves_per_session = mps;
+    eng.time_remains = eng.time_base;
+    eng.max_nodes_to_search = 0;
+    eng.max_search_depth = k2chess::max_ply;
 }
 
 
@@ -397,11 +401,11 @@ void SetNodesCommand(std::string in)
 {
     if(eng.busy)
         return;
-    eng.time_base     = 0;
-    eng.moves_per_session      = 0;
-    eng.time_inc      = 0;
+    eng.time_base = 0;
+    eng.moves_per_session = 0;
+    eng.time_inc = 0;
     eng.max_nodes_to_search = atoi(in.c_str());
-    eng.max_search_depth   = k2chess::max_ply;
+    eng.max_search_depth = k2chess::max_ply;
 }
 
 
@@ -409,16 +413,16 @@ void SetNodesCommand(std::string in)
 
 
 //--------------------------------
-void SetTimeCommand(std::string in)             //<< NB: wrong
+void SetTimeCommand(std::string in)
 {
     if(eng.busy)
         return;
-    eng.time_base     = 0;
-    eng.moves_per_session      = 1;
-    eng.time_inc      = atof(in.c_str())*1000000.;
+    eng.time_base = 0;
+    eng.moves_per_session = 1;
+    eng.time_inc = atof(in.c_str())*1000000.;
     eng.max_nodes_to_search = 0;
-    eng.max_search_depth   = k2chess::max_ply;
-    eng.time_remains  = 0;
+    eng.max_search_depth = k2chess::max_ply;
+    eng.time_remains = 0;
 }
 
 
@@ -430,7 +434,7 @@ void SetDepthCommand(std::string in)
 {
     if(eng.busy)
         return;
-    eng.max_search_depth   = atoi(in.c_str());
+    eng.max_search_depth = atoi(in.c_str());
 }
 
 
@@ -443,8 +447,8 @@ void ProtoverCommand(std::string in)
     UNUSED(in);
     if(eng.busy)
         return;
-    eng.xboard  = true;
-    eng.uci     = false;
+    eng.xboard = true;
+    eng.uci = false;
 
     std::cout << "feature "
               "myname=\"K2 v." ENGINE_VERSION "\" "
@@ -500,7 +504,8 @@ void TimeCommand(std::string in)
 {
     if(eng.busy)
     {
-        std::cout << "telluser time command recieved while engine is busy" << std::endl;
+        std::cout << "telluser time command recieved while engine is busy"
+                  << std::endl;
         return;
     }
     double tb = atof(in.c_str()) * 10000;
@@ -551,8 +556,8 @@ void FenCommand(std::string in)
 void XboardCommand(std::string in)
 {
     UNUSED(in);
-    eng.xboard  = true;
-    eng.uci     = false;
+    eng.xboard = true;
+    eng.uci = false;
     std::cout << "( build time: "
               << __DATE__ << " " << __TIME__
               << " )" << std::endl;
@@ -579,7 +584,8 @@ void UciCommand(std::string in)
     eng.uci = true;
     std::cout << "id name K2 v." ENGINE_VERSION << std::endl;
     std::cout << "id author Sergey Meus" << std::endl;
-    std::cout << "option name Hash type spin default 64 min 0 max 2048" << std::endl;
+    std::cout << "option name Hash type spin default 64 min 0 max 2048"
+              << std::endl;
     std::cout << "uciok" << std::endl;
 }
 
@@ -615,7 +621,7 @@ void SetOptionCommand(std::string in)
 void IsReadyCommand(std::string in)
 {
     UNUSED(in);
-    std::cout << "\nreadyok\n";     // '\n' to avoid multithreading problems
+    std::cout << "\nreadyok\n";  // '\n' to avoid multithreading problems
 }
 
 
@@ -703,11 +709,13 @@ void UciGoCommand(std::string in)
             if((clr == 'w' && eng.WhiteIsOnMove())
                     || (clr == 'b' && !eng.WhiteIsOnMove()))
             {
-                eng.time_base        = 1000.*atof(arg1.c_str());
-                eng.time_remains     = eng.time_base;
-                eng.max_nodes_to_search    = 0;
-                eng.max_search_depth      = k2chess::max_ply;
-                eng.time_command_sent = true;                                 // crutch: engine must know that time changed by GUI
+                eng.time_base = 1000.*atof(arg1.c_str());
+                eng.time_remains = eng.time_base;
+                eng.max_nodes_to_search = 0;
+                eng.max_search_depth = k2chess::max_ply;
+
+                // crutch: engine must know that time changed by GUI
+                eng.time_command_sent = true;
             }
             arg1 = arg2;
         }
@@ -730,11 +738,11 @@ void UciGoCommand(std::string in)
         else if(arg1 == "movetime")
         {
             GetFirstArg(arg2, &arg1, &arg2);
-            eng.time_base     = 0;
-            eng.moves_per_session      = 1;
-            eng.time_inc      = 1000.*atof(arg1.c_str());
+            eng.time_base = 0;
+            eng.moves_per_session = 1;
+            eng.time_inc = 1000.*atof(arg1.c_str());
             eng.max_nodes_to_search = 0;
-            eng.max_search_depth   = k2chess::max_ply;
+            eng.max_search_depth = k2chess::max_ply;
             eng.time_remains = 0;
 
             arg1 = arg2;
@@ -743,19 +751,19 @@ void UciGoCommand(std::string in)
         {
             GetFirstArg(arg2, &arg1, &arg2);
             eng.max_search_depth = atoi(arg1.c_str());
-            eng.time_base        = INFINITY;
-            eng.time_remains     = eng.time_base;
-            eng.max_nodes_to_search    = 0;
+            eng.time_base = INFINITY;
+            eng.time_remains = eng.time_base;
+            eng.max_nodes_to_search = 0;
 
             arg1 = arg2;
         }
         else if(arg1 == "nodes")
         {
             GetFirstArg(arg2, &arg1, &arg2);
-            eng.time_base        = INFINITY;
-            eng.time_remains     = eng.time_base;
-            eng.max_nodes_to_search    = atoi(arg1.c_str());
-            eng.max_search_depth      = k2chess::max_ply;
+            eng.time_base = INFINITY;
+            eng.time_remains = eng.time_base;
+            eng.max_nodes_to_search = atoi(arg1.c_str());
+            eng.max_search_depth = k2chess::max_ply;
 
             arg1 = arg2;
         }

@@ -40,7 +40,8 @@ k2movegen::movcr_t k2movegen::GenMoves(move_c *move_array,
             {
                 auto to_coord = from_coord + shifts[at][ray];
                 if(within_board(to_coord) && !is_light(b[to_coord], wtm))
-                    PushMove(move_array, &moveCr, it, to_coord, b[to_coord] ? is_capture : 0);
+                    PushMove(move_array, &moveCr, it, to_coord,
+                             b[to_coord] ? is_capture : 0);
             }
             continue;
         }
@@ -82,7 +83,8 @@ void k2movegen::GenPawn(move_c *move_array, movcr_t *moveCr, iterator it)
 {
     move_flag_t pBeg, pEnd;
     auto from_coord = *it;
-    if((wtm && get_row(from_coord) == 6) || (!wtm && get_row(from_coord) == 1))
+    if((wtm && get_row(from_coord) == 6)
+            || (!wtm && get_row(from_coord) == 1))
     {
         pBeg = is_promotion_to_queen;
         pEnd = is_promotion_to_bishop;
@@ -102,14 +104,17 @@ void k2movegen::GenPawn(move_c *move_array, movcr_t *moveCr, iterator it)
             if(within_board(to_coord) && is_dark(b[to_coord], wtm))
                 PushMove(move_array, moveCr, it, to_coord, is_capture | i);
             to_coord = from_coord + 16;
-            if(within_board(to_coord) && !b[to_coord])                 // within_board not needed
+            // within_board not needed
+            if(within_board(to_coord) && !b[to_coord])
                 PushMove(move_array, moveCr, it, to_coord, i);
-            if(get_row(from_coord) == 1 && !b[from_coord + 16] && !b[from_coord + 32])
+            if(get_row(from_coord) == 1 && !b[from_coord + 16]
+                    && !b[from_coord + 32])
                 PushMove(move_array, moveCr, it, from_coord + 32, 0);
             auto ep = b_state[prev_states + ply].ep;
             auto delta = ep - 1 - get_col(from_coord);
             if(ep && std::abs(delta) == 1 && get_row(from_coord) == 4)
-                PushMove(move_array, moveCr, it, from_coord + 16 + delta, is_capture | is_en_passant);
+                PushMove(move_array, moveCr, it, from_coord + 16 + delta,
+                         is_capture | is_en_passant);
         }
         else
         {
@@ -120,14 +125,17 @@ void k2movegen::GenPawn(move_c *move_array, movcr_t *moveCr, iterator it)
             if(within_board(to_coord) && is_dark(b[to_coord], wtm))
                 PushMove(move_array, moveCr, it, to_coord, is_capture | i);
             to_coord = from_coord - 16;
-            if(within_board(to_coord) && !b[to_coord])                  // within_board not needed
+            // within_board not needed
+            if(within_board(to_coord) && !b[to_coord])
                 PushMove(move_array, moveCr, it, to_coord, i);
-            if(get_row(from_coord) == 6 && !b[from_coord - 16] && !b[from_coord - 32])
+            if(get_row(from_coord) == 6 && !b[from_coord - 16]
+                    && !b[from_coord - 32])
                 PushMove(move_array, moveCr, it, from_coord - 32, 0);
             auto ep = b_state[prev_states + ply].ep;
             auto delta = ep - 1 - get_col(from_coord);
             if(ep && std::abs(delta) == 1 && get_row(from_coord) == 3)
-                PushMove(move_array, moveCr, it, from_coord - 16 + delta, is_capture | is_en_passant);
+                PushMove(move_array, moveCr, it, from_coord - 16 + delta,
+                         is_capture | is_en_passant);
         }
 }
 
@@ -140,7 +148,8 @@ void k2movegen::GenPawnCap(move_c *move_array, movcr_t *moveCr, iterator it)
 {
     size_t pBeg, pEnd;
     auto from_coord = *it;
-    if((wtm && get_row(from_coord) == 6) || (!wtm && get_row(from_coord) == 1))
+    if((wtm && get_row(from_coord) == 6)
+            || (!wtm && get_row(from_coord) == 1))
     {
         pBeg = is_promotion_to_queen;
         pEnd = is_promotion_to_queen;
@@ -165,7 +174,8 @@ void k2movegen::GenPawnCap(move_c *move_array, movcr_t *moveCr, iterator it)
             auto ep = b_state[prev_states + ply].ep;
             auto delta = ep - 1 - get_col(from_coord);
             if(ep && std::abs(delta) == 1 && get_row(from_coord) == 4)
-                PushMove(move_array, moveCr, it, from_coord + 16 + delta, is_capture | is_en_passant);
+                PushMove(move_array, moveCr, it, from_coord + 16 + delta,
+                         is_capture | is_en_passant);
         }
         else
         {
@@ -181,7 +191,8 @@ void k2movegen::GenPawnCap(move_c *move_array, movcr_t *moveCr, iterator it)
             auto ep = b_state[prev_states + ply].ep;
             auto delta = ep - 1 - get_col(from_coord);
             if(ep && std::abs(delta) == 1 && get_row(from_coord) == 3)
-                PushMove(move_array, moveCr, it, from_coord - 16 + delta, is_capture | is_en_passant);
+                PushMove(move_array, moveCr, it, from_coord - 16 + delta,
+                         is_capture | is_en_passant);
         }
 }
 
@@ -257,7 +268,7 @@ k2movegen::movcr_t k2movegen::GenCaptures(move_c *move_array)
         }
         if(!slider[at])
         {
-            for(auto  ray = 0; ray < rays[at]; ray++)
+            for(auto ray = 0; ray < rays[at]; ray++)
             {
                 auto to_coord = from_coord + shifts[at][ray];
                 if(within_board(to_coord) && is_dark(b[to_coord], wtm))
@@ -293,7 +304,8 @@ k2movegen::movcr_t k2movegen::GenCaptures(move_c *move_array)
 
 
 //--------------------------------
-void k2movegen::AppriceMoves(move_c *move_array, movcr_t moveCr, move_c *bestMove)
+void k2movegen::AppriceMoves(move_c *move_array, movcr_t moveCr,
+                             move_c *bestMove)
 {
     min_history = std::numeric_limits<history_t>::max();
     max_history = 0;
@@ -323,24 +335,25 @@ void k2movegen::AppriceMoves(move_c *move_array, movcr_t moveCr, move_c *bestMov
             else
             {
                 auto from_coord = *it;
-                auto h = history[wtm][get_index(b[from_coord]) - 1][m.to_coord];
+                auto h = history[wtm][get_index(b[from_coord]) - 1]
+                         [m.to_coord];
                 if(h > max_history)
                     max_history = h;
                 if(h < min_history)
                     min_history = h;
 
-                auto y   = get_row(m.to_coord);
-                auto x   = get_col(m.to_coord);
-                auto y0  = get_row(*it);
-                auto x0  = get_col(*it);
+                auto y = get_row(m.to_coord);
+                auto x = get_col(m.to_coord);
+                auto y0 = get_row(*it);
+                auto x0 = get_col(*it);
                 if(wtm)
                 {
-                    y   = 7 - y;
-                    y0  = 7 - y0;
+                    y = 7 - y;
+                    y0 = 7 - y0;
                 }
-                auto pstVal   = pst[get_index(fr_pc) - 1][0][y][x]
-                                - pst[get_index(fr_pc) - 1][0][y0][x0];
-                pstVal      = 96 + pstVal/2;
+                auto pstVal = pst[get_index(fr_pc) - 1][0][y][x]
+                              - pst[get_index(fr_pc) - 1][0][y0][x0];
+                pstVal = 96 + pstVal/2;
                 move_array[i].priority = pstVal;
             } // else (ordinary move)
         }// if(to_pc == empty_square &&
@@ -397,8 +410,8 @@ void k2movegen::AppriceMoves(move_c *move_array, movcr_t moveCr, move_c *bestMov
         auto m = move_array[i];
         if(m.priority >= second_killer || (m.flag & is_capture))
             continue;
-        it      = m.piece_iterator;
-        auto from_coord   = *it;
+        it = m.piece_iterator;
+        auto from_coord = *it;
         auto h = history[wtm][get_index(b[from_coord]) - 1][m.to_coord];
         if(h > 3)
         {
@@ -485,7 +498,8 @@ void k2movegen::AppriceQuiesceMoves(move_c *move_array, movcr_t moveCr)
 
 
 //-----------------------------
-k2chess::streng_t k2movegen::SEE(coord_t to_coord, streng_t frStreng, score_t val, bool stm)
+k2chess::streng_t k2movegen::SEE(coord_t to_coord, streng_t frStreng,
+                                 score_t val, bool stm)
 {
     auto it = SeeMinAttacker(to_coord);
     if(it == coords[!wtm].end())
@@ -522,7 +536,7 @@ k2chess::iterator k2movegen::SeeMinAttacker(coord_t to_coord)
 {
     shifts_t shft_l[] = {15, -17};
     shifts_t shft_r[] = {17, -15};
-    piece_t  pw[] = {black_pawn, white_pawn};
+    piece_t pw[] = {black_pawn, white_pawn};
 
     if(to_coord + shft_l[!wtm] > 0 && b[to_coord + shft_l[!wtm]] == pw[!wtm])
         for(auto it = coords[!wtm].begin();
@@ -542,7 +556,7 @@ k2chess::iterator k2movegen::SeeMinAttacker(coord_t to_coord)
     for(; it != coords[!wtm].end(); ++it)
     {
         auto from_coord = *it;
-        auto pt  = get_index(b[from_coord]);
+        auto pt = get_index(b[from_coord]);
         if(pt == get_index(black_pawn))
             continue;
         auto att = attacks[120 + to_coord - from_coord] & (1 << pt);

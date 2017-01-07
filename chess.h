@@ -30,7 +30,7 @@ protected:
     typedef u8 piece_t;
     typedef u8 coord_t;
 
-    const static i32 lst_sz  = 32;  // piece list capacity for each side
+    const static i32 lst_sz = 32;  // piece list capacity for each side
 
     typedef short_list<coord_t, lst_sz>::iterator_entity iterator_entity;
     typedef short_list<coord_t, lst_sz>::iterator iterator;
@@ -52,13 +52,13 @@ public:
 
 
     typedef u8 side_to_move_t;
-    const static depth_t max_ply  = 100;  // maximum search depth
+    const static depth_t max_ply = 100;  // maximum search depth
 
 
 protected:
 
 
-    const static depth_t prev_states   = 4;
+    const static depth_t prev_states = 4;
     const static piece_t white = 1;
     const static piece_t black = 0;
 
@@ -95,25 +95,29 @@ protected:
     {
     public:
         coord_t to_coord;  // coordinate for piece to move to
-        iterator_entity piece_iterator; // pointer to piece in piece list
+        iterator_entity piece_iterator;  // pointer to piece in piece list
         move_flag_t flag;  // special move flags (is_capture, etc)
         priority_t priority;  // priority of move assigned by move generator
-                         // 0..63 -- bad captures
-                         // 64..127 -- silent moves with low history value (assigned by PST value)
-                         // 128..195 -- silent moves with high history value
-                         // 198 -- second killer
-                         // 199 -- first killer
-                         // 200..250 -- good captures and/or promotions
-                         // 255 -- king capture or hash hit
+        // 0..63 -- bad captures
+        // 64..127 -- silent moves with low history value (PST value is used)
+        // 128..195 -- silent moves with high history value
+        // 198 -- second killer
+        // 199 -- first killer
+        // 200..250 -- good captures and/or promotions
+        // 255 -- king capture or hash hit
 
         bool operator == (move_c m)
         {
-            return to_coord == m.to_coord && piece_iterator == m.piece_iterator && flag == m.flag;
+            return to_coord == m.to_coord
+                   && piece_iterator == m.piece_iterator
+                   && flag == m.flag;
         }
 
         bool operator != (move_c m)
         {
-            return to_coord != m.to_coord || piece_iterator != m.piece_iterator || flag != m.flag;
+            return to_coord != m.to_coord
+                   || piece_iterator != m.piece_iterator
+                   || flag != m.flag;
         }
 
         bool operator < (const move_c m) const
@@ -129,20 +133,20 @@ protected:
         iterator_entity captured_it;  // iterator to captured piece
         coord_t from_coord;  // square coordinate from which move was made
         castle_t cstl;  // castling rights, bits 0..3: white king, white
-                        // queen, black_king, black_queen
+        // queen, black_king, black_queen
         iterator_entity castled_rook_it;  // iterator to castled rook
         enpass_t ep;  // 0 = no_ep, else ep=get_col(x) + 1,
-                      // not null only if opponent pawn is near
+        // not null only if opponent pawn is near
         iterator_entity nprom;  // next piece iterator for promoted pawn
         depth_t reversibleCr;  // reversible halfmove counter
         coord_t to_coord;  // to point, (for simple repetition draw detection)
         score_t val_opn;  // store material and PST value considered
-                          // all material is on the board
+        // all material is on the board
         score_t val_end;  // store material and PST value
-                          // considered deep endgame (kings and pawns only)
+        // considered deep endgame (kings and pawns only)
         priority_t priority;  // move priority assigned by move genererator
         tropism_t tropism[2];  // distance factors between pieces and enemy
-                               // kings for black and white
+        // kings for black and white
     };
 
 
@@ -154,7 +158,7 @@ protected:
     shifts_t get_shift[240];  // quick detection of slider attack direction
     dist_t rays[7];  // number of directions to move for each kind of piece
     shifts_t shifts[6][8];  // biases defining directions for 'rays'
-    bool  slider[7];  // for quick detection if piece is a slider
+    bool slider[7];  // for quick detection if piece is a slider
 
     streng_t pc_streng[7];  // piece strength values for material counters
     streng_t streng[7];  // piece strhengths for move priorities
@@ -164,7 +168,7 @@ protected:
     streng_t pieces[2];  // piece counters, including kings
     piece_num_t quantity[2][6 + 1];
 
-    state_s  b_state[prev_states + max_ply]; // engine state for each ply depth
+    state_s b_state[prev_states + max_ply]; // engine state for each ply depth
     depth_t ply;  // current ply depth
     depth_t reversible_moves;
 

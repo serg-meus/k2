@@ -17,7 +17,7 @@ struct cmdStruct
 
 
 //--------------------------------
-int  main(int argc, char* argv[]);
+int main(int argc, char* argv[]);
 bool CmdProcess(std::string in);
 bool LooksLikeMove(std::string in);
 void NewCommand(std::string in);

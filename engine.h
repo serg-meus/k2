@@ -1,7 +1,7 @@
 #include "hash.h"
 #include <iomanip>
 #include <ctime>
-#include <algorithm>                // for sorting of vectors
+#include <algorithm>  // for sorting of vectors
 #include "Timer.h"
 
 
@@ -55,36 +55,36 @@ protected:
 public:
 
 
-    double  time_base, time_inc, time_remains, total_time_spent;
+    double time_base, time_inc, time_remains, total_time_spent;
     depth_t moves_per_session, max_search_depth;
-    bool    time_command_sent;
-    bool    stop, infinite_analyze, busy;
-    bool    uci, xboard;
-    bool    pondering_in_process;
-    node_t  nodes, max_nodes_to_search, total_nodes;
+    bool time_command_sent;
+    bool stop, infinite_analyze, busy;
+    bool uci, xboard;
+    bool pondering_in_process;
+    node_t nodes, max_nodes_to_search, total_nodes;
 
 
 protected:
 
 
-    const char  *stop_str;
-    depth_t     stop_ply;
+    const char *stop_str;
+    depth_t stop_ply;
 
-    Timer       timer;
-    double      time0;
-    double      time_spent, time_to_think;
-    node_t      q_nodes;
-    depth_t     root_ply;
-    movcr_t     max_root_moves, root_move_cr;
-    count_t     cut_cr, cut_num_cr[5], q_cut_cr, q_cut_num_cr[5];
-    count_t     null_probe_cr, null_cut_cr, hash_probe_cr;
-    count_t     hash_hit_cr, hash_cut_cr;
-    count_t     hash_best_move_cr, hash_cutoff_by_best_move_cr;
-    count_t     futility_probes, futility_hits;
-    count_t     killer1_probes, killer1_hits, killer2_probes, killer2_hits;
-    depth_t     finaly_made_moves, moves_remains;
-    bool        spent_exact_time;
-    depth_t     resign_cr;
+    Timer timer;
+    double time0;
+    double time_spent, time_to_think;
+    node_t q_nodes;
+    depth_t root_ply;
+    movcr_t max_root_moves, root_move_cr;
+    count_t cut_cr, cut_num_cr[5], q_cut_cr, q_cut_num_cr[5];
+    count_t null_probe_cr, null_cut_cr, hash_probe_cr;
+    count_t hash_hit_cr, hash_cut_cr;
+    count_t hash_best_move_cr, hash_cutoff_by_best_move_cr;
+    count_t futility_probes, futility_hits;
+    count_t killer1_probes, killer1_hits, killer2_probes, killer2_hits;
+    depth_t finaly_made_moves, moves_remains;
+    bool spent_exact_time;
+    depth_t resign_cr;
 
 
     std::vector<std::pair<node_t, move_c> > root_moves;
@@ -138,12 +138,13 @@ protected:
     bool DrawByRepetition();
     hash_entry_s* HashProbe(depth_t depth, score_t *alpha, score_t beta);
     bool MoveIsPseudoLegal(move_c &m, bool stm);
-    move_c Next(move_c *move_array, movcr_t cur, movcr_t *top, hash_entry_s *entry,
-                side_to_move_t stm, bool captures_only, bool in_check,
-                move_c prev_move);
+    move_c Next(move_c *move_array, movcr_t cur, movcr_t *top,
+                hash_entry_s *entry, side_to_move_t stm,
+                bool captures_only, bool in_check, move_c prev_move);
     void StoreResultInHash(depth_t depth, score_t _alpha, score_t alpha,
                            score_t beta, movcr_t legals,
-                           bool beta_cutoff, move_c best_move, bool one_reply);
+                           bool beta_cutoff, move_c best_move,
+                           bool one_reply);
     void ShowCurrentUciInfo();
     void MoveToStr(move_c m, bool stm, char *out);
     void ShowPVfailHighOrLow(move_c m, score_t x, char exclimation);

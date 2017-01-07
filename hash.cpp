@@ -9,7 +9,7 @@ bool k2hash::InitHashTable()
 {
     InitMoveGen();
 
-    std::uniform_int_distribution<hash_key_t> zorb_distr(0, (hash_key_t)-1);
+    std::uniform_int_distribution<hash_key_t> zorb_distr(0, (hash_key_t) - 1);
     std::mt19937 rnd_gen;
 
     for(auto i = 0; i < 12; ++i)
@@ -43,10 +43,12 @@ k2hash::hash_key_t k2hash::InitHashKey()
     hash_key_t ans = 0;
 
     for(auto from_coord : coords[wtm])
-        ans ^= zorb[piece_hash_index(b[from_coord])][get_col(from_coord)][get_row(from_coord)];
+        ans ^= zorb[piece_hash_index(b[from_coord])]
+               [get_col(from_coord)][get_row(from_coord)];
 
     for(auto from_coord : coords[!wtm])
-        ans ^= zorb[piece_hash_index(b[from_coord])][get_col(from_coord)][get_row(from_coord)];
+        ans ^= zorb[piece_hash_index(b[from_coord])]
+               [get_col(from_coord)][get_row(from_coord)];
 
     if(!wtm)
         ans ^= key_for_side_to_move;
@@ -66,46 +68,52 @@ void k2hash::MoveHashKey(move_c m, bool special)
     doneHashKeys[FIFTY_MOVES + ply - 1] = hash_key;
     auto from_coord = b_state[prev_states + ply].from_coord;
 
-    auto pt   = b[m.to_coord];
+    auto pt = b[m.to_coord];
     auto &f = b_state[prev_states + ply],
           &_f = b_state[prev_states + ply - 1];
 
-    hash_key ^= zorb[piece_hash_index(pt)][get_col(from_coord)][get_row(from_coord)]
-                ^ zorb[piece_hash_index(pt)][get_col(m.to_coord)][get_row(m.to_coord)];
+    hash_key ^= zorb[piece_hash_index(pt)]
+                [get_col(from_coord)][get_row(from_coord)]
+                ^ zorb[piece_hash_index(pt)]
+                [get_col(m.to_coord)][get_row(m.to_coord)];
 
     if(f.capt)
-        hash_key ^= zorb[piece_hash_index(f.capt)][get_col(m.to_coord)][get_row(m.to_coord)];
+        hash_key ^= zorb[piece_hash_index(f.capt)]
+                    [get_col(m.to_coord)][get_row(m.to_coord)];
     if(_f.ep)
         hash_key ^= zorb_en_passant[_f.ep];
 
     if(m.flag & is_promotion)
-        hash_key ^= zorb[piece_hash_index(white_pawn ^ wtm)][get_col(from_coord)][get_row(from_coord)]
-                    ^ zorb[piece_hash_index(pt)][get_col(from_coord)][get_row(from_coord)];
+        hash_key ^= zorb[piece_hash_index(white_pawn ^ wtm)]
+                    [get_col(from_coord)][get_row(from_coord)]
+                    ^ zorb[piece_hash_index(pt)]
+                    [get_col(from_coord)][get_row(from_coord)];
     else if(m.flag & is_en_passant)
-        hash_key ^= zorb[piece_hash_index(black_pawn ^ wtm)][get_col(m.to_coord)]
-                    [get_row(m.to_coord) + (wtm ? 1 : -1)];
+        hash_key ^= zorb[piece_hash_index(black_pawn ^ wtm)]
+                    [get_col(m.to_coord)][get_row(m.to_coord)
+                                          + (wtm ? 1 : -1)];
     else if(m.flag & is_castle)
     {
         if(!wtm)
         {
             if(m.flag & is_castle_kingside)
                 hash_key ^= zorb[piece_hash_index(white_rook)][7][0]
-                            ^  zorb[piece_hash_index(white_rook)][5][0];
+                            ^ zorb[piece_hash_index(white_rook)][5][0];
             else
                 hash_key ^= zorb[piece_hash_index(white_rook)][0][0]
-                            ^  zorb[piece_hash_index(white_rook)][3][0];
+                            ^ zorb[piece_hash_index(white_rook)][3][0];
         }
         else
         {
             if(m.flag & is_castle_kingside)
                 hash_key ^= zorb[piece_hash_index(black_rook)][7][7]
-                            ^  zorb[piece_hash_index(black_rook)][5][7];
+                            ^ zorb[piece_hash_index(black_rook)][5][7];
             else
                 hash_key ^= zorb[piece_hash_index(black_rook)][0][7]
-                            ^  zorb[piece_hash_index(black_rook)][3][7];
+                            ^ zorb[piece_hash_index(black_rook)][3][7];
         }
         hash_key ^= zorb_castling[_f.cstl]
-                    ^  zorb_castling[f.cstl];
+                    ^ zorb_castling[f.cstl];
     }
     hash_key ^= key_for_side_to_move;
     if(special)
@@ -215,18 +223,20 @@ void k2hash::hash_table_c::clear()
 
 //--------------------------------
 void k2hash::hash_table_c::add(hash_key_t key, score_t value, move_c best,
-                               depth_t depth, hbound_t bound_type, depth_t age,
-                               bool one_reply, node_t nodes)
+                               depth_t depth, hbound_t bound_type,
+                               depth_t age, bool one_reply, node_t nodes)
 {
     size_t i;
-    auto *bucket = &data[entries_in_a_bucket*(key & mask)];          // looking for already existed entries for the same position
+    // looking for already existed entries for the same position
+    auto *bucket = &data[entries_in_a_bucket*(key & mask)];
     for(i = 0; i < entries_in_a_bucket; ++i)
         if(bucket[i].key == (key >> 32))
             break;
 
     if(i >= entries_in_a_bucket)
     {
-        for(i = 0; i < entries_in_a_bucket; ++i)                        // looking for empty entries
+        // looking for empty entries
+        for(i = 0; i < entries_in_a_bucket; ++i)
             if(bucket[i].key == 0 && bucket[i].depth == 0)
             {
                 _size += sizeof(hash_entry_s);
@@ -235,7 +245,8 @@ void k2hash::hash_table_c::add(hash_key_t key, score_t value, move_c best,
 
         if(i >= entries_in_a_bucket)
         {
-            for(i = 0; i < entries_in_a_bucket; ++i)                    // looking for entries with lower depth
+            // looking for entries with lower depth
+            for(i = 0; i < entries_in_a_bucket; ++i)
             {
                 auto bckt_age = bucket[i].age;
                 if(bckt_age > (age & 0x03))
@@ -243,18 +254,18 @@ void k2hash::hash_table_c::add(hash_key_t key, score_t value, move_c best,
                 if(bucket[i].depth + bckt_age < depth + age)
                     break;
             }
-
-            if(i >= entries_in_a_bucket)                                // if not found anything, rewrite random entry in a bucket
+            // if not found anything, rewrite random entry in a bucket
+            if(i >= entries_in_a_bucket)
                 i = (unsigned)(nodes ^ key)
                     & (entries_in_a_bucket - 1);
         }
     }
-    bucket[i].key           = key >> 32;
-    bucket[i].best_move     = best;
-    bucket[i].depth         = depth;
-    bucket[i].bound_type    = bound_type;
-    bucket[i].value         = value;
-    bucket[i].one_reply     = one_reply;
+    bucket[i].key = key >> 32;
+    bucket[i].best_move = best;
+    bucket[i].depth = depth;
+    bucket[i].bound_type = bound_type;
+    bucket[i].value = value;
+    bucket[i].one_reply = one_reply;
     bucket[i].age = age & 0x03;
 }
 
