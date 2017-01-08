@@ -348,9 +348,7 @@ bool k2chess::MakeCastle(move_c m, coord_t from_coord)
     auto cs = b_state[prev_states + ply].cstl;
     if(m.piece_iterator == king_coord[wtm])  // king moves
         b_state[prev_states + ply].cstl &= wtm ? 0xFC : 0xF3;
-    if(king_coord[wtm] != --coords[wtm].end())
-        ply = ply;
-    else if(b[from_coord] == (black_rook ^ wtm))  // rook moves
+    if(b[from_coord] == (black_rook ^ wtm))  // rook moves
     {
         if((wtm && from_coord == 0x07) || (!wtm && from_coord == 0x77))
             b_state[prev_states + ply].cstl &= wtm ? 0xFE : 0xFB;
