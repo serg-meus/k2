@@ -11,13 +11,6 @@
 //--------------------------------
 #define ENGINE_VERSION "087"
 
-#define DONT_USE_ONE_REPLY_EXTENSION
-
-
-
-
-
-//--------------------------------
 #define UNUSED(x) (void)(x)
 
 
@@ -140,11 +133,10 @@ protected:
     bool MoveIsPseudoLegal(move_c &m, bool stm);
     move_c Next(move_c *move_array, movcr_t cur, movcr_t *top,
                 hash_entry_s *entry, side_to_move_t stm,
-                bool captures_only, bool in_check, move_c prev_move);
+                bool captures_only);
     void StoreResultInHash(depth_t depth, score_t _alpha, score_t alpha,
                            score_t beta, movcr_t legals,
-                           bool beta_cutoff, move_c best_move,
-                           bool one_reply);
+                           bool beta_cutoff, move_c best_moveW);
     void ShowCurrentUciInfo();
     void MoveToStr(move_c m, bool stm, char *out);
     void ShowPVfailHighOrLow(move_c m, score_t x, char exclimation);

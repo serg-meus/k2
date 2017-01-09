@@ -76,14 +76,9 @@ k2chess::score_t k2engine::Search(depth_t depth, score_t alpha, score_t beta,
     for(; move_cr < max_moves; move_cr++)
     {
         cur_move = Next(move_array, move_cr, &max_moves,
-                        entry, wtm, all_moves, in_check, cur_move);
+                        entry, wtm, all_moves);
         if(max_moves <= 0)
             break;
-
-#ifndef DONT_USE_ONE_REPLY_EXTENSION
-        if(in_check && max_moves == 1)
-            depth++;
-#endif //DONT_USE_ONE_REPLY_EXTENSION
 
         bool is_special_move = MkMoveFast(cur_move);
 #ifndef NDEBUG
@@ -91,11 +86,7 @@ k2chess::score_t k2engine::Search(depth_t depth, score_t alpha, score_t beta,
             ply = ply;
 #endif // NDEBUG
 
-#ifndef DONT_USE_ONE_REPLY_EXTENSION
-        if(!in_check && !Legal(cur_move, in_check))
-#else
         if(!Legal(cur_move, in_check))
-#endif // DONT_USE_ONE_REPLY_EXTENSION
         {
             UnMoveFast(cur_move);
             continue;
@@ -166,8 +157,7 @@ k2chess::score_t k2engine::Search(depth_t depth, score_t alpha, score_t beta,
     else if(legal_moves)
         StoreResultInHash(depth, initial_alpha, alpha, beta, legal_moves,
                           beta_cutoff,
-                          (beta_cutoff ? cur_move : move_array[first_legal]),
-                          in_check && max_moves == 1);
+                          (beta_cutoff ? cur_move : move_array[first_legal]));
     if(beta_cutoff)
     {
         if(entry != nullptr && entry->best_move.flag != not_a_move)
@@ -222,7 +212,7 @@ k2chess::score_t k2engine::QSearch(score_t alpha, score_t beta)
     for(; move_cr < max_moves; move_cr++)
     {
         move_c cur_move = Next(move_array, move_cr, &max_moves,
-                               nullptr, wtm, captures_only, false, cur_move);
+                               nullptr, wtm, captures_only);
         if(max_moves <= 0)
             break;
 
@@ -618,7 +608,7 @@ void k2engine::RootMoveGen(bool in_check)
     for(movcr_t move_cr = 0; move_cr < max_moves; move_cr++)
     {
         cur_move = Next(move_array, move_cr, &max_moves,
-                        nullptr, wtm, all_moves, false, cur_move);
+                        nullptr, wtm, all_moves);
     }
 
     root_moves.clear();
@@ -1603,13 +1593,8 @@ bool k2engine::MoveIsPseudoLegal(move_c &move, bool stm)
 //--------------------------------
 k2chess::move_c k2engine::Next(move_c *move_array, movcr_t cur_move,
                                movcr_t *max_moves, hash_entry_s *entry,
-                               side_to_move_t stm, bool only_captures,
-                               bool in_check, move_c prev_move)
+                               side_to_move_t stm, bool only_captures)
 {
-#ifdef DONT_USE_ONE_REPLY_EXTENSION
-    UNUSED(in_check);
-#endif
-
     move_c ans;
     if(cur_move == 0)
     {
@@ -1647,30 +1632,7 @@ k2chess::move_c k2engine::Next(move_c *move_array, movcr_t cur_move,
             if(pseudo_legal)
             {
                 ans.priority = move_from_hash;
-#ifndef DONT_USE_ONE_REPLY_EXTENSION
-                if(entry->one_reply)
-                {
-                    MkMoveFast(ans);
-                    if(!Legal(ans, in_check))
-                    {
-                        UnMoveFast(ans);
-                        *entry = nullptr;
-                        *max_moves = GenMoves(move_array, nullptr,
-                                              apprice_all);
-                    }
-                    else
-                    {
-                        UnMoveFast(ans);
-                        *max_moves = 1;
-                        move_array[0] = ans;
-                        return ans;
-                    }
-                }
-                else
-                    return ans;
-#else
                 return ans;
-#endif // DONT_USE_ONE_REPLY_EXTENSION
             }
             else
             {
@@ -1681,7 +1643,7 @@ k2chess::move_c k2engine::Next(move_c *move_array, movcr_t cur_move,
     }// if cur == 0
     else if(cur_move == 1 && entry != nullptr)
     {
-        *max_moves = GenMoves(move_array, &prev_move, apprice_all);
+        *max_moves = GenMoves(move_array, &entry->best_move, apprice_all);
         if(*max_moves <= 1)
         {
             *max_moves = 0;
@@ -1700,27 +1662,6 @@ k2chess::move_c k2engine::Next(move_c *move_array, movcr_t cur_move,
     if(only_captures)  // already sorted
         return move_array[cur_move];
 
-#ifndef DONT_USE_ONE_REPLY_EXTENSION
-    if(in_check && (cur_move == 0 || (cur_move == 1 && entry != nullptr)))
-    {
-        auto legal_cr = cur_move;
-        for(auto move_cr = cur_move; move_cr < *max_moves; ++move_cr)
-        {
-            Move m = move_array[move_cr];
-            MkMoveFast(m);
-            if(!Legal(m, in_check))
-            {
-                UnMoveFast(m);
-                continue;
-            }
-            UnMoveFast(m);
-            move_array[legal_cr++] = move_array[move_cr];
-        }
-        *max_moves = legal_cr;
-        if(cur_move > 0 && legal_cr == 1)
-            *max_moves = 0;
-    }
-#endif //DONT_USE_ONE_REPLY_EXTENSION
 
     auto max_score = 0;
     auto max_index = cur_move;
@@ -1750,8 +1691,7 @@ k2chess::move_c k2engine::Next(move_c *move_array, movcr_t cur_move,
 //-----------------------------
 void k2engine::StoreResultInHash(depth_t depth, score_t init_alpha,
                                  score_t alpha, score_t beta, movcr_t legals,
-                                 bool beta_cutoff, move_c best_move,
-                                 bool one_reply)
+                                 bool beta_cutoff, move_c best_move)
 {
     if(stop)
         return;
@@ -1762,7 +1702,7 @@ void k2engine::StoreResultInHash(depth_t depth, score_t init_alpha,
         else if(beta < -mate_score && beta != -infinit_score)
             beta -= ply - depth - 1;
         hash_table.add(hash_key, -beta, best_move, depth,
-                       lower_bound, finaly_made_moves/2, one_reply, nodes);
+                       lower_bound, finaly_made_moves/2, false, nodes);
 
     }
     else if(alpha > init_alpha && pv[ply][0].flag > 0)
@@ -1772,7 +1712,7 @@ void k2engine::StoreResultInHash(depth_t depth, score_t init_alpha,
         else if(alpha < - mate_score && alpha != -infinit_score)
             alpha -= ply - depth;
         hash_table.add(hash_key, -alpha, pv[ply][1], depth,
-                       exact_value, finaly_made_moves/2, one_reply, nodes);
+                       exact_value, finaly_made_moves/2, false, nodes);
     }
     else if(alpha <= init_alpha)
     {
@@ -1784,7 +1724,7 @@ void k2engine::StoreResultInHash(depth_t depth, score_t init_alpha,
         no_move.flag = not_a_move;
         hash_table.add(hash_key, -init_alpha,
                        legals > 0 ? best_move : no_move, depth,
-                       upper_bound, finaly_made_moves/2, one_reply, nodes);
+                       upper_bound, finaly_made_moves/2, false, nodes);
     }
 }
 
