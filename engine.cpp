@@ -5,6 +5,7 @@
 
 
 k2engine::k2engine() :
+    engine_version{"0.88dev"},
     stop_str{""},
     stop_ply{0}
 {

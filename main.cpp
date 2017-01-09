@@ -451,7 +451,7 @@ void ProtoverCommand(std::string in)
     eng.uci = false;
 
     std::cout << "feature "
-              "myname=\"K2 v." ENGINE_VERSION "\" "
+              "myname=\"K2 v." << eng.engine_version << "\" "
               "setboard=1 "
               "analyze=1 "
               "san=0 "
@@ -582,7 +582,7 @@ void UciCommand(std::string in)
 {
     UNUSED(in);
     eng.uci = true;
-    std::cout << "id name K2 v." ENGINE_VERSION << std::endl;
+    std::cout << "id name K2 v." << eng.engine_version << std::endl;
     std::cout << "id author Sergey Meus" << std::endl;
     std::cout << "option name Hash type spin default 64 min 0 max 2048"
               << std::endl;

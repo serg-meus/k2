@@ -8,10 +8,8 @@
 
 
 
-//--------------------------------
-#define ENGINE_VERSION "087"
-
 #define UNUSED(x) (void)(x)
+
 
 
 
@@ -55,6 +53,7 @@ public:
     bool uci, xboard;
     bool pondering_in_process;
     node_t nodes, max_nodes_to_search, total_nodes;
+    const char *engine_version;
 
 
 protected:
