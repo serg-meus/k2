@@ -3,8 +3,8 @@
 //--------------------------------
 // K2, the chess engine
 // Author: Sergey Meus (serg_meus@mail.ru)
-// Krasnoyarsk Kray, Russia
-// Copyright 2012-2016
+// Krasnoyarsk Krai, Russia
+// 2012-2017
 //--------------------------------
 
 
