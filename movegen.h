@@ -39,7 +39,6 @@ protected:
 protected:
 
 
-    void InitMoveGen();
     movcr_t GenMoves(move_c *list, move_c *best_move, priority_t apprice);
     streng_t SEE_main(move_c m);
     movcr_t GenCaptures(move_c *list);

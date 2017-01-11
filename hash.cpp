@@ -5,9 +5,8 @@
 
 
 //--------------------------------
-bool k2hash::InitHashTable()
+k2hash::k2hash()
 {
-    InitMoveGen();
 
     std::uniform_int_distribution<hash_key_t> zorb_distr(0, (hash_key_t) - 1);
     std::mt19937 rnd_gen;
@@ -30,7 +29,7 @@ bool k2hash::InitHashTable()
     zorb_en_passant[0] = 0;
     zorb_castling[0] = 0;
 
-    return true;
+    hash_key = InitHashKey();
 }
 
 

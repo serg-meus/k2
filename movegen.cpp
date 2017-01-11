@@ -5,16 +5,6 @@
 
 
 //--------------------------------
-void k2movegen::InitMoveGen()
-{
-    InitEval();
-}
-
-
-
-
-
-//--------------------------------
 k2movegen::movcr_t k2movegen::GenMoves(move_c *move_array,
                                        move_c *best_move,
                                        priority_t apprice)

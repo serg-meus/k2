@@ -15,6 +15,7 @@ k2engine::k2engine() :
 
 
 
+
 //--------------------------------
 k2chess::score_t k2engine::Search(depth_t depth, score_t alpha, score_t beta,
                                   node_type_t node_type)
@@ -1114,8 +1115,8 @@ bool k2engine::MakeMoveFinaly(char *move_str)
 //--------------------------------
 void k2engine::InitEngine()
 {
-    InitHashTable();
-    hash_key = InitHashKey();
+    InitChess();
+    InitEval();
 
     std::cin.rdbuf()->pubsetbuf(nullptr, 0);
     std::cout.rdbuf()->pubsetbuf(nullptr, 0);

@@ -7,6 +7,11 @@
 class k2hash : public k2movegen
 {
 
+public:
+
+
+    k2hash();
+
 
 protected:
 
@@ -98,7 +103,6 @@ protected:
 protected:
 
 
-    bool InitHashTable();
     hash_key_t InitHashKey();
 
     void MkMove(move_c m)
