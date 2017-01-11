@@ -40,8 +40,6 @@ k2chess::score_t k2eval::Eval()
 //-----------------------------
 void k2eval::InitEval()
 {
-    InitChess();
-
     val_opn = 0;
     val_end = 0;
 
