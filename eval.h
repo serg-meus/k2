@@ -77,10 +77,10 @@ protected:
 
     void MkEvalAfterFastMove(move_c m)
     {
-        b_state[prev_states + ply - 1].val_opn = val_opn;
-        b_state[prev_states + ply - 1].val_end = val_end;
+        state[ply - 1].val_opn = val_opn;
+        state[ply - 1].val_end = val_end;
 
-        auto from_coord = b_state[prev_states + ply].from_coord;
+        auto from_coord = state[ply].from_coord;
 
         MoveKingTropism(from_coord, m, wtm);
 

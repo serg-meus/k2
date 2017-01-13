@@ -31,6 +31,7 @@ k2chess::k2chess() :
 void k2chess::InitChess()
 {
     cv = cur_moves;
+    state = &b_state[prev_states];
     InitBrd();
 }
 
@@ -67,9 +68,9 @@ void k2chess::InitBrd()
         coords[black].push_back(get_coord(crd[i], 7));
     }
 
-    b_state[prev_states + 0].capt = 0;
-    b_state[prev_states + 0].cstl = 0x0F;
-    b_state[prev_states + 0].ep = 0;
+    state[0].capt = 0;
+    state[0].cstl = 0x0F;
+    state[0].ep = 0;
     wtm = white;
     ply = 0;
     cv[0] = '\0';
@@ -246,7 +247,7 @@ bool k2chess::FenToBoard(char *p)
 
     BoardToMen();
 
-    b_state[prev_states + 0].ep = 0;
+    state[0].ep = 0;
     wtm = (*(++p) == 'b') ? black : white;
 
     castle_t cstl = 0;
@@ -296,7 +297,7 @@ bool k2chess::FenToBoard(char *p)
                 || b[get_coord(0, 7 )] != black_rook))
         cstl &= ~0x08;
 
-    b_state[prev_states + 0].cstl = cstl;
+    state[0].cstl = cstl;
 
     p++;
     if(*p != '-')
@@ -307,7 +308,7 @@ bool k2chess::FenToBoard(char *p)
         piece_t pawn = wtm ? white_pawn : black_pawn;
         if(b[get_coord(col-1, row+s)] == pawn
                 || b[get_coord(col+1, row+s)] == pawn)
-            b_state[prev_states + 0].ep = col + 1;
+            state[0].ep = col + 1;
     }
     if(*(++p) && *(++p))
         while(*p >= '0' && *p <= '9')
@@ -345,24 +346,24 @@ void k2chess::ShowMove(coord_t from_coord, coord_t to_coord)
 //--------------------------------
 bool k2chess::MakeCastle(move_c m, coord_t from_coord)
 {
-    auto cs = b_state[prev_states + ply].cstl;
+    auto cs = state[ply].cstl;
     if(m.piece_iterator == king_coord[wtm])  // king moves
-        b_state[prev_states + ply].cstl &= wtm ? 0xFC : 0xF3;
+        state[ply].cstl &= wtm ? 0xFC : 0xF3;
     if(b[from_coord] == (black_rook ^ wtm))  // rook moves
     {
         if((wtm && from_coord == 0x07) || (!wtm && from_coord == 0x77))
-            b_state[prev_states + ply].cstl &= wtm ? 0xFE : 0xFB;
+            state[ply].cstl &= wtm ? 0xFE : 0xFB;
         else if((wtm && from_coord == 0x00) || (!wtm && from_coord == 0x70))
-            b_state[prev_states + ply].cstl &= wtm ? 0xFD : 0xF7;
+            state[ply].cstl &= wtm ? 0xFD : 0xF7;
     }
     if(b[m.to_coord] == (white_rook ^ wtm))  // rook is taken
     {
         if((wtm && m.to_coord == 0x77) || (!wtm && m.to_coord == 0x07))
-            b_state[prev_states + ply].cstl &= wtm ? 0xFB : 0xFE;
+            state[ply].cstl &= wtm ? 0xFB : 0xFE;
         else if((wtm && m.to_coord == 0x70) || (!wtm && m.to_coord == 0x00))
-            b_state[prev_states + ply].cstl &= wtm ? 0xF7 : 0xFD;
+            state[ply].cstl &= wtm ? 0xF7 : 0xFD;
     }
-    bool castleRightsChanged = (cs != b_state[prev_states + ply].cstl);
+    bool castleRightsChanged = (cs != state[ply].cstl);
     if(castleRightsChanged)
         reversible_moves = 0;
 
@@ -390,7 +391,7 @@ bool k2chess::MakeCastle(move_c m, coord_t from_coord)
         if(*it == rFr)
             break;
 
-    b_state[prev_states + ply].castled_rook_it = it;
+    state[ply].castled_rook_it = it;
     b[rTo] = b[rFr];
     b[rFr] = empty_square;
     *it = rTo;
@@ -408,7 +409,7 @@ bool k2chess::MakeCastle(move_c m, coord_t from_coord)
 void k2chess::UnMakeCastle(move_c m)
 {
     auto rMen = coords[wtm].begin();
-    rMen = b_state[prev_states + ply].castled_rook_it;
+    rMen = state[ply].castled_rook_it;
     auto rFr =*rMen;
     auto rTo = rFr + (m.flag == is_castle_kingside ? 2 : -3);
     b[rTo] = b[rFr];
@@ -429,7 +430,7 @@ bool k2chess::MakeEP(move_c m, coord_t from_coord)
             && (b[m.to_coord + 1] == (white_pawn ^ wtm)
                 || b[to_coord - 1] == (white_pawn ^ wtm)))
     {
-        b_state[prev_states + ply].ep = (to_coord & 0x07) + 1;
+        state[ply].ep = (to_coord & 0x07) + 1;
         return true;
     }
     if(m.flag & is_en_passant)
@@ -525,7 +526,7 @@ bool k2chess::Legal(move_c m, bool ic)
 {
     if(ic || to_black(b[m.to_coord]) == black_king)
         return !Attack(*king_coord[!wtm], wtm);
-    auto from_coord = b_state[prev_states + ply].from_coord;
+    auto from_coord = state[ply].from_coord;
     auto to_coord = *king_coord[!wtm];
     assert(120 + to_coord - from_coord >= 0);
     assert(120 + to_coord - from_coord < 240);
@@ -555,13 +556,13 @@ bool k2chess::PieceListCompare(coord_t men1, coord_t men2)
 void k2chess::StoreCurrentBoardState(move_c m, coord_t from_coord,
                                      coord_t targ)
 {
-    b_state[prev_states + ply].cstl = b_state[prev_states + ply - 1].cstl;
-    b_state[prev_states + ply].capt = b[m.to_coord];
+    state[ply].cstl = state[ply - 1].cstl;
+    state[ply].capt = b[m.to_coord];
 
-    b_state[prev_states + ply].from_coord = from_coord;
-    b_state[prev_states + ply].to_coord = targ;
-    b_state[prev_states + ply].reversibleCr = reversible_moves;
-    b_state[prev_states + ply].priority = m.priority;
+    state[ply].from_coord = from_coord;
+    state[ply].to_coord = targ;
+    state[ply].reversibleCr = reversible_moves;
+    state[ply].priority = m.priority;
 }
 
 
@@ -580,8 +581,8 @@ void k2chess::MakeCapture(move_c m, coord_t targ)
     else
     {
         material[!wtm] -=
-            pc_streng[get_index(b_state[prev_states + ply].capt)];
-        quantity[!wtm][get_index(b_state[prev_states + ply].capt)]--;
+            pc_streng[get_index(state[ply].capt)];
+        quantity[!wtm][get_index(state[ply].capt)]--;
     }
 
     auto it_cap = coords[!wtm].begin();
@@ -590,7 +591,7 @@ void k2chess::MakeCapture(move_c m, coord_t targ)
         if(*it_cap == targ)
             break;
     assert(it_cap != it_end);
-    b_state[prev_states + ply].captured_it = it_cap;
+    state[ply].captured_it = it_cap;
     coords[!wtm].erase(it_cap);
     pieces[!wtm]--;
     reversible_moves = 0;
@@ -612,7 +613,7 @@ void k2chess::MakePromotion(move_c m, iterator it)
                          - pc_streng[get_index(black_pawn)];
         quantity[wtm][get_index(black_pawn)]--;
         quantity[wtm][get_index(prPc[prIx])]++;
-        b_state[prev_states + ply].nprom = ++it;
+        state[ply].nprom = ++it;
         --it;
         coords[wtm].move_element(king_coord[wtm], it);
         reversible_moves = 0;
@@ -642,7 +643,7 @@ bool k2chess::MkMoveFast(move_c m)
     if((b[from_coord] <= white_rook) || (m.flag & is_capture))
         is_special_move |= MakeCastle(m, from_coord);
 
-    b_state[prev_states + ply].ep = 0;
+    state[ply].ep = 0;
     if((b[from_coord] ^ wtm) == black_pawn)
     {
         is_special_move |= MakeEP(m, from_coord);
@@ -672,7 +673,7 @@ bool k2chess::MkMoveFast(move_c m)
 void k2chess::UnmakeCapture(move_c m)
 {
     auto it_cap = coords[!wtm].begin();
-    it_cap = b_state[prev_states + ply].captured_it;
+    it_cap = state[ply].captured_it;
 
     if(m.flag & is_en_passant)
     {
@@ -692,8 +693,8 @@ void k2chess::UnmakeCapture(move_c m)
     else
     {
         material[!wtm]
-        += pc_streng[get_index(b_state[prev_states + ply].capt)];
-        quantity[!wtm][get_index(b_state[prev_states + ply].capt)]++;
+        += pc_streng[get_index(state[ply].capt)];
+        quantity[!wtm][get_index(state[ply].capt)]++;
     }
 
     coords[!wtm].restore(it_cap);
@@ -712,7 +713,7 @@ void k2chess::UnmakePromotion(move_c m)
     move_flag_t prIx = m.flag & is_promotion;
 
     auto it_prom = coords[wtm].begin();
-    it_prom = b_state[prev_states + ply].nprom;
+    it_prom = state[ply].nprom;
     auto before_king = king_coord[wtm];
     --before_king;
     coords[wtm].move_element(it_prom, before_king);
@@ -729,15 +730,15 @@ void k2chess::UnmakePromotion(move_c m)
 //--------------------------------
 void k2chess::UnMoveFast(move_c m)
 {
-    auto from_coord = b_state[prev_states + ply].from_coord;
+    auto from_coord = state[ply].from_coord;
     auto it = coords[!wtm].begin();
     it = m.piece_iterator;
     *it = from_coord;
     b[from_coord] = (m.flag & is_promotion) ? (white_pawn ^ wtm)
                     : b[m.to_coord];
-    b[m.to_coord] = b_state[prev_states + ply].capt;
+    b[m.to_coord] = state[ply].capt;
 
-    reversible_moves = b_state[prev_states + ply].reversibleCr;
+    reversible_moves = state[ply].reversibleCr;
 
     wtm ^= white;
 

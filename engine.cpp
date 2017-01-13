@@ -33,12 +33,12 @@ k2chess::score_t k2engine::Search(depth_t depth, score_t alpha, score_t beta,
         depth++;
 
     if(!in_check
-            && b_state[prev_states + ply - 1].capt
-            && b_state[prev_states + ply].capt
-            && b_state[prev_states + ply].to_coord
-            == b_state[prev_states + ply - 1].to_coord
-            && b_state[prev_states + ply - 1].priority > bad_captures
-            && b_state[prev_states + ply].priority > bad_captures
+            && state[ply - 1].capt
+            && state[ply].capt
+            && state[ply].to_coord
+            == state[ply - 1].to_coord
+            && state[ply - 1].priority > bad_captures
+            && state[ply].priority > bad_captures
       )
         depth++;
 
@@ -238,7 +238,7 @@ k2chess::score_t k2engine::QSearch(score_t alpha, score_t beta)
         if((!stop_ply || root_ply == stop_ply) && strcmp(stop_str, cv) == 0)
             ply = ply;
 #endif // NDEBUG
-        if(to_black(b_state[prev_states + ply].capt) == black_king)
+        if(to_black(state[ply].capt) == black_king)
         {
             UnMoveAndEval(cur_move);
             return king_value;
@@ -1228,9 +1228,9 @@ void k2engine::MakeNullMove()
         ply = ply;
 #endif // NDEBUG
 
-    b_state[prev_states + ply + 1] = b_state[prev_states + ply];
-    b_state[prev_states + ply].to_coord = is_null_move;
-    b_state[prev_states + ply + 1].ep = 0;
+    state[ply + 1] = state[ply];
+    state[ply].to_coord = is_null_move;
+    state[ply + 1].ep = 0;
 
     ply++;
 
@@ -1266,13 +1266,13 @@ bool k2engine::NullMove(depth_t depth, score_t beta, bool in_check)
 
     null_probe_cr++;
 
-    if(b_state[prev_states + ply - 1].to_coord == is_null_move
-            && b_state[prev_states + ply - 2].to_coord == is_null_move
+    if(state[ply - 1].to_coord == is_null_move
+            && state[ply - 2].to_coord == is_null_move
       )
         return false;
 
-    auto store_ep = b_state[prev_states + ply].ep;
-    auto store_to = b_state[prev_states + ply].to_coord;
+    auto store_ep = state[ply].ep;
+    auto store_to = state[ply].to_coord;
     auto store_rv = reversible_moves;
     reversible_moves = 0;
 
@@ -1285,8 +1285,8 @@ bool k2engine::NullMove(depth_t depth, score_t beta, bool in_check)
     auto x = -Search(depth - r - 1, -beta, -beta + 1, all_node);
 
     UnMakeNullMove();
-    b_state[prev_states + ply].to_coord = store_to;
-    b_state[prev_states + ply].ep = store_ep;
+    state[ply].to_coord = store_to;
+    state[ply].ep = store_ep;
     reversible_moves = store_rv;
 
     if(store_ep)
@@ -1305,8 +1305,8 @@ bool k2engine::NullMove(depth_t depth, score_t beta, bool in_check)
 //-----------------------------
 bool k2engine::Futility(depth_t depth, score_t beta)
 {
-    if(b_state[prev_states + ply].capt == 0
-            && b_state[prev_states + ply - 1].to_coord != is_null_move
+    if(state[ply].capt == 0
+            && state[ply - 1].to_coord != is_null_move
       )
     {
         futility_probes++;
@@ -1387,7 +1387,7 @@ void k2engine::ShowFen()
     }
     std::cout << " " << (wtm ? 'w' : 'b') << " ";
 
-    auto cstl = b_state[prev_states + 0].cstl;
+    auto cstl = state[0].cstl;
     if(cstl & 0x0F)
     {
         if(cstl & 0x01)
@@ -1511,7 +1511,7 @@ bool k2engine::MoveIsPseudoLegal(move_c &move, bool stm)
             return false;
         if((move.flag & is_en_passant)
                 && (piece != empty_square
-                    || b_state[prev_states + ply].ep == 0))
+                    || state[ply].ep == 0))
             return false;
         if(get_row(move.to_coord) == (stm ? 7 : 0)
                 && !(move.flag & is_promotion))
@@ -1563,7 +1563,7 @@ bool k2engine::MoveIsPseudoLegal(move_c &move, bool stm)
             return false;
         if(get_col(from_coord) != 4 || get_row(from_coord) != stm ? 0 : 7)
             return false;
-        if((b_state[prev_states + ply].cstl &
+        if((state[ply].cstl &
                 (move.flag >> 3 >> (2*stm))) == 0)
             return false;
         if(b[get_coord(get_col(move.to_coord), get_row(from_coord))]
@@ -1743,7 +1743,7 @@ void k2engine::ShowCurrentUciInfo()
               << " nps " << (i32)(1000000 * nodes / (t - time0 + 1));
 
     auto move = root_moves.at(root_move_cr).second;
-    auto from_coord = b_state[prev_states + 1].from_coord;
+    auto from_coord = state[1].from_coord;
     std::cout << " currmove "
               << (char)(get_col(from_coord) + 'a')
               << (char)(get_row(from_coord) + '1')

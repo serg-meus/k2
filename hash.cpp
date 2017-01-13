@@ -51,7 +51,7 @@ k2hash::hash_key_t k2hash::InitHashKey()
 
     if(!wtm)
         ans ^= key_for_side_to_move;
-    state_s &f = b_state[prev_states + ply];
+    state_s &f = state[ply];
     ans ^= zorb_en_passant[f.ep] ^ zorb_castling[f.cstl];
 
     return ans;
@@ -65,11 +65,10 @@ k2hash::hash_key_t k2hash::InitHashKey()
 void k2hash::MoveHashKey(move_c m, bool special)
 {
     doneHashKeys[FIFTY_MOVES + ply - 1] = hash_key;
-    auto from_coord = b_state[prev_states + ply].from_coord;
+    auto from_coord = state[ply].from_coord;
 
     auto pt = b[m.to_coord];
-    auto &f = b_state[prev_states + ply],
-          &_f = b_state[prev_states + ply - 1];
+    auto &f = state[ply], &_f = state[ply - 1];
 
     hash_key ^= zorb[piece_hash_index(pt)]
                 [get_col(from_coord)][get_row(from_coord)]

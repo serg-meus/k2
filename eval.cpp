@@ -7,8 +7,8 @@
 //-----------------------------
 k2chess::score_t k2eval::Eval()
 {
-    b_state[prev_states + ply].val_opn = val_opn;
-    b_state[prev_states + ply].val_end = val_end;
+    state[ply].val_opn = val_opn;
+    state[ply].val_end = val_end;
 
     EvalPawns(white);
     EvalPawns(black);
@@ -27,8 +27,8 @@ k2chess::score_t k2eval::Eval()
     auto ans = -ReturnEval(wtm);
     ans -= 8;  // bonus for side to move
 
-    val_opn = b_state[prev_states + ply].val_opn;
-    val_end = b_state[prev_states + ply].val_end;
+    val_opn = state[ply].val_opn;
+    val_end = state[ply].val_end;
 
     return ans;
 }
@@ -51,8 +51,8 @@ void k2eval::InitEval()
 
     InitPawnStruct();
 
-    b_state[prev_states + ply].val_opn = 0;
-    b_state[prev_states + ply].val_end = 0;
+    state[ply].val_opn = 0;
+    state[ply].val_end = 0;
 
     pawn_max[1 - 1][0] = 0;
     pawn_max[1 - 1][1] = 0;
@@ -75,8 +75,8 @@ void k2eval::FastEval(move_c m)
 
     auto x = get_col(m.to_coord);
     auto y = get_row(m.to_coord);
-    auto x0 = get_col(b_state[prev_states + ply].from_coord);
-    auto y0 = get_row(b_state[prev_states + ply].from_coord);
+    auto x0 = get_col(state[ply].from_coord);
+    auto y0 = get_row(state[ply].from_coord);
     auto pt = get_index(b[m.to_coord]);
 
     if(!wtm)
@@ -105,7 +105,7 @@ void k2eval::FastEval(move_c m)
 
     if(m.flag & is_capture)
     {
-        auto capt = to_black(b_state[prev_states + ply].capt);
+        auto capt = to_black(state[ply].capt);
         if(m.flag & is_en_passant)
         {
             idx = get_index(black_pawn);
@@ -175,8 +175,8 @@ void k2eval::InitEvaOfMaterialAndPst()
             val_end -= tmpEnd;
         }
     }
-    b_state[prev_states + ply].val_opn = val_opn;
-    b_state[prev_states + ply].val_end = val_end;
+    state[ply].val_opn = val_opn;
+    state[ply].val_end = val_end;
 
     king_tropism[white] = CountKingTropism(white);
     king_tropism[black] = CountKingTropism(black);
@@ -668,8 +668,8 @@ void k2eval::MaterialImbalances()
 //-----------------------------
 k2chess::score_t k2eval::EvalDebug()
 {
-    b_state[prev_states + ply].val_opn = val_opn;
-    b_state[prev_states + ply].val_end = val_end;
+    state[ply].val_opn = val_opn;
+    state[ply].val_end = val_end;
 
     auto store_vo = val_opn;
     auto store_ve = val_end;
@@ -757,8 +757,8 @@ k2chess::score_t k2eval::EvalDebug()
     std::cout << "Eval summary: " << (wtm ? -ans : ans) << std::endl;
     std::cout << "(positive values means advantage for white)" << std::endl;
 
-    val_opn = b_state[prev_states + ply].val_opn;
-    val_end = b_state[prev_states + ply].val_end;
+    val_opn = state[ply].val_opn;
+    val_end = state[ply].val_end;
 
     return ans;
 }
@@ -812,7 +812,7 @@ void k2eval::MovePawnStruct(piece_t moved_piece, coord_t from_coord,
         if(move.flag)
             SetPawnStruct(get_col(from_coord));
     }
-    if(to_black(b_state[prev_states + ply].capt) == black_pawn
+    if(to_black(state[ply].capt) == black_pawn
             || (move.flag & is_en_passant))  // is_en_passant not needed
     {
         wtm ^= white;
@@ -891,8 +891,8 @@ k2chess::score_t k2eval::CountKingTropism(side_to_move_t king_color)
 void k2eval::MoveKingTropism(coord_t from_coord, move_c move,
                              side_to_move_t king_color)
 {
-    b_state[prev_states + ply].tropism[black] = king_tropism[black];
-    b_state[prev_states + ply].tropism[white] = king_tropism[white];
+    state[ply].tropism[black] = king_tropism[black];
+    state[ply].tropism[white] = king_tropism[white];
 
     auto cur_piece = b[move.to_coord];
 
@@ -915,7 +915,7 @@ void k2eval::MoveKingTropism(coord_t from_coord, move_c move,
         king_tropism[king_color] += tropism_factor[dist_to < 3]
                                     [get_index(cur_piece)];
 
-    auto cap = b_state[prev_states + ply].capt;
+    auto cap = state[ply].capt;
     if(move.flag & is_capture)
     {
         dist_to = king_dist[std::abs(k_coord - move.to_coord)];
@@ -941,12 +941,12 @@ void k2eval::MoveKingTropism(coord_t from_coord, move_c move,
 //-----------------------------
 bool k2eval::MkMoveAndEval(move_c m)
 {
-    b_state[prev_states + ply].val_opn = val_opn;
-    b_state[prev_states + ply].val_end = val_end;
+    state[ply].val_opn = val_opn;
+    state[ply].val_end = val_end;
 
     bool is_special_move = MkMoveFast(m);
 
-    auto from_coord = b_state[prev_states + ply].from_coord;
+    auto from_coord = state[ply].from_coord;
 
     MoveKingTropism(from_coord, m, wtm);
 
@@ -962,10 +962,10 @@ bool k2eval::MkMoveAndEval(move_c m)
 //-----------------------------
 void k2eval::UnMoveAndEval(move_c m)
 {
-    king_tropism[black] = b_state[prev_states + ply].tropism[black];
-    king_tropism[white] = b_state[prev_states + ply].tropism[white];
+    king_tropism[black] = state[ply].tropism[black];
+    king_tropism[white] = state[ply].tropism[white];
 
-    auto from_coord = b_state[prev_states + ply].from_coord;
+    auto from_coord = state[ply].from_coord;
 
     UnMoveFast(m);
 
@@ -975,8 +975,8 @@ void k2eval::UnMoveAndEval(move_c m)
     wtm ^= white;
     ply--;
 
-    val_opn = b_state[prev_states + ply].val_opn;
-    val_end = b_state[prev_states + ply].val_end;
+    val_opn = state[ply].val_opn;
+    val_end = state[ply].val_end;
 }
 
 
@@ -1055,7 +1055,7 @@ k2chess::score_t k2eval::KingWeakness(side_to_move_t king_color)
     if(get_col(k) == 3 || get_col(k) == 4)
     {
         // if able to castle
-        if(b_state[prev_states + ply].cstl & (0x0C >> 2*king_color))
+        if(state[ply].cstl & (0x0C >> 2*king_color))
             ans += 30;
         else
             ans += 60;
@@ -1141,7 +1141,7 @@ void k2eval::KingSafety(side_to_move_t king_color)
     if(trp > 500)
         trp = 500;
     // if able to castle
-    if(b_state[prev_states + ply].cstl & (0x0C >> 2*king_color))
+    if(state[ply].cstl & (0x0C >> 2*king_color))
         kw /= 4;
     else
         kw = (material[!king_color] + 24)*kw/72;

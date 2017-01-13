@@ -169,6 +169,7 @@ protected:
     piece_num_t quantity[2][6 + 1];
 
     state_s b_state[prev_states + max_ply]; // engine state for each ply depth
+    state_s *state;  // pointer to engine state, state[0] = b_state[prev_states];
     depth_t ply;  // current ply depth
     depth_t reversible_moves;
 
