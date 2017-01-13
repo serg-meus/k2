@@ -58,9 +58,8 @@ k2chess::score_t k2engine::Search(depth_t depth, score_t alpha, score_t beta,
         return beta;
 
     score_t x, initial_alpha = alpha;
-    hash_entry_s *entry;
-    if(depth > 0 && (entry = HashProbe(depth, &alpha, beta)) != nullptr
-            && alpha != initial_alpha)
+    hash_entry_s *entry = nullptr;
+    if(depth > 0 && HashProbe(depth, &alpha, beta, entry))
         return -alpha;
 
     if(depth <= 0)
@@ -605,7 +604,8 @@ void k2engine::RootMoveGen(bool in_check)
     score_t alpha = -infinit_score, beta = infinit_score;
     cur_move.flag = not_a_move;
 
-    HashProbe(max_ply, &alpha, beta);
+    hash_entry_s *entry = nullptr;
+    HashProbe(max_ply, &alpha, beta, entry);
 
     for(movcr_t move_cr = 0; move_cr < max_moves; move_cr++)
     {
@@ -1428,12 +1428,12 @@ void k2engine::ReHash(size_t size_mb)
 
 
 //--------------------------------
-k2hash::hash_entry_s* k2engine::HashProbe(depth_t depth, score_t *alpha,
-        score_t beta)
+bool k2engine::HashProbe(depth_t depth, score_t *alpha,
+        score_t beta, hash_entry_s *entry)
 {
-    hash_entry_s* entry = hash_table.count(hash_key);
+    entry = hash_table.count(hash_key);
     if(entry == nullptr || stop)
-        return nullptr;
+        return false;
 
     hash_probe_cr++;
 
@@ -1455,14 +1455,14 @@ k2hash::hash_entry_s* k2engine::HashProbe(depth_t depth, score_t *alpha,
             hash_cut_cr++;
             pv[ply][0].flag = 0;
             *alpha = hval;
-            return entry;
+            return true;
         }// if(bnd
     }// if((*entry).depth >= depth
 
     if(entry->best_move.flag != not_a_move)
         hash_hit_cr++;
 
-    return entry;
+    return false;
 }
 
 

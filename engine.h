@@ -128,7 +128,8 @@ protected:
     bool NullMove(depth_t depth, score_t beta, bool ic);
     bool Futility(depth_t depth, score_t beta);
     bool DrawByRepetition();
-    hash_entry_s* HashProbe(depth_t depth, score_t *alpha, score_t beta);
+    bool HashProbe(depth_t depth, score_t *alpha, score_t beta,
+                            hash_entry_s *entry);
     bool MoveIsPseudoLegal(move_c &m, bool stm);
     move_c Next(move_c *move_array, movcr_t cur, movcr_t *top,
                 hash_entry_s *entry, side_to_move_t stm,
