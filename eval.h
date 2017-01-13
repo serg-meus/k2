@@ -38,7 +38,8 @@ protected:
     infinit_score = 32760;
 
     score_t val_opn, val_end;
-    rank_t pawn_max[10][2], pawn_min[10][2];
+    rank_t p_max[10][2], p_min[10][2];
+    rank_t (*pawn_max)[2], (*pawn_min)[2];
     score_t material_values_opn[7];
     score_t material_values_end[7];
     dist_t king_dist[120];
