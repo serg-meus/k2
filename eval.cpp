@@ -819,6 +819,14 @@ void k2eval::MovePawnStruct(piece_t moved_piece, coord_t from_coord,
         SetPawnStruct(get_col(move.to_coord));
         wtm ^= white;
     }
+#ifndef NDEBUG
+    rank_t copy_max[8][2], copy_min[8][2];
+    memcpy(copy_max, pawn_max, sizeof(copy_max));
+    memcpy(copy_min, pawn_min, sizeof(copy_min));
+    InitPawnStruct();
+    assert(!memcmp(copy_max, pawn_max, sizeof(copy_max)));
+    assert(!memcmp(copy_min, pawn_min, sizeof(copy_min)));
+#endif
 }
 
 
