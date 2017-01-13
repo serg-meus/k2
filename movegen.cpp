@@ -386,11 +386,7 @@ void k2movegen::AppriceMoves(move_c *move_array, movcr_t moveCr,
                     move_array[i].priority = -ans/2;
                 }
                 else
-                {
-                    assert(dst/10 >= 0);
-                    assert(dst/10 <= bad_captures);
-                    move_array[i].priority = dst/10;
-                }
+                    move_array[i].priority = 0;
             }
         }// else on captures
     }// for( i
@@ -474,11 +470,7 @@ void k2movegen::AppriceQuiesceMoves(move_c *move_array, movcr_t moveCr)
                 move_array[i].priority = -ans/2;
             }
             else
-            {
-                assert(dst/10 >= 0);
-                assert(dst/10 <= bad_captures);
-                move_array[i].priority = dst/10;
-            }
+                move_array[i].priority = 0;
         }
     }
 }
