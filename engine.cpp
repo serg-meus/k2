@@ -1117,6 +1117,7 @@ void k2engine::InitEngine()
 {
     InitChess();
     InitEval();
+    hash_key = InitHashKey();
 
     std::cin.rdbuf()->pubsetbuf(nullptr, 0);
     std::cout.rdbuf()->pubsetbuf(nullptr, 0);
