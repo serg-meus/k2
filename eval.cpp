@@ -62,6 +62,9 @@ void k2eval::InitEval()
     p_max[9][white] = 0;
     p_min[9][black] = 7;
     p_min[9][white] = 7;
+
+    king_tropism[white] = 0;
+    king_tropism[black] = 0;
 }
 
 

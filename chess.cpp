@@ -103,6 +103,7 @@ void k2chess::InitBrd()
 //--------------------------------
 void k2chess::InitAttacks()
 {
+    memset(attacks, 0, sizeof(attacks));
     for(auto i = 1; i < 6; i++)
     {
         if(!slider[i])
