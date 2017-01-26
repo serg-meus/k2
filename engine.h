@@ -14,7 +14,7 @@
 
 
 
-class k2engine : k2hash
+class k2engine : public k2hash
 {
 
 public:

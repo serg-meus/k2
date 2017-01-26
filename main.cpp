@@ -11,99 +11,39 @@
 
 
 
-cmdStruct commands[]
-{
-//   Command        Function
-    {"new",         NewCommand},
-    {"setboard",    SetboardCommand},
-    {"set",         SetboardCommand},
-    {"quit",        QuitCommand},
-    {"q",           QuitCommand},
-    {"perft",       PerftCommand},
-    {"go",          GoCommand},
-    {"level",       LevelCommand},
-    {"force",       ForceCommand},
-    {"sn",          SetNodesCommand},
-    {"st",          SetTimeCommand},
-    {"sd",          SetDepthCommand},
-    {"protover",    ProtoverCommand},
-    {"?",           StopCommand},
-    {"result",      ResultCommand},
-    {"time",        TimeCommand},
-    {"eval",        EvalCommand},
-    {"test",        TestCommand},
-    {"fen",         FenCommand},
-    {"xboard",      XboardCommand},
-    {"easy",        EasyCommand},
-    {"hard",        HardCommand},
-    {"memory",      MemoryCommand},
-    {"analyze",     AnalyzeCommand},
-    {"exit",        ExitCommand},
-
-    {"undo",        Unsupported},
-    {"remove",      Unsupported},
-    {"computer",    Unsupported},
-    {"random",      Unsupported},
-    {"post",        Unsupported},
-    {"nopost",      Unsupported},
-    {"random",      Unsupported},
-
-    {"otim",        Unsupported},
-    {"accepted",    Unsupported},
-    {".",           Unsupported},
-    {"",            Unsupported},
-
-    {"uci",         UciCommand},
-    {"setoption",   SetOptionCommand},
-    {"isready",     IsReadyCommand},
-    {"position",    PositionCommand},
-    {"ucinewgame",  NewCommand},
-    {"stop",        StopCommand},
-    {"ponderhit",   PonderhitCommand},
-    {"setvalue",    SetvalueCommand},
-};
-
-
-
-
-
-
-bool force = false;
-bool quit = false;
-bool pondering_enabled = false;
-
-#ifndef DONT_USE_THREAD_FOR_INPUT
-std::thread t;
-// for compilers with C++11 support under Linux
-// -pthread option must be used for gcc linker
-#endif // USE_THREAD_FOR_INPUT
-
-
-
-
-
-k2engine eng;
-
-
 //--------------------------------
 int main(int argc, char* argv[])
 {
     UNUSED(argc);
     UNUSED(argv);
 
+    k2main *engine = new k2main();
+    engine->start();
+}
+
+
+
+
+
+//--------------------------------
+k2main::k2main()
+{
+    force = false;
+    quit = false;
+    pondering_enabled = false;
+
+    ClearHash();
+}
+
+
+
+
+
+//--------------------------------
+void k2main::start()
+{
 //    for(auto i = 0; i < NPARAMS; ++i)
 //        param.push_back(1);
-
-    eng.ClearHash();
-
-    eng.max_search_depth = k2chess::max_ply;
-    eng.time_remains = 300000000;
-    eng.time_base = 300000000;
-    eng.time_inc = 0;
-    eng.moves_per_session = 0;
-    eng.max_nodes_to_search = 0;
-    eng.time_command_sent = false;
-
     char in[0x4000];
     while(!quit)
     {
@@ -119,25 +59,25 @@ int main(int argc, char* argv[])
         {
             // NiCheGoNeDeLaYem!
         }
-        else if(!eng.busy && LooksLikeMove((std::string)in))
+        else if(!busy && LooksLikeMove((std::string)in))
         {
-            if(!eng.MakeMoveFinaly(in))
+            if(!MakeMoveFinaly(in))
                 std::cout << "Illegal move" << std::endl;
             else if(!force)
             {
 #ifndef DONT_USE_THREAD_FOR_INPUT
                 if(t.joinable())
                     t.join();
-                t = std::thread(&k2engine::MainSearch, &eng);
+                t = std::thread(&k2engine::MainSearch, this);
 #else
-                eng.MainSearch();
+                MainSearch();
 #endif // USE_THREAD_FOR_INPUT
             }
         }
         else
             std::cout << "Unknown command: " << in << std::endl;
     }
-    if(eng.busy)
+    if(busy)
         StopEngine();
 }
 
@@ -146,8 +86,57 @@ int main(int argc, char* argv[])
 
 
 //--------------------------------
-bool CmdProcess(std::string in)
+bool k2main::CmdProcess(std::string in)
 {
+    cmdStruct commands[] =
+    {
+//      Command         Method
+        {"new",         &k2main::NewCommand},
+        {"setboard",    &k2main::SetboardCommand},
+        {"set",         &k2main::SetboardCommand},
+        {"quit",        &k2main::QuitCommand},
+        {"q",           &k2main::QuitCommand},
+        {"perft",       &k2main::PerftCommand},
+        {"go",          &k2main::GoCommand},
+        {"level",       &k2main::LevelCommand},
+        {"force",       &k2main::ForceCommand},
+        {"sn",          &k2main::SetNodesCommand},
+        {"st",          &k2main::SetTimeCommand},
+        {"sd",          &k2main::SetDepthCommand},
+        {"protover",    &k2main::ProtoverCommand},
+        {"?",           &k2main::StopCommand},
+        {"result",      &k2main::ResultCommand},
+        {"time",        &k2main::TimeCommand},
+        {"eval",        &k2main::EvalCommand},
+        {"test",        &k2main::TestCommand},
+        {"fen",         &k2main::FenCommand},
+        {"xboard",      &k2main::XboardCommand},
+        {"easy",        &k2main::EasyCommand},
+        {"hard",        &k2main::HardCommand},
+        {"memory",      &k2main::MemoryCommand},
+        {"analyze",     &k2main::AnalyzeCommand},
+        {"exit",        &k2main::ExitCommand},
+        {"undo",        &k2main::Unsupported},
+        {"remove",      &k2main::Unsupported},
+        {"computer",    &k2main::Unsupported},
+        {"random",      &k2main::Unsupported},
+        {"post",        &k2main::Unsupported},
+        {"nopost",      &k2main::Unsupported},
+        {"random",      &k2main::Unsupported},
+        {"otim",        &k2main::Unsupported},
+        {"accepted",    &k2main::Unsupported},
+        {".",           &k2main::Unsupported},
+        {"",            &k2main::Unsupported},
+        {"uci",         &k2main::UciCommand},
+        {"setoption",   &k2main::SetOptionCommand},
+        {"isready",     &k2main::IsReadyCommand},
+        {"position",    &k2main::PositionCommand},
+        {"ucinewgame",  &k2main::NewCommand},
+        {"stop",        &k2main::StopCommand},
+        {"ponderhit",   &k2main::PonderhitCommand},
+        {"setvalue",    &k2main::SetvalueCommand}
+    };
+
     std::string firstWord, remains;
 
     GetFirstArg(in, &firstWord, &remains);
@@ -156,7 +145,9 @@ bool CmdProcess(std::string in)
     {
         if(firstWord == commands[i].command)
         {
-            commands[i].foo(remains);
+            auto c = commands[i];
+            method_ptr m = c.mptr;
+            ((*this).*m)(remains);
             return true;
         }
     }
@@ -168,8 +159,8 @@ bool CmdProcess(std::string in)
 
 
 //--------------------------------
-void GetFirstArg(std::string in, std::string (*firstWord),
-                 std::string (*remainingWords))
+void k2main::GetFirstArg(std::string in, std::string (*firstWord),
+                         std::string (*remainingWords))
 {
     if(in.empty())
         return;
@@ -192,7 +183,7 @@ void GetFirstArg(std::string in, std::string (*firstWord),
 
 
 //--------------------------------
-bool LooksLikeMove(std::string in)
+bool k2main::LooksLikeMove(std::string in)
 {
     if(in.size() < 4 || in.size() > 5)
         return false;
@@ -214,10 +205,10 @@ bool LooksLikeMove(std::string in)
 
 
 //--------------------------------
-void StopEngine()
+void k2main::StopEngine()
 {
 #ifndef DONT_USE_THREAD_FOR_INPUT
-    eng.stop = true;
+    stop = true;
     t.join();
 #endif // USE_THREAD_FOR_INPUT
 }
@@ -227,27 +218,27 @@ void StopEngine()
 
 
 //--------------------------------
-void NewCommand(std::string in)
+void k2main::NewCommand(std::string in)
 {
     UNUSED(in);
-    if(eng.busy)
+    if(busy)
         StopEngine();
     force = false;
-    eng.pondering_in_process = false;
-    if(!eng.xboard && !eng.uci)
+    pondering_in_process = false;
+    if(!xboard && !uci)
     {
-        if(eng.total_time_spent == 0)
-            eng.total_time_spent = 1e-5;
+        if(total_time_spent == 0)
+            total_time_spent = 1e-5;
         std::cout
-                << "( Total node count: " << eng.total_nodes
-                << ", total time spent: " << eng.total_time_spent / 1000000.0
+                << "( Total node count: " << total_nodes
+                << ", total time spent: " << total_time_spent / 1000000.0
                 << " )" << std::endl
                 << std::setprecision(4) << std::fixed
-                << "( MNPS = " << eng.total_nodes / eng.total_time_spent
+                << "( MNPS = " << total_nodes / total_time_spent
                 << " )" << std::endl;
     }
-    eng.InitEngine();
-    eng.ClearHash();
+    InitEngine();
+    ClearHash();
 }
 
 
@@ -255,17 +246,17 @@ void NewCommand(std::string in)
 
 
 //-------------------------------
-void SetboardCommand(std::string in)
+void k2main::SetboardCommand(std::string in)
 {
-    if(eng.busy)
+    if(busy)
         return;
 
     auto firstSymbol = in.find_first_not_of(" \t");
     in.erase(0, firstSymbol);
 
-    if(!eng.FenStringToEngine((char *)in.c_str()))
+    if(!FenStringToEngine((char *)in.c_str()))
         std::cout << "Illegal position" << std::endl;
-    else if(eng.infinite_analyze && eng.xboard)
+    else if(infinite_analyze && xboard)
         AnalyzeCommand(in);
 }
 
@@ -274,11 +265,11 @@ void SetboardCommand(std::string in)
 
 
 //--------------------------------
-void QuitCommand(std::string in)
+void k2main::QuitCommand(std::string in)
 {
     UNUSED(in);
 #ifndef DONT_USE_THREAD_FOR_INPUT
-    if(eng.busy || t.joinable())
+    if(busy || t.joinable())
         StopEngine();
 #endif // USE_THREAD_FOR_INPUT
 
@@ -290,25 +281,25 @@ void QuitCommand(std::string in)
 
 
 //--------------------------------
-void PerftCommand(std::string in)
+void k2main::PerftCommand(std::string in)
 {
-    if(eng.busy)
+    if(busy)
         return;
     Timer timer;
     double tick1, tick2, deltaTick;
     timer.start();
     tick1 = timer.getElapsedTimeInMicroSec();
 
-    eng.nodes = 0;
-    eng.max_search_depth = atoi(in.c_str());
-    eng.Perft(eng.max_search_depth);
-    eng.max_search_depth = k2chess::max_ply;
+    nodes = 0;
+    max_search_depth = atoi(in.c_str());
+    Perft(max_search_depth);
+    max_search_depth = k2chess::max_ply;
     tick2 = timer.getElapsedTimeInMicroSec();
     deltaTick = tick2 - tick1;
 
-    std::cout << std::endl << "nodes = " << eng.nodes << std::endl
+    std::cout << std::endl << "nodes = " << nodes << std::endl
               << "dt = " << deltaTick / 1000000. << std::endl
-              << "Mnps = " << eng.nodes / (deltaTick + 1)
+              << "Mnps = " << nodes / (deltaTick + 1)
               << std::endl << std::endl;
 }
 
@@ -317,22 +308,22 @@ void PerftCommand(std::string in)
 
 
 //--------------------------------
-void GoCommand(std::string in)
+void k2main::GoCommand(std::string in)
 {
     UNUSED(in);
-    if(eng.busy)
+    if(busy)
         return;
 
-    if(eng.uci)
+    if(uci)
         UciGoCommand(in);
     else
         force = false;
 #ifndef DONT_USE_THREAD_FOR_INPUT
     if(t.joinable())
         t.join();
-    t = std::thread(&k2engine::MainSearch, &eng);
+    t = std::thread(&k2engine::MainSearch, this);
 #else
-    eng.MainSearch();
+    MainSearch();
 #endif // USE_THREAD_FOR_INPUT
 
 }
@@ -342,9 +333,9 @@ void GoCommand(std::string in)
 
 
 //--------------------------------
-void LevelCommand(std::string in)
+void k2main::LevelCommand(std::string in)
 {
-    if(eng.busy)
+    if(busy)
         return;
     std::string arg1, arg2, arg3;
     GetFirstArg(in, &arg1, &arg2);
@@ -364,19 +355,18 @@ void LevelCommand(std::string in)
             base = 0.1*(base - (int)base) + (int)base;
         int floorBase = (int)base;
         base = (base - floorBase)*100/60 + floorBase;
-
     }
     else
         base = atof(arg2.c_str());
 
     inc = atof(arg3.c_str());
 
-    eng.time_base = 60*1000000.*base;
-    eng.time_inc = 1000000*inc;
-    eng.moves_per_session = mps;
-    eng.time_remains = eng.time_base;
-    eng.max_nodes_to_search = 0;
-    eng.max_search_depth = k2chess::max_ply;
+    time_base = 60*1000000.*base;
+    time_inc = 1000000*inc;
+    moves_per_session = mps;
+    time_remains = time_base;
+    max_nodes_to_search = 0;
+    max_search_depth = k2chess::max_ply;
 }
 
 
@@ -384,10 +374,10 @@ void LevelCommand(std::string in)
 
 
 //--------------------------------
-void ForceCommand(std::string in)
+void k2main::ForceCommand(std::string in)
 {
     UNUSED(in);
-    if(eng.busy)
+    if(busy)
         StopEngine();
     force = true;
 }
@@ -397,15 +387,15 @@ void ForceCommand(std::string in)
 
 
 //--------------------------------
-void SetNodesCommand(std::string in)
+void k2main::SetNodesCommand(std::string in)
 {
-    if(eng.busy)
+    if(busy)
         return;
-    eng.time_base = 0;
-    eng.moves_per_session = 0;
-    eng.time_inc = 0;
-    eng.max_nodes_to_search = atoi(in.c_str());
-    eng.max_search_depth = k2chess::max_ply;
+    time_base = 0;
+    moves_per_session = 0;
+    time_inc = 0;
+    max_nodes_to_search = atoi(in.c_str());
+    max_search_depth = k2chess::max_ply;
 }
 
 
@@ -413,16 +403,16 @@ void SetNodesCommand(std::string in)
 
 
 //--------------------------------
-void SetTimeCommand(std::string in)
+void k2main::SetTimeCommand(std::string in)
 {
-    if(eng.busy)
+    if(busy)
         return;
-    eng.time_base = 0;
-    eng.moves_per_session = 1;
-    eng.time_inc = atof(in.c_str())*1000000.;
-    eng.max_nodes_to_search = 0;
-    eng.max_search_depth = k2chess::max_ply;
-    eng.time_remains = 0;
+    time_base = 0;
+    moves_per_session = 1;
+    time_inc = atof(in.c_str())*1000000.;
+    max_nodes_to_search = 0;
+    max_search_depth = k2chess::max_ply;
+    time_remains = 0;
 }
 
 
@@ -430,11 +420,11 @@ void SetTimeCommand(std::string in)
 
 
 //--------------------------------
-void SetDepthCommand(std::string in)
+void k2main::SetDepthCommand(std::string in)
 {
-    if(eng.busy)
+    if(busy)
         return;
-    eng.max_search_depth = atoi(in.c_str());
+    max_search_depth = atoi(in.c_str());
 }
 
 
@@ -442,16 +432,16 @@ void SetDepthCommand(std::string in)
 
 
 //--------------------------------
-void ProtoverCommand(std::string in)
+void k2main::ProtoverCommand(std::string in)
 {
     UNUSED(in);
-    if(eng.busy)
+    if(busy)
         return;
-    eng.xboard = true;
-    eng.uci = false;
+    xboard = true;
+    uci = false;
 
     std::cout << "feature "
-              "myname=\"K2 v." << eng.engine_version << "\" "
+              "myname=\"K2 v." << engine_version << "\" "
               "setboard=1 "
               "analyze=1 "
               "san=0 "
@@ -471,13 +461,13 @@ void ProtoverCommand(std::string in)
 
 
 //--------------------------------
-void StopCommand(std::string in)
+void k2main::StopCommand(std::string in)
 {
     UNUSED(in);
 #ifndef DONT_USE_THREAD_FOR_INPUT
-    if(eng.busy)
+    if(busy)
     {
-        eng.stop = true;
+        stop = true;
         t.join();
     }
 #endif // USE_THREAD_FOR_INPUT
@@ -488,10 +478,10 @@ void StopCommand(std::string in)
 
 
 //--------------------------------
-void ResultCommand(std::string in)
+void k2main::ResultCommand(std::string in)
 {
     UNUSED(in);
-    if(eng.busy)
+    if(busy)
         StopEngine();
 }
 
@@ -500,17 +490,17 @@ void ResultCommand(std::string in)
 
 
 //--------------------------------
-void TimeCommand(std::string in)
+void k2main::TimeCommand(std::string in)
 {
-    if(eng.busy)
+    if(busy)
     {
         std::cout << "telluser time command recieved while engine is busy"
                   << std::endl;
         return;
     }
     double tb = atof(in.c_str()) * 10000;
-    eng.time_remains = tb;
-    eng.time_command_sent = true;
+    time_remains = tb;
+    time_command_sent = true;
 }
 
 
@@ -518,13 +508,13 @@ void TimeCommand(std::string in)
 
 
 //--------------------------------
-void EvalCommand(std::string in)
+void k2main::EvalCommand(std::string in)
 {
     UNUSED(in);
-    if(eng.busy)
+    if(busy)
         return;
 
-    eng.EvalDebug();
+    EvalDebug();
 }
 
 
@@ -532,7 +522,7 @@ void EvalCommand(std::string in)
 
 
 //--------------------------------
-void TestCommand(std::string in)
+void k2main::TestCommand(std::string in)
 {
     UNUSED(in);
 }
@@ -542,10 +532,10 @@ void TestCommand(std::string in)
 
 
 //--------------------------------
-void FenCommand(std::string in)
+void k2main::FenCommand(std::string in)
 {
     UNUSED(in);
-    eng.ShowFen();
+    ShowFen();
 }
 
 
@@ -553,11 +543,11 @@ void FenCommand(std::string in)
 
 
 //--------------------------------
-void XboardCommand(std::string in)
+void k2main::XboardCommand(std::string in)
 {
     UNUSED(in);
-    eng.xboard = true;
-    eng.uci = false;
+    xboard = true;
+    uci = false;
     std::cout << "( build time: "
               << __DATE__ << " " << __TIME__
               << " )" << std::endl;
@@ -568,7 +558,7 @@ void XboardCommand(std::string in)
 
 
 //--------------------------------
-void Unsupported(std::string in)
+void k2main::Unsupported(std::string in)
 {
     UNUSED(in);
 }
@@ -578,11 +568,11 @@ void Unsupported(std::string in)
 
 
 //--------------------------------
-void UciCommand(std::string in)
+void k2main::UciCommand(std::string in)
 {
     UNUSED(in);
-    eng.uci = true;
-    std::cout << "id name K2 v." << eng.engine_version << std::endl;
+    uci = true;
+    std::cout << "id name K2 v." << engine_version << std::endl;
     std::cout << "id author Sergey Meus" << std::endl;
     std::cout << "option name Hash type spin default 64 min 0 max 2048"
               << std::endl;
@@ -594,7 +584,7 @@ void UciCommand(std::string in)
 
 
 //--------------------------------
-void SetOptionCommand(std::string in)
+void k2main::SetOptionCommand(std::string in)
 {
     std::string arg1, arg2;
     GetFirstArg(in, &arg1, &arg2);
@@ -609,7 +599,7 @@ void SetOptionCommand(std::string in)
             return;
         GetFirstArg(arg2, &arg1, &arg2);
         auto size_MB = atoi(arg1.c_str());
-        eng.ReHash(size_MB);
+        ReHash(size_MB);
     }
 }
 
@@ -618,7 +608,7 @@ void SetOptionCommand(std::string in)
 
 
 //--------------------------------
-void IsReadyCommand(std::string in)
+void k2main::IsReadyCommand(std::string in)
 {
     UNUSED(in);
     std::cout << "\nreadyok\n";  // '\n' to avoid multithreading problems
@@ -629,7 +619,7 @@ void IsReadyCommand(std::string in)
 
 
 //--------------------------------
-void PositionCommand(std::string in)
+void k2main::PositionCommand(std::string in)
 {
 
     std::string arg1, arg2;
@@ -640,14 +630,14 @@ void PositionCommand(std::string in)
         std::string fenstring;
         auto beg = arg2.find_first_not_of(" \t");
         fenstring = arg2.substr(beg, arg2.size());
-        if(!eng.FenStringToEngine((char *)fenstring.c_str()))
+        if(!FenStringToEngine((char *)fenstring.c_str()))
         {
             std::cout << "Illegal position" << std::endl;
             return;
         }
     }
     else
-        eng.InitEngine();
+        InitEngine();
 
     int moves = arg2.find("moves");
     if(moves == -1)
@@ -665,7 +655,7 @@ void PositionCommand(std::string in)
 
 
 //--------------------------------
-void ProcessMoveSequence(std::string in)
+void k2main::ProcessMoveSequence(std::string in)
 {
     std::string arg1, arg2;
     arg1 = in;
@@ -674,7 +664,7 @@ void ProcessMoveSequence(std::string in)
         GetFirstArg(arg1, &arg1, &arg2);
         if(arg1.empty())
             break;
-        if(!eng.MakeMoveFinaly((char *)arg1.c_str()))
+        if(!MakeMoveFinaly((char *)arg1.c_str()))
             break;
         arg1 = arg2;
     }
@@ -685,9 +675,9 @@ void ProcessMoveSequence(std::string in)
 
 
 //--------------------------------
-void UciGoCommand(std::string in)
+void k2main::UciGoCommand(std::string in)
 {
-    eng.pondering_in_process = false;
+    pondering_in_process = false;
     bool no_movestogo_arg = true;
     std::string arg1, arg2;
     arg1 = in;
@@ -698,7 +688,7 @@ void UciGoCommand(std::string in)
             break;
         if(arg1 == "infinite")
         {
-            eng.infinite_analyze = true;
+            infinite_analyze = true;
             break;
         }
 
@@ -706,16 +696,16 @@ void UciGoCommand(std::string in)
         {
             char clr = arg1[0];
             GetFirstArg(arg2, &arg1, &arg2);
-            if((clr == 'w' && eng.WhiteIsOnMove())
-                    || (clr == 'b' && !eng.WhiteIsOnMove()))
+            if((clr == 'w' && WhiteIsOnMove())
+                    || (clr == 'b' && !WhiteIsOnMove()))
             {
-                eng.time_base = 1000.*atof(arg1.c_str());
-                eng.time_remains = eng.time_base;
-                eng.max_nodes_to_search = 0;
-                eng.max_search_depth = k2chess::max_ply;
+                time_base = 1000.*atof(arg1.c_str());
+                time_remains = time_base;
+                max_nodes_to_search = 0;
+                max_search_depth = k2chess::max_ply;
 
                 // crutch: engine must know that time changed by GUI
-                eng.time_command_sent = true;
+                time_command_sent = true;
             }
             arg1 = arg2;
         }
@@ -723,53 +713,53 @@ void UciGoCommand(std::string in)
         {
             char clr = arg1[0];
             GetFirstArg(arg2, &arg1, &arg2);
-            if((clr == 'w' && eng.WhiteIsOnMove())
-                    || (clr == 'b' && !eng.WhiteIsOnMove()))
-                eng.time_inc         = 1000.*atof(arg1.c_str());
+            if((clr == 'w' && WhiteIsOnMove())
+                    || (clr == 'b' && !WhiteIsOnMove()))
+                time_inc         = 1000.*atof(arg1.c_str());
             arg1 = arg2;
         }
         else if(arg1 == "movestogo")
         {
             GetFirstArg(arg2, &arg1, &arg2);
-            eng.moves_per_session = atoi(arg1.c_str());
+            moves_per_session = atoi(arg1.c_str());
             arg1 = arg2;
             no_movestogo_arg = false;
         }
         else if(arg1 == "movetime")
         {
             GetFirstArg(arg2, &arg1, &arg2);
-            eng.time_base = 0;
-            eng.moves_per_session = 1;
-            eng.time_inc = 1000.*atof(arg1.c_str());
-            eng.max_nodes_to_search = 0;
-            eng.max_search_depth = k2chess::max_ply;
-            eng.time_remains = 0;
+            time_base = 0;
+            moves_per_session = 1;
+            time_inc = 1000.*atof(arg1.c_str());
+            max_nodes_to_search = 0;
+            max_search_depth = k2chess::max_ply;
+            time_remains = 0;
 
             arg1 = arg2;
         }
         else if(arg1 == "depth")
         {
             GetFirstArg(arg2, &arg1, &arg2);
-            eng.max_search_depth = atoi(arg1.c_str());
-            eng.time_base = INFINITY;
-            eng.time_remains = eng.time_base;
-            eng.max_nodes_to_search = 0;
+            max_search_depth = atoi(arg1.c_str());
+            time_base = INFINITY;
+            time_remains = time_base;
+            max_nodes_to_search = 0;
 
             arg1 = arg2;
         }
         else if(arg1 == "nodes")
         {
             GetFirstArg(arg2, &arg1, &arg2);
-            eng.time_base = INFINITY;
-            eng.time_remains = eng.time_base;
-            eng.max_nodes_to_search = atoi(arg1.c_str());
-            eng.max_search_depth = k2chess::max_ply;
+            time_base = INFINITY;
+            time_remains = time_base;
+            max_nodes_to_search = atoi(arg1.c_str());
+            max_search_depth = k2chess::max_ply;
 
             arg1 = arg2;
         }
         else if(arg1 == "ponder")
         {
-            eng.pondering_in_process = true;
+            pondering_in_process = true;
             arg1 = arg2;
         }
         else
@@ -777,7 +767,7 @@ void UciGoCommand(std::string in)
 
     }//while(true
     if(no_movestogo_arg)
-        eng.moves_per_session = 0;
+        moves_per_session = 0;
 }
 
 
@@ -785,7 +775,7 @@ void UciGoCommand(std::string in)
 
 
 //--------------------------------
-void EasyCommand(std::string in)
+void k2main::EasyCommand(std::string in)
 {
     UNUSED(in);
     pondering_enabled = false;
@@ -796,7 +786,7 @@ void EasyCommand(std::string in)
 
 
 //--------------------------------
-void HardCommand(std::string in)
+void k2main::HardCommand(std::string in)
 {
     UNUSED(in);
     pondering_enabled = true;
@@ -807,10 +797,10 @@ void HardCommand(std::string in)
 
 
 //--------------------------------
-void PonderhitCommand(std::string in)
+void k2main::PonderhitCommand(std::string in)
 {
     UNUSED(in);
-    eng.PonderHit();
+    PonderHit();
 }
 
 
@@ -818,13 +808,13 @@ void PonderhitCommand(std::string in)
 
 
 //--------------------------------
-void MemoryCommand(std::string in)
+void k2main::MemoryCommand(std::string in)
 {
     std::string arg1, arg2;
     arg1 = in;
     GetFirstArg(arg2, &arg1, &arg2);
     auto size_MB = atoi(arg1.c_str());
-    eng.ReHash(size_MB);
+    ReHash(size_MB);
 }
 
 
@@ -832,18 +822,18 @@ void MemoryCommand(std::string in)
 
 
 //--------------------------------
-void AnalyzeCommand(std::string in)
+void k2main::AnalyzeCommand(std::string in)
 {
     UNUSED(in);
     force = false;
-    eng.infinite_analyze = true;
+    infinite_analyze = true;
 
 #ifndef DONT_USE_THREAD_FOR_INPUT
     if(t.joinable())
         t.join();
-    t = std::thread(&k2engine::MainSearch, &eng);
+    t = std::thread(&k2engine::MainSearch, this);
 #else
-    eng.MainSearch();
+    MainSearch();
 #endif // USE_THREAD_FOR_INPUT
 }
 
@@ -852,10 +842,10 @@ void AnalyzeCommand(std::string in)
 
 
 //--------------------------------
-void ExitCommand(std::string in)
+void k2main::ExitCommand(std::string in)
 {
     StopCommand(in);
-    eng.infinite_analyze = false;
+    infinite_analyze = false;
 }
 
 
@@ -863,7 +853,7 @@ void ExitCommand(std::string in)
 
 
 //--------------------------------
-void SetvalueCommand(std::string in)
+void k2main::SetvalueCommand(std::string in)
 {
     std::string arg1, arg2;
     GetFirstArg(in, &arg1, &arg2);
@@ -885,5 +875,5 @@ void SetvalueCommand(std::string in)
             param.clear();
         }
     */
-    eng.InitEngine();
+    InitEngine();
 }

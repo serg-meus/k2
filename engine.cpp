@@ -9,6 +9,23 @@ k2engine::k2engine() :
     stop_str{""},
     stop_ply{0}
 {
+    busy = false;
+    uci = false;
+    xboard = false;
+    pondering_in_process = false;
+    stop = false;
+    resign_cr = 0;
+
+    max_search_depth = k2chess::max_ply;
+    time_remains = 300000000;
+    time_base = 300000000;
+    time_inc = 0;
+    moves_per_session = 0;
+    max_nodes_to_search = 0;
+    time_command_sent = false;
+    infinite_analyze = false;
+    spent_exact_time = false;
+
     InitEngine();
 }
 
