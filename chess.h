@@ -245,4 +245,4 @@ private:
     void UnMakeCastle(move_c m);
     bool MakeEP(move_c m, coord_t from_coord);
 
-};  // class k2chess
+};

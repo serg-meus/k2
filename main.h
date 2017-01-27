@@ -26,7 +26,7 @@ protected:
     bool pondering_enabled;
 
 #ifndef DONT_USE_THREAD_FOR_INPUT
-    std::thread t;
+    std::thread thr;
 // for compilers with C++11 support under Linux
 // -pthread option must be used for gcc linker
 #endif // USE_THREAD_FOR_INPUT
@@ -34,14 +34,14 @@ protected:
 
     typedef void(k2main::*method_ptr)(std::string);
 
-    struct cmdStruct
+    struct command_s
     {
         std::string command;
         method_ptr mptr;
     };
 
 
-    bool CmdProcess(std::string in);
+    bool ExecuteCommand(std::string in);
     bool LooksLikeMove(std::string in);
     void NewCommand(std::string in);
     void SetboardCommand(std::string in);
@@ -54,7 +54,8 @@ protected:
     void SetTimeCommand(std::string in);
     void SetDepthCommand(std::string in);
     void Unsupported(std::string in);
-    void GetFirstArg(std::string in, std::string *first, std::string *remain);
+    void GetFirstArg(std::string in, std::string *first_word,
+                     std::string *all_the_rest);
     void ProtoverCommand(std::string in);
     void StopEngine();
     void StopCommand(std::string in);

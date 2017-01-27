@@ -52,8 +52,7 @@ k2chess::score_t k2engine::Search(depth_t depth, score_t alpha, score_t beta,
     if(!in_check
             && state[ply - 1].capt
             && state[ply].capt
-            && state[ply].to_coord
-            == state[ply - 1].to_coord
+            && state[ply].to_coord == state[ply - 1].to_coord
             && state[ply - 1].priority > bad_captures
             && state[ply].priority > bad_captures
       )
@@ -65,9 +64,7 @@ k2chess::score_t k2engine::Search(depth_t depth, score_t alpha, score_t beta,
     if(beta <= -mate_sc)
         return beta;
 
-    if(depth <= 2 && !in_check
-//    && alpha < mate_score && beta >= -mate_score
-            && beta < mate_score
+    if(depth <= 2 && !in_check && beta < mate_score
             && Futility(depth, beta))
         return beta;
 
@@ -110,14 +107,12 @@ k2chess::score_t k2engine::Search(depth_t depth, score_t alpha, score_t beta,
             continue;
         }
 
-
         if(depth <= 2 && !cur_move.flag && !in_check
                 && node_type == all_node && legal_moves > 4)
         {
             UnMoveFast(cur_move);
             break;
         }
-
 
         MkMoveIncrementally(cur_move, is_special_move);
         FastEval(cur_move);
@@ -165,7 +160,7 @@ k2chess::score_t k2engine::Search(depth_t depth, score_t alpha, score_t beta,
         }
         if(stop)
             break;
-    }// for move_cr
+    }
 
     if(legal_moves == 0 && initial_alpha <= mate_score)
     {
@@ -278,7 +273,7 @@ k2chess::score_t k2engine::QSearch(score_t alpha, score_t beta)
 
         if(stop)
             break;
-    }// for(move_cr
+    }
 
     if(beta_cutoff)
     {
@@ -384,7 +379,7 @@ void k2engine::MainSearch()
     score_t x, prev_x;
 
     root_ply = 1;
-    x = QSearch(-infinit_score, infinit_score);
+    x = QSearch(-infinite_score, infinite_score);
     pv[0][0].flag = 0;
 
     max_root_moves = 0;
@@ -396,18 +391,18 @@ void k2engine::MainSearch()
         x = RootSearch(root_ply, x - asp_margin, x + asp_margin);
         if(!stop && x <= prev_x - asp_margin)
         {
-            x = RootSearch(root_ply, -infinit_score, prev_x - asp_margin);
+            x = RootSearch(root_ply, -infinite_score, prev_x - asp_margin);
             if (!stop && x >= prev_x - asp_margin)
-                x = RootSearch(root_ply, -infinit_score, infinit_score);
+                x = RootSearch(root_ply, -infinite_score, infinite_score);
         }
         else if(!stop && x >= prev_x + asp_margin)
         {
-            x = RootSearch(root_ply, prev_x + asp_margin, infinit_score);
+            x = RootSearch(root_ply, prev_x + asp_margin, infinite_score);
             if(!stop && x <= prev_x + asp_margin)
-                x = RootSearch(root_ply, -infinit_score, infinit_score);
+                x = RootSearch(root_ply, -infinite_score, infinite_score);
         }
 
-        if(stop && x == -infinit_score)
+        if(stop && x == -infinite_score)
             x = prev_x;
 
         double time1 = timer.getElapsedTimeInMicroSec();
@@ -429,8 +424,7 @@ void k2engine::MainSearch()
             break;
         if(stop)
             break;
-
-    }// for(root_ply
+    }
 
     if(pondering_in_process && spent_exact_time)
     {
@@ -532,7 +526,7 @@ k2chess::score_t k2engine::RootSearch(depth_t depth, score_t alpha,
         }
 
         if(stop && !fail_high)
-            x = -infinit_score;
+            x = -infinite_score;
 
         auto delta_nodes = nodes - prev_nodes;
 
@@ -555,7 +549,7 @@ k2chess::score_t k2engine::RootSearch(depth_t depth, score_t alpha,
             UnMove(cur_move);
             alpha = x;
             StorePV(cur_move);
-            if(depth > 3 && x != -infinit_score && !stop)
+            if(depth > 3 && x != -infinite_score && !stop)
                 PrintCurrentSearchResult(x, ' ');
             std::swap(root_moves.at(root_move_cr),
                       root_moves.at(0));
@@ -565,7 +559,7 @@ k2chess::score_t k2engine::RootSearch(depth_t depth, score_t alpha,
 
         if(stop)
             break;
-    }// for(; root_move_cr < max_root_moves
+    }
 
     std::sort(root_moves.rbegin(), root_moves.rend() - 1);
 
@@ -618,7 +612,7 @@ void k2engine::RootMoveGen(bool in_check)
     move_c move_array[move_array_size], cur_move;
     auto max_moves = init_max_moves;
 
-    score_t alpha = -infinit_score, beta = infinit_score;
+    score_t alpha = -infinite_score, beta = infinite_score;
     cur_move.flag = not_a_move;
 
     hash_entry_s *entry = nullptr;
@@ -1060,7 +1054,6 @@ void k2engine::FindAndPrintForAmbiguousMoves(move_c move)
         std::cout << (char)(get_row(init_from_coord) + '1');
     else
         std::cout << (char)(get_col(init_from_coord) + 'a');
-
 }
 
 
@@ -1121,7 +1114,7 @@ bool k2engine::MakeMoveFinaly(char *move_str)
 
         finaly_made_moves++;
         return true;
-    }// for i
+    }
     return false;
 }
 
@@ -1209,8 +1202,7 @@ void k2engine::CheckForInterrupt()
     if(infinite_analyze || pondering_in_process)
         return;
 
-    const node_t nodes_to_check_stop2 =
-        (16*(nodes_to_check_stop + 1) - 1);
+    const node_t nodes_to_check_stop2 = (16*(nodes_to_check_stop + 1) - 1);
     double margin = 20000; //0.02s
     if(spent_exact_time)
     {
@@ -1221,8 +1213,7 @@ void k2engine::CheckForInterrupt()
         if(time_spent >= time_to_think - margin && root_ply >= 2)
             stop = true;
     }
-    else if((nodes & nodes_to_check_stop2)
-            == nodes_to_check_stop2)
+    else if((nodes & nodes_to_check_stop2) == nodes_to_check_stop2)
     {
         double time1 = timer.getElapsedTimeInMicroSec();
         time_spent = time1 - time0;
@@ -1459,9 +1450,9 @@ bool k2engine::HashProbe(depth_t depth, score_t *alpha,
     if(entry->depth >= depth)
     {
         auto hval = entry->value;
-        if(hval > mate_score && hval != infinit_score)
+        if(hval > mate_score && hval != infinite_score)
             hval += entry->depth - ply;
-        else if(hval < -mate_score && hval != -infinit_score)
+        else if(hval < -mate_score && hval != -infinite_score)
             hval -= entry->depth - ply;
 
         if(hbnd == exact_value
@@ -1474,8 +1465,8 @@ bool k2engine::HashProbe(depth_t depth, score_t *alpha,
             pv[ply][0].flag = 0;
             *alpha = hval;
             return true;
-        }// if(bnd
-    }// if((*entry).depth >= depth
+        }
+    }
 
     if(entry->best_move.flag != not_a_move)
         hash_hit_cr++;
@@ -1659,8 +1650,8 @@ k2chess::move_c k2engine::Next(move_c *move_array, movcr_t cur_move,
                 entry = nullptr;
                 *max_moves = GenMoves(move_array, nullptr, apprice_all);
             }
-        }// else (entry == nullptr)
-    }// if cur == 0
+        }
+    }
     else if(cur_move == 1 && entry != nullptr)
     {
         *max_moves = GenMoves(move_array, &entry->best_move, apprice_all);
@@ -1717,9 +1708,9 @@ void k2engine::StoreResultInHash(depth_t depth, score_t init_alpha,
         return;
     if(beta_cutoff)
     {
-        if(beta > mate_score && beta != infinit_score)
+        if(beta > mate_score && beta != infinite_score)
             beta += ply - depth - 1;
-        else if(beta < -mate_score && beta != -infinit_score)
+        else if(beta < -mate_score && beta != -infinite_score)
             beta -= ply - depth - 1;
         hash_table.add(hash_key, -beta, best_move, depth,
                        lower_bound, finaly_made_moves/2, false, nodes);
@@ -1727,18 +1718,18 @@ void k2engine::StoreResultInHash(depth_t depth, score_t init_alpha,
     }
     else if(alpha > init_alpha && pv[ply][0].flag > 0)
     {
-        if(alpha > mate_score && alpha != infinit_score)
+        if(alpha > mate_score && alpha != infinite_score)
             alpha += ply - depth;
-        else if(alpha < - mate_score && alpha != -infinit_score)
+        else if(alpha < - mate_score && alpha != -infinite_score)
             alpha -= ply - depth;
         hash_table.add(hash_key, -alpha, pv[ply][1], depth,
                        exact_value, finaly_made_moves/2, false, nodes);
     }
     else if(alpha <= init_alpha)
     {
-        if(init_alpha > mate_score && init_alpha != infinit_score)
+        if(init_alpha > mate_score && init_alpha != infinite_score)
             init_alpha += ply - depth;
-        else if(init_alpha < -mate_score && init_alpha != -infinit_score)
+        else if(init_alpha < -mate_score && init_alpha != -infinite_score)
             init_alpha -= ply - depth;
         move_c no_move;
         no_move.flag = not_a_move;

@@ -92,7 +92,7 @@ void k2eval::FastEval(move_c m)
     auto flag = m.flag & is_promotion;
     if(flag)
     {
-        idx = get_index(black_pawn);
+        idx = pawn;
         ansO -= material_values_opn[idx] + pst[idx - 1][0][y0][x0];
         ansE -= material_values_end[idx] + pst[idx - 1][1][y0][x0];
 
@@ -111,7 +111,7 @@ void k2eval::FastEval(move_c m)
         auto capt = to_black(state[ply].capt);
         if(m.flag & is_en_passant)
         {
-            idx = get_index(black_pawn);
+            idx = pawn;
             ansO += material_values_opn[idx] + pst[idx - 1][0][7 - y0][x];
             ansE += material_values_end[idx] + pst[idx - 1][1][7 - y0][x];
         }
@@ -124,13 +124,13 @@ void k2eval::FastEval(move_c m)
     }
     else if(m.flag & is_castle_kingside)
     {
-        idx = get_index(black_rook);
+        idx = rook;
         ansO += pst[idx - 1][0][7][5] - pst[idx - 1][0][7][7];
         ansE += pst[idx - 1][1][7][5] - pst[idx - 1][1][7][7];
     }
     else if(m.flag & is_castle_queenside)
     {
-        idx = get_index(black_rook);
+        idx = rook;
         ansO += pst[idx - 1][0][7][3] - pst[idx - 1][0][7][0];
         ansE += pst[idx - 1][1][7][3] - pst[idx - 1][1][7][0];
     }
@@ -313,8 +313,7 @@ void k2eval::EvalPawns(side_to_move_t stm)
             ansO += 120*mx + 350;
             ansE += 120*mx + 350;
         }
-
-    }// for col
+    }
 
     val_opn += stm ? ansO : -ansO;
     val_end += stm ? ansE : -ansE;
@@ -334,7 +333,7 @@ k2chess::score_t k2eval::OneBishopMobility(coord_t b_coord)
         auto coord = b_coord;
         for(auto col = 0; col < 8; ++col)
         {
-            coord += shifts[get_index(black_bishop)][ray];
+            coord += shifts[bishop][ray];
             if(!within_board(coord) || to_black(b[coord]) == black_pawn)
                 break;
             empty_squares++;
@@ -436,7 +435,7 @@ inline void k2eval::ClampedRook(side_to_move_t stm)
     auto rook_on_7th_cr = 0;
     if((stm && get_row(*rit) >= 6) || (!stm && get_row(*rit) <= 1))
         rook_on_7th_cr++;
-    if(quantity[stm][get_index(black_pawn)] >= 4
+    if(quantity[stm][pawn] >= 4
             && pawn_max[get_col(*rit)][stm] == 0)
         ans += (pawn_max[get_col(*rit)][!stm] == 0 ? 54 : 22);
 
@@ -456,7 +455,7 @@ inline void k2eval::ClampedRook(side_to_move_t stm)
     {
         if((stm && get_row(*rit) >= 6) || (!stm && get_row(*rit) <= 1))
             rook_on_7th_cr++;
-        if(quantity[stm][get_index(black_pawn)] >= 4
+        if(quantity[stm][pawn] >= 4
                 && pawn_max[get_col(*rit)][stm] == 0)
             ans += (pawn_max[get_col(*rit)][!stm] == 0 ? 54 : 22);
 
@@ -524,20 +523,20 @@ void k2eval::MaterialImbalances()
     // KNNk, KBNk, KBBk, etc
     else if(X == 6 && (material[0] == 0 || material[1] == 0))
     {
-        if(quantity[white][get_index(black_knight)] == 2
-                || quantity[black][get_index(black_knight)] == 2)
+        if(quantity[white][knight] == 2
+                || quantity[black][knight] == 2)
         {
             val_opn = 0;
             val_end = 0;
             return;
         }
         // many code for mating with only bishop and knight
-        else if((quantity[white][get_index(black_knight)] == 1
-                 && quantity[white][get_index(black_bishop)] == 1)
-                || (quantity[black][get_index(black_knight)] == 1
-                    && quantity[black][get_index(black_bishop)] == 1))
+        else if((quantity[white][knight] == 1
+                 && quantity[white][bishop] == 1)
+                || (quantity[black][knight] == 1
+                    && quantity[black][bishop] == 1))
         {
-            auto stm = quantity[white][get_index(black_knight)] == 1
+            auto stm = quantity[white][knight] == 1
                        ? white : black;
             auto rit = coords[stm].begin();
             for(; rit != coords[stm].end(); ++rit)
@@ -615,26 +614,26 @@ void k2eval::MaterialImbalances()
     }
 
     // two bishops
-    if(quantity[white][get_index(black_bishop)] == 2)
+    if(quantity[white][bishop] == 2)
     {
         val_opn += 30;
         val_end += 30;
     }
-    if(quantity[black][get_index(black_bishop)] == 2)
+    if(quantity[black][bishop] == 2)
     {
         val_opn -= 30;
         val_end -= 30;
     }
 
     // pawn absence for both sides
-    if(quantity[white][get_index(black_pawn)] == 0
-            && quantity[black][get_index(black_pawn)] == 0
+    if(quantity[white][pawn] == 0
+            && quantity[black][pawn] == 0
             && material[white] != 0 && material[black] != 0)
         val_end /= 3;
 
     // multicolored bishops
-    if(quantity[white][get_index(black_bishop)] == 1
-            && quantity[black][get_index(black_bishop)] == 1)
+    if(quantity[white][bishop] == 1
+            && quantity[black][bishop] == 1)
     {
         auto w_it = coords[white].rbegin();
         while(w_it != coords[white].rend()
@@ -1126,7 +1125,7 @@ void k2eval::KingSafety(side_to_move_t king_color)
 {
     auto trp = king_tropism[king_color];
 
-    if(quantity[!king_color][get_index(black_queen)] == 0)
+    if(quantity[!king_color][queen] == 0)
     {
         trp += trp*trp/15;
         val_opn += king_color ? -trp : trp;
@@ -1315,11 +1314,17 @@ pst
             { 0,      0,     0,     0,     0,     0,     0,     0},
         }
     }
-}// pst
+}
 
 {
     pawn_max = &p_max[1];
     pawn_min = &p_min[1];
 
+    pawn = get_index(black_pawn);
+    knight = get_index(black_knight);
+    bishop = get_index(black_bishop);
+    rook = get_index(black_rook);
+    queen = get_index(black_queen);
+    king = get_index(black_king);
     InitEval();
 }

@@ -55,7 +55,7 @@ void k2main::start()
                 std::cin.clear();
         }
 
-        if(CmdProcess((std::string)in))
+        if(ExecuteCommand((std::string)in))
         {
             // NiCheGoNeDeLaYem!
         }
@@ -66,9 +66,9 @@ void k2main::start()
             else if(!force)
             {
 #ifndef DONT_USE_THREAD_FOR_INPUT
-                if(t.joinable())
-                    t.join();
-                t = std::thread(&k2engine::MainSearch, this);
+                if(thr.joinable())
+                    thr.join();
+                thr = std::thread(&k2engine::MainSearch, this);
 #else
                 MainSearch();
 #endif // USE_THREAD_FOR_INPUT
@@ -86,9 +86,9 @@ void k2main::start()
 
 
 //--------------------------------
-bool k2main::CmdProcess(std::string in)
+bool k2main::ExecuteCommand(std::string in)
 {
-    cmdStruct commands[] =
+    command_s commands[] =
     {
 //      Command         Method
         {"new",         &k2main::NewCommand},
@@ -137,17 +137,17 @@ bool k2main::CmdProcess(std::string in)
         {"setvalue",    &k2main::SetvalueCommand}
     };
 
-    std::string firstWord, remains;
+    std::string command_str, args;
 
-    GetFirstArg(in, &firstWord, &remains);
+    GetFirstArg(in, &command_str, &args);
 
-    for(size_t i = 0; i < sizeof(commands) / sizeof(cmdStruct); ++i)
+    for(size_t i = 0; i < sizeof(commands) / sizeof(command_s); ++i)
     {
-        if(firstWord == commands[i].command)
+        if(command_str == commands[i].command)
         {
-            auto c = commands[i];
-            method_ptr m = c.mptr;
-            ((*this).*m)(remains);
+            auto command = commands[i];
+            method_ptr method = command.mptr;
+            ((*this).*method)(args);
             return true;
         }
     }
@@ -159,23 +159,24 @@ bool k2main::CmdProcess(std::string in)
 
 
 //--------------------------------
-void k2main::GetFirstArg(std::string in, std::string (*firstWord),
-                         std::string (*remainingWords))
+void k2main::GetFirstArg(std::string in, std::string (*first_word),
+                         std::string (*all_the_rest))
 {
     if(in.empty())
         return;
     std::string delimiters = " ;,\t\r\n";
-    *firstWord = in;
-    int firstSymbol = firstWord->find_first_not_of(delimiters);
-    if(firstSymbol == -1)
-        firstSymbol = 0;
-    *firstWord = firstWord->substr(firstSymbol, (int)firstWord->size());
-    int secondSymbol = firstWord->find_first_of(delimiters);
-    if(secondSymbol == -1)
-        secondSymbol = (int)firstWord->size();
+    *first_word = in;
+    int first_symbol = first_word->find_first_not_of(delimiters);
+    if(first_symbol == -1)
+        first_symbol = 0;
+    *first_word = first_word->substr(first_symbol, (int)first_word->size());
+    int second_symbol = first_word->find_first_of(delimiters);
+    if(second_symbol == -1)
+        second_symbol = (int)first_word->size();
 
-    *remainingWords = firstWord->substr(secondSymbol, (int)firstWord->size());
-    *firstWord = firstWord->substr(0, secondSymbol);
+    *all_the_rest = first_word->substr(second_symbol,
+                                       (int)first_word->size());
+    *first_word = first_word->substr(0, second_symbol);
 }
 
 
@@ -209,7 +210,7 @@ void k2main::StopEngine()
 {
 #ifndef DONT_USE_THREAD_FOR_INPUT
     stop = true;
-    t.join();
+    thr.join();
 #endif // USE_THREAD_FOR_INPUT
 }
 
@@ -269,7 +270,7 @@ void k2main::QuitCommand(std::string in)
 {
     UNUSED(in);
 #ifndef DONT_USE_THREAD_FOR_INPUT
-    if(busy || t.joinable())
+    if(busy || thr.joinable())
         StopEngine();
 #endif // USE_THREAD_FOR_INPUT
 
@@ -318,10 +319,11 @@ void k2main::GoCommand(std::string in)
         UciGoCommand(in);
     else
         force = false;
+
 #ifndef DONT_USE_THREAD_FOR_INPUT
-    if(t.joinable())
-        t.join();
-    t = std::thread(&k2engine::MainSearch, this);
+    if(thr.joinable())
+        thr.join();
+    thr = std::thread(&k2engine::MainSearch, this);
 #else
     MainSearch();
 #endif // USE_THREAD_FOR_INPUT
@@ -468,7 +470,7 @@ void k2main::StopCommand(std::string in)
     if(busy)
     {
         stop = true;
-        t.join();
+        thr.join();
     }
 #endif // USE_THREAD_FOR_INPUT
 }
@@ -765,7 +767,7 @@ void k2main::UciGoCommand(std::string in)
         else
             break;
 
-    }//while(true
+    }
     if(no_movestogo_arg)
         moves_per_session = 0;
 }
@@ -829,9 +831,9 @@ void k2main::AnalyzeCommand(std::string in)
     infinite_analyze = true;
 
 #ifndef DONT_USE_THREAD_FOR_INPUT
-    if(t.joinable())
-        t.join();
-    t = std::thread(&k2engine::MainSearch, this);
+    if(thr.joinable())
+        thr.join();
+    thr = std::thread(&k2engine::MainSearch, this);
 #else
     MainSearch();
 #endif // USE_THREAD_FOR_INPUT

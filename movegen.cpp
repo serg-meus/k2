@@ -53,9 +53,9 @@ k2movegen::movcr_t k2movegen::GenMoves(move_c *move_array,
                 if(is_dark(b[to_coord], wtm))
                     PushMove(move_array, &moveCr, it, to_coord, is_capture);
                 break;
-            }// for(i
-        }// for(ray
-    }// for(it
+            }
+        }
+    }
     if(apprice == apprice_all)
         AppriceMoves(move_array, moveCr, best_move);
     else if(apprice == apprice_only_captures)
@@ -281,9 +281,9 @@ k2movegen::movcr_t k2movegen::GenCaptures(move_c *move_array)
                 if(is_dark(tt, wtm))
                     PushMove(move_array, &moveCr, it, to_coord, is_capture);
                 break;
-            }// for(i
-        }// for(ray
-    }// for(piece_iterator
+            }
+        }
+    }
     AppriceQuiesceMoves(move_array, moveCr);
     SortQuiesceMoves(move_array, moveCr);
     return moveCr;
@@ -345,8 +345,8 @@ void k2movegen::AppriceMoves(move_c *move_array, movcr_t moveCr,
                               - pst[get_index(fr_pc) - 1][0][y0][x0];
                 pstVal = 96 + pstVal/2;
                 move_array[i].priority = pstVal;
-            } // else (ordinary move)
-        }// if(to_pc == empty_square &&
+            }
+        }
         else
         {
             auto src = streng[get_index(fr_pc)];
@@ -388,8 +388,8 @@ void k2movegen::AppriceMoves(move_c *move_array, movcr_t moveCr,
                 else
                     move_array[i].priority = 0;
             }
-        }// else on captures
-    }// for( i
+        }
+    }
 
     for(auto i = 0; i < moveCr; i++)
     {
@@ -407,7 +407,7 @@ void k2movegen::AppriceMoves(move_c *move_array, movcr_t moveCr,
             move_array[i].priority = h;
             continue;
         }
-    }// for( i
+    }
 }
 
 
@@ -548,7 +548,7 @@ k2chess::iterator k2movegen::SeeMinAttacker(coord_t to_coord)
             return it;
         if(SliderAttack(to_coord, from_coord))
             return it;
-    }// for (menCr
+    }
 
     return it;
 }

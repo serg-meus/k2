@@ -35,7 +35,7 @@ protected:
     queen_val_end = 1200,
 
     king_value = 32000,
-    infinit_score = 32760;
+    infinite_score = 32760;
 
     score_t val_opn, val_end;
     rank_t p_max[10][2], p_min[10][2];
@@ -110,6 +110,8 @@ protected:
 
 private:
 
+
+    piece_t pawn, knight, bishop, rook, queen, king;
 
     void EvalPawns(side_to_move_t stm);
     void ClampedRook(side_to_move_t stm);

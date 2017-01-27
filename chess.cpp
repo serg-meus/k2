@@ -209,6 +209,7 @@ bool k2chess::FenToBoard(char *p)
     memset(quantity, 0, sizeof(quantity));
 
     for(auto row = 7; row >= 0; row--)
+    {
         for(auto col = 0; col <= 7; col++)
         {
             int to_coord = get_coord(col, row);
@@ -243,9 +244,8 @@ bool k2chess::FenToBoard(char *p)
                 pieces[i >= 6]++;
                 p++;
             }
-        }// for( col
-
-
+        }
+    }
     BoardToMen();
 
     state[0].ep = 0;
@@ -690,7 +690,7 @@ void k2chess::UnmakeCapture(move_c m)
             b[m.to_coord + 16] = white_pawn;
             *it_cap = m.to_coord + 16;
         }
-    }// if en_pass
+    }
     else
     {
         material[!wtm]
