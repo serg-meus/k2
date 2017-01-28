@@ -19,6 +19,14 @@ int main(int argc, char* argv[])
 
     k2main *engine = new k2main();
     engine->start();
+/*
+    engine->FenStringToEngine(
+        "8/1b1nkp1p/4pq2/1B6/PP1p1pQ1/2r2N2/5PPP/4R1K1 w - - 0 1 am Nxd4");
+    engine->LevelCommand("0 60 0");
+    engine->MainSearch();
+*/
+
+    delete engine;
 }
 
 

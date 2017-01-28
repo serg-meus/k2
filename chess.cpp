@@ -31,7 +31,9 @@ k2chess::k2chess() :
 void k2chess::InitChess()
 {
     cv = cur_moves;
+    memset(b_state, 0, sizeof(b_state));
     state = &b_state[prev_states];
+
     InitBrd();
 }
 
