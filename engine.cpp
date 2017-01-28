@@ -820,7 +820,7 @@ void k2engine::PrintFinalSearchResult()
               << ", hits = " << std::setprecision(1) << std::fixed
               << 100.*killer2_hits/killer2_probes
               << "% )" << std::endl;
-    std::cout << "( time spent =" << time_spent/1.e6
+    std::cout << "( time spent = " << time_spent/1.e6
               << "s )" << std::endl;
 }
 

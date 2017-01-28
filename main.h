@@ -17,6 +17,9 @@ public:
     k2main();
     void start();
 
+    void LevelCommand(std::string in);
+    void MemoryCommand(std::string in);
+
 
 protected:
 
@@ -48,7 +51,6 @@ protected:
     void QuitCommand(std::string in);
     void PerftCommand(std::string in);
     void GoCommand(std::string in);
-    void LevelCommand(std::string in);
     void ForceCommand(std::string in);
     void SetNodesCommand(std::string in);
     void SetTimeCommand(std::string in);
@@ -74,7 +76,6 @@ protected:
     void EasyCommand(std::string in);
     void HardCommand(std::string in);
     void PonderhitCommand(std::string in);
-    void MemoryCommand(std::string in);
     void AnalyzeCommand(std::string in);
     void ExitCommand(std::string in);
     void SetvalueCommand(std::string in);
