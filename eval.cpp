@@ -928,7 +928,8 @@ void k2eval::MoveKingTropism(coord_t from_coord, move_c move,
     auto cap = state[ply].capt;
     if(move.flag & is_capture)
     {
-        dist_to = king_dist[std::abs(k_coord - move.to_coord)];
+        dist_to = king_dist[std::abs(*king_coord[!king_color]
+                                     - move.to_coord)];
         if(dist_to < 4)
             king_tropism[!king_color] -= tropism_factor[dist_to < 3]
                                          [get_index(cap)];
