@@ -73,7 +73,7 @@ k2chess::score_t k2engine::Search(depth_t depth, score_t alpha, score_t beta,
 
     score_t x, initial_alpha = alpha;
     hash_entry_s *entry = nullptr;
-    if(depth > 0 && HashProbe(depth, &alpha, beta, entry))
+    if(depth > 0 && HashProbe(depth, &alpha, beta, &entry))
         return -alpha;
 
     if(depth <= 0)
@@ -616,7 +616,7 @@ void k2engine::RootMoveGen(bool in_check)
     cur_move.flag = not_a_move;
 
     hash_entry_s *entry = nullptr;
-    HashProbe(max_ply, &alpha, beta, entry);
+    HashProbe(max_ply, &alpha, beta, &entry);
 
     for(movcr_t move_cr = 0; move_cr < max_moves; move_cr++)
     {
@@ -1438,22 +1438,22 @@ void k2engine::ReHash(size_t size_mb)
 
 //--------------------------------
 bool k2engine::HashProbe(depth_t depth, score_t *alpha,
-        score_t beta, hash_entry_s *entry)
+        score_t beta, hash_entry_s **entry)
 {
-    entry = hash_table.count(hash_key);
-    if(entry == nullptr || stop)
+    *entry = hash_table.count(hash_key);
+    if(*entry == nullptr || stop)
         return false;
 
     hash_probe_cr++;
 
-    auto hbnd = entry->bound_type;
-    if(entry->depth >= depth)
+    auto hbnd = (*entry)->bound_type;
+    if((*entry)->depth >= depth)
     {
-        auto hval = entry->value;
+        auto hval = (*entry)->value;
         if(hval > mate_score && hval != infinite_score)
-            hval += entry->depth - ply;
+            hval += (*entry)->depth - ply;
         else if(hval < -mate_score && hval != -infinite_score)
-            hval -= entry->depth - ply;
+            hval -= (*entry)->depth - ply;
 
         if(hbnd == exact_value
                 //-alpha = beta for parent node
@@ -1465,10 +1465,10 @@ bool k2engine::HashProbe(depth_t depth, score_t *alpha,
             pv[ply][0].flag = 0;
             *alpha = hval;
             return true;
-        }
-    }
+        }// if(bnd
+    }// if((*entry).depth >= depth
 
-    if(entry->best_move.flag != not_a_move)
+    if((*entry)->best_move.flag != not_a_move)
         hash_hit_cr++;
 
     return false;
