@@ -91,7 +91,7 @@ k2chess::score_t k2engine::Search(depth_t depth, score_t alpha, score_t beta,
     for(; move_cr < max_moves; move_cr++)
     {
         cur_move = Next(move_array, move_cr, &max_moves,
-                        entry, wtm, all_moves);
+                        entry, wtm, all_moves, cur_move);
         if(max_moves <= 0)
             break;
 
@@ -225,7 +225,7 @@ k2chess::score_t k2engine::QSearch(score_t alpha, score_t beta)
     for(; move_cr < max_moves; move_cr++)
     {
         move_c cur_move = Next(move_array, move_cr, &max_moves,
-                               nullptr, wtm, captures_only);
+                               nullptr, wtm, captures_only, cur_move);
         if(max_moves <= 0)
             break;
 
@@ -621,7 +621,7 @@ void k2engine::RootMoveGen(bool in_check)
     for(movcr_t move_cr = 0; move_cr < max_moves; move_cr++)
     {
         cur_move = Next(move_array, move_cr, &max_moves,
-                        nullptr, wtm, all_moves);
+                        nullptr, wtm, all_moves, cur_move);
     }
 
     root_moves.clear();
@@ -1604,7 +1604,8 @@ bool k2engine::MoveIsPseudoLegal(move_c &move, bool stm)
 //--------------------------------
 k2chess::move_c k2engine::Next(move_c *move_array, movcr_t cur_move,
                                movcr_t *max_moves, hash_entry_s *entry,
-                               side_to_move_t stm, bool only_captures)
+                               side_to_move_t stm, bool only_captures,
+                               move_c prev_move)
 {
     move_c ans;
     if(cur_move == 0)
@@ -1654,7 +1655,7 @@ k2chess::move_c k2engine::Next(move_c *move_array, movcr_t cur_move,
     }
     else if(cur_move == 1 && entry != nullptr)
     {
-        *max_moves = GenMoves(move_array, &entry->best_move, apprice_all);
+        *max_moves = GenMoves(move_array, &prev_move, apprice_all);
         if(*max_moves <= 1)
         {
             *max_moves = 0;
