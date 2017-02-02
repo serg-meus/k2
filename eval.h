@@ -38,6 +38,7 @@ protected:
     infinite_score = 32760;
 
     score_t val_opn, val_end;
+    score_t initial_score;
     rank_t p_max[10][2], p_min[10][2];
     rank_t (*pawn_max)[2], (*pawn_min)[2];
     score_t material_values_opn[7];

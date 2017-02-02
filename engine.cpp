@@ -431,17 +431,16 @@ void k2engine::MainSearch()
         pondering_in_process = false;
         spent_exact_time = false;
     }
-    if(x < -score_to_resign)
+    if(x < initial_score - score_to_resign || x < -mate_score)
+        resign_cr++;
+    else if(max_root_moves == 1 && resign_cr > 0)
         resign_cr++;
     else
         resign_cr = 0;
 
-    if((!stop && !infinite_analyze && x < -mate_score)
-            || (!infinite_analyze && resign_cr > moves_to_resign))
-    {
+    if(!infinite_analyze
+            && (x < -mate_score || resign_cr > moves_to_resign))
         std::cout << "resign" << std::endl;
-        busy = false;
-    }
 
     total_nodes += nodes;
     total_time_spent += time_spent;
@@ -1161,6 +1160,9 @@ bool k2engine::FenStringToEngine(char *fen)
     time_remains = time_base;
     finaly_made_moves = 0;
     hash_key = InitHashKey();
+
+    initial_score = QSearch(-infinite_score, infinite_score);
+    pv[0][0].flag = 0;
 
     return true;
 }
