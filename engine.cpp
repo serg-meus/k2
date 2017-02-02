@@ -414,8 +414,8 @@ void k2engine::MainSearch()
                     && !max_nodes_to_search
                     && root_ply >= 2)
                 break;
-            if(std::abs(x) > mate_score && !stop && root_ply >= 2
-                    && time_spent > time_to_think/4)
+            if(std::abs(x) > mate_score && std::abs(prev_x) > mate_score
+                    && !stop && root_ply >= 2)
                 break;
             if(max_root_moves == 1 && root_ply >= 8)
                 break;
