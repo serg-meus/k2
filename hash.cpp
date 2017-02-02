@@ -125,7 +125,7 @@ void k2hash::MoveHashKey(move_c m, bool special)
 #ifndef NDEBUG
     auto tmp_key = InitHashKey();
     if(tmp_key != hash_key)
-        ply = ply;
+        std::cout << "( breakpoint ) << std::endl;
     assert(tmp_key == hash_key);
 #endif //NDEBUG
 }
