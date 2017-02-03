@@ -47,7 +47,7 @@ protected:
     tropism_t tropism_factor[2][7];
 
     const pst_t pst[6][2][8][8];
-//std::vector <float> param;
+//    std::vector<float> tuning_factors;
 
 
 public:

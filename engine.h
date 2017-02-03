@@ -40,8 +40,6 @@ protected:
     const depth_t moves_to_resign = 3;
     const coord_t is_null_move = 0xFF;
 
-//extern std::vector <float> param;
-
 
 public:
 

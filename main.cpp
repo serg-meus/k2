@@ -41,6 +41,8 @@ k2main::k2main()
     pondering_enabled = false;
 
     ClearHash();
+
+//    tuning_factors.assign(2, 1); // two params with value 1
 }
 
 
@@ -50,8 +52,6 @@ k2main::k2main()
 //--------------------------------
 void k2main::start()
 {
-//    for(auto i = 0; i < NPARAMS; ++i)
-//        param.push_back(1);
     char in[0x4000];
     while(!quit)
     {
@@ -867,23 +867,23 @@ void k2main::SetvalueCommand(std::string in)
 {
     std::string arg1, arg2;
     GetFirstArg(in, &arg1, &arg2);
-    /*
+/*
         if(arg1 == "k_saf")
         {
-            param.at(0) = atof(arg2.c_str());
+            tuning_factors.at(0) = atof(arg2.c_str());
         }
 
         else if(arg1 == "k_saf1")
         {
-            param.at(1) = atof(arg2.c_str());
+            tuning_factors.at(1) = atof(arg2.c_str());
         }
 
         else
         {
             std::cout << "error: wrong parameter name" << std ::endl
                          << "resign" << std::endl;
-            param.clear();
+            tuning_factors.clear();
         }
-    */
+*/
     InitEngine();
 }
