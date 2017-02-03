@@ -42,6 +42,7 @@ void k2eval::InitEval()
 {
     val_opn = 0;
     val_end = 0;
+    initial_score = 0;
 
     for(auto i = 0; i < 120; i++)
         if(i & 8)

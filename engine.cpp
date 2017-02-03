@@ -98,7 +98,7 @@ k2chess::score_t k2engine::Search(depth_t depth, score_t alpha, score_t beta,
         bool is_special_move = MkMoveFast(cur_move);
 #ifndef NDEBUG
         if((!stop_ply || root_ply == stop_ply) && strcmp(stop_str, cv) == 0)
-            ply = ply;
+            std::cout << "( breakpoint ) << std::endl;
 #endif // NDEBUG
 
         if(!Legal(cur_move, in_check))
@@ -247,7 +247,7 @@ k2chess::score_t k2engine::QSearch(score_t alpha, score_t beta)
         legal_moves++;
 #ifndef NDEBUG
         if((!stop_ply || root_ply == stop_ply) && strcmp(stop_str, cv) == 0)
-            ply = ply;
+            std::cout << "( breakpoint ) << std::endl;
 #endif // NDEBUG
         if(to_black(state[ply].capt) == black_king)
         {
@@ -306,7 +306,7 @@ void k2engine::Perft(depth_t depth)
         MkMoveFast(cur_move);
 #ifndef NDEBUG
         if(strcmp(stop_str, cv) == 0)
-            ply = ply;
+            std::cout << "( breakpoint ) << std::endl;
 #endif // NDEBUG
 //        bool legal = !Attack(king_coord[!wtm], wtm);
         bool legal = Legal(cur_move, in_check);
@@ -414,8 +414,8 @@ void k2engine::MainSearch()
                     && !max_nodes_to_search
                     && root_ply >= 2)
                 break;
-            if(std::abs(x) > mate_score && !stop && root_ply >= 2
-                    && time_spent > time_to_think/4)
+            if(std::abs(x) > mate_score && std::abs(prev_x) > mate_score
+                    && !stop && root_ply >= 2)
                 break;
             if(max_root_moves == 1 && root_ply >= 8)
                 break;
@@ -431,17 +431,16 @@ void k2engine::MainSearch()
         pondering_in_process = false;
         spent_exact_time = false;
     }
-    if(x < -score_to_resign)
+    if(x < initial_score - score_to_resign || x < -mate_score)
+        resign_cr++;
+    else if(max_root_moves == 1 && resign_cr > 0)
         resign_cr++;
     else
         resign_cr = 0;
 
-    if((!stop && !infinite_analyze && x < -mate_score)
-            || (!infinite_analyze && resign_cr > moves_to_resign))
-    {
+    if(!infinite_analyze
+            && (x < -mate_score || resign_cr > moves_to_resign))
         std::cout << "resign" << std::endl;
-        busy = false;
-    }
 
     total_nodes += nodes;
     total_time_spent += time_spent;
@@ -487,7 +486,7 @@ k2chess::score_t k2engine::RootSearch(depth_t depth, score_t alpha,
 
 #ifndef NDEBUG
         if(strcmp(stop_str, cv) == 0 && (!stop_ply || root_ply == stop_ply))
-            ply = ply;
+            std::cout << "( breakpoint ) << std::endl;
 #endif // NDEBUG
 
         FastEval(cur_move);
@@ -1162,6 +1161,9 @@ bool k2engine::FenStringToEngine(char *fen)
     finaly_made_moves = 0;
     hash_key = InitHashKey();
 
+    initial_score = QSearch(-infinite_score, infinite_score);
+    pv[0][0].flag = 0;
+
     return true;
 }
 
@@ -1234,7 +1236,7 @@ void k2engine::MakeNullMove()
 #ifndef NDEBUG
     strcpy(&cur_moves[5*ply], "NULL ");
     if((!stop_ply || root_ply == stop_ply) && strcmp(stop_str, cv) == 0)
-        ply = ply;
+        std::cout << "( breakpoint ) << std::endl;
 #endif // NDEBUG
 
     state[ply + 1] = state[ply];

@@ -36,7 +36,7 @@ protected:
     const depth_t moves_for_time_exact_mode = 8;
     const move_flag_t not_a_move = 0xFF;
     const static size_t move_array_size = 256;
-    const score_t score_to_resign = 850;
+    const score_t score_to_resign = 700;
     const depth_t moves_to_resign = 3;
     const coord_t is_null_move = 0xFF;
 
