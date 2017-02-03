@@ -381,6 +381,8 @@ void k2engine::MainSearch()
     root_ply = 1;
     x = QSearch(-infinite_score, infinite_score);
     pv[0][0].flag = 0;
+    if(initial_score == infinite_score)
+        initial_score = x;
 
     max_root_moves = 0;
     for(; root_ply <= max_ply; ++root_ply)
@@ -1161,8 +1163,7 @@ bool k2engine::FenStringToEngine(char *fen)
     finaly_made_moves = 0;
     hash_key = InitHashKey();
 
-    initial_score = QSearch(-infinite_score, infinite_score);
-    pv[0][0].flag = 0;
+    initial_score = infinite_score;
 
     return true;
 }
