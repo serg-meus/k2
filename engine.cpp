@@ -98,7 +98,7 @@ k2chess::score_t k2engine::Search(depth_t depth, score_t alpha, score_t beta,
         bool is_special_move = MkMoveFast(cur_move);
 #ifndef NDEBUG
         if((!stop_ply || root_ply == stop_ply) && strcmp(stop_str, cv) == 0)
-            std::cout << "( breakpoint ) << std::endl;
+            std::cout << "( breakpoint )" << std::endl;
 #endif // NDEBUG
 
         if(!Legal(cur_move, in_check))
@@ -247,7 +247,7 @@ k2chess::score_t k2engine::QSearch(score_t alpha, score_t beta)
         legal_moves++;
 #ifndef NDEBUG
         if((!stop_ply || root_ply == stop_ply) && strcmp(stop_str, cv) == 0)
-            std::cout << "( breakpoint ) << std::endl;
+            std::cout << "( breakpoint )" << std::endl;
 #endif // NDEBUG
         if(to_black(state[ply].capt) == black_king)
         {
@@ -306,7 +306,7 @@ void k2engine::Perft(depth_t depth)
         MkMoveFast(cur_move);
 #ifndef NDEBUG
         if(strcmp(stop_str, cv) == 0)
-            std::cout << "( breakpoint ) << std::endl;
+            std::cout << "( breakpoint )" << std::endl;
 #endif // NDEBUG
 //        bool legal = !Attack(king_coord[!wtm], wtm);
         bool legal = Legal(cur_move, in_check);
@@ -486,7 +486,7 @@ k2chess::score_t k2engine::RootSearch(depth_t depth, score_t alpha,
 
 #ifndef NDEBUG
         if(strcmp(stop_str, cv) == 0 && (!stop_ply || root_ply == stop_ply))
-            std::cout << "( breakpoint ) << std::endl;
+            std::cout << "( breakpoint )" << std::endl;
 #endif // NDEBUG
 
         FastEval(cur_move);
@@ -1236,7 +1236,7 @@ void k2engine::MakeNullMove()
 #ifndef NDEBUG
     strcpy(&cur_moves[5*ply], "NULL ");
     if((!stop_ply || root_ply == stop_ply) && strcmp(stop_str, cv) == 0)
-        std::cout << "( breakpoint ) << std::endl;
+        std::cout << "( breakpoint )" << std::endl;
 #endif // NDEBUG
 
     state[ply + 1] = state[ply];
