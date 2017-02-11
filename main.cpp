@@ -142,7 +142,8 @@ bool k2main::ExecuteCommand(std::string in)
         {"ucinewgame",  &k2main::NewCommand},
         {"stop",        &k2main::StopCommand},
         {"ponderhit",   &k2main::PonderhitCommand},
-        {"setvalue",    &k2main::SetvalueCommand}
+        {"setvalue",    &k2main::SetvalueCommand},
+        {"option",      &k2main::OptionCommand}
     };
 
     std::string command_str, args;
@@ -172,7 +173,7 @@ void k2main::GetFirstArg(std::string in, std::string (*first_word),
 {
     if(in.empty())
         return;
-    std::string delimiters = " ;,\t\r\n";
+    std::string delimiters = " ;,\t\r\n=";
     *first_word = in;
     int first_symbol = first_word->find_first_not_of(delimiters);
     if(first_symbol == -1)
@@ -444,26 +445,30 @@ void k2main::SetDepthCommand(std::string in)
 //--------------------------------
 void k2main::ProtoverCommand(std::string in)
 {
+    using namespace std;
+
     UNUSED(in);
     if(busy)
         return;
     xboard = true;
     uci = false;
 
-    std::cout << "feature "
-              "myname=\"K2 v." << engine_version << "\" "
-              "setboard=1 "
-              "analyze=1 "
-              "san=0 "
-              "colors=0 "
-              "pause=0 "
-              "usermove=0 "
-              "time=1 "
-              "draw=0 "
-              "sigterm=0 "
-              "sigint=0 "
-              "memory=1 "
-              "done=1 " << std::endl;
+    string feat = "feature ";
+
+    cout << feat << "myname=\"K2 v." << engine_version << "\"" << endl;
+    cout << feat << "setboard=1" << endl;
+    cout << feat << "analyze=1" << endl;
+    cout << feat << "san=0" << endl;
+    cout << feat << "colors=0" << endl;
+    cout << feat << "pause=0" << endl;
+    cout << feat << "usermove=0" << endl;
+    cout << feat << "time=1" << endl;
+    cout << feat << "draw=0" << endl;
+    cout << feat << "sigterm=0" << endl;
+    cout << feat << "sigint=0" << endl;
+    cout << feat << "memory=1" << endl;
+    cout << feat << "option=\"Randomness -check 1\"" << endl;
+    cout << feat << "done=1" << endl;
 }
 
 
@@ -586,6 +591,8 @@ void k2main::UciCommand(std::string in)
     std::cout << "id author Sergey Meus" << std::endl;
     std::cout << "option name Hash type spin default 64 min 0 max 2048"
               << std::endl;
+    std::cout << "option name Randomness type check default true"
+              << std::endl;
     std::cout << "uciok" << std::endl;
 }
 
@@ -610,6 +617,17 @@ void k2main::SetOptionCommand(std::string in)
         GetFirstArg(arg2, &arg1, &arg2);
         auto size_MB = atoi(arg1.c_str());
         ReHash(size_MB);
+    }
+    else if(arg1 == "Randomness")
+    {
+        GetFirstArg(arg2, &arg1, &arg2);
+        if(arg1 != "value")
+            return;
+        GetFirstArg(arg2, &arg1, &arg2);
+        if(arg1 == "true")
+            randomness = true;
+        else
+            randomness = false;
     }
 }
 
@@ -886,4 +904,23 @@ void k2main::SetvalueCommand(std::string in)
         }
 */
     InitEngine();
+}
+
+
+
+
+
+//--------------------------------
+void k2main::OptionCommand(std::string in)
+{
+    std::string arg1, arg2;
+    GetFirstArg(in, &arg1, &arg2);
+
+    if(arg1 == "Randomness")
+    {
+        if(arg2 == "1")
+            randomness = true;
+        else
+            randomness = false;
+    }
 }

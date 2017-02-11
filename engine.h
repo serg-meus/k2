@@ -75,7 +75,7 @@ protected:
     depth_t finaly_made_moves, moves_remains;
     bool spent_exact_time;
     depth_t resign_cr;
-
+    bool randomness;
 
     std::vector<std::pair<node_t, move_c> > root_moves;
     hash_table_c hash_table;

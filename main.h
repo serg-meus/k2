@@ -79,4 +79,5 @@ protected:
     void AnalyzeCommand(std::string in);
     void ExitCommand(std::string in);
     void SetvalueCommand(std::string in);
+    void OptionCommand(std::string in);
 };

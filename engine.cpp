@@ -25,6 +25,7 @@ k2engine::k2engine() :
     time_command_sent = false;
     infinite_analyze = false;
     spent_exact_time = false;
+    randomness = true;
 
     InitEngine();
 }
@@ -637,18 +638,21 @@ void k2engine::RootMoveGen(bool in_check)
         }
         UnMoveFast(cur_move);
     }
-#ifdef NDEBUG
+
     if(root_ply != 1)
         return;
-    std::srand(std::time(nullptr));
-    const movcr_t max_moves_to_shuffle = 4;
-    auto moves_to_shuffle = std::min(max_root_moves, max_moves_to_shuffle);
-    for(movcr_t i = 0; i < moves_to_shuffle; ++i)
+
+    if(randomness)
     {
-        movcr_t rand_ix = std::rand() % moves_to_shuffle;
-        std::swap(root_moves.at(i), root_moves.at(rand_ix));
+        std::srand(std::time(nullptr));
+        const movcr_t max_moves_to_shuffle = 4;
+        auto moves_to_shuffle = std::min(max_root_moves, max_moves_to_shuffle);
+        for(movcr_t i = 0; i < moves_to_shuffle; ++i)
+        {
+            movcr_t rand_ix = std::rand() % moves_to_shuffle;
+            std::swap(root_moves.at(i), root_moves.at(rand_ix));
+        }
     }
-#endif // NDEBUG
     pv[0][1] = (*root_moves.begin()).second;
 }
 
