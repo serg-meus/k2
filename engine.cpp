@@ -51,8 +51,8 @@ k2chess::score_t k2engine::Search(depth_t depth, score_t alpha, score_t beta,
         depth++;
 
     if(!in_check
-            && state[ply - 1].capt
-            && state[ply].capt
+            && state[ply - 1].captured_piece
+            && state[ply].captured_piece
             && state[ply].to_coord == state[ply - 1].to_coord
             && state[ply - 1].priority > bad_captures
             && state[ply].priority > bad_captures
@@ -102,7 +102,7 @@ k2chess::score_t k2engine::Search(depth_t depth, score_t alpha, score_t beta,
             std::cout << "( breakpoint )" << std::endl;
 #endif // NDEBUG
 
-        if(!Legal(cur_move, in_check))
+        if(!Legal(state[ply].from_coord, cur_move.to_coord, in_check))
         {
             UnMoveFast(cur_move);
             continue;
@@ -250,7 +250,7 @@ k2chess::score_t k2engine::QSearch(score_t alpha, score_t beta)
         if((!stop_ply || root_ply == stop_ply) && strcmp(stop_str, cv) == 0)
             std::cout << "( breakpoint )" << std::endl;
 #endif // NDEBUG
-        if(to_black(state[ply].capt) == black_king)
+        if(to_black(state[ply].captured_piece) == black_king)
         {
             UnMoveAndEval(cur_move);
             return king_value;
@@ -310,7 +310,7 @@ void k2engine::Perft(depth_t depth)
             std::cout << "( breakpoint )" << std::endl;
 #endif // NDEBUG
 //        bool legal = !Attack(king_coord[!wtm], wtm);
-        bool legal = Legal(cur_move, in_check);
+        bool legal = Legal(state[ply].from_coord, cur_move.to_coord, in_check);
         if(depth > 1 && legal)
             Perft(depth - 1);
         if(depth == 1 && legal)
@@ -631,7 +631,7 @@ void k2engine::RootMoveGen(bool in_check)
     {
         cur_move = move_array[move_cr];
         MkMoveFast(cur_move);
-        if(Legal(cur_move, in_check))
+        if(Legal(state[ply].from_coord, cur_move.to_coord, in_check))
         {
             root_moves.push_back(std::pair<node_t, move_c>(0, cur_move));
             max_root_moves++;
@@ -955,7 +955,7 @@ bool k2engine::ShowPV(depth_t cur_ply)
             std::cout << " ";
             MkMoveFast(cur_move);
             bool in_check = Attack(*king_coord[wtm], !wtm);
-            if(!Legal(cur_move, in_check))
+            if(!Legal(state[ply].from_coord, cur_move.to_coord, in_check))
                 ans = false;
         }
     }
@@ -1000,7 +1000,7 @@ bool k2engine::ShowPV(depth_t cur_ply)
             std::cout << ' ';
             MkMoveFast(cur_move);
             bool in_check = Attack(*king_coord[wtm], !wtm);
-            if(!Legal(cur_move, in_check))
+            if(!Legal(state[ply].from_coord, cur_move.to_coord, in_check))
                 ans = false;
         }
     }
@@ -1321,7 +1321,7 @@ bool k2engine::NullMove(depth_t depth, score_t beta, bool in_check)
 //-----------------------------
 bool k2engine::Futility(depth_t depth, score_t beta)
 {
-    if(state[ply].capt == 0
+    if(state[ply].captured_piece == 0
             && state[ply - 1].to_coord != is_null_move
       )
     {

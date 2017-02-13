@@ -75,8 +75,8 @@ void k2hash::MoveHashKey(move_c m, bool special)
                 ^ zorb[piece_hash_index(pt)]
                 [get_col(m.to_coord)][get_row(m.to_coord)];
 
-    if(f.capt)
-        hash_key ^= zorb[piece_hash_index(f.capt)]
+    if(f.captured_piece)
+        hash_key ^= zorb[piece_hash_index(f.captured_piece)]
                     [get_col(m.to_coord)][get_row(m.to_coord)];
     if(_f.ep)
         hash_key ^= zorb_en_passant[_f.ep];
@@ -116,7 +116,7 @@ void k2hash::MoveHashKey(move_c m, bool special)
     hash_key ^= key_for_side_to_move;
     if(special)
     {
-        if(to_black(pt) == black_pawn && !f.capt)
+        if(to_black(pt) == black_pawn && !f.captured_piece)
             hash_key ^= zorb_en_passant[f.ep];
         else
             hash_key ^= zorb_castling[_f.cstl] ^ zorb_castling[f.cstl];

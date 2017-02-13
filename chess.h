@@ -129,7 +129,7 @@ protected:
 // Structure for storing current state of engine
     struct state_s
     {
-        piece_t capt;  // captured piece
+        piece_t captured_piece;  // captured piece
         iterator_entity captured_it;  // iterator to captured piece
         coord_t from_coord;  // square coordinate from which move was made
         castle_t cstl;  // castling rights, bits 0..3: white king, white
@@ -192,7 +192,7 @@ protected:
     void InitChess();
     bool SliderAttack(coord_t from_coord, coord_t to_coord);
     bool Attack(coord_t to_coord, side_to_move_t xtm);
-    bool Legal(move_c m, bool ic);
+    bool Legal(coord_t from_coord, coord_t to_coord, bool in_check);
     bool MkMoveFast(move_c m);
     void UnMoveFast(move_c m);
 

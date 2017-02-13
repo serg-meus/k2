@@ -70,7 +70,7 @@ void k2chess::InitBrd()
         coords[black].push_back(get_coord(crd[i], 7));
     }
 
-    state[0].capt = 0;
+    state[0].captured_piece = 0;
     state[0].cstl = 0x0F;
     state[0].ep = 0;
     wtm = white;
@@ -525,18 +525,17 @@ bool k2chess::LegalSlider(coord_t from_coord, coord_t to_coord, piece_t pt)
 
 
 //--------------------------------
-bool k2chess::Legal(move_c m, bool ic)
+bool k2chess::Legal(coord_t from_coord, coord_t to_coord, bool in_check)
 {
-    if(ic || to_black(b[m.to_coord]) == black_king)
+    if(in_check || to_black(b[to_coord]) == black_king)
         return !Attack(*king_coord[!wtm], wtm);
-    auto from_coord = state[ply].from_coord;
-    auto to_coord = *king_coord[!wtm];
-    assert(120 + to_coord - from_coord >= 0);
-    assert(120 + to_coord - from_coord < 240);
-    if(attacks[120 + to_coord - from_coord] & (1 << get_index(black_rook)))
-        return LegalSlider(from_coord, to_coord, black_rook);
-    if(attacks[120 + to_coord - from_coord] & (1 << get_index(black_bishop)))
-        return LegalSlider(from_coord, to_coord, black_bishop);
+    auto k_coord = *king_coord[!wtm];
+    assert(120 + k_coord - from_coord >= 0);
+    assert(120 + k_coord - from_coord < 240);
+    if(attacks[120 + k_coord - from_coord] & (1 << get_index(black_rook)))
+        return LegalSlider(from_coord, k_coord, black_rook);
+    if(attacks[120 + k_coord - from_coord] & (1 << get_index(black_bishop)))
+        return LegalSlider(from_coord, k_coord, black_bishop);
 
     return true;
 }
@@ -560,7 +559,7 @@ void k2chess::StoreCurrentBoardState(move_c m, coord_t from_coord,
                                      coord_t targ)
 {
     state[ply].cstl = state[ply - 1].cstl;
-    state[ply].capt = b[m.to_coord];
+    state[ply].captured_piece = b[m.to_coord];
 
     state[ply].from_coord = from_coord;
     state[ply].to_coord = targ;
@@ -584,8 +583,8 @@ void k2chess::MakeCapture(move_c m, coord_t targ)
     else
     {
         material[!wtm] -=
-            pc_streng[get_index(state[ply].capt)];
-        quantity[!wtm][get_index(state[ply].capt)]--;
+            pc_streng[get_index(state[ply].captured_piece)];
+        quantity[!wtm][get_index(state[ply].captured_piece)]--;
     }
 
     auto it_cap = coords[!wtm].begin();
@@ -696,8 +695,8 @@ void k2chess::UnmakeCapture(move_c m)
     else
     {
         material[!wtm]
-        += pc_streng[get_index(state[ply].capt)];
-        quantity[!wtm][get_index(state[ply].capt)]++;
+        += pc_streng[get_index(state[ply].captured_piece)];
+        quantity[!wtm][get_index(state[ply].captured_piece)]++;
     }
 
     coords[!wtm].restore(it_cap);
@@ -739,7 +738,7 @@ void k2chess::UnMoveFast(move_c m)
     *it = from_coord;
     b[from_coord] = (m.flag & is_promotion) ? (white_pawn ^ wtm)
                     : b[m.to_coord];
-    b[m.to_coord] = state[ply].capt;
+    b[m.to_coord] = state[ply].captured_piece;
 
     reversible_moves = state[ply].reversibleCr;
 

@@ -109,7 +109,7 @@ void k2eval::FastEval(move_c m)
 
     if(m.flag & is_capture)
     {
-        auto capt = to_black(state[ply].capt);
+        auto captured_piece = to_black(state[ply].captured_piece);
         if(m.flag & is_en_passant)
         {
             idx = pawn;
@@ -118,7 +118,7 @@ void k2eval::FastEval(move_c m)
         }
         else
         {
-            idx = get_index(capt);
+            idx = get_index(captured_piece);
             ansO += material_values_opn[idx] + pst[idx - 1][0][7 - y][x];
             ansE += material_values_end[idx] + pst[idx - 1][1][7 - y][x];
         }
@@ -815,7 +815,7 @@ void k2eval::MovePawnStruct(piece_t moved_piece, coord_t from_coord,
         if(move.flag)
             SetPawnStruct(get_col(from_coord));
     }
-    if(to_black(state[ply].capt) == black_pawn
+    if(to_black(state[ply].captured_piece) == black_pawn
             || (move.flag & is_en_passant))  // is_en_passant not needed
     {
         wtm ^= white;
@@ -926,7 +926,7 @@ void k2eval::MoveKingTropism(coord_t from_coord, move_c move,
         king_tropism[king_color] += tropism_factor[dist_to < 3]
                                     [get_index(cur_piece)];
 
-    auto cap = state[ply].capt;
+    auto cap = state[ply].captured_piece;
     if(move.flag & is_capture)
     {
         dist_to = king_dist[std::abs(*king_coord[!king_color]
