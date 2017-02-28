@@ -110,7 +110,7 @@ protected:
                    node_type_t node_type);
     score_t QSearch(score_t alpha, score_t beta);
     void StorePV(move_c m);
-    void UpdateStatistics(move_c m, depth_t dpt, movcr_t move_cr);
+    void UpdateStatistics(move_c m, depth_t dpt, movcr_t legal_moves);
     score_t RootSearch(depth_t depth, score_t alpha, score_t beta);
     void RootMoveGen(bool in_check);
     void InitSearch();

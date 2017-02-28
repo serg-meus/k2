@@ -162,7 +162,7 @@ k2chess::score_t k2engine::Search(depth_t depth, score_t alpha, score_t beta,
                 else if(cur_move.priority == second_killer)
                     killer2_hits++;
             }
-            UpdateStatistics(cur_move, depth, legal_moves - 1);
+            UpdateStatistics(cur_move, depth, legal_moves);
             return beta;
         }
         else if(x > alpha)
@@ -337,10 +337,11 @@ void k2engine::StorePV(move_c move)
 
 
 //-----------------------------
-void k2engine::UpdateStatistics(move_c move, depth_t depth, movcr_t move_cr)
+void k2engine::UpdateStatistics(move_c move, depth_t depth, movcr_t legal_moves)
 {
-
     cut_cr++;
+    assert(legal_moves > 0);
+    movcr_t move_cr = legal_moves - 1;
     if(move_cr < sizeof(cut_num_cr)/sizeof(*cut_num_cr))
         cut_num_cr[move_cr]++;
     if(move.priority == first_killer)
@@ -570,7 +571,7 @@ k2chess::score_t k2engine::RootSearch(depth_t depth, score_t alpha,
     }
     if(beta_cutoff)
     {
-        UpdateStatistics(cur_move, depth, root_move_cr);
+        UpdateStatistics(cur_move, depth, root_move_cr + 1);
         return beta;
     }
     return alpha;
