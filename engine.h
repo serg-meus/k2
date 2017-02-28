@@ -132,9 +132,8 @@ protected:
     move_c Next(move_c *move_array, movcr_t cur, movcr_t *top,
                 hash_entry_s *entry, side_to_move_t stm,
                 bool captures_only, move_c prev_move);
-    void StoreResultInHash(depth_t depth, score_t _alpha, score_t alpha,
-                           score_t beta, movcr_t legals,
-                           bool beta_cutoff, move_c best_moveW);
+    void StoreInHash(depth_t depth, score_t score, move_c best_move,
+                           hbound_t bound);
     void ShowCurrentUciInfo();
     void MoveToStr(move_c m, bool stm, char *out);
     void ShowPVfailHighOrLow(move_c m, score_t x, char exclimation);

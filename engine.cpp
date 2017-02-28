@@ -87,7 +87,6 @@ k2chess::score_t k2engine::Search(depth_t depth, score_t alpha, score_t beta,
     move_c move_array[move_array_size], cur_move;
     movcr_t move_cr = 0, legal_moves = 0, first_legal = 0;
     movcr_t max_moves = init_max_moves;
-    bool beta_cutoff = false;
 
     for(; move_cr < max_moves; move_cr++)
     {
@@ -151,13 +150,26 @@ k2chess::score_t k2engine::Search(depth_t depth, score_t alpha, score_t beta,
 
         if(x >= beta)
         {
-            beta_cutoff = true;
-            break;
+            StoreInHash(depth, beta, cur_move, lower_bound);
+            if(entry != nullptr && entry->best_move.flag != not_a_move)
+                hash_best_move_cr++;
+            if(legal_moves == 1)
+            {
+                if(entry != nullptr && entry->best_move.flag != not_a_move)
+                    hash_cutoff_by_best_move_cr++;
+                else if(cur_move.priority == first_killer)
+                    killer1_hits++;
+                else if(cur_move.priority == second_killer)
+                    killer2_hits++;
+            }
+            UpdateStatistics(cur_move, depth, legal_moves - 1);
+            return beta;
         }
         else if(x > alpha)
         {
             alpha = x;
             StorePV(cur_move);
+            StoreInHash(depth, alpha, cur_move, exact_value);
         }
         if(stop)
             break;
@@ -168,26 +180,10 @@ k2chess::score_t k2engine::Search(depth_t depth, score_t alpha, score_t beta,
         pv[ply][0].flag = 0;
         return in_check ? -king_value + ply : 0;
     }
-    else if(legal_moves)
-        StoreResultInHash(depth, initial_alpha, alpha, beta, legal_moves,
-                          beta_cutoff,
-                          (beta_cutoff ? cur_move : move_array[first_legal]));
-    if(beta_cutoff)
-    {
-        if(entry != nullptr && entry->best_move.flag != not_a_move)
-            hash_best_move_cr++;
-        if(legal_moves == 1)
-        {
-            if(entry != nullptr && entry->best_move.flag != not_a_move)
-                hash_cutoff_by_best_move_cr++;
-            else if(cur_move.priority == first_killer)
-                killer1_hits++;
-            else if(cur_move.priority == second_killer)
-                killer2_hits++;
-        }
-        UpdateStatistics(cur_move, depth, legal_moves - 1);
-        return beta;
-    }
+    else if(legal_moves > 0 && alpha == initial_alpha)
+        StoreInHash(depth, initial_alpha,
+                          move_array[first_legal], upper_bound);
+
     return alpha;
 }
 
@@ -1708,33 +1704,14 @@ k2chess::move_c k2engine::Next(move_c *move_array, movcr_t cur_move,
 
 
 //-----------------------------
-void k2engine::StoreResultInHash(depth_t depth, score_t init_alpha,
-                                 score_t alpha, score_t beta, movcr_t legals,
-                                 bool beta_cutoff, move_c best_move)
+void k2engine::StoreInHash(depth_t depth, score_t score,
+                                 move_c best_move, hbound_t bound_type)
 {
     if(stop)
         return;
-    if(beta_cutoff)
-    {
-        CorrectHashScore(&beta, depth);
-        hash_table.add(hash_key, -beta, best_move, depth,
-                       lower_bound, finaly_made_moves/2, false, nodes);
-    }
-    else if(alpha > init_alpha && pv[ply][0].flag > 0)
-    {
-        CorrectHashScore(&alpha, depth);
-        hash_table.add(hash_key, -alpha, pv[ply][1], depth,
-                       exact_value, finaly_made_moves/2, false, nodes);
-    }
-    else if(alpha <= init_alpha)
-    {
-        CorrectHashScore(&init_alpha, depth);
-        move_c no_move;
-        no_move.flag = not_a_move;
-        hash_table.add(hash_key, -init_alpha,
-                       legals > 0 ? best_move : no_move, depth,
-                       upper_bound, finaly_made_moves/2, false, nodes);
-    }
+    CorrectHashScore(&score, depth);
+    hash_table.add(hash_key, -score, best_move, depth,
+                   bound_type, finaly_made_moves/2, false, nodes);
 }
 
 
