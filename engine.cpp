@@ -1716,29 +1716,19 @@ void k2engine::StoreResultInHash(depth_t depth, score_t init_alpha,
         return;
     if(beta_cutoff)
     {
-        if(beta > mate_score && beta != infinite_score)
-            beta += ply - depth - 1;
-        else if(beta < -mate_score && beta != -infinite_score)
-            beta -= ply - depth - 1;
+        CorrectHashScore(&beta, depth);
         hash_table.add(hash_key, -beta, best_move, depth,
                        lower_bound, finaly_made_moves/2, false, nodes);
-
     }
     else if(alpha > init_alpha && pv[ply][0].flag > 0)
     {
-        if(alpha > mate_score && alpha != infinite_score)
-            alpha += ply - depth;
-        else if(alpha < - mate_score && alpha != -infinite_score)
-            alpha -= ply - depth;
+        CorrectHashScore(&alpha, depth);
         hash_table.add(hash_key, -alpha, pv[ply][1], depth,
                        exact_value, finaly_made_moves/2, false, nodes);
     }
     else if(alpha <= init_alpha)
     {
-        if(init_alpha > mate_score && init_alpha != infinite_score)
-            init_alpha += ply - depth;
-        else if(init_alpha < -mate_score && init_alpha != -infinite_score)
-            init_alpha -= ply - depth;
+        CorrectHashScore(&init_alpha, depth);
         move_c no_move;
         no_move.flag = not_a_move;
         hash_table.add(hash_key, -init_alpha,

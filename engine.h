@@ -139,4 +139,12 @@ protected:
     void MoveToStr(move_c m, bool stm, char *out);
     void ShowPVfailHighOrLow(move_c m, score_t x, char exclimation);
 
+    void CorrectHashScore(score_t *x, depth_t depth)
+    {
+        if(*x > mate_score && *x != infinite_score)
+            *x += ply - depth - 1;
+        else if(*x < -mate_score && *x != -infinite_score)
+            *x -= ply - depth - 1;
+    }
+
 };
