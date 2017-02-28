@@ -164,12 +164,12 @@ k2chess::score_t k2engine::Search(depth_t depth, score_t alpha, score_t beta,
             break;
     }
 
-    if(legal_moves == 0 && initial_alpha <= mate_score)
+    if(!legal_moves)
     {
         pv[ply][0].flag = 0;
         return in_check ? -king_value + ply : 0;
     }
-    else if(legal_moves > 0 && alpha == initial_alpha)
+    else if(alpha == initial_alpha)
         StoreInHash(depth, initial_alpha,
                     move_array[first_legal], upper_bound);
 
