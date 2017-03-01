@@ -206,7 +206,6 @@ k2chess::score_t k2engine::QSearch(score_t alpha, score_t beta)
 
     move_c move_array[move_array_size];
     movcr_t move_cr = 0, legal_moves = 0, max_moves = init_max_moves;
-    bool beta_cutoff = false;
 
     for(; move_cr < max_moves; move_cr++)
     {
@@ -246,27 +245,21 @@ k2chess::score_t k2engine::QSearch(score_t alpha, score_t beta)
 
         UnMoveAndEval(cur_move);
 
+        if(stop)
+            break;
+
         if(x >= beta)
         {
-            beta_cutoff = true;
-            break;
+            q_cut_cr++;
+            if(legal_moves < 1 + (sizeof(q_cut_num_cr)/sizeof(*q_cut_num_cr)))
+                q_cut_num_cr[legal_moves - 1]++;
+            return beta;
         }
         else if(x > alpha)
         {
             alpha = x;
             StorePV(cur_move);
         }
-
-        if(stop)
-            break;
-    }
-
-    if(beta_cutoff)
-    {
-        q_cut_cr++;
-        if(legal_moves < 1 + (sizeof(q_cut_num_cr)/sizeof(*q_cut_num_cr)))
-            q_cut_num_cr[legal_moves - 1]++;
-        return beta;
     }
     return alpha;
 }
