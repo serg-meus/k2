@@ -48,6 +48,7 @@ protected:
     tropism_t tropism_factor[2][7];
 
     const pst_t pst[6][2][8][8];
+    piece_t pawn, knight, bishop, rook, queen, king;
 //    std::vector<float> tuning_factors;
 
 
@@ -111,8 +112,6 @@ protected:
 
 private:
 
-
-    piece_t pawn, knight, bishop, rook, queen, king;
 
     void EvalPawns(side_to_move_t stm);
     void ClampedRook(side_to_move_t stm);
