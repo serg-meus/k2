@@ -192,12 +192,12 @@ k2chess::score_t k2engine::QSearch(score_t alpha, score_t beta)
             && ReturnEval(wtm) > beta + 250)
         return beta;
 
-    auto x = Eval();
+    auto x = -Eval();
 
-    if(-x >= beta)
+    if(x >= beta)
         return beta;
-    else if(-x > alpha)
-        alpha = -x;
+    else if(x > alpha)
+        alpha = x;
 
     nodes++;
     q_nodes++;
