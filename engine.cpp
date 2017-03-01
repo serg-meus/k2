@@ -74,7 +74,7 @@ k2chess::score_t k2engine::Search(depth_t depth, score_t alpha, score_t beta,
 
     score_t x, initial_alpha = alpha;
     hash_entry_s *entry = nullptr;
-    if(depth > 0 && HashProbe(depth, &alpha, beta, &entry))
+    if(HashProbe(depth, &alpha, beta, &entry))
         return -alpha;
 
     if(depth <= 0)
