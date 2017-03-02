@@ -1201,13 +1201,13 @@ void k2engine::CheckForInterrupt()
         return;
 
     const node_t nodes_to_check_stop2 = (16*(nodes_to_check_stop + 1) - 1);
-    double margin = 20000; //0.02s
+    double margin = 10000; //0.01s
     if(spent_exact_time)
     {
         double time1 = timer.getElapsedTimeInMicroSec();
         time_spent = time1 - time0;
         if(moves_remains == 1)
-            margin *= 5;
+            margin *= 3;
         if(time_spent >= time_to_think - margin && root_ply >= 2)
             stop = true;
     }
