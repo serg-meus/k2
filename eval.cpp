@@ -289,7 +289,7 @@ void k2eval::EvalPawns(side_to_move_t stm)
 
         // passed pawn evaluation
         score_t pass[] =         {0, 0, 21, 40, 85, 150, 200};
-        score_t blocked_pass[] = {0, 0, 10, 20, 40,  50,  60};
+        score_t blocked_pass[] = {0, 0, 10, 30, 65,  80, 120};
         auto next_square = get_coord(col, stm ? mx + 1 : 7 - mx - 1);
         bool blocked = b[next_square] != empty_square;
         auto delta = blocked ? blocked_pass[mx] : pass[mx];
