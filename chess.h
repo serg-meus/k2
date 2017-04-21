@@ -39,7 +39,7 @@ protected:
     typedef u8 piece_index_t;
     typedef u8 castle_t;
     typedef u8 enpass_t;
-    typedef u8 attack_t;
+    typedef u32 attack_t;
     typedef u8 dist_t;
     typedef i8 shifts_t;
     typedef u8 piece_num_t;
@@ -150,12 +150,11 @@ protected:
     };
 
 
-    piece_t b[137];  // array representing the chess board in "0x88" style
+    piece_t b[8*8];  // array representing the chess board
     short_list<coord_t, lst_sz> coords[2];  // black/white piece coordinates
 
-    attack_t attacks[240];  // table for quick detection of attack candidates
-    dist_t get_delta[240];  // for quick detection of slider attack distance
-    shifts_t get_shift[240];  // quick detection of slider attack direction
+    attack_t attacks[2][8*8];  // two tables for each color with all attacks
+    attack_t xattacks[2][8*8];  // extended attacks for SEE algorithm
     dist_t rays[7];  // number of directions to move for each kind of piece
     shifts_t shifts[6][8];  // biases defining directions for 'rays'
     bool slider[7];  // for quick detection if piece is a slider
