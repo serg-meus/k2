@@ -1,4 +1,4 @@
-#include "engine.h"
+#include "chess.h"
 #include <thread>
 
 
@@ -7,7 +7,7 @@
 
 int main(int argc, char* argv[]);
 
-
+/*
 class k2main : public k2engine
 {
 
@@ -81,3 +81,4 @@ protected:
     void SetvalueCommand(std::string in);
     void OptionCommand(std::string in);
 };
+*/

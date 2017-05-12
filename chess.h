@@ -53,6 +53,10 @@ public:
 
     typedef u8 side_to_move_t;
     const static depth_t max_ply = 100;  // maximum search depth
+    const static coord_t board_width = 8;
+    const static coord_t board_height = 8;
+    const static u8 sides = 2;  // black and white
+    const static u8 piece_types = 6;  // pawns, knights, bishops, rooks, queens, kings
 
 
 protected:
@@ -145,27 +149,36 @@ protected:
         score_t val_end;  // store material and PST value
         // considered deep endgame (kings and pawns only)
         priority_t priority;  // move priority assigned by move genererator
-        tropism_t tropism[2];  // distance factors between pieces and enemy
+        tropism_t tropism[sides];  // distance factors between pieces and enemy
         // kings for black and white
     };
 
 
-    piece_t b[8*8];  // array representing the chess board
-    short_list<coord_t, lst_sz> coords[2];  // black/white piece coordinates
+    piece_t b[board_width*board_height];  // array representing the chess board
+    short_list<coord_t, lst_sz> coords[sides];  // black/white piece coordinates
 
-    attack_t attacks[2][8*8];  // two tables for each color with all attacks
-    attack_t xattacks[2][8*8];  // extended attacks for SEE algorithm
-    dist_t rays[7];  // number of directions to move for each kind of piece
-    shifts_t shifts[6][8];  // biases defining directions for 'rays'
-    bool slider[7];  // for quick detection if piece is a slider
+    // two tables for each color with all attacks
+    attack_t attacks[sides][board_width*board_height];
 
-    streng_t pc_streng[7];  // piece strength values for material counters
-    streng_t streng[7];  // piece strhengths for move priorities
-    streng_t sort_streng[7]; // piece strhengths for initial sort piece lists
+    // extended attacks for SEE algorithm
+    attack_t xattacks[sides][board_width*board_height];
 
-    streng_t material[2];  // material counters for black and white
-    streng_t pieces[2];  // piece counters, including kings
-    piece_num_t quantity[2][6 + 1];
+    // number of directions to move for each kind of piece
+    dist_t rays[piece_types + 1];
+
+    // biases defining directions for 'rays'
+    shifts_t delta_col[piece_types][board_width];
+    shifts_t delta_row[piece_types][board_height];
+
+    bool slider[piece_types + 1];  // for quick detection if piece is a slider
+
+    streng_t pc_streng[piece_types + 1];  // piece strength values for material counters
+    streng_t streng[piece_types + 1];  // piece strhengths for move priorities
+    streng_t sort_streng[piece_types + 1]; // piece strhengths for initial sort piece lists
+
+    streng_t material[sides];  // material counters
+    streng_t pieces[sides];  // piece counters, including kings
+    piece_num_t quantity[sides][piece_types + 1];
 
     state_s b_state[prev_states + max_ply]; // engine state for each ply depth
     state_s *state;  // pointer to engine state, state[0] = b_state[prev_states];
@@ -175,7 +188,7 @@ protected:
     char cur_moves[5*max_ply];  // current variation (for debug mode only)
     char *cv;  // current variation pointer (for debug mode only)
 
-    iterator king_coord[2];  // king coord iterators for black and white
+    iterator king_coord[sides];  // king coord iterators for black and white
 
 
 public:
@@ -195,29 +208,25 @@ protected:
     bool MkMoveFast(move_c m);
     void UnMoveFast(move_c m);
 
-    bool within_board(coord_t coord)
-    {
-        return !(coord & 0x88);
-    }
-
     coord_t get_coord(coord_t col, coord_t row)
     {
-        return (row << 4) + col;
+        return (board_width*row) + col;
     }
 
     coord_t get_col(coord_t coord)
     {
-        return coord & 7;
+        assert(board_height & (board_height - 1) == 0);
+        return coord & (board_height - 1);
     }
 
     coord_t get_row(coord_t coord)
     {
-        return coord >> 4;
+        return coord/board_width;
     }
 
     coord_t get_index(piece_t piece)
     {
-        return piece/2;
+        return piece/sides;
     }
 
     piece_t to_black(piece_t piece)
@@ -225,6 +234,20 @@ protected:
         return piece & ~white;
     }
 
+    bool col_within(shifts_t col)
+    {
+        return col >= 0 && col < board_width;
+    }
+
+    bool row_within(shifts_t row)
+    {
+        return row >= 0 && row < board_height;
+    }
+
+    bool get_piece_color(piece_t piece)
+    {
+        return piece & 1;
+    }
 
 private:
 
@@ -243,5 +266,7 @@ private:
     bool MakeCastle(move_c m, coord_t from_coord);
     void UnMakeCastle(move_c m);
     bool MakeEP(move_c m, coord_t from_coord);
-
+    void InitAttacksOnePiece(const shifts_t col, const shifts_t row);
+    void UpdateAttacks();
+    void UpdateAttacksOnePiece();
 };

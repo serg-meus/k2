@@ -7,15 +7,24 @@
 //--------------------------------
 k2chess::k2chess() :
     rays{0, 8, 8, 4, 4, 8, 0},
-    shifts
-       {
-           { 0,  0,  0,  0,  0,  0,  0,  0},
-           { 1, 17, 16, 15, -1,-17,-16,-15},
-           { 1, 17, 16, 15, -1,-17,-16,-15},
-           { 1, 16, -1,-16, 0,  0,  0,  0},
-           {17, 15,-17,-15, 0,  0,  0,  0},
-           {18, 33, 31, 14,-18,-33,-31,-14},
-       },
+    delta_col
+        {
+            { 0,  0,  0,  0,  0,  0,  0,  0},
+            { 1,  0, -1,  1, -1, -1,  0,  1},  // king
+            { 1,  0, -1,  1, -1, -1,  0,  1},  // queen
+            { 1,  0, -1,  0,  0,  0,  0,  0},  // rook
+            { 1, -1,  1, -1,  0,  0,  0,  0},  // bishop
+            { 1,  2,  2,  1, -1, -2, -2, -1},  // knight
+        },
+    delta_row
+        {
+            { 0,  0,  0,  0,  0,  0,  0,  0},
+            { 1,  1,  1,  0,  0, -1, -1, -1},  // king
+            { 1,  0, -1,  1, -1, -1,  0,  1},  // queen
+            { 0,  1,  0, -1,  0,  0,  0,  0},  // rook
+            { 1,  1, -1, -1,  0,  0,  0,  0},  // bishop
+            { 2,  1, -1, -2, -2, -1,  1,  2},  // knight
+        },
        slider{false, false, true, true, true, false, false},
        pc_streng{0, 0, 12, 6, 4, 4, 1},
        streng{0, 15000, 120, 60, 40, 40, 10},
@@ -105,27 +114,73 @@ void k2chess::InitBrd()
 //--------------------------------
 void k2chess::InitAttacks()
 {
+    auto piece_types = {white_king, white_queen, white_rook,
+                        white_bishop, white_knight, white_pawn,
+                        black_king, black_queen, black_rook,
+                        black_bishop, black_knight, black_pawn};
     memset(attacks, 0, sizeof(attacks));
-    for(auto i = 1; i < 6; i++)
+    for(auto cur_piece : piece_types)
+        for(shifts_t col = 0; col < board_width; col++)
+            for(shifts_t row = 0; row < board_height; row++)
+            {
+                if(b[get_coord(col, row)] == empty_square)
+                    continue;
+                else
+                    InitAttacksOnePiece(col, row);
+            }
+
+}
+
+
+
+
+
+//--------------------------------
+void k2chess::InitAttacksOnePiece(const shifts_t col, const shifts_t row)
+{
+    const auto coord = get_coord(col, row);
+    const auto type = get_index(b[coord]);
+    if(type == get_index(black_pawn))
     {
-        if(!slider[i])
-            for(auto j = 0; j < rays[i]; j++)
-                attacks[120 + shifts[i][j]] |= (1 << i);
-        else
+        return;
+    }
+    const auto max_len = slider[type] ? std::max(board_height, board_width) : 1;
+    const auto color = get_piece_color(b[coord]);
+    for(auto i = 0; i < max_len; ++i)
+    {
+        auto col_ = col;
+        auto row_ = row;
+        for(auto ray = 0; ray < rays[type]; ray++)
         {
-            for(auto j = 0; j < rays[i]; j++)
-                for(auto k = 1; k < 8; k++)
-                {
-                    auto to_coord = 120 + k*shifts[i][j];
-                    if(to_coord >= 0 && to_coord < 240)
-                    {
-                        attacks[to_coord] |= (1 << i);
-                        get_shift[to_coord] = shifts[i][j];
-                        get_delta[to_coord] = k;
-                    }
-                }
+            col_ += delta_col[type][ray];
+            row_ += delta_row[type][ray];
+            if(!col_within(col_) || !row_within(row_))
+                break;
+            attacks[color][get_coord(col_, row_)] |= (1 << type);
+            if(b[coord] != empty_square)
+                break;
         }
     }
+}
+
+
+
+
+
+//--------------------------------
+void k2chess::UpdateAttacks()
+{
+
+}
+
+
+
+
+
+//--------------------------------
+void k2chess::UpdateAttacksOnePiece()
+{
+
 }
 
 
@@ -139,7 +194,7 @@ bool k2chess::BoardToMen()
     coords[white].clear();
     for(size_t i = 0; i < sizeof(b)/sizeof(*b); i++)
     {
-        if(!within_board(i) || b[i] == empty_square)
+        if(b[i] == empty_square)
             continue;
         coords[b[i] & white].push_back(i);
         quantity[b[i] & white][get_index(to_black(b[i]))]++;
@@ -439,105 +494,6 @@ bool k2chess::MakeEP(move_c m, coord_t from_coord)
     if(m.flag & is_en_passant)
         b[to_coord + (wtm ? -16 : 16)] = empty_square;
     return false;
-}
-
-
-
-
-
-//--------------------------------
-bool k2chess::SliderAttack(coord_t from_coord, coord_t to_coord)
-{
-    auto shift = get_shift[120 + to_coord - from_coord];
-    auto delta = get_delta[120 + to_coord - from_coord];
-    for(auto i = 0; i < delta - 1; i++)
-    {
-        from_coord += shift;
-        if(b[from_coord])
-            return false;
-    }
-    return true;
-}
-
-
-
-
-
-//--------------------------------
-bool k2chess::Attack(coord_t to_coord, side_to_move_t xtm)
-{
-    if((!xtm && (b[to_coord + 15] == black_pawn
-                 || b[to_coord + 17] == black_pawn))
-            || (xtm && ((to_coord >= 15 && b[to_coord - 15] == white_pawn)
-                        || (to_coord >= 17 && b[to_coord - 17]
-                            == white_pawn))))
-        return true;
-
-    auto it = king_coord[xtm];
-    do
-    {
-        auto from_coord = *it;
-        auto pt = get_index(b[from_coord]);
-        if(pt == get_index(black_pawn))
-            break;
-
-        auto att = attacks[120 + to_coord - from_coord] & (1 << pt);
-        if(!att)
-            continue;
-        if(!slider[pt])
-            return true;
-        if(SliderAttack(to_coord, from_coord))
-            return true;
-    }
-    while(it-- != coords[xtm].begin());
-
-    return false;
-}
-
-
-
-
-
-//--------------------------------
-bool k2chess::LegalSlider(coord_t from_coord, coord_t to_coord, piece_t pt)
-{
-    assert(120 + to_coord - from_coord >= 0);
-    assert(120 + to_coord - from_coord < 240);
-    auto shift = get_shift[120 + to_coord - from_coord];
-    for(auto i = 0; i < 7; i++)
-    {
-        to_coord -= shift;
-        if(!within_board(to_coord))
-            return true;
-        if(b[to_coord])
-            break;
-    }
-    if(b[to_coord] == (black_queen ^ wtm)
-            || (pt == black_bishop && b[to_coord] == (black_bishop ^ wtm))
-            || (pt == black_rook && b[to_coord] == (black_rook ^ wtm)))
-        return false;
-
-    return true;
-}
-
-
-
-
-
-//--------------------------------
-bool k2chess::Legal(coord_t from_coord, coord_t to_coord, bool in_check)
-{
-    if(in_check || to_black(b[to_coord]) == black_king)
-        return !Attack(*king_coord[!wtm], wtm);
-    auto k_coord = *king_coord[!wtm];
-    assert(120 + k_coord - from_coord >= 0);
-    assert(120 + k_coord - from_coord < 240);
-    if(attacks[120 + k_coord - from_coord] & (1 << get_index(black_rook)))
-        return LegalSlider(from_coord, k_coord, black_rook);
-    if(attacks[120 + k_coord - from_coord] & (1 << get_index(black_bishop)))
-        return LegalSlider(from_coord, k_coord, black_bishop);
-
-    return true;
 }
 
 

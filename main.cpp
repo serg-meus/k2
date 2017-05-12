@@ -10,7 +10,7 @@
 
 
 
-
+#define UNUSED(x) (void)(x)
 //--------------------------------
 int main(int argc, char* argv[])
 {
