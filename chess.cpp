@@ -188,6 +188,33 @@ void k2chess::UpdateAttacksOnePiece()
 
 
 //--------------------------------
+size_t k2chess::test_count_attacked_squares(side_to_move_t stm)
+{
+    size_t ans = 0;
+    for(auto it : attacks[stm])
+        if(it != 0)
+            ans++;
+    return ans;
+}
+
+
+
+
+
+//--------------------------------
+size_t k2chess::test_count_all_attacks(side_to_move_t stm)
+{
+    size_t ans = 0;
+    for(auto it : attacks[stm])
+        ans += std::bitset<32>(it).count();
+    return ans;
+}
+
+
+
+
+
+//--------------------------------
 bool k2chess::BoardToMen()
 {
     coords[black].clear();

@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <cstdlib>
 #include <assert.h>
+#include <bitset>
 #include "short_list.h"
 
 
@@ -57,14 +58,13 @@ public:
     const static coord_t board_height = 8;
     const static u8 sides = 2;  // black and white
     const static u8 piece_types = 6;  // pawns, knights, bishops, rooks, queens, kings
-
+    const static piece_t white = 1;
+    const static piece_t black = 0;
 
 protected:
 
 
     const static depth_t prev_states = 4;
-    const static piece_t white = 1;
-    const static piece_t black = 0;
 
     const static piece_t
     empty_square = 0,
@@ -196,6 +196,8 @@ public:
 
     side_to_move_t wtm;  // 0 = black to move, 1 = white to move
     bool FenToBoard(char *p);
+    size_t test_count_attacked_squares(side_to_move_t stm);
+    size_t test_count_all_attacks(side_to_move_t stm);
 
 
 protected:
