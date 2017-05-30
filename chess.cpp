@@ -20,7 +20,7 @@ k2chess::k2chess() :
         {
             { 0,  0,  0,  0,  0,  0,  0,  0},
             { 1,  1,  1,  0,  0, -1, -1, -1},  // king
-            { 1,  0, -1,  1, -1, -1,  0,  1},  // queen
+            { 1,  1,  1,  0,  0, -1, -1, -1},  // queen
             { 0,  1,  0, -1,  0,  0,  0,  0},  // rook
             { 1,  1, -1, -1,  0,  0,  0,  0},  // bishop
             { 2,  1, -1, -2, -2, -1,  1,  2},  // knight
@@ -65,8 +65,6 @@ void k2chess::InitBrd()
     coords[white].clear();
     coords[black].clear();
 
-    InitAttacks();
-
     for(auto i = 0; i < 8; i++)
     {
         b[get_coord(i, 1)] = white_pawn;
@@ -78,6 +76,8 @@ void k2chess::InitBrd()
         b[get_coord(crd[i], 7)]= pcs[i] ^ white;
         coords[black].push_back(get_coord(crd[i], 7));
     }
+
+    InitAttacks();
 
     state[0].captured_piece = 0;
     state[0].cstl = 0x0F;
@@ -114,21 +114,10 @@ void k2chess::InitBrd()
 //--------------------------------
 void k2chess::InitAttacks()
 {
-    auto piece_types = {white_king, white_queen, white_rook,
-                        white_bishop, white_knight, white_pawn,
-                        black_king, black_queen, black_rook,
-                        black_bishop, black_knight, black_pawn};
     memset(attacks, 0, sizeof(attacks));
-    for(auto cur_piece : piece_types)
-        for(shifts_t col = 0; col < board_width; col++)
-            for(shifts_t row = 0; row < board_height; row++)
-            {
-                if(b[get_coord(col, row)] == empty_square)
-                    continue;
-                else
-                    InitAttacksOnePiece(col, row);
-            }
-
+    for(auto stm = black; stm <= white; ++stm)
+        for(auto it = coords[stm].rbegin(); it != coords[stm].rend(); ++it)
+            InitAttacksOnePiece(get_col(*it), get_row(*it));
 }
 
 
@@ -144,13 +133,14 @@ void k2chess::InitAttacksOnePiece(const shifts_t col, const shifts_t row)
     {
         return;
     }
-    const auto max_len = slider[type] ? std::max(board_height, board_width) : 1;
+    const auto max_len = slider[type] ?
+               std::max((size_t) board_height, (size_t) board_width) : 1;
     const auto color = get_piece_color(b[coord]);
-    for(auto i = 0; i < max_len; ++i)
+    for(auto ray = 0; ray < rays[type]; ray++)
     {
         auto col_ = col;
         auto row_ = row;
-        for(auto ray = 0; ray < rays[type]; ray++)
+        for(size_t i = 0; i < max_len; ++i)
         {
             col_ += delta_col[type][ray];
             row_ += delta_row[type][ray];
@@ -301,10 +291,7 @@ bool k2chess::FenToBoard(char *p)
             if(ip >= 1 && ip <= 8)
             {
                 for(auto j = 0; j < ip; ++j)
-                {
-                    assert(within_board(to_coord + j));
                     b[to_coord + j] = 0;
-                }
                 col += *p++ - '1';
             }
             else if(*p == '/')

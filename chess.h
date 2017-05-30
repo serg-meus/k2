@@ -217,7 +217,7 @@ protected:
 
     coord_t get_col(coord_t coord)
     {
-        assert(board_height & (board_height - 1) == 0);
+        assert((board_height & (board_height - 1)) == 0);
         return coord & (board_height - 1);
     }
 
@@ -246,7 +246,7 @@ protected:
         return row >= 0 && row < board_height;
     }
 
-    bool get_piece_color(piece_t piece)
+    piece_t get_piece_color(piece_t piece)
     {
         return piece & 1;
     }

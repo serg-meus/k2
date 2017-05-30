@@ -22,9 +22,10 @@ int main(int argc, char* argv[])
     auto att_squares_b = chess->test_count_attacked_squares(k2chess::black);
     auto all_attacks_w = chess->test_count_all_attacks(k2chess::white);
     auto all_attacks_b = chess->test_count_all_attacks(k2chess::white);
-
-    std::cout << att_squares_w << ' ' << att_squares_b << ' ' <<
-                 all_attacks_w << ' ' << all_attacks_b << std::endl;
+    assert(att_squares_w == 18);
+    assert(att_squares_b == 18);
+    assert(all_attacks_w == 24);
+    assert(all_attacks_b == 24);
 
     delete chess;
 }
