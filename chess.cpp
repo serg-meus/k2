@@ -147,7 +147,7 @@ void k2chess::InitAttacksOnePiece(const shifts_t col, const shifts_t row)
             if(!col_within(col_) || !row_within(row_))
                 break;
             attacks[color][get_coord(col_, row_)] |= (1 << type);
-            if(b[coord] != empty_square)
+            if(b[get_coord(col_, row_)] != empty_square)
                 break;
         }
     }
@@ -392,6 +392,7 @@ bool k2chess::FenToBoard(char *p)
     king_coord[white] = --coords[white].end();
     king_coord[black] = --coords[black].end();
 
+    InitAttacks();
     return true;
 }
 
