@@ -274,7 +274,6 @@ bool k2chess::FenToBoard(char *p)
         black_knight, black_pawn, white_king, white_queen, white_rook,
         white_bishop, white_knight, white_pawn
     };
-    streng_t mtr[] = {0, 12, 6, 4, 4, 1, 0, 12, 6, 4, 4, 1};
     material[black] = 0;
     material[white] = 0;
     pieces[black] = 0;
@@ -311,7 +310,7 @@ bool k2chess::FenToBoard(char *p)
                 if(to_black(pcs[i]) == black_pawn && (row == 0 || row == 7))
                     return false;
                 b[get_coord(col, row)] = pcs[i];
-                material[i >= 6] += mtr[i];
+                material[i >= 6] += pc_streng[get_index(pcs[i])];
                 pieces[i >= 6]++;
                 p++;
             }
