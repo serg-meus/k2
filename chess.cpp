@@ -205,7 +205,7 @@ size_t k2chess::test_count_all_attacks(side_to_move_t stm)
 
 
 //--------------------------------
-bool k2chess::BoardToMen()
+bool k2chess::InitPieceLists()
 {
     coords[black].clear();
     coords[white].clear();
@@ -265,21 +265,15 @@ bool k2chess::BoardToMen()
 
 
 //--------------------------------
-bool k2chess::FenToBoard(char *ptr)
+char* k2chess::ParseMainPartOfFen(char *ptr)
 {
     char chars[] = "kqrbnpKQRBNP";
     piece_t pcs[] =
     {
         black_king, black_queen, black_rook, black_bishop,
-        black_knight, black_pawn, white_king, white_queen, white_rook,
-        white_bishop, white_knight, white_pawn
+        black_knight, black_pawn, white_king, white_queen,
+        white_rook, white_bishop, white_knight, white_pawn
     };
-    material[black] = 0;
-    material[white] = 0;
-    pieces[black] = 0;
-    pieces[white] = 0;
-    reversible_moves = 0;
-    memset(quantity, 0, sizeof(quantity));
 
     for(auto row = board_height - 1; row >= 0; row--)
     {
@@ -302,10 +296,10 @@ bool k2chess::FenToBoard(char *ptr)
                     if(*ptr == chars[index])
                         break;
                 if(index >= max_index)
-                    return false;
+                    return nullptr;
                 if(to_black(pcs[index]) == black_pawn
                         && (row == 0 || row == 7))
-                    return false;
+                    return nullptr;
                 auto piece = pcs[index];
                 b[get_coord(col, row)] = piece;
                 auto color = get_piece_color(piece);
@@ -315,66 +309,71 @@ bool k2chess::FenToBoard(char *ptr)
             ptr++;
         }
     }
-    BoardToMen();
+    return ptr;
+}
 
-    state[0].ep = 0;
+
+
+
+
+//--------------------------------
+char* k2chess::ParseSideToMoveInFen(char *ptr)
+{
     ptr++;
     if(*ptr == 'b')
         wtm = black;
     else if(*ptr == 'w')
         wtm = white;
     else
-        return false;
+        return nullptr;
 
-    castle_t cstl = 0;
+    return ptr;
+}
+
+
+
+
+
+//--------------------------------
+char *k2chess::ParseCastlingRightsInFen(char *ptr)
+{
+    castle_t castling_rights = 0;
     ptr += 2;
+    char cstl_chr[] = "KQkq-";
+    castle_t cstl_code[] = {castle_kingside_w, castle_queenside_w,
+                            castle_kingside_b, castle_queenside_b, 0};
+    coord_t k_col = 4;
+    coord_t k_row[] = {0, 0, 7, 7};
+    coord_t r_col[] = {7, 0, 7, 0};
+    coord_t r_row[] = {0, 0, 7, 7};
+    piece_t k_piece[] = {white_king, white_king, black_king, black_king};
+    piece_t r_piece[] = {white_rook, white_rook, black_rook, black_rook};
+    const size_t max_index = sizeof(cstl_chr)/sizeof(*cstl_chr);
     while(*ptr != ' ')
-        switch(*ptr)
-        {
-        case 'K' :
-            cstl |= 0x01;
-            ptr++;
-            break;
-        case 'Q' :
-            cstl |= 0x02;
-            ptr++;
-            break;
-        case 'k' :
-            cstl |= 0x04;
-            ptr++;
-            break;
-        case 'q' :
-            cstl |= 0x08;
-            ptr++;
-            break;
-        case '-' :
-            ptr++;
-            break;
-        case ' ' :
-            break;
-        default :
-            return false;
-        }
+    {
+        size_t index = 0;
+        for(; index < max_index; ++index)
+            if(*ptr == cstl_chr[index])
+                break;
+        if(index >= max_index)
+            return nullptr;
+        if(b[get_coord(k_col, k_row[index])] == k_piece[index] &&
+                b[get_coord(r_col[index], r_row[index])]
+                == r_piece[index])
+            castling_rights |= cstl_code[index];
+        ptr++;
+    }
+    state[0].cstl = castling_rights;
+    return ptr;
+}
 
-    if((cstl & 0x01)
-            && (b[get_coord(4, 0)] != white_king
-                || b[get_coord(7, 0 )] != white_rook))
-        cstl &= ~0x01;
-    if((cstl & 0x02)
-            && (b[get_coord(4, 0)] != white_king
-                || b[get_coord(0, 0 )] != white_rook))
-        cstl &= ~0x02;
-    if((cstl & 0x04)
-            && (b[get_coord(4, 7)] != black_king
-                || b[get_coord(7, 7 )] != black_rook))
-        cstl &= ~0x04;
-    if((cstl & 0x08)
-            && (b[get_coord(4, 7)] != black_king
-                || b[get_coord(0, 7 )] != black_rook))
-        cstl &= ~0x08;
 
-    state[0].cstl = cstl;
 
+
+//--------------------------------
+char* k2chess::ParseEnPassantInFen(char *ptr)
+{
+    state[0].ep = 0;
     ptr++;
     if(*ptr != '-')
     {
@@ -382,10 +381,39 @@ bool k2chess::FenToBoard(char *ptr)
         int row = *(ptr++) - '1';
         int s = wtm ? -1 : 1;
         piece_t pawn = wtm ? white_pawn : black_pawn;
-        if(b[get_coord(col-1, row+s)] == pawn
-                || b[get_coord(col+1, row+s)] == pawn)
+        if(b[get_coord(col - 1, row + s)] == pawn
+                || b[get_coord(col + 1, row + s)] == pawn)
             state[0].ep = col + 1;
     }
+    return ptr;
+}
+
+
+
+
+
+
+//--------------------------------
+bool k2chess::FenToBoard(char *ptr)
+{
+    material[black] = 0;
+    material[white] = 0;
+    pieces[black] = 0;
+    pieces[white] = 0;
+    reversible_moves = 0;
+    memset(quantity, 0, sizeof(quantity));
+
+    if((ptr = ParseMainPartOfFen(ptr)) == nullptr)
+        return false;
+    if((ptr = ParseSideToMoveInFen(ptr)) == nullptr)
+        return false;
+    if((ptr = ParseCastlingRightsInFen(ptr)) == nullptr)
+        return false;
+    if((ptr = ParseEnPassantInFen(ptr)) == nullptr)
+        return false;
+
+    InitPieceLists();
+
     if(*(++ptr) && *(++ptr))
         while(*ptr >= '0' && *ptr <= '9')
         {

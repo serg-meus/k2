@@ -93,6 +93,12 @@ protected:
     is_promotion_to_bishop = 0x04,
     is_promotion = 0x07;
 
+    const castle_t
+    castle_kingside_w = 1,
+    castle_queenside_w = 2,
+    castle_kingside_b = 4,
+    castle_queenside_b = 8;
+
 
 // Class representing move
     class move_c
@@ -136,8 +142,7 @@ protected:
         piece_t captured_piece;  // captured piece
         iterator_entity captured_it;  // iterator to captured piece
         coord_t from_coord;  // square coordinate from which move was made
-        castle_t cstl;  // castling rights, bits 0..3: white king, white
-        // queen, black_king, black_queen
+        castle_t cstl;  // castling rights, k2chess::castle_kingside_w, ...
         iterator_entity castled_rook_it;  // iterator to castled rook
         enpass_t ep;  // 0 = no_ep, else ep=get_col(x) + 1,
         // not null only if opponent pawn is near
@@ -194,7 +199,7 @@ protected:
 public:
 
 
-    side_to_move_t wtm;  // 0 = black to move, 1 = white to move
+    side_to_move_t wtm;  // side to move, k2chess::white or k2chess::black
     bool FenToBoard(char *p);
     size_t test_count_attacked_squares(side_to_move_t stm);
     size_t test_count_all_attacks(side_to_move_t stm);
@@ -256,7 +261,7 @@ private:
 
     void InitAttacks();
     void InitBrd();
-    bool BoardToMen();
+    bool InitPieceLists();
     void ShowMove(coord_t from_coord, coord_t to_coord);
     bool LegalSlider(coord_t from_coord, coord_t to_coord, piece_t pt);
     bool PieceListCompare(coord_t men1, coord_t men2);
@@ -271,4 +276,8 @@ private:
     void InitAttacksOnePiece(const shifts_t col, const shifts_t row);
     void UpdateAttacks();
     void UpdateAttacksOnePiece();
+    char* ParseMainPartOfFen(char *ptr);
+    char* ParseSideToMoveInFen(char *ptr);
+    char* ParseCastlingRightsInFen(char *ptr);
+    char* ParseEnPassantInFen(char *ptr);
 };
