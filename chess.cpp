@@ -265,7 +265,7 @@ bool k2chess::BoardToMen()
 
 
 //--------------------------------
-bool k2chess::FenToBoard(char *p)
+bool k2chess::FenToBoard(char *ptr)
 {
     char chars[] = "kqrbnpKQRBNP";
     piece_t pcs[] =
@@ -281,69 +281,74 @@ bool k2chess::FenToBoard(char *p)
     reversible_moves = 0;
     memset(quantity, 0, sizeof(quantity));
 
-    for(auto row = 7; row >= 0; row--)
+    for(auto row = board_height - 1; row >= 0; row--)
     {
-        for(auto col = 0; col <= 7; col++)
+        for(auto col = 0; col < board_width; col++)
         {
-            int to_coord = get_coord(col, row);
-            int ip = *p - '0';
-            if(ip >= 1 && ip <= 8)
+            auto chr = *ptr - '0';
+            if(chr >= 1 && chr <= 8)
             {
-                for(auto j = 0; j < ip; ++j)
-                    b[to_coord + j] = 0;
-                col += *p++ - '1';
+                for(auto i = 0; i < chr; ++i)
+                    b[get_coord(col++, row)] = empty_square;
+                col--;
             }
-            else if(*p == '/')
-            {
-                p++;
-                col = -1;  // break ?
-                continue;
-            }
+            else if(*ptr == '/')
+                col--;
             else
             {
-                size_t i = 0;
-                for(; i < 12; ++i)
-                    if(*p == chars[i])
+                size_t index = 0;
+                const size_t max_index = sizeof(chars)/sizeof(*chars);
+                for(; index < max_index; ++index)
+                    if(*ptr == chars[index])
                         break;
-                if(i >= 12)
+                if(index >= max_index)
                     return false;
-                if(to_black(pcs[i]) == black_pawn && (row == 0 || row == 7))
+                if(to_black(pcs[index]) == black_pawn
+                        && (row == 0 || row == 7))
                     return false;
-                b[get_coord(col, row)] = pcs[i];
-                material[i >= 6] += pc_streng[get_index(pcs[i])];
-                pieces[i >= 6]++;
-                p++;
+                auto piece = pcs[index];
+                b[get_coord(col, row)] = piece;
+                auto color = get_piece_color(piece);
+                material[color] += pc_streng[get_index(piece)];
+                pieces[color]++;
             }
+            ptr++;
         }
     }
     BoardToMen();
 
     state[0].ep = 0;
-    wtm = (*(++p) == 'b') ? black : white;
+    ptr++;
+    if(*ptr == 'b')
+        wtm = black;
+    else if(*ptr == 'w')
+        wtm = white;
+    else
+        return false;
 
     castle_t cstl = 0;
-    p += 2;
-    while(*p != ' ')
-        switch(*p)
+    ptr += 2;
+    while(*ptr != ' ')
+        switch(*ptr)
         {
         case 'K' :
             cstl |= 0x01;
-            p++;
+            ptr++;
             break;
         case 'Q' :
             cstl |= 0x02;
-            p++;
+            ptr++;
             break;
         case 'k' :
             cstl |= 0x04;
-            p++;
+            ptr++;
             break;
         case 'q' :
             cstl |= 0x08;
-            p++;
+            ptr++;
             break;
         case '-' :
-            p++;
+            ptr++;
             break;
         case ' ' :
             break;
@@ -370,22 +375,22 @@ bool k2chess::FenToBoard(char *p)
 
     state[0].cstl = cstl;
 
-    p++;
-    if(*p != '-')
+    ptr++;
+    if(*ptr != '-')
     {
-        int col = *(p++) - 'a';
-        int row = *(p++) - '1';
+        int col = *(ptr++) - 'a';
+        int row = *(ptr++) - '1';
         int s = wtm ? -1 : 1;
         piece_t pawn = wtm ? white_pawn : black_pawn;
         if(b[get_coord(col-1, row+s)] == pawn
                 || b[get_coord(col+1, row+s)] == pawn)
             state[0].ep = col + 1;
     }
-    if(*(++p) && *(++p))
-        while(*p >= '0' && *p <= '9')
+    if(*(++ptr) && *(++ptr))
+        while(*ptr >= '0' && *ptr <= '9')
         {
             reversible_moves *= 10;
-            reversible_moves += (*p++ - '0');
+            reversible_moves += (*ptr++ - '0');
         }
 
     king_coord[white] = --coords[white].end();
