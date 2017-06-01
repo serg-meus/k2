@@ -158,7 +158,7 @@ protected:
         // kings for black and white
     };
 
-
+    side_to_move_t wtm;  // side to move, k2chess::white or k2chess::black
     piece_t b[board_width*board_height];  // array representing the chess board
     short_list<coord_t, lst_sz> coords[sides];  // black/white piece coordinates
 
@@ -199,10 +199,8 @@ protected:
 public:
 
 
-    side_to_move_t wtm;  // side to move, k2chess::white or k2chess::black
     bool FenToBoard(char *p);
-    size_t test_count_attacked_squares(side_to_move_t stm);
-    size_t test_count_all_attacks(side_to_move_t stm);
+    void RunUnitTests();
 
 
 protected:
@@ -280,4 +278,8 @@ private:
     char* ParseSideToMoveInFen(char *ptr);
     char* ParseCastlingRightsInFen(char *ptr);
     char* ParseEnPassantInFen(char *ptr);
+    size_t test_count_attacked_squares(side_to_move_t stm);
+    size_t test_count_all_attacks(side_to_move_t stm);
+    void test_attack_tables(size_t att_w, size_t att_b,
+                            size_t all_w, size_t all_b);
 };

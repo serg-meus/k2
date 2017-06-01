@@ -761,3 +761,42 @@ void k2chess::UnMoveFast(move_c m)
     cur_moves[5*ply] = '\0';
 #endif // NDEBUG
 }
+
+
+
+
+
+//--------------------------------
+void k2chess::test_attack_tables(size_t att_w, size_t att_b,
+                        size_t all_w, size_t all_b)
+{
+    size_t att_squares_w, att_squares_b, all_attacks_w, all_attacks_b;
+    att_squares_w = test_count_attacked_squares(white);
+    att_squares_b = test_count_attacked_squares(black);
+    all_attacks_w = test_count_all_attacks(white);
+    all_attacks_b = test_count_all_attacks(black);
+    assert(att_squares_w == att_w);
+    assert(att_squares_b == att_b);
+    assert(all_attacks_w == all_w);
+    assert(all_attacks_b == all_b);
+}
+
+
+
+//--------------------------------
+void k2chess::RunUnitTests()
+{
+    const char *pos;
+    InitChess();
+    test_attack_tables(18, 18, 24, 24);
+
+    pos = "4k3/8/5n2/5n2/8/8/8/3RK3 w - - 0 1";
+    assert(FenToBoard((char *)pos));
+    test_attack_tables(15, 19, 16, 21);
+
+    pos = "4rrk1/p4q2/1p2b3/1n6/1N6/1P2B3/P4Q2/4RRK1 w - - 0 1";
+    assert(FenToBoard((char *)pos));
+    test_attack_tables(33, 33, 48, 48);
+
+    InitChess();
+}
