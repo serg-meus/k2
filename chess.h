@@ -14,6 +14,8 @@ public:
 
 
     k2chess();
+    bool SetupPosition(char *fen);
+    void RunUnitTests();
 
 
 protected:
@@ -61,6 +63,7 @@ public:
     const static piece_t white = 1;
     const static piece_t black = 0;
 
+
 protected:
 
 
@@ -94,11 +97,13 @@ protected:
     is_promotion = 0x07;
 
     const castle_t
-    castle_kingside_w = 1,
-    castle_queenside_w = 2,
-    castle_kingside_b = 4,
-    castle_queenside_b = 8;
+    white_can_castle_right = 1,
+    white_can_castle_left = 2,
+    black_can_castle_right = 4,
+    black_can_castle_left = 8;
 
+    const coord_t default_king_col = 4;
+    const shifts_t cstl_move_length = 2;
 
 // Class representing move
     class move_c
@@ -196,20 +201,10 @@ protected:
     iterator king_coord[sides];  // king coord iterators for black and white
 
 
-public:
-
-
-    bool FenToBoard(char *p);
-    void RunUnitTests();
-
-
 protected:
 
 
     void InitChess();
-    bool SliderAttack(coord_t from_coord, coord_t to_coord);
-    bool Attack(coord_t to_coord, side_to_move_t xtm);
-    bool Legal(coord_t from_coord, coord_t to_coord, bool in_check);
     bool MkMoveFast(move_c m);
     void UnMoveFast(move_c m);
 
@@ -249,19 +244,23 @@ protected:
         return row >= 0 && row < board_height;
     }
 
-    piece_t get_piece_color(piece_t piece)
+    side_to_move_t get_piece_color(piece_t piece)
     {
-        return piece & 1;
+        return piece & white;
     }
+    piece_t set_piece_color(piece_t piece, side_to_move_t stm)
+    {
+        return (piece & ~white) | stm;
+    }
+
 
 private:
 
 
     void InitAttacks();
-    void InitBrd();
+    void InitBoard();
     bool InitPieceLists();
     void ShowMove(coord_t from_coord, coord_t to_coord);
-    bool LegalSlider(coord_t from_coord, coord_t to_coord, piece_t pt);
     bool PieceListCompare(coord_t men1, coord_t men2);
     void StoreCurrentBoardState(move_c m, coord_t from_coord, coord_t targ);
     void MakeCapture(move_c m, coord_t targ);
@@ -282,4 +281,5 @@ private:
     size_t test_count_all_attacks(side_to_move_t stm);
     void test_attack_tables(size_t att_w, size_t att_b,
                             size_t all_w, size_t all_b);
+    void SortPieceLists();
 };
