@@ -53,59 +53,7 @@ void k2chess::InitChess()
 //--------------------------------
 void k2chess::InitBoard()
 {
-    piece_t pcs[] =
-    {
-        white_knight, white_knight, white_bishop, white_bishop,
-        white_rook, white_rook, white_queen, white_king
-    };
-    coord_t cols[] = {6, 1, 5, 2, 7, 0, 3, default_king_col};
-
-    memset(b, empty_square, sizeof(b));
-
-    coords[white].clear();
-    coords[black].clear();
-
-    for(size_t i = 0; i < sizeof(cols)/sizeof(*cols); ++i)
-    {
-        b[get_coord(i, 1)] = white_pawn;
-        coords[white].push_front(get_coord(7 - i, 1));
-        b[get_coord(i, 6)] = black_pawn;
-        coords[black].push_front(get_coord(7 - i, 6));
-        b[get_coord(cols[i], 0)] = pcs[i];
-        coords[white].push_back(get_coord(cols[i], 0));
-        b[get_coord(cols[i], 7)]= set_piece_color(pcs[i], black);
-        coords[black].push_back(get_coord(cols[i], 7));
-    }
-
-    InitAttacks();
-
-    state[0].captured_piece = 0;
-    state[0].cstl = white_can_castle_right | white_can_castle_left
-            | black_can_castle_right | black_can_castle_left;
-    state[0].ep = 0;
-    wtm = white;
-    ply = 0;
-    cv[0] = '\0';
-    pieces[black] = 16;
-    pieces[white] = 16;
-    material[black] = 48;
-    material[white] = 48;
-
-    reversible_moves = 0;
-
-    king_coord[white] = --coords[white].end();
-    king_coord[black] = --coords[black].end();
-
-    side_to_move_t sides[] = {black, white};
-    for(auto stm : sides)
-    {
-        quantity[stm][get_index(black_king)] = 1;
-        quantity[stm][get_index(black_queen)] = 1;
-        quantity[stm][get_index(black_rook)] = 2;
-        quantity[stm][get_index(black_bishop)] = 2;
-        quantity[stm][get_index(black_knight)] = 2;
-        quantity[stm][get_index(black_pawn)] = 8;
-    }
+    SetupPosition("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
 }
 
 
