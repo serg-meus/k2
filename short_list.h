@@ -50,20 +50,45 @@ public:
     class iterator;
     class reverse_iterator;
 
-    class iterator_entity                                               // for ability to store iterator as one byte
+    // iterator with size of one unsigned char
+    class iterator_entity
     {
         friend class iterator;
 
         unsigned char num;
 
     public:
-        iterator_entity()               {}
-        iterator_entity(iterator it)    {num = it.num;}
-        void operator =  (iterator it)  {num = it.num;}
-        bool operator == (iterator_entity it)  {return num == it.num;}
-        bool operator != (iterator_entity it)  {return num != it.num;}
-        bool operator == (iterator it)  {return num == it.num;}
-        bool operator != (iterator it)  {return num != it.num;}
+        iterator_entity() {}
+
+        iterator_entity(iterator it)
+        {
+            num = it.num;
+        }
+
+        void operator =(iterator it)
+        {
+            num = it.num;
+        }
+
+        bool operator ==(iterator_entity it) const
+        {
+            return num == it.num;
+        }
+
+        bool operator !=(iterator_entity it) const
+        {
+            return num != it.num;
+        }
+
+        bool operator ==(iterator it) const
+        {
+            return num == it.num;
+        }
+
+        bool operator != (iterator it) const
+        {
+            return num != it.num;
+        }
     };
 
     class reverse_iterator_entity
@@ -73,13 +98,37 @@ public:
         unsigned char num;
 
     public:
-        reverse_iterator_entity()                       {}
-        reverse_iterator_entity(reverse_iterator it)    {num = it.num;}
-        void operator =  (reverse_iterator it)          {num = it.num;}
-        bool operator == (reverse_iterator_entity it)   {return num == it.num;}
-        bool operator != (reverse_iterator_entity it)   {return num != it.num;}
-        bool operator == (reverse_iterator it)          {return num == it.num;}
-        bool operator != (reverse_iterator it)          {return num != it.num;}
+        reverse_iterator_entity() {}
+
+        reverse_iterator_entity(reverse_iterator it)
+        {
+            num = it.num;
+        }
+
+        void operator =(reverse_iterator it)
+        {
+            num = it.num;
+        }
+
+        bool operator ==(reverse_iterator_entity it) const
+        {
+            return num == it.num;
+        }
+
+        bool operator !=(reverse_iterator_entity it) const
+        {
+            return num != it.num;
+        }
+
+        bool operator ==(reverse_iterator it) const
+        {
+            return num == it.num;
+        }
+
+        bool operator !=(reverse_iterator it) const
+        {
+            return num != it.num;
+        }
     };
 
     class iterator
@@ -93,18 +142,69 @@ public:
 
     ///////
     public:
-        iterator()                      {}
-        bool operator ==(iterator it)   {return num == it.num && linked_class == it.linked_class;}
-        bool operator !=(iterator it)   {return num != it.num || linked_class != it.linked_class;}
-        void operator = (iterator it)   {num = it.num; linked_class = it.linked_class;}
-        void operator = (iterator_entity ite) {num = ite.num;}
-        T&    operator *()               {return linked_class->data[num];}
-        iterator& operator ++()         {num = linked_class->ptr_next[num]; return *this;}
-        iterator& operator --()         {num = linked_class->ptr_prev[num]; return *this;}
-        iterator operator ++(int)       {iterator tmp = *this; ++*this; return tmp;}
-        iterator operator --(int)       {iterator tmp = *this; --*this; return tmp;}
-        bool operator ==(iterator_entity ite)   {return num == ite.num;}
-        bool operator !=(iterator_entity ite)   {return num != ite.num;}
+        iterator() {}
+
+        bool operator ==(iterator it) const
+        {
+            return num == it.num && linked_class == it.linked_class;
+        }
+
+        bool operator !=(iterator it) const
+        {
+            return num != it.num || linked_class != it.linked_class;
+        }
+
+        void operator =(iterator it)
+        {
+            num = it.num;
+            linked_class = it.linked_class;
+        }
+
+        void operator =(iterator_entity ite)
+        {
+            num = ite.num;
+        }
+
+        T& operator *() const
+        {
+            return linked_class->data[num];
+        }
+
+        iterator& operator ++()
+        {
+            num = linked_class->ptr_next[num];
+            return *this;
+        }
+
+        iterator& operator --()
+        {
+            num = linked_class->ptr_prev[num];
+            return *this;
+        }
+
+        iterator operator ++(int)
+        {
+            iterator tmp = *this;
+            ++*this;
+            return tmp;
+        }
+
+        iterator operator --(int)
+        {
+            iterator tmp = *this;
+            --*this;
+            return tmp;
+        }
+
+        bool operator ==(iterator_entity ite) const
+        {
+            return num == ite.num;
+        }
+
+        bool operator !=(iterator_entity ite) const
+        {
+            return num != ite.num;
+        }
     };
 
     class reverse_iterator
@@ -118,21 +218,70 @@ public:
 
     ///////
     public:
-        reverse_iterator()                      {}
-        bool operator ==(reverse_iterator it)   {return num == it.num && linked_class == it.linked_class;}
-        bool operator !=(reverse_iterator it)   {return num != it.num || linked_class != it.linked_class;}
-        void operator = (reverse_iterator it)   {num = it.num; linked_class = it.linked_class;}
-        void operator = (reverse_iterator_entity ite) {num = ite.num;}
-        T&    operator *()                       {return linked_class->data[num];}
-        reverse_iterator& operator ++()         {num = linked_class->ptr_prev[num]; return *this;}
-        reverse_iterator& operator --()         {num = linked_class->ptr_next[num]; return *this;}
-        reverse_iterator operator ++(int)       {reverse_iterator tmp = *this; ++*this; return tmp;}
-        reverse_iterator operator --(int)       {reverse_iterator tmp = *this; --*this; return tmp;}
-        bool operator ==(reverse_iterator_entity ite)   {return num == ite.num;}
-        bool operator !=(reverse_iterator_entity ite)   {return num != ite.num;}
+        reverse_iterator() {}
+
+        bool operator ==(reverse_iterator it) const
+        {
+            return num == it.num && linked_class == it.linked_class;
+        }
+
+        bool operator !=(reverse_iterator it) const
+        {
+            return num != it.num || linked_class != it.linked_class;
+        }
+
+        void operator =(reverse_iterator it)
+        {
+            num = it.num;
+            linked_class = it.linked_class;
+        }
+
+        void operator =(reverse_iterator_entity ite)
+        {
+            num = ite.num;
+        }
+
+        T& operator *() const
+        {
+            return linked_class->data[num];
+        }
+
+        reverse_iterator& operator ++()
+        {
+            num = linked_class->ptr_prev[num];
+            return *this;
+        }
+
+        reverse_iterator& operator --()
+        {
+            num = linked_class->ptr_next[num];
+            return *this;
+        }
+
+        reverse_iterator operator ++(int)
+        {
+            reverse_iterator tmp = *this;
+            ++*this;
+            return tmp;
+        }
+
+        reverse_iterator operator --(int)
+        {
+            reverse_iterator tmp = *this;
+            --*this;
+            return tmp;
+        }
+
+        bool operator ==(reverse_iterator_entity ite) const
+        {
+            return num == ite.num;
+        }
+        bool operator !=(reverse_iterator_entity ite) const
+        {
+            return num != ite.num;
+        }
     };
 
-    ////////
     protected:
 
         enum {MAX_SIZE = 255};
@@ -145,10 +294,12 @@ public:
         unsigned char _max_size;
         unsigned char _size;
 
-    ///////
     public:
 
-        short_list()                        {this->clear();}
+        short_list()
+        {
+            this->clear();
+        }
 
         iterator begin();
         iterator end();
@@ -166,11 +317,15 @@ public:
         void rrestore(reverse_iterator);
 
         inline void clear();
-        int max_size()  {return _max_size;}
-        int size()      {return _size;}
+        int max_size() const
+        {
+            return _max_size;
+        }
 
-//        T& operator[] (iterator it)          {return data[it.num];}
-//        T& operator[] (reverse_iterator it)  {return data[it.num];}
+        int size() const
+        {
+            return _size;
+        }
 
         void move_element(iterator dst, iterator src);
         void rmove_element(reverse_iterator dst, reverse_iterator src);

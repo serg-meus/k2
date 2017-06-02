@@ -73,14 +73,14 @@ void k2chess::InitBoard()
         coords[black].push_front(get_coord(7 - i, 6));
         b[get_coord(cols[i], 0)] = pcs[i];
         coords[white].push_back(get_coord(cols[i], 0));
-        b[get_coord(cols[i], 7)]= pcs[i] ^ white;
+        b[get_coord(cols[i], 7)]= set_piece_color(pcs[i], black);
         coords[black].push_back(get_coord(cols[i], 7));
     }
 
     InitAttacks();
 
     state[0].captured_piece = 0;
-    state[0].cstl = castle_left_w | white_can_castle_left
+    state[0].cstl = white_can_castle_right | white_can_castle_left
             | black_can_castle_right | black_can_castle_left;
     state[0].ep = 0;
     wtm = white;
@@ -222,12 +222,12 @@ void k2chess::SortPieceLists()
             {
                 auto nxt_iter = cur_iter;
                 ++nxt_iter;
-                auto cur_coord = *cur_iter;
-                auto nxt_coord = *nxt_iter;
-                auto cur_piece = b[cur_coord];
-                auto nxt_piece = b[nxt_coord];
-                auto cur_streng = sort_streng[get_index(cur_piece)];
-                auto nxt_streng = sort_streng[get_index(nxt_piece)];
+                const auto cur_coord = *cur_iter;
+                const auto nxt_coord = *nxt_iter;
+                const auto cur_piece = b[cur_coord];
+                const auto nxt_piece = b[nxt_coord];
+                const auto cur_streng = sort_streng[get_index(cur_piece)];
+                const auto nxt_streng = sort_streng[get_index(nxt_piece)];
                 if(cur_streng > nxt_streng)
                 {
                     coords[stm].move_element(cur_iter, nxt_iter);
@@ -262,8 +262,8 @@ bool k2chess::InitPieceLists()
     {
         if(b[i] == empty_square)
             continue;
-        coords[b[i] & white].push_back(i);
-        quantity[b[i] & white][get_index(to_black(b[i]))]++;
+        coords[get_piece_color(b[i])].push_back(i);
+        quantity[get_piece_color(b[i])][get_index(to_black(b[i]))]++;
     }
 
     SortPieceLists();
@@ -351,7 +351,7 @@ char *k2chess::ParseCastlingRightsInFen(char *ptr)
     castle_t castling_rights = 0;
     ptr += 2;
     char cstl_chr[] = "KQkq-";
-    castle_t cstl_code[] = {castle_left_w, white_can_castle_left,
+    castle_t cstl_code[] = {white_can_castle_right, white_can_castle_left,
                             black_can_castle_right, black_can_castle_left, 0};
     coord_t k_col = 4;
     coord_t k_row[] = {0, 0, 7, 7};
@@ -444,7 +444,7 @@ bool k2chess::SetupPosition(char *ptr)
 
 
 //--------------------------------
-void k2chess::ShowMove(coord_t from_coord, coord_t to_coord)
+void k2chess::ShowMove(const coord_t from_coord, const coord_t to_coord)
 {
     char *cur = cur_moves + 5*(ply - 1);
     *(cur++) = get_col(from_coord) + 'a';
@@ -460,36 +460,37 @@ void k2chess::ShowMove(coord_t from_coord, coord_t to_coord)
 
 
 //--------------------------------
-bool k2chess::MakeCastle(move_c m, coord_t from_coord)
+bool k2chess::MakeCastleOrUpdateFlags(const move_c move,
+                                      const coord_t from_coord)
 {
-    auto cs = state[ply].cstl;
-    if(m.piece_iterator == king_coord[wtm])  // king moves
+    const auto cs = state[ply].cstl;
+    if(move.piece_iterator == king_coord[wtm])  // king moves
         state[ply].cstl &= wtm ?
-                    ~(castle_left_w | white_can_castle_left) :
+                    ~(white_can_castle_right | white_can_castle_left) :
                     ~(black_can_castle_right | black_can_castle_left);
     else if(b[from_coord] == set_piece_color(black_rook, wtm))  // rook moves
     {
-        auto col = get_col(from_coord);
-        auto row = get_row(from_coord);
+        const auto col = get_col(from_coord);
+        const auto row = get_row(from_coord);
         if((wtm && row == 0) || (!wtm && row == board_width - 1))
         {
             if(col == board_width - 1)
-                state[ply].cstl &= wtm ? ~castle_left_w :
+                state[ply].cstl &= wtm ? ~white_can_castle_right :
                                          ~black_can_castle_right;
             else if(col == 0)
                 state[ply].cstl &= wtm ? ~white_can_castle_left :
                                          ~black_can_castle_left;
         }
     }
-    if(b[m.to_coord] == set_piece_color(black_rook, !wtm))  // rook is taken
+    if(b[move.to_coord] == set_piece_color(black_rook, !wtm))  // rook is taken
     {
-        auto col = get_col(m.to_coord);
-        auto row = get_row(from_coord);
+        const auto col = get_col(move.to_coord);
+        const auto row = get_row(from_coord);
         if((wtm && row == board_width - 1) || (!wtm && row == 0))
         {
             if(col == board_width - 1)
                 state[ply].cstl &= wtm ? ~black_can_castle_right :
-                                         ~castle_left_w;
+                                         ~white_can_castle_right;
             else if(col == 0)
                 state[ply].cstl &= wtm ? ~black_can_castle_left :
                                          ~white_can_castle_left;
@@ -499,12 +500,12 @@ bool k2chess::MakeCastle(move_c m, coord_t from_coord)
     if(castling_rights_changed)
         reversible_moves = 0;
 
-    if(!(m.flag & is_castle))
+    if(!(move.flag & is_castle))
         return castling_rights_changed;
 
     coord_t rook_from_coord, rook_to_coord;
-    auto row = wtm ? 0 : 7;
-    if(m.flag == is_castle_kingside)
+    const auto row = wtm ? 0 : 7;
+    if(move.flag == is_right_castle)
     {
         rook_from_coord = get_coord(board_width - 1, row);
         const auto col = default_king_col + cstl_move_length - 1;
@@ -536,15 +537,15 @@ bool k2chess::MakeCastle(move_c m, coord_t from_coord)
 
 
 //--------------------------------
-void k2chess::UnMakeCastle(move_c m)
+void k2chess::UnMakeCastle(const move_c move)
 {
-    auto rMen = coords[wtm].begin();
-    rMen = state[ply].castled_rook_it;
-    auto rFr =*rMen;
-    auto rTo = rFr + (m.flag == is_castle_kingside ? 2 : -3);
-    b[rTo] = b[rFr];
-    b[rFr] = empty_square;
-    *rMen = rTo;
+    auto rook_iterator = coords[wtm].begin();
+    rook_iterator = state[ply].castled_rook_it;
+    const auto from_coord =*rook_iterator;
+    const auto to_coord = move.flag == is_right_castle ? board_width - 1 : 0;
+    b[to_coord] = b[from_coord];
+    b[from_coord] = empty_square;
+    *rook_iterator = to_coord;
 }
 
 
@@ -552,19 +553,24 @@ void k2chess::UnMakeCastle(move_c m)
 
 
 //--------------------------------
-bool k2chess::MakeEP(move_c m, coord_t from_coord)
+bool k2chess::MakeEnPassantOrUpdateFlags(const move_c m,
+                                         const coord_t from_coord)
 {
-    int delta = m.to_coord - from_coord;
-    int to_coord = m.to_coord;
-    if(std::abs(delta) == 0x20
-            && (b[m.to_coord + 1] == (white_pawn ^ wtm)
-                || b[to_coord - 1] == (white_pawn ^ wtm)))
+    const shifts_t delta = get_row(m.to_coord) - get_row(from_coord);
+    if(std::abs(delta) == 2)
     {
-        state[ply].ep = (to_coord & 0x07) + 1;
-        return true;
+        bool opp_pawn_is_near = get_col(m.to_coord) < board_width - 1 &&
+                b[m.to_coord + 1] == set_piece_color(black_pawn, !wtm);
+        opp_pawn_is_near |= get_col(m.to_coord) > 0 &&
+                b[m.to_coord - 1] == set_piece_color(black_pawn, !wtm);
+        if(opp_pawn_is_near)
+        {
+            state[ply].ep = get_col(m.to_coord) + 1;
+            return true;
+        }
     }
-    if(m.flag & is_en_passant)
-        b[to_coord + (wtm ? -16 : 16)] = empty_square;
+    else if(m.flag & is_en_passant)
+        b[m.to_coord + (wtm ? -board_width : board_width)] = empty_square;
     return false;
 }
 
@@ -573,7 +579,7 @@ bool k2chess::MakeEP(move_c m, coord_t from_coord)
 
 
 //-----------------------------
-bool k2chess::PieceListCompare(coord_t men1, coord_t men2)
+bool k2chess::PieceListCompare(const coord_t men1, const coord_t men2)
 {
     return sort_streng[get_index(b[men1])] > sort_streng[get_index(b[men2])];
 }
@@ -583,16 +589,16 @@ bool k2chess::PieceListCompare(coord_t men1, coord_t men2)
 
 
 //--------------------------------
-void k2chess::StoreCurrentBoardState(move_c m, coord_t from_coord,
-                                     coord_t targ)
+void k2chess::StoreCurrentBoardState(const move_c move,
+                                     const coord_t from_coord)
 {
     state[ply].cstl = state[ply - 1].cstl;
-    state[ply].captured_piece = b[m.to_coord];
+    state[ply].captured_piece = b[move.to_coord];
 
     state[ply].from_coord = from_coord;
-    state[ply].to_coord = targ;
+    state[ply].to_coord = move.to_coord;
     state[ply].reversibleCr = reversible_moves;
-    state[ply].priority = m.priority;
+    state[ply].priority = move.priority;
 }
 
 
@@ -600,25 +606,26 @@ void k2chess::StoreCurrentBoardState(move_c m, coord_t from_coord,
 
 
 //--------------------------------
-void k2chess::MakeCapture(move_c m, coord_t targ)
+void k2chess::MakeCapture(const move_c move)
 {
-    if (m.flag & is_en_passant)
+    auto to_coord = move.to_coord;
+    if (move.flag & is_en_passant)
     {
-        targ += wtm ? -16 : 16;
+        to_coord += wtm ? -board_width : board_width;
         material[!wtm]--;
         quantity[!wtm][get_index(black_pawn)]--;
     }
     else
     {
-        material[!wtm] -=
-            pc_streng[get_index(state[ply].captured_piece)];
-        quantity[!wtm][get_index(state[ply].captured_piece)]--;
+        const auto piece_index = get_index(state[ply].captured_piece);
+        material[!wtm] -= pc_streng[piece_index];
+        quantity[!wtm][piece_index]--;
     }
 
     auto it_cap = coords[!wtm].begin();
-    auto it_end = coords[!wtm].end();
+    const auto it_end = coords[!wtm].end();
     for(; it_cap != it_end; ++it_cap)
-        if(*it_cap == targ)
+        if(*it_cap == to_coord)
             break;
     assert(it_cap != it_end);
     state[ply].captured_it = it_cap;
@@ -632,22 +639,23 @@ void k2chess::MakeCapture(move_c m, coord_t targ)
 
 
 //--------------------------------
-void k2chess::MakePromotion(move_c m, iterator it)
+void k2chess::MakePromotion(const move_c move, iterator it)
 {
-    auto prIx = m.flag & is_promotion;
-    piece_t prPc[] = {0, black_queen, black_knight, black_rook, black_bishop};
-    if(prIx)
-    {
-        b[m.to_coord] = prPc[prIx] ^ wtm;
-        material[wtm] += pc_streng[get_index(prPc[prIx])]
-                         - pc_streng[get_index(black_pawn)];
-        quantity[wtm][get_index(black_pawn)]--;
-        quantity[wtm][get_index(prPc[prIx])]++;
-        state[ply].nprom = ++it;
-        --it;
-        coords[wtm].move_element(king_coord[wtm], it);
-        reversible_moves = 0;
-    }
+    piece_t pcs[] = {0, black_queen, black_knight, black_rook, black_bishop};
+    const auto piece_num = move.flag & is_promotion;
+    if(piece_num == 0)
+        return;
+
+    const auto piece = pcs[piece_num];
+    b[move.to_coord] = set_piece_color(piece, !wtm);
+    material[wtm] += pc_streng[get_index(piece)]
+                     - pc_streng[get_index(black_pawn)];
+    quantity[wtm][get_index(black_pawn)]--;
+    quantity[wtm][get_index(piece)]++;
+    state[ply].nprom = ++it;
+    --it;
+    coords[wtm].move_element(king_coord[wtm], it);
+    reversible_moves = 0;
 }
 
 
@@ -655,42 +663,41 @@ void k2chess::MakePromotion(move_c m, iterator it)
 
 
 //--------------------------------
-bool k2chess::MkMoveFast(move_c m)
+bool k2chess::MkMoveFast(const move_c move)
 {
     bool is_special_move = false;
     ply++;
     auto it = coords[wtm].begin();
-    it = m.piece_iterator;
-    auto from_coord = *it;
-    auto targ = m.to_coord;
-    StoreCurrentBoardState(m, from_coord, targ);
+    it = move.piece_iterator;
+    const auto from_coord = *it;
+    StoreCurrentBoardState(move, from_coord);
     reversible_moves++;
 
-    if(m.flag & is_capture)
-        MakeCapture(m, targ);
+    if(move.flag & is_capture)
+        MakeCapture(move);
 
     // trick: fast exit if not K|Q|R moves, and no captures
-    if((b[from_coord] <= white_rook) || (m.flag & is_capture))
-        is_special_move |= MakeCastle(m, from_coord);
+    if((b[from_coord] <= white_rook) || (move.flag & is_capture))
+        is_special_move |= MakeCastleOrUpdateFlags(move, from_coord);
 
     state[ply].ep = 0;
-    if((b[from_coord] ^ wtm) == black_pawn)
+    if(to_black(b[from_coord]) == black_pawn)
     {
-        is_special_move |= MakeEP(m, from_coord);
+        is_special_move |= MakeEnPassantOrUpdateFlags(move, from_coord);
         reversible_moves = 0;
     }
 #ifndef NDEBUG
-    ShowMove(from_coord, m.to_coord);
+    ShowMove(from_coord, move.to_coord);
 #endif // NDEBUG
 
-    b[m.to_coord] = b[from_coord];
+    b[move.to_coord] = b[from_coord];
     b[from_coord] = empty_square;
 
-    if(m.flag & is_promotion)
-        MakePromotion(m, it);
+    if(move.flag & is_promotion)
+        MakePromotion(move, it);
 
-    *it = m.to_coord;
-    wtm ^= white;
+    *it = move.to_coord;
+    wtm = !wtm;
 
     return is_special_move;
 }
@@ -700,31 +707,31 @@ bool k2chess::MkMoveFast(move_c m)
 
 
 //--------------------------------
-void k2chess::UnmakeCapture(move_c m)
+void k2chess::UnmakeCapture(const move_c move)
 {
     auto it_cap = coords[!wtm].begin();
     it_cap = state[ply].captured_it;
 
-    if(m.flag & is_en_passant)
+    if(move.flag & is_en_passant)
     {
         material[!wtm]++;
         quantity[!wtm][get_index(black_pawn)]++;
         if(wtm)
         {
-            b[m.to_coord - 16] = black_pawn;
-            *it_cap = m.to_coord - 16;
+            b[move.to_coord - board_width] = black_pawn;
+            *it_cap = move.to_coord - board_width;
         }
         else
         {
-            b[m.to_coord + 16] = white_pawn;
-            *it_cap = m.to_coord + 16;
+            b[move.to_coord + board_width] = white_pawn;
+            *it_cap = move.to_coord + board_width;
         }
     }
     else
     {
-        material[!wtm]
-        += pc_streng[get_index(state[ply].captured_piece)];
-        quantity[!wtm][get_index(state[ply].captured_piece)]++;
+        const auto capt_index = get_index(state[ply].captured_piece);
+        material[!wtm] += pc_streng[capt_index];
+        quantity[!wtm][capt_index]++;
     }
 
     coords[!wtm].restore(it_cap);
@@ -736,21 +743,21 @@ void k2chess::UnmakeCapture(move_c m)
 
 
 //--------------------------------
-void k2chess::UnmakePromotion(move_c m)
+void k2chess::UnmakePromotion(const move_c move)
 {
-    piece_t prPc[] = {0, black_queen, black_knight, black_rook, black_bishop};
-
-    move_flag_t prIx = m.flag & is_promotion;
+    piece_t pcs[] = {0, black_queen, black_knight, black_rook, black_bishop};
+    const move_flag_t piece_num = move.flag & is_promotion;
 
     auto it_prom = coords[wtm].begin();
     it_prom = state[ply].nprom;
     auto before_king = king_coord[wtm];
     --before_king;
     coords[wtm].move_element(it_prom, before_king);
-    material[wtm] -= pc_streng[get_index(prPc[prIx])]
+    const auto piece_index = get_index(pcs[piece_num]);
+    material[wtm] -= pc_streng[piece_index]
                      - pc_streng[get_index(black_pawn)];
     quantity[wtm][get_index(black_pawn)]++;
-    quantity[wtm][get_index(prPc[prIx])]--;
+    quantity[wtm][piece_num]--;
 }
 
 
@@ -758,27 +765,29 @@ void k2chess::UnmakePromotion(move_c m)
 
 
 //--------------------------------
-void k2chess::UnMoveFast(move_c m)
+void k2chess::UnMoveFast(const move_c move)
 {
-    auto from_coord = state[ply].from_coord;
+    const auto from_coord = state[ply].from_coord;
     auto it = coords[!wtm].begin();
-    it = m.piece_iterator;
+    it = move.piece_iterator;
     *it = from_coord;
-    b[from_coord] = (m.flag & is_promotion) ? (white_pawn ^ wtm)
-                    : b[m.to_coord];
-    b[m.to_coord] = state[ply].captured_piece;
 
+    if(move.flag & is_promotion)
+        b[from_coord] = set_piece_color(white_pawn, !wtm);
+    else
+        b[from_coord] = b[move.to_coord];
+
+    b[move.to_coord] = state[ply].captured_piece;
     reversible_moves = state[ply].reversibleCr;
+    wtm = !wtm;
 
-    wtm ^= white;
+    if(move.flag & is_capture)
+        UnmakeCapture(move);
 
-    if(m.flag & is_capture)
-        UnmakeCapture(m);
-
-    if(m.flag & is_promotion)
-        UnmakePromotion(m);
-    else if(m.flag & is_castle)
-        UnMakeCastle(m);
+    if(move.flag & is_promotion)
+        UnmakePromotion(move);
+    else if(move.flag & is_castle)
+        UnMakeCastle(move);
 
     ply--;
 
@@ -805,6 +814,8 @@ void k2chess::test_attack_tables(size_t att_w, size_t att_b,
     assert(all_attacks_w == all_w);
     assert(all_attacks_b == all_b);
 }
+
+
 
 
 

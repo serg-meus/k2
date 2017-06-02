@@ -49,12 +49,12 @@ protected:
     typedef u8 priority_t;
     typedef i16 score_t;
     typedef i16 tropism_t;
-
-
-public:
-
-
     typedef u8 side_to_move_t;
+
+
+protected:
+
+
     const static depth_t max_ply = 100;  // maximum search depth
     const static coord_t board_width = 8;
     const static coord_t board_height = 8;
@@ -62,11 +62,6 @@ public:
     const static u8 piece_types = 6;  // pawns, knights, bishops, rooks, queens, kings
     const static piece_t white = 1;
     const static piece_t black = 0;
-
-
-protected:
-
-
     const static depth_t prev_states = 4;
 
     const static piece_t
@@ -82,15 +77,15 @@ protected:
     white_rook = 7,
     white_bishop = 9,
     white_knight = 11,
-    white_pawn = 13;
+    white_pawn = 13;  // don't change any value
 
     const move_flag_t
     is_capture = 0x10,
-    is_castle_kingside = 0x20,
-    is_castle_queenside = 0x40,
+    is_right_castle = 0x20,
+    is_left_castle = 0x40,
     is_castle = 0x60,
     is_en_passant = 0x80,
-    is_promotion_to_queen = 0x01,
+    is_promotion_to_queen = 0x01,  // don't change this and below
     is_promotion_to_knight = 0x02,
     is_promotion_to_rook = 0x03,
     is_promotion_to_bishop = 0x04,
@@ -200,13 +195,9 @@ protected:
 
     iterator king_coord[sides];  // king coord iterators for black and white
 
-
-protected:
-
-
     void InitChess();
-    bool MkMoveFast(move_c m);
-    void UnMoveFast(move_c m);
+    bool MkMoveFast(const move_c m);
+    void UnMoveFast(const move_c m);
 
     coord_t get_coord(coord_t col, coord_t row)
     {
@@ -260,16 +251,16 @@ private:
     void InitAttacks();
     void InitBoard();
     bool InitPieceLists();
-    void ShowMove(coord_t from_coord, coord_t to_coord);
-    bool PieceListCompare(coord_t men1, coord_t men2);
-    void StoreCurrentBoardState(move_c m, coord_t from_coord, coord_t targ);
-    void MakeCapture(move_c m, coord_t targ);
-    void MakePromotion(move_c m, iterator it);
-    void UnmakeCapture(move_c m);
+    void ShowMove(const coord_t from_coord, const coord_t to_coord);
+    bool PieceListCompare(const coord_t men1, const coord_t men2);
+    void StoreCurrentBoardState(const move_c m, const coord_t from_coord);
+    void MakeCapture(const move_c m);
+    void MakePromotion(const move_c m, iterator it);
+    void UnmakeCapture(const move_c m);
     void UnmakePromotion(move_c m);
-    bool MakeCastle(move_c m, coord_t from_coord);
-    void UnMakeCastle(move_c m);
-    bool MakeEP(move_c m, coord_t from_coord);
+    bool MakeCastleOrUpdateFlags(const move_c m, const coord_t from_coord);
+    void UnMakeCastle(const move_c m);
+    bool MakeEnPassantOrUpdateFlags(const move_c m, const coord_t from_coord);
     void InitAttacksOnePiece(const shifts_t col, const shifts_t row);
     void UpdateAttacks();
     void UpdateAttacksOnePiece();
