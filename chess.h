@@ -14,7 +14,7 @@ public:
 
 
     k2chess();
-    bool SetupPosition(char *fen);
+    bool SetupPosition(const char *fen);
     void RunUnitTests();
 
 
@@ -175,11 +175,17 @@ protected:
     shifts_t delta_col[piece_types][board_width];
     shifts_t delta_row[piece_types][board_height];
 
-    bool slider[piece_types + 1];  // for quick detection if piece is a slider
+    // for quick detection if piece is a slider
+    bool is_slider[piece_types + 1];
 
-    streng_t pc_streng[piece_types + 1];  // piece strength values for material counters
-    streng_t streng[piece_types + 1];  // piece strhengths for move priorities
-    streng_t sort_streng[piece_types + 1]; // piece strhengths for initial sort piece lists
+    // piece strength values for material counters
+    streng_t pc_streng[piece_types + 1];
+
+    // piece strhengths for move priorities
+    streng_t streng[piece_types + 1];
+
+    // piece strhengths for initial sort piece lists
+    streng_t sort_streng[piece_types + 1];
 
     streng_t material[sides];  // material counters
     streng_t pieces[sides];  // piece counters, including kings
@@ -215,7 +221,7 @@ protected:
         return coord/board_width;
     }
 
-    coord_t get_index(piece_t piece)
+    coord_t get_piece_type(piece_t piece)
     {
         return piece/sides;
     }

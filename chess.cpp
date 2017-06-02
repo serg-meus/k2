@@ -25,7 +25,7 @@ k2chess::k2chess() :
             { 1,  1, -1, -1,  0,  0,  0,  0},  // bishop
             { 2,  1, -1, -2, -2, -1,  1,  2},  // knight
         },
-       slider{false, false, true, true, true, false, false},
+       is_slider{false, false, true, true, true, false, false},
        pc_streng{0, 0, 12, 6, 4, 4, 1},
        streng{0, 15000, 120, 60, 40, 40, 10},
        sort_streng{0, 15000, 120, 60, 41, 39, 10}
@@ -78,12 +78,12 @@ void k2chess::InitAttacks()
 void k2chess::InitAttacksOnePiece(const shifts_t col, const shifts_t row)
 {
     const auto coord = get_coord(col, row);
-    const auto type = get_index(b[coord]);
-    if(type == get_index(black_pawn))
+    const auto type = get_piece_type(b[coord]);
+    if(type == get_piece_type(black_pawn))
     {
         return;
     }
-    const auto max_len = slider[type] ?
+    const auto max_len = is_slider[type] ?
                std::max((size_t) board_height, (size_t) board_width) : 1;
     const auto color = get_piece_color(b[coord]);
     for(auto ray = 0; ray < rays[type]; ray++)
@@ -128,33 +128,6 @@ void k2chess::UpdateAttacksOnePiece()
 
 
 //--------------------------------
-size_t k2chess::test_count_attacked_squares(side_to_move_t stm)
-{
-    size_t ans = 0;
-    for(auto it : attacks[stm])
-        if(it != 0)
-            ans++;
-    return ans;
-}
-
-
-
-
-
-//--------------------------------
-size_t k2chess::test_count_all_attacks(side_to_move_t stm)
-{
-    size_t ans = 0;
-    for(auto it : attacks[stm])
-        ans += std::bitset<32>(it).count();
-    return ans;
-}
-
-
-
-
-
-//--------------------------------
 void k2chess::SortPieceLists()
 {
     side_to_move_t sides[] = {black, white};
@@ -174,8 +147,8 @@ void k2chess::SortPieceLists()
                 const auto nxt_coord = *nxt_iter;
                 const auto cur_piece = b[cur_coord];
                 const auto nxt_piece = b[nxt_coord];
-                const auto cur_streng = sort_streng[get_index(cur_piece)];
-                const auto nxt_streng = sort_streng[get_index(nxt_piece)];
+                const auto cur_streng = sort_streng[get_piece_type(cur_piece)];
+                const auto nxt_streng = sort_streng[get_piece_type(nxt_piece)];
                 if(cur_streng > nxt_streng)
                 {
                     coords[stm].move_element(cur_iter, nxt_iter);
@@ -191,8 +164,8 @@ void k2chess::SortPieceLists()
         {
             auto nx = it;
             ++nx;
-            assert(sort_streng[get_index(b[*nx])] >=
-                   sort_streng[get_index(b[*it])]);
+            assert(sort_streng[get_piece_type(b[*nx])] >=
+                   sort_streng[get_piece_type(b[*it])]);
         }
 #endif //NDEBUG
     }// for(auto stm : sides)
@@ -211,7 +184,10 @@ bool k2chess::InitPieceLists()
         if(b[i] == empty_square)
             continue;
         coords[get_piece_color(b[i])].push_back(i);
-        quantity[get_piece_color(b[i])][get_index(to_black(b[i]))]++;
+
+        const auto color = get_piece_color(b[i]);
+        const auto type = get_piece_type(to_black(b[i]));
+        quantity[color][type]++;
     }
 
     SortPieceLists();
@@ -262,7 +238,7 @@ char* k2chess::ParseMainPartOfFen(char *ptr)
                 auto piece = pcs[index];
                 b[get_coord(col, row)] = piece;
                 auto color = get_piece_color(piece);
-                material[color] += pc_streng[get_index(piece)];
+                material[color] += pc_streng[get_piece_type(piece)];
                 pieces[color]++;
             }
             ptr++;
@@ -317,8 +293,7 @@ char *k2chess::ParseCastlingRightsInFen(char *ptr)
         if(index >= max_index)
             return nullptr;
         if(b[get_coord(k_col, k_row[index])] == k_piece[index] &&
-                b[get_coord(r_col[index], r_row[index])]
-                == r_piece[index])
+                b[get_coord(r_col[index], r_row[index])] == r_piece[index])
             castling_rights |= cstl_code[index];
         ptr++;
     }
@@ -353,8 +328,9 @@ char* k2chess::ParseEnPassantInFen(char *ptr)
 
 
 //--------------------------------
-bool k2chess::SetupPosition(char *ptr)
+bool k2chess::SetupPosition(const char *fen)
 {
+    char *ptr = const_cast<char *>(fen);
     material[black] = 0;
     material[white] = 0;
     pieces[black] = 0;
@@ -529,7 +505,8 @@ bool k2chess::MakeEnPassantOrUpdateFlags(const move_c m,
 //-----------------------------
 bool k2chess::PieceListCompare(const coord_t men1, const coord_t men2)
 {
-    return sort_streng[get_index(b[men1])] > sort_streng[get_index(b[men2])];
+    return sort_streng[get_piece_type(b[men1])] >
+            sort_streng[get_piece_type(b[men2])];
 }
 
 
@@ -561,11 +538,11 @@ void k2chess::MakeCapture(const move_c move)
     {
         to_coord += wtm ? -board_width : board_width;
         material[!wtm]--;
-        quantity[!wtm][get_index(black_pawn)]--;
+        quantity[!wtm][get_piece_type(black_pawn)]--;
     }
     else
     {
-        const auto piece_index = get_index(state[ply].captured_piece);
+        const auto piece_index = get_piece_type(state[ply].captured_piece);
         material[!wtm] -= pc_streng[piece_index];
         quantity[!wtm][piece_index]--;
     }
@@ -596,10 +573,10 @@ void k2chess::MakePromotion(const move_c move, iterator it)
 
     const auto piece = pcs[piece_num];
     b[move.to_coord] = set_piece_color(piece, !wtm);
-    material[wtm] += pc_streng[get_index(piece)]
-                     - pc_streng[get_index(black_pawn)];
-    quantity[wtm][get_index(black_pawn)]--;
-    quantity[wtm][get_index(piece)]++;
+    material[wtm] += pc_streng[get_piece_type(piece)]
+                     - pc_streng[get_piece_type(black_pawn)];
+    quantity[wtm][get_piece_type(black_pawn)]--;
+    quantity[wtm][get_piece_type(piece)]++;
     state[ply].nprom = ++it;
     --it;
     coords[wtm].move_element(king_coord[wtm], it);
@@ -663,7 +640,7 @@ void k2chess::UnmakeCapture(const move_c move)
     if(move.flag & is_en_passant)
     {
         material[!wtm]++;
-        quantity[!wtm][get_index(black_pawn)]++;
+        quantity[!wtm][get_piece_type(black_pawn)]++;
         if(wtm)
         {
             b[move.to_coord - board_width] = black_pawn;
@@ -677,7 +654,7 @@ void k2chess::UnmakeCapture(const move_c move)
     }
     else
     {
-        const auto capt_index = get_index(state[ply].captured_piece);
+        const auto capt_index = get_piece_type(state[ply].captured_piece);
         material[!wtm] += pc_streng[capt_index];
         quantity[!wtm][capt_index]++;
     }
@@ -701,10 +678,10 @@ void k2chess::UnmakePromotion(const move_c move)
     auto before_king = king_coord[wtm];
     --before_king;
     coords[wtm].move_element(it_prom, before_king);
-    const auto piece_index = get_index(pcs[piece_num]);
+    const auto piece_index = get_piece_type(pcs[piece_num]);
     material[wtm] -= pc_streng[piece_index]
-                     - pc_streng[get_index(black_pawn)];
-    quantity[wtm][get_index(black_pawn)]++;
+                     - pc_streng[get_piece_type(black_pawn)];
+    quantity[wtm][get_piece_type(black_pawn)]++;
     quantity[wtm][piece_num]--;
 }
 
@@ -749,6 +726,33 @@ void k2chess::UnMoveFast(const move_c move)
 
 
 //--------------------------------
+size_t k2chess::test_count_attacked_squares(side_to_move_t stm)
+{
+    size_t ans = 0;
+    for(auto it : attacks[stm])
+        if(it != 0)
+            ans++;
+    return ans;
+}
+
+
+
+
+
+//--------------------------------
+size_t k2chess::test_count_all_attacks(side_to_move_t stm)
+{
+    size_t ans = 0;
+    for(auto it : attacks[stm])
+        ans += std::bitset<32>(it).count();
+    return ans;
+}
+
+
+
+
+
+//--------------------------------
 void k2chess::test_attack_tables(size_t att_w, size_t att_b,
                         size_t all_w, size_t all_b)
 {
@@ -770,16 +774,14 @@ void k2chess::test_attack_tables(size_t att_w, size_t att_b,
 //--------------------------------
 void k2chess::RunUnitTests()
 {
-    const char *fen;
     InitChess();
     test_attack_tables(18, 18, 24, 24);
 
-    fen = "4k3/8/5n2/5n2/8/8/8/3RK3 w - - 0 1";
-    assert(SetupPosition((char *)fen));
+    assert(SetupPosition("4k3/8/5n2/5n2/8/8/8/3RK3 w - - 0 1"));
     test_attack_tables(15, 19, 16, 21);
 
-    fen = "4rrk1/p4q2/1p2b3/1n6/1N6/1P2B3/P4Q2/4RRK1 w - - 0 1";
-    assert(SetupPosition((char *)fen));
+    assert(SetupPosition(
+               "4rrk1/p4q2/1p2b3/1n6/1N6/1P2B3/P4Q2/4RRK1 w - - 0 1"));
     test_attack_tables(33, 33, 48, 48);
 
     InitChess();
