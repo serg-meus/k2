@@ -15,6 +15,7 @@ public:
 
     k2chess();
     bool SetupPosition(const char *fen);
+    bool MakeMove(const char* str);
     void RunUnitTests();
 
 
