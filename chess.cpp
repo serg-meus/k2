@@ -441,11 +441,7 @@ bool k2chess::MakeCastleOrUpdateFlags(const move_c move,
         const auto col = default_king_col - cstl_move_length + 1;
         rook_to_coord = get_coord(col, row);
     }
-    auto it = coords[wtm].begin();
-    for(; it != coords[wtm].end(); ++it)
-        if(*it == rook_from_coord)
-            break;
-
+    auto it = find_piece(wtm, rook_from_coord);
     state[ply].castled_rook_it = it;
     b[rook_to_coord] = b[rook_from_coord];
     b[rook_from_coord] = empty_square;
@@ -546,13 +542,7 @@ void k2chess::MakeCapture(const move_c move)
         material[!wtm] -= pc_streng[piece_index];
         quantity[!wtm][piece_index]--;
     }
-
-    auto it_cap = coords[!wtm].begin();
-    const auto it_end = coords[!wtm].end();
-    for(; it_cap != it_end; ++it_cap)
-        if(*it_cap == to_coord)
-            break;
-    assert(it_cap != it_end);
+    auto it_cap = find_piece(!wtm, to_coord);
     state[ply].captured_it = it_cap;
     coords[!wtm].erase(it_cap);
     pieces[!wtm]--;
@@ -719,6 +709,23 @@ void k2chess::UnMoveFast(const move_c move)
 #ifndef NDEBUG
     cur_moves[5*ply] = '\0';
 #endif // NDEBUG
+}
+
+
+
+
+
+//--------------------------------
+k2chess::iterator k2chess::find_piece(const side_to_move_t stm,
+                                      const coord_t coord)
+{
+    auto it = coords[stm].begin();
+    const auto it_end = coords[stm].end();
+    for(; it != it_end; ++it)
+        if(*it == coord)
+            break;
+    assert(it != it_end);
+    return it;
 }
 
 
