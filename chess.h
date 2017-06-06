@@ -34,10 +34,6 @@ protected:
     typedef u8 piece_t;
     typedef u8 coord_t;
 
-    const static i32 lst_sz = 32;  // piece list capacity for each side
-
-    typedef short_list<coord_t, lst_sz>::iterator_entity iterator_entity;
-    typedef short_list<coord_t, lst_sz>::iterator iterator;
     typedef i16 streng_t;
     typedef u8 move_flag_t;
     typedef u8 piece_index_t;
@@ -52,15 +48,52 @@ protected:
     typedef i16 tropism_t;
     typedef u8 side_to_move_t;
 
+    class k2list : public short_list<coord_t, 16>
+    {
 
-protected:
+    public:
 
+        piece_t *board;
+        streng_t *streng;
+        coord_t get_piece_type(piece_t piece)  // must be as in k2chess class
+        {
+            return piece/sides;
+        }
+
+        void sort()
+        {
+            bool replaced = true;
+            if(this->size() <= 1)
+                return;
+
+            while(replaced)
+            {
+                replaced = false;
+                iterator it;
+                for(it = this->begin(); it != --(this->end()); ++it)
+                {
+                    iterator it_nxt = it;
+                    ++it_nxt;
+                    auto s_it = streng[get_piece_type(board[*it])];
+                    auto s_nxt = streng[get_piece_type(board[*it_nxt])];
+                    if(s_it > s_nxt)
+                    {
+                        this->move_element(it, it_nxt);
+                        replaced = true;
+                        it = it_nxt;
+                    }// if(less_foo(
+                }// for(it
+            }// while(replaced
+        }
+    };
+    typedef k2list::iterator_entity iterator_entity;
+    typedef k2list::iterator iterator;
 
     const static depth_t max_ply = 100;  // maximum search depth
     const static coord_t board_width = 8;
     const static coord_t board_height = 8;
     const static u8 sides = 2;  // black and white
-    const static u8 piece_types = 6;  // pawns, knights, bishops, rooks, queens, kings
+    const static u8 piece_types = 6;  // pawns, knights, ...
     const static piece_t white = 1;
     const static piece_t black = 0;
     const static depth_t prev_states = 4;
@@ -161,7 +194,7 @@ protected:
 
     side_to_move_t wtm;  // side to move, k2chess::white or k2chess::black
     piece_t b[board_width*board_height];  // array representing the chess board
-    short_list<coord_t, lst_sz> coords[sides];  // black/white piece coordinates
+    k2list coords[sides];  // black/white piece coordinates
 
     // two tables for each color with all attacks
     attack_t attacks[sides][board_width*board_height];

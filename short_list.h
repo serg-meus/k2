@@ -6,7 +6,7 @@
 // compliant with std::list and can't be used instead.
 // Main differences:
 // - maximum capacity is 255 elements;
-// - ability to store iterator as one byte;
+// - ability to store iterator as one element of type 'unsigned char';
 // - methods for change position of elements within list;
 // - methods for restore erased elements.
 
@@ -18,12 +18,12 @@
  #include "short_list.h"
  #include <iostream>
 
- short_list<int, 4> lst;                                                // create container which consists of 4 elements of type int
+ short_list<int, 4> lst;  // create container consists of 4 'int' elements
 
  for(int i = 0; i < 4; ++i)
     lst.push_front(i);
 
- for(auto &it : lst)                                                    // for C++11
+ for(auto &it : lst)  // for C++11
  {
     it += 1;
     std::cout << it << endl;
@@ -31,17 +31,17 @@
 
 */
 
-// Version: 2.0.2
+// Version: 2.1.0
 // Author: Sergey Meus (serg_meus@mail.ru),
 // Krasnoyarsk Kray, Russia
-// Copyright 2014
+// Copyright 2017
 
 
 
 
 
 //--------------------------------
-template <class T, int n>
+template <class T, int n = 255>
 class short_list
 {
 ///////

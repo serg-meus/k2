@@ -42,6 +42,10 @@ void k2chess::InitChess()
     cv = cur_moves;
     memset(b_state, 0, sizeof(b_state));
     state = &b_state[prev_states];
+    coords[black].board = b;
+    coords[black].streng = sort_streng;
+    coords[white].board = b;
+    coords[white].streng = sort_streng;
 
     InitBoard();
 }
@@ -128,53 +132,6 @@ void k2chess::UpdateAttacksOnePiece()
 
 
 //--------------------------------
-void k2chess::SortPieceLists()
-{
-    side_to_move_t sides[] = {black, white};
-    for(auto stm : sides)
-    {
-        bool replaced = true;
-        while(replaced)
-        {
-            replaced = false;
-            for(auto cur_iter = coords[stm].begin();
-                    cur_iter != --(coords[stm].end());
-                    ++cur_iter)
-            {
-                auto nxt_iter = cur_iter;
-                ++nxt_iter;
-                const auto cur_coord = *cur_iter;
-                const auto nxt_coord = *nxt_iter;
-                const auto cur_piece = b[cur_coord];
-                const auto nxt_piece = b[nxt_coord];
-                const auto cur_streng = sort_streng[get_piece_type(cur_piece)];
-                const auto nxt_streng = sort_streng[get_piece_type(nxt_piece)];
-                if(cur_streng > nxt_streng)
-                {
-                    coords[stm].move_element(cur_iter, nxt_iter);
-                    cur_iter = nxt_iter;
-                    replaced = true;
-                }
-            }// for(auto cur_iter
-        }// while(replaced)
-#ifndef NDEBUG
-        for(auto it = coords[stm].begin();
-                it != --(coords[stm].end());
-                ++it)
-        {
-            auto nx = it;
-            ++nx;
-            assert(sort_streng[get_piece_type(b[*nx])] >=
-                   sort_streng[get_piece_type(b[*it])]);
-        }
-#endif //NDEBUG
-    }// for(auto stm : sides)
-}
-
-
-
-
-//--------------------------------
 bool k2chess::InitPieceLists()
 {
     coords[black].clear();
@@ -190,7 +147,8 @@ bool k2chess::InitPieceLists()
         quantity[color][type]++;
     }
 
-    SortPieceLists();
+    coords[black].sort();
+    coords[white].sort();
 
     return true;
 }
