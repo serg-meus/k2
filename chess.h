@@ -212,6 +212,11 @@ protected:
         return (board_width*row) + col;
     }
 
+    coord_t get_coord(const char *str)
+    {
+        return get_coord(str[0] - 'a', str[1] - '1');
+    }
+
     coord_t get_col(coord_t coord)
     {
         assert((board_height & (board_height - 1)) == 0);

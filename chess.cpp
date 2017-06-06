@@ -740,17 +740,15 @@ bool k2chess::MakeMove(const char* str)
     const auto len = strlen(str);
     if(len < 4 || len > 5)  // only notation like 'g1f3', 'e7e8q' supported
         return false;
-    const auto col_fr = str[0] - 'a';
-    const auto row_fr = str[1] - '1';
-    const auto it = find_piece(wtm, get_coord(col_fr, row_fr));
+
+    const auto it = find_piece(wtm, get_coord(str));
     if(it == coords[wtm].end())
         return false;
-    const auto col_to = str[2] - 'a';
-    const auto row_to = str[3] - '1';
 
     move_c move;
-    move.to_coord = get_coord(col_to, row_to);
+    move.to_coord = get_coord(&str[2]);
     move.piece_iterator = it;
+    move.flag = 0;
 
     MkMoveFast(move);
 
@@ -825,19 +823,19 @@ void k2chess::RunUnitTests()
     assert(wtm == white);
 
     assert(MakeMove("e2e4"));
-    assert(b[get_coord(4, 1)] == empty_square);
-    assert(b[get_coord(4, 3)] == white_pawn);
+    assert(b[get_coord("e2")] == empty_square);
+    assert(b[get_coord("e4")] == white_pawn);
     assert(ply == 1);
     assert(wtm == black);
 
     assert(MakeMove("b8c6"));
-    assert(b[get_coord(1, 7)] == empty_square);
-    assert(b[get_coord(2, 5)] == black_knight);
+    assert(b[get_coord("b8")] == empty_square);
+    assert(b[get_coord("c6")] == black_knight);
     assert(ply == 2);
     assert(wtm == white);
 
     assert(MakeMove("f1c4"));
-    assert(b[get_coord(5, 0)] == empty_square);
-    assert(b[get_coord(2, 3)] == white_bishop);
+    assert(b[get_coord("f1")] == empty_square);
+    assert(b[get_coord("c4")] == white_bishop);
 
 }
