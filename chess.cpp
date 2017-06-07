@@ -401,6 +401,7 @@ bool k2chess::MakeCastleOrUpdateFlags(const move_c move,
         rook_to_coord = get_coord(col, row);
     }
     auto it = find_piece(wtm, rook_from_coord);
+    assert(it != coords[wtm].end());
     state[ply].castled_rook_it = it;
     b[rook_to_coord] = b[rook_from_coord];
     b[rook_from_coord] = empty_square;
@@ -432,24 +433,24 @@ void k2chess::UnMakeCastle(const move_c move)
 
 
 //--------------------------------
-bool k2chess::MakeEnPassantOrUpdateFlags(const move_c m,
+bool k2chess::MakeEnPassantOrUpdateFlags(const move_c move,
                                          const coord_t from_coord)
 {
-    const shifts_t delta = get_row(m.to_coord) - get_row(from_coord);
+    const shifts_t delta = get_row(move.to_coord) - get_row(from_coord);
     if(std::abs(delta) == 2)
     {
-        bool opp_pawn_is_near = get_col(m.to_coord) < board_width - 1 &&
-                b[m.to_coord + 1] == set_piece_color(black_pawn, !wtm);
-        opp_pawn_is_near |= get_col(m.to_coord) > 0 &&
-                b[m.to_coord - 1] == set_piece_color(black_pawn, !wtm);
+        bool opp_pawn_is_near = get_col(move.to_coord) < board_width - 1 &&
+                b[move.to_coord + 1] == set_piece_color(black_pawn, !wtm);
+        opp_pawn_is_near |= get_col(move.to_coord) > 0 &&
+                b[move.to_coord - 1] == set_piece_color(black_pawn, !wtm);
         if(opp_pawn_is_near)
         {
-            state[ply].ep = get_col(m.to_coord) + 1;
+            state[ply].ep = get_col(move.to_coord) + 1;
             return true;
         }
     }
-    else if(m.flag & is_en_passant)
-        b[m.to_coord + (wtm ? -board_width : board_width)] = empty_square;
+    else if(move.flag & is_en_passant)
+        b[move.to_coord + (wtm ? -board_width : board_width)] = empty_square;
     return false;
 }
 
@@ -502,6 +503,7 @@ void k2chess::MakeCapture(const move_c move)
         quantity[!wtm][piece_index]--;
     }
     auto it_cap = find_piece(!wtm, to_coord);
+    assert(it_cap != coords[!wtm].end());
     state[ply].captured_it = it_cap;
     coords[!wtm].erase(it_cap);
     pieces[!wtm]--;
@@ -681,7 +683,6 @@ k2chess::iterator k2chess::find_piece(const side_to_move_t stm,
     for(; it != it_end; ++it)
         if(*it == coord)
             break;
-    assert(it != it_end);
     return it;
 }
 
