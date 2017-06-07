@@ -46,7 +46,6 @@ protected:
     typedef u8 priority_t;
     typedef i16 score_t;
     typedef i16 tropism_t;
-    typedef u8 side_to_move_t;
 
     class k2list : public short_list<coord_t, 16>
     {
@@ -94,8 +93,8 @@ protected:
     const static coord_t board_height = 8;
     const static u8 sides = 2;  // black and white
     const static u8 piece_types = 6;  // pawns, knights, ...
-    const static piece_t white = 1;
-    const static piece_t black = 0;
+    const static bool white = true;
+    const static bool black = false;
     const static depth_t prev_states = 4;
 
     const static piece_t
@@ -200,7 +199,7 @@ protected:
         // kings for black and white
     };
 
-    side_to_move_t wtm;  // side to move, k2chess::white or k2chess::black
+    bool wtm;  // side to move, k2chess::white or k2chess::black
     piece_t b[board_width*board_height];  // array representing the chess board
     k2list coords[sides];  // black/white piece coordinates
 
@@ -246,7 +245,7 @@ protected:
     void InitChess();
     bool MkMoveFast(const move_c m);
     void UnMoveFast(const move_c m);
-    iterator find_piece(const side_to_move_t stm, const coord_t coord);
+    iterator find_piece(const bool stm, const coord_t coord);
     move_flag_t InitMoveFlag(const move_c move, char promo_to);
 
     coord_t get_coord(coord_t col, coord_t row)
@@ -290,11 +289,11 @@ protected:
         return row >= 0 && row < board_height;
     }
 
-    side_to_move_t get_piece_color(piece_t piece)
+    bool get_piece_color(piece_t piece)
     {
         return piece & white;
     }
-    piece_t set_piece_color(piece_t piece, side_to_move_t stm)
+    piece_t set_piece_color(piece_t piece, bool stm)
     {
         return (piece & ~white) | stm;
     }
@@ -323,8 +322,8 @@ private:
     char* ParseSideToMoveInFen(char *ptr);
     char* ParseCastlingRightsInFen(char *ptr);
     char* ParseEnPassantInFen(char *ptr);
-    size_t test_count_attacked_squares(side_to_move_t stm);
-    size_t test_count_all_attacks(side_to_move_t stm);
+    size_t test_count_attacked_squares(bool stm);
+    size_t test_count_all_attacks(bool stm);
     void test_attack_tables(size_t att_w, size_t att_b,
                             size_t all_w, size_t all_b);
 };

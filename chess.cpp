@@ -68,7 +68,7 @@ void k2chess::InitBoard()
 void k2chess::InitAttacks()
 {
     memset(attacks, 0, sizeof(attacks));
-    side_to_move_t sides[] = {black, white};
+    bool sides[] = {black, white};
     for(auto stm : sides)
         for(auto it = coords[stm].rbegin(); it != coords[stm].rend(); ++it)
             InitAttacksOnePiece(get_col(*it), get_row(*it));
@@ -675,7 +675,7 @@ void k2chess::UnMoveFast(const move_c move)
 
 
 //--------------------------------
-k2chess::iterator k2chess::find_piece(const side_to_move_t stm,
+k2chess::iterator k2chess::find_piece(const bool stm,
                                       const coord_t coord)
 {
     auto it = coords[stm].begin();
@@ -761,7 +761,7 @@ k2chess::move_flag_t k2chess::InitMoveFlag(const move_c move, char promo_to)
 
 
 //--------------------------------
-size_t k2chess::test_count_attacked_squares(side_to_move_t stm)
+size_t k2chess::test_count_attacked_squares(bool stm)
 {
     size_t ans = 0;
     for(auto it : attacks[stm])
@@ -775,7 +775,7 @@ size_t k2chess::test_count_attacked_squares(side_to_move_t stm)
 
 
 //--------------------------------
-size_t k2chess::test_count_all_attacks(side_to_move_t stm)
+size_t k2chess::test_count_all_attacks(bool stm)
 {
     size_t ans = 0;
     for(auto it : attacks[stm])
