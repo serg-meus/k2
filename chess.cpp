@@ -387,7 +387,7 @@ bool k2chess::MakeCastleOrUpdateFlags(const move_c move,
         return castling_rights_changed;
 
     coord_t rook_from_coord, rook_to_coord;
-    const auto row = wtm ? 0 : 7;
+    const auto row = wtm ? 0 : board_height - 1;
     if(move.flag == is_right_castle)
     {
         rook_from_coord = get_coord(board_width - 1, row);
@@ -878,4 +878,34 @@ void k2chess::RunUnitTests()
     assert(pieces[white] == 16);
     assert(pieces[black] == 15);
     assert(find_piece(black, get_coord("d5")) == coords[black].end());
+
+    assert(SetupPosition("r3k2r/ppp2ppp/8/8/8/8/PPP2PPP/R3K2R w KQkq - 0 1"));
+    assert(MakeMove("e1g1"));
+    assert(b[get_coord("e1")] == empty_square);
+    assert(b[get_coord("g1")] == white_king);
+    assert(b[get_coord("h1")] == empty_square);
+    assert(b[get_coord("f1")] == white_rook);
+    assert(reversible_moves == 0);
+
+    assert(MakeMove("e8c8"));
+    assert(b[get_coord("e8")] == empty_square);
+    assert(b[get_coord("c8")] == black_king);
+    assert(b[get_coord("a8")] == empty_square);
+    assert(b[get_coord("d8")] == black_rook);
+    assert(reversible_moves == 0);
+
+    assert(SetupPosition("r3k2r/ppp2ppp/8/8/8/8/PPP2PPP/R3K2R w KQkq - 0 1"));
+    assert(MakeMove("e1c1"));
+    assert(b[get_coord("e1")] == empty_square);
+    assert(b[get_coord("c1")] == white_king);
+    assert(b[get_coord("a1")] == empty_square);
+    assert(b[get_coord("d1")] == white_rook);
+    assert(reversible_moves == 0);
+
+    assert(MakeMove("e8g8"));
+    assert(b[get_coord("e8")] == empty_square);
+    assert(b[get_coord("g8")] == black_king);
+    assert(b[get_coord("h8")] == empty_square);
+    assert(b[get_coord("f8")] == black_rook);
+    assert(reversible_moves == 0);
 }
