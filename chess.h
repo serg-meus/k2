@@ -134,6 +134,14 @@ protected:
     const coord_t default_king_col = 4;
     const shifts_t cstl_move_length = 2;
 
+    const piece_t
+    pawn = get_piece_type(black_pawn),
+    bishop = get_piece_type(black_bishop),
+    knight = get_piece_type(black_knight),
+    rook = get_piece_type(black_rook),
+    queen = get_piece_type(black_queen),
+    king = get_piece_type(black_king);
+
 // Class representing move
     class move_c
     {
@@ -318,5 +326,4 @@ private:
     size_t test_count_all_attacks(side_to_move_t stm);
     void test_attack_tables(size_t att_w, size_t att_b,
                             size_t all_w, size_t all_b);
-    void SortPieceLists();
 };

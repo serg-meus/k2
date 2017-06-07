@@ -83,7 +83,7 @@ void k2chess::InitAttacksOnePiece(const shifts_t col, const shifts_t row)
 {
     const auto coord = get_coord(col, row);
     const auto type = get_piece_type(b[coord]);
-    if(type == get_piece_type(black_pawn))
+    if(type == pawn)
     {
         return;
     }
@@ -493,7 +493,7 @@ void k2chess::MakeCapture(const move_c move)
     {
         to_coord += wtm ? -board_width : board_width;
         material[!wtm]--;
-        quantity[!wtm][get_piece_type(black_pawn)]--;
+        quantity[!wtm][pawn]--;
     }
     else
     {
@@ -522,9 +522,8 @@ void k2chess::MakePromotion(const move_c move, iterator it)
 
     const auto piece = pcs[piece_num];
     b[move.to_coord] = set_piece_color(piece, !wtm);
-    material[wtm] += pc_streng[get_piece_type(piece)]
-                     - pc_streng[get_piece_type(black_pawn)];
-    quantity[wtm][get_piece_type(black_pawn)]--;
+    material[wtm] += pc_streng[get_piece_type(piece)] - pc_streng[pawn];
+    quantity[wtm][pawn]--;
     quantity[wtm][get_piece_type(piece)]++;
     state[ply].nprom = ++it;
     --it;
@@ -589,7 +588,7 @@ void k2chess::UnmakeCapture(const move_c move)
     if(move.flag & is_en_passant)
     {
         material[!wtm]++;
-        quantity[!wtm][get_piece_type(black_pawn)]++;
+        quantity[!wtm][pawn]++;
         if(wtm)
         {
             b[move.to_coord - board_width] = black_pawn;
@@ -628,9 +627,8 @@ void k2chess::UnmakePromotion(const move_c move)
     --before_king;
     coords[wtm].move_element(it_prom, before_king);
     const auto piece_index = get_piece_type(pcs[piece_num]);
-    material[wtm] -= pc_streng[piece_index]
-                     - pc_streng[get_piece_type(black_pawn)];
-    quantity[wtm][get_piece_type(black_pawn)]++;
+    material[wtm] -= pc_streng[piece_index] - pc_streng[pawn];
+    quantity[wtm][pawn]++;
     quantity[wtm][piece_num]--;
 }
 
