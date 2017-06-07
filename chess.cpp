@@ -810,6 +810,18 @@ void k2chess::test_attack_tables(size_t att_w, size_t att_b,
 void k2chess::RunUnitTests()
 {
     InitChess();
+    assert(b[*coords[white].begin()] == white_pawn);
+    assert(b[*(--coords[white].end())] == white_king);
+    assert(b[*coords[white].rbegin()] == white_king);
+    assert(b[*(--coords[white].rend())] == white_pawn);
+    assert(b[*coords[black].begin()] == black_pawn);
+    assert(b[*(--coords[black].end())] == black_king);
+    assert(b[*coords[black].rbegin()] == black_king);
+    assert(b[*(--coords[black].rend())] == black_pawn);
+    assert(*king_coord[white] == get_coord(default_king_col, 0));
+    assert(*king_coord[black] ==
+           get_coord(default_king_col, board_height - 1));
+
     test_attack_tables(18, 18, 24, 24);
 
     assert(SetupPosition("4k3/8/5n2/5n2/8/8/8/3RK3 w - - 0 1"));
@@ -865,4 +877,5 @@ void k2chess::RunUnitTests()
     assert(material[black] == 47);
     assert(pieces[white] == 16);
     assert(pieces[black] == 15);
+    assert(find_piece(black, get_coord("d5")) == coords[black].end());
 }
