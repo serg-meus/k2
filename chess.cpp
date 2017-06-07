@@ -838,10 +838,30 @@ void k2chess::RunUnitTests()
 
     assert(MakeMove("f1c4"));
     assert(b[get_coord("f1")] == empty_square);
+    assert(b[get_coord("e2")] == empty_square);
+    assert(b[get_coord("d3")] == empty_square);
     assert(b[get_coord("c4")] == white_bishop);
+    assert(reversible_moves == 2);
 
     assert(MakeMove("e7e6"));
     assert(b[get_coord("e7")] == empty_square);
     assert(b[get_coord("e6")] == black_pawn);
     assert(reversible_moves == 0);
+
+    assert(MakeMove("d2d4"));
+    assert(MakeMove("f8e7"));
+    assert(MakeMove("e4e5"));
+    assert(MakeMove("d7d5"));
+    assert(MakeMove("e5d6"));
+    assert(b[get_coord("e5")] == empty_square);
+    assert(b[get_coord("d6")] == white_pawn);
+    assert(b[get_coord("d5")] == empty_square);
+    assert(ply == 9);
+    assert(reversible_moves == 0);
+    assert(quantity[white][pawn] == 8);
+    assert(quantity[black][pawn] == 7);
+    assert(material[white] == 48);
+    assert(material[black] == 47);
+    assert(pieces[white] == 16);
+    assert(pieces[black] == 15);
 }
