@@ -783,15 +783,21 @@ void k2chess::RunUnitTests()
     assert(b[get_coord("e4")] == white_pawn);
     assert(ply == 1);
     assert(wtm == black);
+    assert(reversible_moves == 0);
 
     assert(MakeMove("b8c6"));
     assert(b[get_coord("b8")] == empty_square);
     assert(b[get_coord("c6")] == black_knight);
     assert(ply == 2);
     assert(wtm == white);
+    assert(reversible_moves == 1);
 
     assert(MakeMove("f1c4"));
     assert(b[get_coord("f1")] == empty_square);
     assert(b[get_coord("c4")] == white_bishop);
 
+    assert(MakeMove("e7e6"));
+    assert(b[get_coord("e7")] == empty_square);
+    assert(b[get_coord("e6")] == black_pawn);
+    assert(reversible_moves == 0);
 }
