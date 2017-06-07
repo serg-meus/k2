@@ -704,11 +704,55 @@ bool k2chess::MakeMove(const char* str)
     move_c move;
     move.to_coord = get_coord(&str[2]);
     move.piece_iterator = it;
-    move.flag = 0;
+    move.flag = InitMoveFlag(move, str[4]);
 
     MkMoveFast(move);
 
     return true;
+}
+
+
+
+
+//--------------------------------
+k2chess::move_flag_t k2chess::InitMoveFlag(const move_c move, char promo_to)
+{
+    move_flag_t ans = 0;
+    auto it = coords[wtm].begin();
+    it = move.piece_iterator;
+    const auto from_coord = *it;
+    const auto piece = get_piece_type(b[from_coord]);
+    if(b[move.to_coord] != empty_square
+            && get_piece_color(b[from_coord])
+            != get_piece_color(b[move.to_coord]))
+        ans |= is_capture;
+    if(piece == pawn && get_row(from_coord) == (wtm ? 6 : 2))
+    {
+        if(promo_to == 'q')
+            ans |= is_promotion_to_queen;
+        else if(promo_to == 'r')
+            ans |= is_promotion_to_rook;
+        else if(promo_to == 'b')
+            ans |= is_promotion_to_bishop;
+        else if(promo_to == 'n')
+            ans |= is_promotion_to_knight;
+    }
+    if(piece == pawn)
+    {
+        auto ep = b_state[prev_states + ply].ep;
+        auto delta = ep - 1 - get_col(from_coord);
+        if(ep && std::abs(delta) == 1 && get_row(from_coord) == (wtm ? 4 : 3))
+            ans |= is_en_passant | is_capture;
+    }
+    if(piece == king && get_col(*king_coord[wtm]) == default_king_col)
+    {
+        if(get_col(move.to_coord) == default_king_col + 2)
+            ans |= is_right_castle;
+        else if(get_col(move.to_coord) == default_king_col - 2)
+            ans |= is_left_castle;
+    }
+
+    return ans;
 }
 
 

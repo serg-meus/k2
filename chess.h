@@ -247,6 +247,7 @@ protected:
     bool MkMoveFast(const move_c m);
     void UnMoveFast(const move_c m);
     iterator find_piece(const side_to_move_t stm, const coord_t coord);
+    move_flag_t InitMoveFlag(const move_c move, char promo_to);
 
     coord_t get_coord(coord_t col, coord_t row)
     {
