@@ -187,9 +187,9 @@ char* k2chess::ParseMainPartOfFen(char *ptr)
         white_rook, white_bishop, white_knight, white_pawn
     };
 
-    for(auto row = board_height - 1; row >= 0; row--)
+    for(int row = max_row; row >= 0; row--)
     {
-        for(auto col = 0; col < board_width; col++)
+        for(int col = 0; col <= max_col; col++)
         {
             auto chr = *ptr - '0';
             if(chr >= 1 && chr <= board_width)
@@ -211,7 +211,7 @@ char* k2chess::ParseMainPartOfFen(char *ptr)
                     return nullptr;
                 if(to_black(pcs[index]) == black_pawn
                         && (row < pawn_default_row
-                            || row > board_width - 1 - pawn_default_row))
+                            || row > max_col - pawn_default_row))
                     return nullptr;
                 auto piece = pcs[index];
                 b[get_coord(col, row)] = piece;
@@ -256,9 +256,9 @@ char *k2chess::ParseCastlingRightsInFen(char *ptr)
     castle_t cstl_code[] = {white_can_castle_right, white_can_castle_left,
                             black_can_castle_right, black_can_castle_left, 0};
     coord_t k_col = default_king_col;
-    coord_t k_row[] = {0, 0, board_height - 1, board_height - 1};
-    coord_t r_col[] = {board_height - 1, 0, board_height - 1, 0};
-    coord_t r_row[] = {0, 0, board_height - 1, board_height - 1};
+    coord_t k_row[] = {0, 0, max_row, max_row};
+    coord_t r_col[] = {max_row, 0, max_row, 0};
+    coord_t r_row[] = {0, 0, max_row, max_row};
     piece_t k_piece[] = {white_king, white_king, black_king, black_king};
     piece_t r_piece[] = {white_rook, white_rook, black_rook, black_rook};
     const size_t max_index = sizeof(cstl_chr)/sizeof(*cstl_chr);
@@ -333,9 +333,9 @@ bool k2chess::MakeCastleOrUpdateFlags(const move_c move,
     {
         const auto col = get_col(from_coord);
         const auto row = get_row(from_coord);
-        if((wtm && row == 0) || (!wtm && row == board_width - 1))
+        if((wtm && row == 0) || (!wtm && row == max_col))
         {
-            if(col == board_width - 1)
+            if(col == max_col)
                 state[ply].cstl &= wtm ? ~white_can_castle_right :
                                          ~black_can_castle_right;
             else if(col == 0)
@@ -347,9 +347,9 @@ bool k2chess::MakeCastleOrUpdateFlags(const move_c move,
     {
         const auto col = get_col(move.to_coord);
         const auto row = get_row(from_coord);
-        if((wtm && row == board_width - 1) || (!wtm && row == 0))
+        if((wtm && row == max_col) || (!wtm && row == 0))
         {
-            if(col == board_width - 1)
+            if(col == max_col)
                 state[ply].cstl &= wtm ? ~black_can_castle_right :
                                          ~white_can_castle_right;
             else if(col == 0)
@@ -365,10 +365,10 @@ bool k2chess::MakeCastleOrUpdateFlags(const move_c move,
         return castling_rights_changed;
 
     coord_t rook_from_coord, rook_to_coord;
-    const auto row = wtm ? 0 : board_height - 1;
+    const auto row = wtm ? 0 : max_row;
     if(move.flag == is_right_castle)
     {
-        rook_from_coord = get_coord(board_width - 1, row);
+        rook_from_coord = get_coord(max_col, row);
         const auto col = default_king_col + cstl_move_length - 1;
         rook_to_coord = get_coord(col, row);
     }
@@ -400,7 +400,7 @@ void k2chess::UnMakeCastle(const move_c move)
     auto rook_iterator = coords[wtm].begin();
     rook_iterator = state[ply].castled_rook_it;
     const auto from_coord =*rook_iterator;
-    const auto to_coord = move.flag == is_right_castle ? board_width - 1 : 0;
+    const auto to_coord = move.flag == is_right_castle ? max_col : 0;
     b[to_coord] = b[from_coord];
     b[from_coord] = empty_square;
     *rook_iterator = to_coord;
@@ -417,7 +417,7 @@ bool k2chess::MakeEnPassantOrUpdateFlags(const move_c move,
     const shifts_t delta = get_row(move.to_coord) - get_row(from_coord);
     if(std::abs(delta) == pawn_long_move_length)
     {
-        bool opp_pawn_is_near = get_col(move.to_coord) < board_width - 1 &&
+        bool opp_pawn_is_near = get_col(move.to_coord) < max_col &&
                 b[move.to_coord + 1] == set_piece_color(black_pawn, !wtm);
         opp_pawn_is_near |= get_col(move.to_coord) > 0 &&
                 b[move.to_coord - 1] == set_piece_color(black_pawn, !wtm);
@@ -733,7 +733,7 @@ k2chess::move_flag_t k2chess::InitMoveFlag(const move_c move, char promo_to)
         const auto delta = (en_passant_state - 1) - get_col(from_coord);
         auto required_row = pawn_default_row + pawn_long_move_length;
         if(wtm)
-            required_row = board_height - 1 - required_row;
+            required_row = max_row - required_row;
         if(en_passant_state && std::abs(delta) == 1
                 && get_row(from_coord) == required_row)
             ans |= is_en_passant | is_capture;
@@ -813,7 +813,7 @@ void k2chess::RunUnitTests()
     assert(b[*(--coords[black].rend())] == black_pawn);
     assert(*king_coord[white] == get_coord(default_king_col, 0));
     assert(*king_coord[black] ==
-           get_coord(default_king_col, board_height - 1));
+           get_coord(default_king_col, max_row));
 
     test_attack_tables(18, 18, 24, 24);
 

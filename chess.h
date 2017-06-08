@@ -93,6 +93,8 @@ protected:
     const static bool white = true;
     const static bool black = false;
     const static depth_t prev_states = 4;
+    const static coord_t max_col = board_width - 1;
+    const static coord_t max_row = board_height - 1;
 
     const static piece_t
     empty_square = 0,
