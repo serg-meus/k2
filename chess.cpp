@@ -306,20 +306,18 @@ bool k2chess::SetupPosition(const char *fen)
         return false;
     if((ptr = ParseEnPassantInFen(ptr)) == nullptr)
         return false;
-
-    InitPieceLists();
-
     if(*(++ptr) && *(++ptr))  // set up number of reversible moves
         while(*ptr >= '0' && *ptr <= '9')
         {
             reversible_moves *= 10;
             reversible_moves += (*ptr++ - '0');
         }
-
+    InitPieceLists();
     king_coord[white] = --coords[white].end();
     king_coord[black] = --coords[black].end();
 
     InitAttacks();
+    done_moves.clear();
     return true;
 }
 
@@ -698,9 +696,28 @@ bool k2chess::MakeMove(const char* str)
         return false;
 
     MkMoveFast(move);
+    done_moves.push_back(move);
 
     return true;
 }
+
+
+
+
+
+//--------------------------------
+bool k2chess::TakebackMove()
+{
+    if(done_moves.size() == 0)
+        return false;
+
+    auto move = done_moves.back();
+    done_moves.pop_back();
+    UnMoveFast(move);
+
+    return true;
+}
+
 
 
 
@@ -906,19 +923,25 @@ void k2chess::RunUnitTests()
     assert(b[get_coord("f8")] == black_rook);
     assert(reversible_moves == 0);
 
-    assert(SetupPosition("2n1r3/3P4/7k/8/8/8/8/K7 w - - 0 1"));
+    assert(SetupPosition("2n1r3/3P4/7k/8/8/8/8/K7 w - - 4 1"));
     assert(MakeMove("d7d8q"));
     assert(b[get_coord("d7")] == empty_square);
     assert(b[get_coord("d8")] == white_queen);
     assert(reversible_moves == 0);
 
-    assert(SetupPosition("2n1r3/3P4/7k/8/8/8/8/K7 w - - 0 1"));
+    assert(TakebackMove());
+    assert(b[get_coord("d7")] == white_pawn);
+    assert(b[get_coord("d8")] == empty_square);
+    assert(reversible_moves == 4);
+
+    assert(!TakebackMove());
+
     assert(MakeMove("d7d8"));
     assert(b[get_coord("d7")] == empty_square);
     assert(b[get_coord("d8")] == white_queen);
     assert(reversible_moves == 0);
 
-    assert(SetupPosition("2n1r3/3P4/7k/8/8/8/8/K7 w - - 0 1"));
+    assert(TakebackMove());
     assert(MakeMove("d7e8b"));
     assert(b[get_coord("d7")] == empty_square);
     assert(b[get_coord("e8")] == white_bishop);
@@ -930,7 +953,7 @@ void k2chess::RunUnitTests()
     assert(b[get_coord("c1")] == black_rook);
     assert(reversible_moves == 0);
 
-    assert(SetupPosition("k7/8/8/8/8/7K/3p4/2N1R3 b - - 0 1"));
+    assert(TakebackMove());
     assert(MakeMove("d2c1n"));
     assert(b[get_coord("d2")] == empty_square);
     assert(b[get_coord("c1")] == black_knight);

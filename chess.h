@@ -4,6 +4,7 @@
 #include <cstdlib>
 #include <assert.h>
 #include <bitset>
+#include <vector>
 #include "short_list.h"
 
 
@@ -16,6 +17,7 @@ public:
     k2chess();
     bool SetupPosition(const char *fen);
     bool MakeMove(const char* str);
+    bool TakebackMove();
     void RunUnitTests();
 
 
@@ -234,6 +236,8 @@ protected:
     char *cv;  // current variation pointer (for debug mode only)
 
     iterator king_coord[sides];  // king coord iterators for black and white
+
+    std::vector<move_c> done_moves;
 
     void InitChess();
     bool MkMoveFast(const move_c m);
