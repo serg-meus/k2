@@ -30,15 +30,6 @@ k2chess::k2chess() :
        streng{0, 15000, 120, 60, 40, 40, 10},
        sort_streng{0, 15000, 120, 60, 41, 39, 10}
 {
-    InitChess();
-}
-
-
-
-
-//--------------------------------
-void k2chess::InitChess()
-{
     cv = cur_moves;
     memset(b_state, 0, sizeof(b_state));
     state = &b_state[prev_states];
@@ -47,17 +38,7 @@ void k2chess::InitChess()
     coords[white].board = b;
     coords[white].streng = sort_streng;
 
-    InitBoard();
-}
-
-
-
-
-
-//--------------------------------
-void k2chess::InitBoard()
-{
-    SetupPosition("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+    SetupPosition(start_position);
 }
 
 
@@ -127,6 +108,44 @@ void k2chess::UpdateAttacksOnePiece()
 
 }
 
+
+
+
+
+//--------------------------------
+bool k2chess::SetupPosition(const char *fen)
+{
+    char *ptr = const_cast<char *>(fen);
+    material[black] = 0;
+    material[white] = 0;
+    pieces[black] = 0;
+    pieces[white] = 0;
+    reversible_moves = 0;
+    memset(quantity, 0, sizeof(quantity));
+    ply = 0;
+
+    if((ptr = ParseMainPartOfFen(ptr)) == nullptr)
+        return false;
+    if((ptr = ParseSideToMoveInFen(ptr)) == nullptr)
+        return false;
+    if((ptr = ParseCastlingRightsInFen(ptr)) == nullptr)
+        return false;
+    if((ptr = ParseEnPassantInFen(ptr)) == nullptr)
+        return false;
+    if(*(++ptr) && *(++ptr))  // set up number of reversible moves
+        while(*ptr >= '0' && *ptr <= '9')
+        {
+            reversible_moves *= 10;
+            reversible_moves += (*ptr++ - '0');
+        }
+    InitPieceLists();
+    king_coord[white] = --coords[white].end();
+    king_coord[black] = --coords[black].end();
+
+    InitAttacks();
+    done_moves.clear();
+    return true;
+}
 
 
 
@@ -279,46 +298,6 @@ char* k2chess::ParseEnPassantInFen(char *ptr)
             state[0].ep = col + 1;
     }
     return ptr;
-}
-
-
-
-
-
-
-//--------------------------------
-bool k2chess::SetupPosition(const char *fen)
-{
-    char *ptr = const_cast<char *>(fen);
-    material[black] = 0;
-    material[white] = 0;
-    pieces[black] = 0;
-    pieces[white] = 0;
-    reversible_moves = 0;
-    memset(quantity, 0, sizeof(quantity));
-    ply = 0;
-
-    if((ptr = ParseMainPartOfFen(ptr)) == nullptr)
-        return false;
-    if((ptr = ParseSideToMoveInFen(ptr)) == nullptr)
-        return false;
-    if((ptr = ParseCastlingRightsInFen(ptr)) == nullptr)
-        return false;
-    if((ptr = ParseEnPassantInFen(ptr)) == nullptr)
-        return false;
-    if(*(++ptr) && *(++ptr))  // set up number of reversible moves
-        while(*ptr >= '0' && *ptr <= '9')
-        {
-            reversible_moves *= 10;
-            reversible_moves += (*ptr++ - '0');
-        }
-    InitPieceLists();
-    king_coord[white] = --coords[white].end();
-    king_coord[black] = --coords[black].end();
-
-    InitAttacks();
-    done_moves.clear();
-    return true;
 }
 
 
@@ -524,7 +503,7 @@ void k2chess::MakePromotion(const move_c move, iterator it)
 
 
 //--------------------------------
-bool k2chess::MkMoveFast(const move_c move)
+bool k2chess::MakeMove(const move_c move)
 {
     bool is_special_move = false;
     ply++;
@@ -625,7 +604,7 @@ void k2chess::UnmakePromotion(const move_c move)
 
 
 //--------------------------------
-void k2chess::UnMoveFast(const move_c move)
+void k2chess::TakebackMove(const move_c move)
 {
     const auto from_coord = state[ply].from_coord;
     auto it = coords[!wtm].begin();
@@ -695,7 +674,7 @@ bool k2chess::MakeMove(const char* str)
     if(move.flag == is_bad_move_flag)
         return false;
 
-    MkMoveFast(move);
+    MakeMove(move);
     done_moves.push_back(move);
 
     return true;
@@ -713,7 +692,7 @@ bool k2chess::TakebackMove()
 
     auto move = done_moves.back();
     done_moves.pop_back();
-    UnMoveFast(move);
+    TakebackMove(move);
 
     return true;
 }
@@ -823,7 +802,7 @@ void k2chess::test_attack_tables(size_t att_w, size_t att_b,
 //--------------------------------
 void k2chess::RunUnitTests()
 {
-    InitChess();
+    assert(SetupPosition(start_position));
     assert(b[*coords[white].begin()] == white_pawn);
     assert(b[*(--coords[white].end())] == white_king);
     assert(b[*coords[white].rbegin()] == white_king);
@@ -845,7 +824,7 @@ void k2chess::RunUnitTests()
                "4rrk1/p4q2/1p2b3/1n6/1N6/1P2B3/P4Q2/4RRK1 w - - 0 1"));
     test_attack_tables(33, 33, 48, 48);
 
-    InitChess();
+    assert(SetupPosition(start_position));
     assert(ply == 0);
     assert(wtm == white);
 

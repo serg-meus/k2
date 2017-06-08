@@ -143,6 +143,9 @@ protected:
     queen = get_piece_type(black_queen),
     king = get_piece_type(black_king);
 
+    const char *start_position =
+            "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+
 // Class representing move
     class move_c
     {
@@ -239,9 +242,8 @@ protected:
 
     std::vector<move_c> done_moves;
 
-    void InitChess();
-    bool MkMoveFast(const move_c m);
-    void UnMoveFast(const move_c m);
+    bool MakeMove(const move_c m);
+    void TakebackMove(const move_c m);
     iterator find_piece(const bool stm, const coord_t coord);
     move_flag_t InitMoveFlag(const move_c move, char promo_to);
 
@@ -300,7 +302,6 @@ private:
 
 
     void InitAttacks();
-    void InitBoard();
     bool InitPieceLists();
     void ShowMove(const coord_t from_coord, const coord_t to_coord);
     void StoreCurrentBoardState(const move_c m, const coord_t from_coord);
