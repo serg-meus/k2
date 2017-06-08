@@ -459,17 +459,6 @@ bool k2chess::MakeEnPassantOrUpdateFlags(const move_c move,
 
 
 
-//-----------------------------
-bool k2chess::PieceListCompare(const coord_t men1, const coord_t men2)
-{
-    return sort_streng[get_piece_type(b[men1])] >
-            sort_streng[get_piece_type(b[men2])];
-}
-
-
-
-
-
 //--------------------------------
 void k2chess::StoreCurrentBoardState(const move_c move,
                                      const coord_t from_coord)
@@ -478,9 +467,7 @@ void k2chess::StoreCurrentBoardState(const move_c move,
     state[ply].captured_piece = b[move.to_coord];
 
     state[ply].from_coord = from_coord;
-    state[ply].to_coord = move.to_coord;
-    state[ply].reversibleCr = reversible_moves;
-    state[ply].priority = move.priority;
+    state[ply].reversible_moves = reversible_moves;
 }
 
 
@@ -653,7 +640,7 @@ void k2chess::UnMoveFast(const move_c move)
         b[from_coord] = b[move.to_coord];
 
     b[move.to_coord] = state[ply].captured_piece;
-    reversible_moves = state[ply].reversibleCr;
+    reversible_moves = state[ply].reversible_moves;
     wtm = !wtm;
 
     if(move.flag & is_capture)

@@ -36,16 +36,11 @@ protected:
 
     typedef i16 streng_t;
     typedef u8 move_flag_t;
-    typedef u8 piece_index_t;
     typedef u8 castle_t;
     typedef u8 enpass_t;
     typedef u32 attack_t;
-    typedef u8 dist_t;
     typedef i8 shifts_t;
-    typedef u8 piece_num_t;
     typedef u8 priority_t;
-    typedef i16 score_t;
-    typedef i16 tropism_t;
 
     class k2list : public short_list<coord_t, 16>
     {
@@ -193,15 +188,7 @@ protected:
         enpass_t ep;  // 0 = no_ep, else ep=get_col(x) + 1,
         // not null only if opponent pawn is near
         iterator_entity nprom;  // next piece iterator for promoted pawn
-        depth_t reversibleCr;  // reversible halfmove counter
-        coord_t to_coord;  // to point, (for simple repetition draw detection)
-        score_t val_opn;  // store material and PST value considered
-        // all material is on the board
-        score_t val_end;  // store material and PST value
-        // considered deep endgame (kings and pawns only)
-        priority_t priority;  // move priority assigned by move genererator
-        tropism_t tropism[sides];  // distance factors between pieces and enemy
-        // kings for black and white
+        depth_t reversible_moves;  // reversible halfmove counter
     };
 
     bool wtm;  // side to move, k2chess::white or k2chess::black
@@ -215,7 +202,7 @@ protected:
     attack_t xattacks[sides][board_width*board_height];
 
     // number of directions to move for each kind of piece
-    dist_t rays[piece_types + 1];
+    coord_t rays[piece_types + 1];
 
     // biases defining directions for 'rays'
     shifts_t delta_col[piece_types][board_width];
@@ -235,7 +222,7 @@ protected:
 
     streng_t material[sides];  // material counters
     streng_t pieces[sides];  // piece counters, including kings
-    piece_num_t quantity[sides][piece_types + 1];
+    coord_t quantity[sides][piece_types + 1];
 
     state_s b_state[prev_states + max_ply]; // engine state for each ply depth
     state_s *state;  // pointer to engine state, state[0] = b_state[prev_states];
@@ -312,7 +299,6 @@ private:
     void InitBoard();
     bool InitPieceLists();
     void ShowMove(const coord_t from_coord, const coord_t to_coord);
-    bool PieceListCompare(const coord_t men1, const coord_t men2);
     void StoreCurrentBoardState(const move_c m, const coord_t from_coord);
     void MakeCapture(const move_c m);
     void MakePromotion(const move_c m, iterator it);
