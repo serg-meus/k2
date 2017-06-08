@@ -173,7 +173,7 @@ char* k2chess::ParseMainPartOfFen(char *ptr)
         for(auto col = 0; col < board_width; col++)
         {
             auto chr = *ptr - '0';
-            if(chr >= 1 && chr <= 8)
+            if(chr >= 1 && chr <= board_width)
             {
                 for(auto i = 0; i < chr; ++i)
                     b[get_coord(col++, row)] = empty_square;
@@ -191,7 +191,8 @@ char* k2chess::ParseMainPartOfFen(char *ptr)
                 if(index >= max_index)
                     return nullptr;
                 if(to_black(pcs[index]) == black_pawn
-                        && (row == 0 || row == 7))
+                        && (row < pawn_default_row
+                            || row > board_width - 1 - pawn_default_row))
                     return nullptr;
                 auto piece = pcs[index];
                 b[get_coord(col, row)] = piece;
@@ -235,10 +236,10 @@ char *k2chess::ParseCastlingRightsInFen(char *ptr)
     char cstl_chr[] = "KQkq-";
     castle_t cstl_code[] = {white_can_castle_right, white_can_castle_left,
                             black_can_castle_right, black_can_castle_left, 0};
-    coord_t k_col = 4;
-    coord_t k_row[] = {0, 0, 7, 7};
-    coord_t r_col[] = {7, 0, 7, 0};
-    coord_t r_row[] = {0, 0, 7, 7};
+    coord_t k_col = default_king_col;
+    coord_t k_row[] = {0, 0, board_height - 1, board_height - 1};
+    coord_t r_col[] = {board_height - 1, 0, board_height - 1, 0};
+    coord_t r_row[] = {0, 0, board_height - 1, board_height - 1};
     piece_t k_piece[] = {white_king, white_king, black_king, black_king};
     piece_t r_piece[] = {white_rook, white_rook, black_rook, black_rook};
     const size_t max_index = sizeof(cstl_chr)/sizeof(*cstl_chr);
@@ -308,7 +309,7 @@ bool k2chess::SetupPosition(const char *fen)
 
     InitPieceLists();
 
-    if(*(++ptr) && *(++ptr))
+    if(*(++ptr) && *(++ptr))  // set up number of reversible moves
         while(*ptr >= '0' && *ptr <= '9')
         {
             reversible_moves *= 10;
@@ -329,7 +330,7 @@ bool k2chess::SetupPosition(const char *fen)
 //--------------------------------
 void k2chess::ShowMove(const coord_t from_coord, const coord_t to_coord)
 {
-    char *cur = cur_moves + 5*(ply - 1);
+    char *cur = cur_moves + move_max_display_length*(ply - 1);
     *(cur++) = get_col(from_coord) + 'a';
     *(cur++) = get_row(from_coord) + '1';
     *(cur++) = get_col(to_coord) + 'a';
@@ -437,7 +438,7 @@ bool k2chess::MakeEnPassantOrUpdateFlags(const move_c move,
                                          const coord_t from_coord)
 {
     const shifts_t delta = get_row(move.to_coord) - get_row(from_coord);
-    if(std::abs(delta) == 2)
+    if(std::abs(delta) == pawn_long_move_length)
     {
         bool opp_pawn_is_near = get_col(move.to_coord) < board_width - 1 &&
                 b[move.to_coord + 1] == set_piece_color(black_pawn, !wtm);
@@ -666,7 +667,7 @@ void k2chess::UnMoveFast(const move_c move)
     ply--;
 
 #ifndef NDEBUG
-    cur_moves[5*ply] = '\0';
+    cur_moves[move_max_display_length*ply] = '\0';
 #endif // NDEBUG
 }
 
@@ -745,16 +746,20 @@ k2chess::move_flag_t k2chess::InitMoveFlag(const move_c move, char promo_to)
     }
     if(piece == pawn)
     {
-        auto ep = b_state[prev_states + ply].ep;
-        auto delta = ep - 1 - get_col(from_coord);
-        if(ep && std::abs(delta) == 1 && get_row(from_coord) == (wtm ? 4 : 3))
+        const auto en_passant_state = state[ply].ep;
+        const auto delta = (en_passant_state - 1) - get_col(from_coord);
+        auto required_row = pawn_default_row + pawn_long_move_length;
+        if(wtm)
+            required_row = board_height - 1 - required_row;
+        if(en_passant_state && std::abs(delta) == 1
+                && get_row(from_coord) == required_row)
             ans |= is_en_passant | is_capture;
     }
     if(piece == king && get_col(*king_coord[wtm]) == default_king_col)
     {
-        if(get_col(move.to_coord) == default_king_col + 2)
+        if(get_col(move.to_coord) == default_king_col + cstl_move_length)
             ans |= is_right_castle;
-        else if(get_col(move.to_coord) == default_king_col - 2)
+        else if(get_col(move.to_coord) == default_king_col - cstl_move_length)
             ans |= is_left_castle;
     }
 
@@ -784,7 +789,7 @@ size_t k2chess::test_count_all_attacks(bool stm)
 {
     size_t ans = 0;
     for(auto it : attacks[stm])
-        ans += std::bitset<32>(it).count();
+        ans += std::bitset<sizeof(attack_t)*CHAR_BIT>(it).count();
     return ans;
 }
 

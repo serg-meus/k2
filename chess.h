@@ -132,7 +132,11 @@ protected:
     black_can_castle_left = 8;
 
     const coord_t default_king_col = 4;
-    const shifts_t cstl_move_length = 2;
+    const shifts_t
+    cstl_move_length = 2,
+    pawn_default_row = 1,
+    pawn_long_move_length = 2;
+    static const size_t move_max_display_length = 5;
 
     const piece_t
     pawn = get_piece_type(black_pawn),
@@ -238,7 +242,8 @@ protected:
     depth_t ply;  // current ply depth
     depth_t reversible_moves;
 
-    char cur_moves[5*max_ply];  // current variation (for debug mode only)
+    // current variation (for debug mode only)
+    char cur_moves[move_max_display_length*max_ply];
     char *cv;  // current variation pointer (for debug mode only)
 
     iterator king_coord[sides];  // king coord iterators for black and white
