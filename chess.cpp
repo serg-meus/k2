@@ -523,7 +523,7 @@ void k2chess::MakePromotion(const move_c move, iterator it)
         return;
 
     const auto piece = pcs[piece_num];
-    b[move.to_coord] = set_piece_color(piece, !wtm);
+    b[move.to_coord] = set_piece_color(piece, wtm);
     material[wtm] += pc_streng[get_piece_type(piece)] - pc_streng[pawn];
     quantity[wtm][pawn]--;
     quantity[wtm][get_piece_type(piece)]++;
@@ -706,6 +706,8 @@ bool k2chess::MakeMove(const char* str)
     move.to_coord = get_coord(&str[2]);
     move.piece_iterator = it;
     move.flag = InitMoveFlag(move, str[4]);
+    if(move.flag == is_bad_move_flag)
+        return false;
 
     MkMoveFast(move);
 
@@ -727,9 +729,10 @@ k2chess::move_flag_t k2chess::InitMoveFlag(const move_c move, char promo_to)
             && get_piece_color(b[from_coord])
             != get_piece_color(b[move.to_coord]))
         ans |= is_capture;
-    if(piece == pawn && get_row(from_coord) == (wtm ? 6 : 2))
+    if(piece == pawn
+            && get_row(from_coord) == (wtm ? board_height - 2 : 1))
     {
-        if(promo_to == 'q')
+        if(promo_to == 'q' or promo_to == '\0')
             ans |= is_promotion_to_queen;
         else if(promo_to == 'r')
             ans |= is_promotion_to_rook;
@@ -737,6 +740,8 @@ k2chess::move_flag_t k2chess::InitMoveFlag(const move_c move, char promo_to)
             ans |= is_promotion_to_bishop;
         else if(promo_to == 'n')
             ans |= is_promotion_to_knight;
+        else
+            return is_bad_move_flag;
     }
     if(piece == pawn)
     {
@@ -907,5 +912,35 @@ void k2chess::RunUnitTests()
     assert(b[get_coord("g8")] == black_king);
     assert(b[get_coord("h8")] == empty_square);
     assert(b[get_coord("f8")] == black_rook);
+    assert(reversible_moves == 0);
+
+    assert(SetupPosition("2n1r3/3P4/7k/8/8/8/8/K7 w - - 0 1"));
+    assert(MakeMove("d7d8q"));
+    assert(b[get_coord("d7")] == empty_square);
+    assert(b[get_coord("d8")] == white_queen);
+    assert(reversible_moves == 0);
+
+    assert(SetupPosition("2n1r3/3P4/7k/8/8/8/8/K7 w - - 0 1"));
+    assert(MakeMove("d7d8"));
+    assert(b[get_coord("d7")] == empty_square);
+    assert(b[get_coord("d8")] == white_queen);
+    assert(reversible_moves == 0);
+
+    assert(SetupPosition("2n1r3/3P4/7k/8/8/8/8/K7 w - - 0 1"));
+    assert(MakeMove("d7e8b"));
+    assert(b[get_coord("d7")] == empty_square);
+    assert(b[get_coord("e8")] == white_bishop);
+    assert(reversible_moves == 0);
+
+    assert(SetupPosition("k7/8/8/8/8/7K/3p4/2N1R3 b - - 0 1"));
+    assert(MakeMove("d2c1r"));
+    assert(b[get_coord("d2")] == empty_square);
+    assert(b[get_coord("c1")] == black_rook);
+    assert(reversible_moves == 0);
+
+    assert(SetupPosition("k7/8/8/8/8/7K/3p4/2N1R3 b - - 0 1"));
+    assert(MakeMove("d2c1n"));
+    assert(b[get_coord("d2")] == empty_square);
+    assert(b[get_coord("c1")] == black_knight);
     assert(reversible_moves == 0);
 }
