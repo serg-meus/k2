@@ -326,6 +326,10 @@ public:
         {
             return _size;
         }
+        void direct_swap(iterator it1, iterator it2)
+        {
+            std::swap(data[it1.num], data[it2.num]);
+        }
 
         void move_element(iterator dst, iterator src);
         void rmove_element(reverse_iterator dst, reverse_iterator src);

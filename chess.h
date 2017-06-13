@@ -74,7 +74,7 @@ protected:
                     auto s_nxt = streng[get_piece_type(board[*it_nxt])];
                     if(s_it > s_nxt)
                     {
-                        this->move_element(it, it_nxt);
+                        direct_swap(it, it_nxt);
                         replaced = true;
                         it = it_nxt;
                     }// if(less_foo(
