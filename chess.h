@@ -5,6 +5,7 @@
 #include <assert.h>
 #include <bitset>
 #include <vector>
+#include <limits.h>
 #include "short_list.h"
 
 
