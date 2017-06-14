@@ -817,17 +817,6 @@ void k2chess::RunUnitTests()
     assert(*king_coord[white] == get_coord(default_king_col, 0));
     assert(*king_coord[black] ==
            get_coord(default_king_col, max_row));
-
-    test_attack_tables(18, 18, 24, 24);
-
-    assert(SetupPosition("4k3/8/5n2/5n2/8/8/8/3RK3 w - - 0 1"));
-    test_attack_tables(15, 19, 16, 21);
-
-    assert(SetupPosition(
-               "4rrk1/p4q2/1p2b3/1n6/1N6/1P2B3/P4Q2/4RRK1 w - - 0 1"));
-    test_attack_tables(33, 33, 48, 48);
-
-    assert(SetupPosition(start_position));
     assert(ply == 0);
     assert(wtm == white);
 
@@ -940,4 +929,14 @@ void k2chess::RunUnitTests()
     assert(b[get_coord("d2")] == empty_square);
     assert(b[get_coord("c1")] == black_knight);
     assert(reversible_moves == 0);
+
+    assert(SetupPosition(start_position));
+    test_attack_tables(18, 18, 24, 24);
+
+    assert(SetupPosition("4k3/8/5n2/5n2/8/8/8/3RK3 w - - 0 1"));
+    test_attack_tables(15, 19, 16, 21);
+
+    assert(SetupPosition(
+               "4rrk1/p4q2/1p2b3/1n6/1N6/1P2B3/P4Q2/4RRK1 w - - 0 1"));
+    test_attack_tables(33, 33, 48, 48);
 }
