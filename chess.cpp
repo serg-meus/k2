@@ -937,6 +937,11 @@ void k2chess::RunUnitTests()
     test_attack_tables(15, 19, 16, 21);
 
     assert(SetupPosition(
-               "4rrk1/p4q2/1p2b3/1n6/1N6/1P2B3/P4Q2/4RRK1 w - - 0 1"));
-    test_attack_tables(33, 33, 48, 48);
+               "2r2rk1/p4q2/1p2b3/1n6/1N6/1P2B3/P4Q2/2R2RK1 w - - 0 1"));
+    test_attack_tables(37, 37, 55, 55);
+
+    assert(SetupPosition(
+               "2k1r2r/1pp3pp/p2b4/2p1n2q/6b1/1NQ1B3/PPP2PPP/R3RNK1"
+               " b - - 0 1"));
+    test_attack_tables(28, 31, 48, 51);
 }
