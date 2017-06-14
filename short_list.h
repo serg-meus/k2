@@ -205,6 +205,10 @@ public:
         {
             return num != ite.num;
         }
+        unsigned char get_array_index() const
+        {
+            return this->num;
+        }
     };
 
     class reverse_iterator
@@ -279,6 +283,10 @@ public:
         bool operator !=(reverse_iterator_entity ite) const
         {
             return num != ite.num;
+        }
+        unsigned char get_array_index() const
+        {
+            return this->num;
         }
     };
 

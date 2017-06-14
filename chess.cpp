@@ -71,6 +71,9 @@ void k2chess::InitAttacksOnePiece(const shifts_t col, const shifts_t row)
     const auto max_len = is_slider[type] ?
                std::max((size_t) board_height, (size_t) board_width) : 1;
     const auto color = get_piece_color(b[coord]);
+    auto it = find_piece(color, coord);
+    auto index = it.get_array_index();
+
     for(auto ray = 0; ray < rays[type]; ray++)
     {
         auto col_ = col;
@@ -81,7 +84,7 @@ void k2chess::InitAttacksOnePiece(const shifts_t col, const shifts_t row)
             row_ += delta_row[type][ray];
             if(!col_within(col_) || !row_within(row_))
                 break;
-            attacks[color][get_coord(col_, row_)] |= (1 << type);
+            attacks[color][get_coord(col_, row_)] |= (1 << index);
             if(b[get_coord(col_, row_)] != empty_square)
                 break;
         }
