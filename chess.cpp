@@ -52,7 +52,7 @@ void k2chess::InitAttacks()
     bool sides[] = {black, white};
     for(auto stm : sides)
         for(auto it = coords[stm].rbegin(); it != coords[stm].rend(); ++it)
-            InitAttacksOnePiece(get_col(*it), get_row(*it));
+            InitAttacksOnePiece(*it);
 }
 
 
@@ -60,9 +60,8 @@ void k2chess::InitAttacks()
 
 
 //--------------------------------
-void k2chess::InitAttacksOnePiece(const shifts_t col, const shifts_t row)
+void k2chess::InitAttacksOnePiece(coord_t coord)
 {
-    const auto coord = get_coord(col, row);
     const auto type = get_piece_type(b[coord]);
     if(type == pawn)
     {
@@ -76,8 +75,8 @@ void k2chess::InitAttacksOnePiece(const shifts_t col, const shifts_t row)
 
     for(auto ray = 0; ray < rays[type]; ray++)
     {
-        auto col_ = col;
-        auto row_ = row;
+        int col_ = get_col(coord);
+        int row_ = get_row(coord);
         for(size_t i = 0; i < max_len; ++i)
         {
             col_ += delta_col[type][ray];

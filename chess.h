@@ -315,7 +315,7 @@ private:
     bool MakeCastleOrUpdateFlags(const move_c m, const coord_t from_coord);
     void UnMakeCastle(const move_c m);
     bool MakeEnPassantOrUpdateFlags(const move_c m, const coord_t from_coord);
-    void InitAttacksOnePiece(const shifts_t col, const shifts_t row);
+    void InitAttacksOnePiece(coord_t coord);
     void UpdateAttacks();
     void UpdateAttacksOnePiece();
     char* ParseMainPartOfFen(char *ptr);
