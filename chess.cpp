@@ -49,10 +49,18 @@ k2chess::k2chess() :
 void k2chess::InitAttacks()
 {
     memset(attacks, 0, sizeof(attacks));
+    memset(xattacks, 0, sizeof(xattacks));
     bool sides[] = {black, white};
     for(auto stm : sides)
+    {
         for(auto it = coords[stm].rbegin(); it != coords[stm].rend(); ++it)
-            InitAttacksOnePiece(*it);
+            InitAttacksOnePiece(*it, false);
+
+        auto k_coord = *king_coord[stm];
+        b[k_coord] = set_piece_color(black_queen, stm);
+        InitAttacksOnePiece(k_coord, true);
+        b[k_coord] = set_piece_color(black_king, stm);
+    }
 }
 
 
@@ -60,7 +68,7 @@ void k2chess::InitAttacks()
 
 
 //--------------------------------
-void k2chess::InitAttacksOnePiece(coord_t coord)
+void k2chess::InitAttacksOnePiece(coord_t coord, bool use_extended_attacks)
 {
     const auto type = get_piece_type(b[coord]);
     if(type == pawn)
@@ -83,7 +91,10 @@ void k2chess::InitAttacksOnePiece(coord_t coord)
             row_ += delta_row[type][ray];
             if(!col_within(col_) || !row_within(row_))
                 break;
-            attacks[color][get_coord(col_, row_)] |= (1 << index);
+            if(!use_extended_attacks)
+                attacks[color][get_coord(col_, row_)] |= (1 << index);
+            else
+                xattacks[color][get_coord(col_, row_)] |= (1 << index);
             if(b[get_coord(col_, row_)] != empty_square)
                 break;
         }
@@ -756,10 +767,10 @@ k2chess::move_flag_t k2chess::InitMoveFlag(const move_c move, char promo_to)
 
 
 //--------------------------------
-size_t k2chess::test_count_attacked_squares(bool stm)
+size_t k2chess::test_count_attacked_squares(bool stm, bool use_extended_attacks)
 {
     size_t ans = 0;
-    for(auto it : attacks[stm])
+    for(auto it : use_extended_attacks ? xattacks[stm] : attacks[stm])
         if(it != 0)
             ans++;
     return ans;
@@ -770,10 +781,10 @@ size_t k2chess::test_count_attacked_squares(bool stm)
 
 
 //--------------------------------
-size_t k2chess::test_count_all_attacks(bool stm)
+size_t k2chess::test_count_all_attacks(bool stm, bool use_extended_attacks)
 {
     size_t ans = 0;
-    for(auto it : attacks[stm])
+    for(auto it : use_extended_attacks ? xattacks[stm] : attacks[stm])
         ans += std::bitset<sizeof(attack_t)*CHAR_BIT>(it).count();
     return ans;
 }
@@ -787,10 +798,10 @@ void k2chess::test_attack_tables(size_t att_w, size_t att_b,
                         size_t all_w, size_t all_b)
 {
     size_t att_squares_w, att_squares_b, all_attacks_w, all_attacks_b;
-    att_squares_w = test_count_attacked_squares(white);
-    att_squares_b = test_count_attacked_squares(black);
-    all_attacks_w = test_count_all_attacks(white);
-    all_attacks_b = test_count_all_attacks(black);
+    att_squares_w = test_count_attacked_squares(white, false);
+    att_squares_b = test_count_attacked_squares(black, false);
+    all_attacks_w = test_count_all_attacks(white, false);
+    all_attacks_b = test_count_all_attacks(black, false);
     assert(att_squares_w == att_w);
     assert(att_squares_b == att_b);
     assert(all_attacks_w == all_w);

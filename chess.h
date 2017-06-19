@@ -315,15 +315,15 @@ private:
     bool MakeCastleOrUpdateFlags(const move_c m, const coord_t from_coord);
     void UnMakeCastle(const move_c m);
     bool MakeEnPassantOrUpdateFlags(const move_c m, const coord_t from_coord);
-    void InitAttacksOnePiece(coord_t coord);
+    void InitAttacksOnePiece(coord_t coord, bool use_extended_attacks);
     void UpdateAttacks();
     void UpdateAttacksOnePiece();
     char* ParseMainPartOfFen(char *ptr);
     char* ParseSideToMoveInFen(char *ptr);
     char* ParseCastlingRightsInFen(char *ptr);
     char* ParseEnPassantInFen(char *ptr);
-    size_t test_count_attacked_squares(bool stm);
-    size_t test_count_all_attacks(bool stm);
+    size_t test_count_attacked_squares(bool stm, bool use_extended_attacks);
+    size_t test_count_all_attacks(bool stm, bool use_extended_attacks);
     void test_attack_tables(size_t att_w, size_t att_b,
                             size_t all_w, size_t all_b);
 };
