@@ -325,5 +325,6 @@ private:
     size_t test_count_attacked_squares(bool stm, bool use_extended_attacks);
     size_t test_count_all_attacks(bool stm, bool use_extended_attacks);
     void test_attack_tables(size_t att_w, size_t att_b,
-                            size_t all_w, size_t all_b);
+                            size_t all_w, size_t all_b,
+                            bool use_extended_attacks);
 };

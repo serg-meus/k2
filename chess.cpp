@@ -795,13 +795,14 @@ size_t k2chess::test_count_all_attacks(bool stm, bool use_extended_attacks)
 
 //--------------------------------
 void k2chess::test_attack_tables(size_t att_w, size_t att_b,
-                        size_t all_w, size_t all_b)
+                                 size_t all_w, size_t all_b,
+                                 bool use_extended_attacks)
 {
     size_t att_squares_w, att_squares_b, all_attacks_w, all_attacks_b;
-    att_squares_w = test_count_attacked_squares(white, false);
-    att_squares_b = test_count_attacked_squares(black, false);
-    all_attacks_w = test_count_all_attacks(white, false);
-    all_attacks_b = test_count_all_attacks(black, false);
+    att_squares_w = test_count_attacked_squares(white, use_extended_attacks);
+    att_squares_b = test_count_attacked_squares(black, use_extended_attacks);
+    all_attacks_w = test_count_all_attacks(white, use_extended_attacks);
+    all_attacks_b = test_count_all_attacks(black, use_extended_attacks);
     assert(att_squares_w == att_w);
     assert(att_squares_b == att_b);
     assert(all_attacks_w == all_w);
@@ -941,17 +942,17 @@ void k2chess::RunUnitTests()
     assert(reversible_moves == 0);
 
     assert(SetupPosition(start_position));
-    test_attack_tables(18, 18, 24, 24);
+    test_attack_tables(18, 18, 24, 24, false);
 
     assert(SetupPosition("4k3/8/5n2/5n2/8/8/8/3RK3 w - - 0 1"));
-    test_attack_tables(15, 19, 16, 21);
+    test_attack_tables(15, 19, 16, 21, false);
 
     assert(SetupPosition(
                "2r2rk1/p4q2/1p2b3/1n6/1N6/1P2B3/P4Q2/2R2RK1 w - - 0 1"));
-    test_attack_tables(37, 37, 55, 55);
+    test_attack_tables(37, 37, 55, 55, false);
 
     assert(SetupPosition(
-               "2k1r2r/1pp3pp/p2b4/2p1n2q/6b1/1NQ1B3/PPP2PPP/R3RNK1"
-               " b - - 0 1"));
-    test_attack_tables(28, 31, 48, 51);
+               "2k1r2r/1pp3pp/p2b4/2p1n2q/6b1/1NQ1B3/PPP2PPP/R3RNK1 b - -"
+               "0 1"));
+    test_attack_tables(28, 31, 48, 51, false);
 }
