@@ -941,18 +941,23 @@ void k2chess::RunUnitTests()
     assert(b[get_coord("c1")] == black_knight);
     assert(reversible_moves == 0);
 
+    bool extended_attacks = true;
     assert(SetupPosition(start_position));
     test_attack_tables(18, 18, 24, 24, false);
+    test_attack_tables(5, 5, 5, 5, extended_attacks);
 
     assert(SetupPosition("4k3/8/5n2/5n2/8/8/8/3RK3 w - - 0 1"));
     test_attack_tables(15, 19, 16, 21, false);
+    test_attack_tables(18, 21, 18, 21, extended_attacks);
 
     assert(SetupPosition(
                "2r2rk1/p4q2/1p2b3/1n6/1N6/1P2B3/P4Q2/2R2RK1 w - - 0 1"));
     test_attack_tables(37, 37, 55, 55, false);
+    test_attack_tables(11, 11, 11, 11, extended_attacks);
 
     assert(SetupPosition(
                "2k1r2r/1pp3pp/p2b4/2p1n2q/6b1/1NQ1B3/PPP2PPP/R3RNK1 b - -"
                "0 1"));
     test_attack_tables(28, 31, 48, 51, false);
+    test_attack_tables(5, 10, 5, 10, extended_attacks);
 }
