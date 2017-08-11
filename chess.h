@@ -52,6 +52,7 @@ protected:
 
         piece_t *board;
         streng_t *streng;
+
         coord_t get_piece_type(piece_t piece)  // must be as in k2chess class
         {
             return piece/sides;
@@ -249,6 +250,11 @@ protected:
     void TakebackMove(const move_c m);
     iterator find_piece(const bool stm, const coord_t coord);
     move_flag_t InitMoveFlag(const move_c move, char promo_to);
+    bool IsLegal(const move_c move);
+    bool IsPseudoLegal(const move_c move);
+    bool IsLegalCastle(const move_c move);
+    bool IsOnRay(const coord_t k_coord, const coord_t attacker_coord,
+                 const coord_t to_coord);
 
     coord_t get_coord(coord_t col, coord_t row)
     {

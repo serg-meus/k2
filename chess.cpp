@@ -687,8 +687,12 @@ bool k2chess::MakeMove(const char* str)
     if(move.flag == is_bad_move_flag)
         return false;
 
+    if(!IsLegal(move))
+        return false;
+
     MakeMove(move);
     done_moves.push_back(move);
+    InitAttacks();
 
     return true;
 }
@@ -807,6 +811,105 @@ void k2chess::test_attack_tables(size_t att_w, size_t att_b,
     assert(att_squares_b == att_b);
     assert(all_attacks_w == all_w);
     assert(all_attacks_b == all_b);
+}
+
+
+
+
+
+//--------------------------------
+bool k2chess::IsPseudoLegal(const move_c move)
+{
+    auto it = coords[wtm].begin();
+    it = move.piece_iterator;
+    const auto to_piece = b[move.to_coord];
+    if(to_piece != empty_square && get_piece_color(to_piece) == wtm)
+        return false;
+    const auto piece = b[*it];
+    if(get_piece_type(piece) == pawn || move.flag & is_castle)
+        return true;
+    const auto piece_index = it.get_array_index();
+    return attacks[wtm][move.to_coord] & (1 << piece_index);
+}
+
+
+
+
+
+//--------------------------------
+bool k2chess::IsLegalCastle(const move_c move)
+{
+    return true;
+}
+
+
+
+
+//--------------------------------
+bool k2chess::IsOnRay(const coord_t k_coord, const coord_t attacker_coord,
+                      const coord_t to_coord)
+{
+    if(to_coord == attacker_coord)
+        return true;
+
+    const auto col = get_col(to_coord);
+    const auto row = get_row(to_coord);
+    const auto min_col = std::min(get_col(k_coord), get_col(attacker_coord));
+    const auto min_row = std::min(get_row(k_coord), get_row(attacker_coord));
+    const auto max_col = std::max(get_col(k_coord), get_col(attacker_coord));
+    const auto max_row = std::max(get_row(k_coord), get_row(attacker_coord));
+    if(col < min_col || col > max_col || row < min_row || row > max_row)
+        return false;
+
+    const int delta_x1 = get_col(attacker_coord) - get_col(k_coord);
+    const int delta_y1 = get_row(attacker_coord) - get_row(k_coord);
+    const int delta_x2 = get_col(to_coord) - get_col(k_coord);
+    const int delta_y2 = get_row(to_coord) - get_row(k_coord);
+    if(delta_x1 == 0 || delta_x2 == 0)
+        return board_width*delta_x1/delta_y1 == board_width*delta_x2/delta_y2;
+    else
+        return board_width*delta_y1/delta_x1 == board_width*delta_y2/delta_x2;
+}
+
+
+
+
+
+//--------------------------------
+bool k2chess::IsLegal(const move_c move)
+{
+    if(!IsPseudoLegal(move))
+        return false;
+    const auto piece_type = get_piece_type(b[move.to_coord]);
+    if(piece_type == king)
+    {
+        if(!(move.flag & is_castle))
+            return attacks[!wtm][move.to_coord] == 0;
+        else
+            return IsLegalCastle(move);
+    }
+    else
+    {
+        const auto attack_sum = attacks[!wtm][*king_coord[wtm]];
+        const auto bits = sizeof(attack_t)*CHAR_BIT;
+        const auto king_attackers = std::bitset<bits>(attack_sum).count();
+        assert(king_attackers <= 2);
+        if(king_attackers == 2)
+            return false;
+        else if(king_attackers == 1)
+        {
+            auto it = coords[wtm].begin();
+            const auto attacker_coord = *it[attack_sum];
+            if(is_slider[get_piece_type(b[attacker_coord])])
+                return IsOnRay(*king_coord[wtm],
+                               attacker_coord,
+                               move.to_coord);
+            else
+                return move.to_coord == attacker_coord;
+        }
+    }
+    return true;
+
 }
 
 
@@ -960,4 +1063,17 @@ void k2chess::RunUnitTests()
                "0 1"));
     test_attack_tables(28, 31, 48, 51, false);
     test_attack_tables(5, 10, 5, 10, extended_attacks);
+
+    assert(SetupPosition(start_position));
+    assert(!MakeMove("c1b2"));
+    assert(!MakeMove("c1a3"));
+    assert(!MakeMove("c1d3"));
+    assert(!MakeMove("b1d2"));
+    assert(!MakeMove("a1a2"));
+    assert(!MakeMove("a1a5"));
+    assert(!MakeMove("a1a7"));
+    assert(!MakeMove("d1d8"));
+    assert(!MakeMove("d1e3"));
+    assert(!MakeMove("e1g1"));
+    assert(!MakeMove("e1e2"));
 }
