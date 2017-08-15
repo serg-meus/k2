@@ -78,10 +78,9 @@ protected:
                     {
                         direct_swap(it, it_nxt);
                         replaced = true;
-                        it = it_nxt;
-                    }// if(less_foo(
-                }// for(it
-            }// while(replaced
+                    }
+                }
+            }
         }
     };
     typedef k2list::iterator_entity iterator_entity;
@@ -321,7 +320,7 @@ private:
     bool MakeCastleOrUpdateFlags(const move_c m, const coord_t from_coord);
     void UnMakeCastle(const move_c m);
     bool MakeEnPassantOrUpdateFlags(const move_c m, const coord_t from_coord);
-    void InitAttacksOnePiece(coord_t coord, bool use_extended_attacks);
+    void InitAttacksOnePiece(coord_t coord);
     void UpdateAttacks();
     void UpdateAttacksOnePiece();
     char* ParseMainPartOfFen(char *ptr);
@@ -333,4 +332,6 @@ private:
     void test_attack_tables(size_t att_w, size_t att_b,
                             size_t all_w, size_t all_b,
                             bool use_extended_attacks);
+    bool NoExtendedAttacks(const piece_t sq, coord_t type, bool color,
+                           shifts_t delta_col, shifts_t delta_row);
 };
