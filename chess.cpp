@@ -54,12 +54,7 @@ void k2chess::InitAttacks()
     for(auto stm : sides)
     {
         for(auto it = coords[stm].rbegin(); it != coords[stm].rend(); ++it)
-            InitAttacksOnePiece(*it, false);
-
-        auto k_coord = *king_coord[stm];
-        b[k_coord] = set_piece_color(black_queen, stm);
-        InitAttacksOnePiece(k_coord, true);
-        b[k_coord] = set_piece_color(black_king, stm);
+            InitAttacksOnePiece(*it);
     }
 }
 
@@ -68,37 +63,87 @@ void k2chess::InitAttacks()
 
 
 //--------------------------------
-void k2chess::InitAttacksOnePiece(coord_t coord, bool use_extended_attacks)
+void k2chess::InitAttacksOnePiece(coord_t coord)
 {
-    const auto type = get_piece_type(b[coord]);
-    if(type == pawn)
-    {
-        return;
-    }
-    const auto max_len = is_slider[type] ?
-               std::max((size_t) board_height, (size_t) board_width) : 1;
     const auto color = get_piece_color(b[coord]);
     auto it = find_piece(color, coord);
     auto index = it.get_array_index();
-
+    const auto type = get_piece_type(b[coord]);
+    if(type == pawn)
+    {
+        const auto col = get_col(coord);
+        auto row = get_row(coord);
+        const auto d_row = color ? 1 : -1;
+        if(col_within(col + 1))
+            attacks[color][get_coord(col + 1, row + d_row)] |= (1 << index);
+        if(col_within(col - 1))
+            attacks[color][get_coord(col - 1, row + d_row)] |= (1 << index);
+        xattacks[color][get_coord(col, row + d_row)] = (1 << index);
+        if(row == (color ? 1 : max_row - 1)
+                && b[get_coord(col, row + d_row)] == empty_square)
+            xattacks[color][get_coord(col, row + 2*d_row)] |=
+                    (1 << index);
+        return;
+    }
+    const auto max_len = std::max((size_t)board_height, (size_t)board_width);
     for(auto ray = 0; ray < rays[type]; ray++)
     {
-        int col_ = get_col(coord);
-        int row_ = get_row(coord);
-        for(size_t i = 0; i < max_len; ++i)
+        auto col = get_col(coord);
+        auto row = get_row(coord);
+        const auto d_col = delta_col[type][ray];
+        const auto d_row = delta_row[type][ray];
+        size_t i = 0;
+        for(; i < max_len; ++i)
         {
-            col_ += delta_col[type][ray];
-            row_ += delta_row[type][ray];
-            if(!col_within(col_) || !row_within(row_))
+            col += d_col;
+            row += d_row;
+            if(!col_within(col) || !row_within(row))
                 break;
-            if(!use_extended_attacks)
-                attacks[color][get_coord(col_, row_)] |= (1 << index);
-            else
-                xattacks[color][get_coord(col_, row_)] |= (1 << index);
-            if(b[get_coord(col_, row_)] != empty_square)
+            attacks[color][get_coord(col, row)] |= (1 << index);
+            if(!is_slider[type])
+                break;
+            if(b[get_coord(col, row)] != empty_square)
+                break;
+        }
+        if(!is_slider[type] || NoExtendedAttacks(b[get_coord(col, row)],
+                                                 type, color, d_col, d_row))
+            continue;
+        for(size_t j = i; j < max_len; ++j)
+        {
+            col += d_col;
+            row += d_row;
+            if(!col_within(col) || !row_within(row))
+                break;
+            xattacks[color][get_coord(col, row)] |= (1 << index);
+            if(b[get_coord(col, row)] != empty_square)
                 break;
         }
     }
+}
+
+
+
+
+
+//--------------------------------
+bool k2chess::NoExtendedAttacks(const piece_t sq, coord_t type, bool color,
+                                shifts_t delta_col, shifts_t delta_row)
+{
+    const auto sq_type = get_piece_type(sq);
+    if(get_piece_color(sq) != color)
+        return true;
+    if(type < queen || type > bishop)
+        return true;
+    if(sq_type < queen || sq_type > bishop)
+        return true;
+    if(sq_type != type && sq_type != queen && type != queen)
+        return true;
+    if(sq_type == bishop && (!delta_col || !delta_row))
+        return true;
+    if(sq_type == rook && delta_col && delta_row)
+        return true;
+
+    return false;
 }
 
 
@@ -710,7 +755,7 @@ bool k2chess::TakebackMove()
     auto move = done_moves.back();
     done_moves.pop_back();
     TakebackMove(move);
-
+    InitAttacks();
     return true;
 }
 
@@ -825,11 +870,14 @@ bool k2chess::IsPseudoLegal(const move_c move)
     const auto to_piece = b[move.to_coord];
     if(to_piece != empty_square && get_piece_color(to_piece) == wtm)
         return false;
-    const auto piece = b[*it];
-    if(get_piece_type(piece) == pawn || move.flag & is_castle)
+    if(move.flag & is_castle)
         return true;
     const auto piece_index = it.get_array_index();
-    return attacks[wtm][move.to_coord] & (1 << piece_index);
+    const auto piece = b[*it];
+    if(get_piece_type(piece) == pawn && !(move.flag & is_capture))
+        return xattacks[wtm][move.to_coord] & (1 << piece_index);
+    else
+        return attacks[wtm][move.to_coord] & (1 << piece_index);
 }
 
 
@@ -1046,23 +1094,23 @@ void k2chess::RunUnitTests()
 
     bool extended_attacks = true;
     assert(SetupPosition(start_position));
-    test_attack_tables(18, 18, 24, 24, false);
-    test_attack_tables(5, 5, 5, 5, extended_attacks);
+    test_attack_tables(22, 22, 38, 38, false);
+    test_attack_tables(16, 16, 16, 16, extended_attacks);
 
     assert(SetupPosition("4k3/8/5n2/5n2/8/8/8/3RK3 w - - 0 1"));
     test_attack_tables(15, 19, 16, 21, false);
-    test_attack_tables(18, 21, 18, 21, extended_attacks);
+    test_attack_tables(0, 0, 0, 0, extended_attacks);
 
     assert(SetupPosition(
                "2r2rk1/p4q2/1p2b3/1n6/1N6/1P2B3/P4Q2/2R2RK1 w - - 0 1"));
-    test_attack_tables(37, 37, 55, 55, false);
-    test_attack_tables(11, 11, 11, 11, extended_attacks);
+    test_attack_tables(39, 39, 58, 58, false);
+    test_attack_tables(14, 14, 15, 15, extended_attacks);
 
     assert(SetupPosition(
                "2k1r2r/1pp3pp/p2b4/2p1n2q/6b1/1NQ1B3/PPP2PPP/R3RNK1 b - -"
                "0 1"));
-    test_attack_tables(28, 31, 48, 51, false);
-    test_attack_tables(5, 10, 5, 10, extended_attacks);
+    test_attack_tables(32, 38, 58, 61, false);
+    test_attack_tables(11, 15, 11, 15, extended_attacks);
 
     assert(SetupPosition(start_position));
     assert(!MakeMove("c1b2"));
@@ -1076,4 +1124,7 @@ void k2chess::RunUnitTests()
     assert(!MakeMove("d1e3"));
     assert(!MakeMove("e1g1"));
     assert(!MakeMove("e1e2"));
+    assert(!MakeMove("e2e5"));
+    assert(!MakeMove("e2e8"));
+    assert(!MakeMove("e2d3"));
 }
