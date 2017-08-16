@@ -887,6 +887,28 @@ bool k2chess::IsPseudoLegal(const move_c move)
 //--------------------------------
 bool k2chess::IsLegalCastle(const move_c move)
 {
+    const auto row = wtm ? 0 : max_row;
+    coord_t begin_col1, begin_col2, end_col1, end_col2;
+    if(move.flag & is_left_castle)
+    {
+        begin_col1 = 1;
+        end_col1 = default_king_col - 1;
+        begin_col2 = default_king_col - cstl_move_length;
+        end_col2 = default_king_col;
+    }
+    else
+    {
+        begin_col1 = default_king_col + 1;
+        end_col1 = max_col - 1;
+        begin_col2 = default_king_col;
+        end_col2 = default_king_col + cstl_move_length;
+    }
+    for(auto col = begin_col1; col <= end_col1; ++col)
+        if(b[get_coord(col, row)] != empty_square)
+            return false;
+    for(auto col = begin_col2; col <= end_col2; ++col)
+        if(attacks[!wtm][get_coord(col, row)])
+            return false;
     return true;
 }
 
@@ -928,7 +950,9 @@ bool k2chess::IsLegal(const move_c move)
 {
     if(!IsPseudoLegal(move))
         return false;
-    const auto piece_type = get_piece_type(b[move.to_coord]);
+    auto it = coords[wtm].begin();
+    it = move.piece_iterator;
+    const auto piece_type = get_piece_type(b[*it]);
     if(piece_type == king)
     {
         if(!(move.flag & is_castle))
@@ -1127,4 +1151,13 @@ void k2chess::RunUnitTests()
     assert(!MakeMove("e2e5"));
     assert(!MakeMove("e2e8"));
     assert(!MakeMove("e2d3"));
+
+    assert(SetupPosition("r3k2r/p5pp/7N/4B3/4b3/6P1/7P/RN2K2R w KQkq - 0 1"));
+    assert(MakeMove("e1g1"));
+    assert(MakeMove("e8c8"));
+    TakebackMove();
+    TakebackMove();
+    assert(!MakeMove("e1c1"));
+    assert(!MakeMove("e8g8"));
+
 }
