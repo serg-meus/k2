@@ -968,6 +968,26 @@ bool k2chess::IsLegal(const move_c move)
 void k2chess::RunUnitTests()
 {
     assert(SetupPosition(start_position));
+    bool extended_attacks = true;
+    test_attack_tables(22, 22, 38, 38, false);
+    test_attack_tables(16, 16, 16, 16, extended_attacks);
+
+    assert(SetupPosition("4k3/8/5n2/5n2/8/8/8/3RK3 w - - 0 1"));
+    test_attack_tables(15, 19, 16, 21, false);
+    test_attack_tables(0, 0, 0, 0, extended_attacks);
+
+    assert(SetupPosition(
+               "2r2rk1/p4q2/1p2b3/1n6/1N6/1P2B3/P4Q2/2R2RK1 w - - 0 1"));
+    test_attack_tables(39, 39, 58, 58, false);
+    test_attack_tables(14, 14, 15, 15, extended_attacks);
+
+    assert(SetupPosition(
+               "2k1r2r/1pp3pp/p2b4/2p1n2q/6b1/1NQ1B3/PPP2PPP/R3RNK1 b - -"
+               "0 1"));
+    test_attack_tables(32, 38, 58, 61, false);
+    test_attack_tables(11, 15, 11, 15, extended_attacks);
+
+    assert(SetupPosition(start_position));
     assert(b[*coords[white].begin()] == white_pawn);
     assert(b[*(--coords[white].end())] == white_king);
     assert(b[*coords[white].rbegin()] == white_king);
@@ -1091,26 +1111,6 @@ void k2chess::RunUnitTests()
     assert(b[get_coord("d2")] == empty_square);
     assert(b[get_coord("c1")] == black_knight);
     assert(reversible_moves == 0);
-
-    bool extended_attacks = true;
-    assert(SetupPosition(start_position));
-    test_attack_tables(22, 22, 38, 38, false);
-    test_attack_tables(16, 16, 16, 16, extended_attacks);
-
-    assert(SetupPosition("4k3/8/5n2/5n2/8/8/8/3RK3 w - - 0 1"));
-    test_attack_tables(15, 19, 16, 21, false);
-    test_attack_tables(0, 0, 0, 0, extended_attacks);
-
-    assert(SetupPosition(
-               "2r2rk1/p4q2/1p2b3/1n6/1N6/1P2B3/P4Q2/2R2RK1 w - - 0 1"));
-    test_attack_tables(39, 39, 58, 58, false);
-    test_attack_tables(14, 14, 15, 15, extended_attacks);
-
-    assert(SetupPosition(
-               "2k1r2r/1pp3pp/p2b4/2p1n2q/6b1/1NQ1B3/PPP2PPP/R3RNK1 b - -"
-               "0 1"));
-    test_attack_tables(32, 38, 58, 61, false);
-    test_attack_tables(11, 15, 11, 15, extended_attacks);
 
     assert(SetupPosition(start_position));
     assert(!MakeMove("c1b2"));

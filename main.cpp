@@ -22,6 +22,7 @@ int main(int argc, char* argv[])
 
 #ifndef NDEBUG
     chess->RunUnitTests();
+    std::cout << "All unit tests passed" << std::endl;
 #endif
 
     delete chess;
