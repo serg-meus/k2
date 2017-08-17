@@ -458,7 +458,9 @@ void k2chess::UnMakeCastle(const move_c move)
     auto rook_iterator = coords[wtm].begin();
     rook_iterator = state[ply].castled_rook_it;
     const auto from_coord =*rook_iterator;
-    const auto to_coord = move.flag == is_right_castle ? max_col : 0;
+    const auto to_col = move.flag == is_right_castle ? max_col : 0;
+    const auto to_row = wtm ? 0 : max_row;
+    const auto to_coord = get_coord(to_col, to_row);
     b[to_coord] = b[from_coord];
     b[from_coord] = empty_square;
     *rook_iterator = to_coord;
@@ -891,6 +893,10 @@ bool k2chess::IsLegalCastle(const move_c move)
     coord_t begin_col1, begin_col2, end_col1, end_col2;
     if(move.flag & is_left_castle)
     {
+        const auto can_castle = wtm ? white_can_castle_left :
+                                      black_can_castle_left;
+        if(!(state[ply].cstl & can_castle))
+            return false;
         begin_col1 = 1;
         end_col1 = default_king_col - 1;
         begin_col2 = default_king_col - cstl_move_length;
@@ -898,6 +904,10 @@ bool k2chess::IsLegalCastle(const move_c move)
     }
     else
     {
+        const auto can_castle = wtm ? white_can_castle_right :
+                                      black_can_castle_right;
+        if(!(state[ply].cstl & can_castle))
+            return false;
         begin_col1 = default_king_col + 1;
         end_col1 = max_col - 1;
         begin_col2 = default_king_col;
@@ -1155,9 +1165,30 @@ void k2chess::RunUnitTests()
     assert(SetupPosition("r3k2r/p5pp/7N/4B3/4b3/6P1/7P/RN2K2R w KQkq - 0 1"));
     assert(MakeMove("e1g1"));
     assert(MakeMove("e8c8"));
-    TakebackMove();
-    TakebackMove();
+    assert(TakebackMove());
+    assert(TakebackMove());
+    assert(b[get_coord("e1")] == white_king);
+    assert(b[get_coord("e8")] == black_king);
+    assert(b[get_coord("h1")] == white_rook);
+    assert(b[get_coord("a8")] == black_rook);
     assert(!MakeMove("e1c1"));
+    assert(MakeMove("h2h3"));
     assert(!MakeMove("e8g8"));
-
+    assert(TakebackMove());
+    assert(MakeMove("e1e2"));
+    assert(MakeMove("e8e7"));
+    assert(MakeMove("e2e1"));
+    assert(MakeMove("e7e8"));
+    assert(!MakeMove("e1g1"));
+    assert(MakeMove("h2h3"));
+    assert(!MakeMove("e8c8"));
+    for(auto i = 0; i < 5; ++i)
+        assert(TakebackMove());
+    assert(MakeMove("h1g1"));
+    assert(MakeMove("a8b8"));
+    assert(MakeMove("g1h1"));
+    assert(MakeMove("b8a8"));
+    assert(!MakeMove("e1g1"));
+    assert(MakeMove("h2h3"));
+    assert(!MakeMove("e8g8"));
 }
