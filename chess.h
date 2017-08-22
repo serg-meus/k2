@@ -209,6 +209,9 @@ protected:
     // extended attacks for SEE algorithm
     attack_t xattacks[sides][board_width*board_height];
 
+    // mask for fast detection of attacking sliders
+    attack_t slider_mask[sides];
+
     // number of directions to move for each kind of piece
     coord_t rays[piece_types + 1];
 
@@ -334,4 +337,6 @@ private:
                             bool use_extended_attacks);
     bool NoExtendedAttacks(const piece_t sq, coord_t type, bool color,
                            shifts_t delta_col, shifts_t delta_row);
+    bool IsDiscoveredAttack(const coord_t to_coord, attack_t mask);
+    bool IsSliderAttack(const coord_t from_coord, const coord_t to_coord);
 };

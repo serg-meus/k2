@@ -50,11 +50,16 @@ void k2chess::InitAttacks()
 {
     memset(attacks, 0, sizeof(attacks));
     memset(xattacks, 0, sizeof(xattacks));
+    memset(slider_mask, 0, sizeof(slider_mask));
     bool sides[] = {black, white};
     for(auto stm : sides)
     {
         for(auto it = coords[stm].rbegin(); it != coords[stm].rend(); ++it)
+        {
             InitAttacksOnePiece(*it);
+            if(is_slider[get_piece_type(b[*it])])
+                slider_mask[stm] |= (1 << it.get_array_index());
+        }
     }
 }
 
@@ -956,6 +961,71 @@ bool k2chess::IsOnRay(const coord_t k_coord, const coord_t attacker_coord,
 
 
 //--------------------------------
+bool k2chess::IsSliderAttack(const coord_t from_coord, const coord_t to_coord)
+{
+    auto d_col = get_col(to_coord) - get_col(from_coord);
+    auto d_row = get_row(to_coord) - get_row(from_coord);
+    if(d_col > 1)
+        d_col = 1;
+    else if(d_col < -1)
+        d_col = -1;
+    if(d_row > 1)
+        d_row = 1;
+    else if(d_row < -1)
+        d_row = -1;
+
+    const auto delta_coord = d_col + board_width*d_row;
+    for(auto i = from_coord + delta_coord;
+        i != to_coord;
+        i += delta_coord)
+    {
+        if(b[i] != empty_square)
+            return false;
+    }
+
+    return true;
+}
+
+
+
+
+
+//--------------------------------
+bool k2chess::IsDiscoveredAttack(const coord_t to_coord , attack_t mask)
+{
+    auto it = coords[!wtm].begin();
+    size_t i = 0;
+    const auto bits = sizeof(attack_t)*CHAR_BIT;
+    for(; i < bits; ++i)
+    {
+        if(!((mask >> i) & 1))
+            continue;
+        const auto attacker_coord = *it[i];
+        const auto k_coord = *king_coord[wtm];
+        if(!IsOnRay(k_coord, attacker_coord, to_coord))
+            continue;
+        if(!IsSliderAttack(to_coord, k_coord))
+            continue;
+        if(mask == slider_mask[wtm])  // special for en_passant case
+        {
+            const auto type = get_piece_type(b[attacker_coord]);
+            const auto d_col = get_col(attacker_coord) - get_col(k_coord);
+            const auto d_row = get_row(attacker_coord) - get_row(k_coord);
+            if(type == bishop && (d_col == 0 || d_row == 0))
+                continue;
+            if(type == rook && d_col != 0 && d_row != 0)
+                continue;
+        }
+        return true;
+    }
+    return false;
+}
+
+
+
+
+
+//--------------------------------
 bool k2chess::IsLegal(const move_c move)
 {
     if(!IsPseudoLegal(move))
@@ -978,7 +1048,15 @@ bool k2chess::IsLegal(const move_c move)
         assert(king_attackers <= 2);
         if(king_attackers == 2)
             return false;
-        else if(king_attackers == 1)
+        if((move.flag & is_en_passant))
+        {
+            if(IsDiscoveredAttack(*it, slider_mask[!wtm]))
+                return false;
+        }
+        const auto att_mask = attacks[!wtm][*it] & slider_mask[!wtm];
+        if(att_mask && IsDiscoveredAttack(*it, att_mask))
+            return false;
+        if(king_attackers == 1)
         {
             auto it = coords[wtm].begin();
             const auto attacker_coord = *it[attack_sum];
@@ -1191,4 +1269,52 @@ void k2chess::RunUnitTests()
     assert(!MakeMove("e1g1"));
     assert(MakeMove("h2h3"));
     assert(!MakeMove("e8g8"));
+
+    assert(SetupPosition("3Q4/8/7B/8/q2N4/2p2Pk1/8/2n1K2R b K - 0 1"));
+    assert(MakeMove("g3g2"));
+    assert(TakebackMove());
+    assert(!MakeMove("g3h4"));
+    assert(!MakeMove("g3g4"));
+    assert(!MakeMove("g3f4"));
+    assert(!MakeMove("g3f3"));
+    assert(!MakeMove("g3f2"));
+    assert(!MakeMove("g3h2"));
+    assert(!MakeMove("g3h3"));
+    assert(MakeMove("a4b3"));
+    assert(!MakeMove("e1d1"));
+    assert(!MakeMove("e1d2"));
+    assert(!MakeMove("e1e2"));
+    assert(!MakeMove("e1f2"));
+    assert(!MakeMove("e1d1"));
+    assert(MakeMove("e1f1"));
+    assert(TakebackMove());
+    assert(MakeMove("e1g1"));
+
+    assert(SetupPosition("4k3/4r3/8/b7/1N5q/4B3/5P2/4K3 w - - 0 1"));
+    assert(!MakeMove("b4a2"));
+    assert(!MakeMove("e3g5"));
+    assert(!MakeMove("f2f3"));
+    assert(MakeMove("e1d1"));
+    assert(MakeMove("e8d8"));
+    assert(!MakeMove("d2c4"));
+    assert(TakebackMove());
+    assert(!MakeMove("e2d3"));
+    assert(TakebackMove());
+    assert(!MakeMove("f2f3"));
+
+    assert(SetupPosition("4k3/3ppp2/4b3/1n5Q/B7/8/4R3/4K3 b - - 0 1"));
+    assert(MakeMove("b5a7"));
+    assert(TakebackMove());
+    assert(MakeMove("e6g4"));
+    assert(!MakeMove("f7f6"));
+    assert(TakebackMove());
+    assert(MakeMove("e8d8"));
+    assert(MakeMove("e2d2"));
+
+    assert(SetupPosition("8/8/8/8/k1p4R/8/3P4/2K5 w - - 0 1"));
+    assert(MakeMove("d2d4"));
+    assert(!MakeMove("c4d3"));
+    assert(SetupPosition("3k2q1/2p5/8/3P4/8/8/K7/8 b - - 0 1"));
+    assert(MakeMove("c7c5"));
+    assert(!MakeMove("d5c6"));
 }
