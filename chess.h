@@ -96,6 +96,8 @@ protected:
     const static depth_t prev_states = 4;
     const static coord_t max_col = board_width - 1;
     const static coord_t max_row = board_height - 1;
+    const static streng_t streng_to_mat = 10;   // factor for convert
+    // piece strengths for counters of material
 
     const static piece_t
     empty_square = 0,
@@ -139,12 +141,12 @@ protected:
     static const size_t move_max_display_length = 5;
 
     const piece_t
-    pawn = get_piece_type(black_pawn),
-    bishop = get_piece_type(black_bishop),
-    knight = get_piece_type(black_knight),
-    rook = get_piece_type(black_rook),
-    queen = get_piece_type(black_queen),
-    king = get_piece_type(black_king);
+    pawn = get_type(black_pawn),
+    bishop = get_type(black_bishop),
+    knight = get_type(black_knight),
+    rook = get_type(black_rook),
+    queen = get_type(black_queen),
+    king = get_type(black_king);
 
     const char *start_position =
             "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
@@ -157,22 +159,15 @@ protected:
         iterator_entity piece_iterator;  // pointer to piece in piece list
         move_flag_t flag;  // special move flags (is_capture, etc)
         priority_t priority;  // priority of move assigned by move generator
-        // 0..63 -- bad captures
-        // 64..127 -- silent moves with low history value (PST value is used)
-        // 128..195 -- silent moves with high history value
-        // 198 -- second killer
-        // 199 -- first killer
-        // 200..250 -- good captures and/or promotions
-        // 255 -- king capture or hash hit
 
-        bool operator == (move_c m)
+        bool operator == (move_c m) const
         {
             return to_coord == m.to_coord
                    && piece_iterator == m.piece_iterator
                    && flag == m.flag;
         }
 
-        bool operator != (move_c m)
+        bool operator != (move_c m) const
         {
             return to_coord != m.to_coord
                    || piece_iterator != m.piece_iterator
@@ -191,25 +186,30 @@ protected:
         piece_t captured_piece;  // captured piece
         iterator_entity captured_it;  // iterator to captured piece
         coord_t from_coord;  // square coordinate from which move was made
-        castle_t cstl;  // castling rights, k2chess::castle_kingside_w, ...
+        castle_t castling_rights;  // castling rights, castle_kingside_w, ...
         iterator_entity castled_rook_it;  // iterator to castled rook
-        enpass_t ep;  // 0 = no_ep, else ep=get_col(x) + 1,
-        // not null only if opponent pawn is near
-        iterator_entity nprom;  // next piece iterator for promoted pawn
+        enpass_t en_passant_rights;  // 0 = no en passant, 1..8 =
+        // pawn col + 1, not null only if opponent pawn is near
+        iterator_entity it_nxt;  // next piece iterator for takeback promotion
         depth_t reversible_moves;  // reversible halfmove counter
     };
 
-    bool wtm;  // side to move, k2chess::white or k2chess::black
-    piece_t b[board_width*board_height];  // array representing the chess board
-    k2list coords[sides];  // black/white piece coordinates
+    // side to move or white to move, k2chess::white (true) or k2chess::black
+    bool wtm;
 
-    // two tables for each color with all attacks
+    // array representing the chess board
+    piece_t b[board_width*board_height];
+
+    // black/white piece coordinates
+    k2list coords[sides];
+
+    // two tables for each color with attacks of all pieces
     attack_t attacks[sides][board_width*board_height];
 
-    // extended attacks for SEE algorithm
+    // extended attacks for SEE algorithm and pawn silent moves
     attack_t xattacks[sides][board_width*board_height];
 
-    // mask for fast detection of attacking sliders
+    // masks for fast detection of attacking sliders
     attack_t slider_mask[sides];
 
     // number of directions to move for each kind of piece
@@ -222,14 +222,9 @@ protected:
     // for quick detection if piece is a slider
     bool is_slider[piece_types + 1];
 
-    // piece strength values for material counters
-    streng_t pc_streng[piece_types + 1];
-
-    // piece strhengths for move priorities
+    // piece strength values for material counters,
+    // move priorities and sorting piece lists
     streng_t streng[piece_types + 1];
-
-    // piece strhengths for initial sort piece lists
-    streng_t sort_streng[piece_types + 1];
 
     streng_t material[sides];  // material counters
     streng_t pieces[sides];  // piece counters, including kings
@@ -258,7 +253,7 @@ protected:
     bool IsOnRay(const coord_t k_coord, const coord_t attacker_coord,
                  const coord_t to_coord);
 
-    coord_t get_coord(coord_t col, coord_t row)
+    coord_t get_coord(const coord_t col, const coord_t row)
     {
         return (board_width*row) + col;
     }
@@ -268,42 +263,37 @@ protected:
         return get_coord(str[0] - 'a', str[1] - '1');
     }
 
-    coord_t get_col(coord_t coord)
+    coord_t get_col(const coord_t coord)
     {
         assert((board_height & (board_height - 1)) == 0);
         return coord & (board_height - 1);
     }
 
-    coord_t get_row(coord_t coord)
+    coord_t get_row(const coord_t coord)
     {
         return coord/board_width;
     }
 
-    coord_t get_piece_type(piece_t piece)
+    coord_t get_type(const piece_t piece)
     {
         return piece/sides;
     }
 
-    piece_t to_black(piece_t piece)
-    {
-        return piece & ~white;
-    }
-
-    bool col_within(shifts_t col)
+    bool col_within(const shifts_t col)
     {
         return col >= 0 && col < board_width;
     }
 
-    bool row_within(shifts_t row)
+    bool row_within(const shifts_t row)
     {
         return row >= 0 && row < board_height;
     }
 
-    bool get_piece_color(piece_t piece)
+    bool get_color(const piece_t piece)
     {
         return piece & white;
     }
-    piece_t set_piece_color(piece_t piece, bool stm)
+    piece_t set_color(const piece_t piece, const bool stm)
     {
         return (piece & ~white) | stm;
     }
@@ -318,10 +308,10 @@ private:
     void StoreCurrentBoardState(const move_c m, const coord_t from_coord);
     void MakeCapture(const move_c m);
     void MakePromotion(const move_c m, iterator it);
-    void UnmakeCapture(const move_c m);
-    void UnmakePromotion(move_c m);
+    void TakebackCapture(const move_c m);
+    void TakebackPromotion(move_c m);
     bool MakeCastleOrUpdateFlags(const move_c m, const coord_t from_coord);
-    void UnMakeCastle(const move_c m);
+    void TakebackCastle(const move_c m);
     bool MakeEnPassantOrUpdateFlags(const move_c m, const coord_t from_coord);
     void InitAttacksOnePiece(coord_t coord);
     void UpdateAttacks();
@@ -330,13 +320,16 @@ private:
     char* ParseSideToMoveInFen(char *ptr);
     char* ParseCastlingRightsInFen(char *ptr);
     char* ParseEnPassantInFen(char *ptr);
-    size_t test_count_attacked_squares(bool stm, bool use_extended_attacks);
-    size_t test_count_all_attacks(bool stm, bool use_extended_attacks);
-    void test_attack_tables(size_t att_w, size_t att_b,
-                            size_t all_w, size_t all_b,
-                            bool use_extended_attacks);
-    bool NoExtendedAttacks(const piece_t sq, coord_t type, bool color,
-                           shifts_t delta_col, shifts_t delta_row);
+    size_t test_count_attacked_squares(const bool stm,
+                                       const bool use_extended_attacks);
+    size_t test_count_all_attacks(const bool stm,
+                                  const bool use_extended_attacks);
+    void test_attack_tables(const size_t att_w, const size_t att_b,
+                            const size_t all_w, const size_t all_b,
+                            const bool use_extended_attacks);
+    bool NoExtendedAttacks(const piece_t sq, const coord_t type,
+                           const bool color, const shifts_t delta_col,
+                           const shifts_t delta_row);
     bool IsDiscoveredAttack(const coord_t to_coord, attack_t mask);
     bool IsSliderAttack(const coord_t from_coord, const coord_t to_coord);
 };
