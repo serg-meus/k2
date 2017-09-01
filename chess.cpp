@@ -49,8 +49,8 @@ void k2chess::InitAttacks()
     memset(attacks, 0, sizeof(attacks));
     memset(xattacks, 0, sizeof(xattacks));
     memset(slider_mask, 0, sizeof(slider_mask));
-    bool sides[] = {black, white};
-    for(auto stm : sides)
+
+    for(auto stm : {black, white})
     {
         update_mask[stm] = 0;
         for(auto it = coords[stm].rbegin(); it != coords[stm].rend(); ++it)
@@ -67,7 +67,7 @@ void k2chess::InitAttacks()
 
 
 //--------------------------------
-void k2chess::InitAttacksOnePiece(coord_t coord)
+void k2chess::InitAttacksOnePiece(const coord_t coord)
 {
     const auto color = get_color(b[coord]);
     auto it = find_piece(color, coord);
@@ -158,11 +158,11 @@ bool k2chess::NoExtendedAttacks(const piece_t sq, const coord_t type,
 //--------------------------------
 void k2chess::UpdateAttacks(const move_c move, const coord_t from_coord)
 {
-
-    update_mask[white] |= attacks[white][from_coord];
-    update_mask[black] |= attacks[black][from_coord];
-    update_mask[white] |= attacks[white][move.to_coord];
-    update_mask[black] |= attacks[black][move.to_coord];
+    for(auto stm : {black, white})
+    {
+        update_mask[stm] |= attacks[stm][from_coord];
+        update_mask[stm] |= attacks[stm][move.to_coord];
+    }
     auto moving_piece_it = coords[!wtm].begin();
     moving_piece_it = move.piece_iterator;
     update_mask[!wtm] |= (1 << moving_piece_it.get_array_index());
@@ -202,10 +202,11 @@ void k2chess::UpdateAttacksOnePiece()
 bool k2chess::SetupPosition(const char *fen)
 {
     char *ptr = const_cast<char *>(fen);
-    material[black] = 0;
-    material[white] = 0;
-    pieces[black] = 0;
-    pieces[white] = 0;
+    for(auto stm : {black, white})
+    {
+        material[stm] = 0;
+        pieces[stm] = 0;
+    }
     reversible_moves = 0;
     memset(quantity, 0, sizeof(quantity));
     ply = 0;
@@ -798,7 +799,8 @@ bool k2chess::TakebackMove()
 
 
 //--------------------------------
-k2chess::move_flag_t k2chess::InitMoveFlag(const move_c move, char promo_to)
+k2chess::move_flag_t k2chess::InitMoveFlag(const move_c move,
+                                           const char promo_to)
 {
     move_flag_t ans = 0;
     auto it = coords[wtm].begin();
@@ -1020,7 +1022,7 @@ bool k2chess::IsSliderAttack(const coord_t from_coord, const coord_t to_coord)
 
 
 //--------------------------------
-bool k2chess::IsDiscoveredAttack(const coord_t to_coord , attack_t mask)
+bool k2chess::IsDiscoveredAttack(const coord_t to_coord , const attack_t mask)
 {
     auto it = coords[!wtm].begin();
     size_t i = 0;

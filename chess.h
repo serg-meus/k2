@@ -252,7 +252,7 @@ protected:
     bool MakeMove(const move_c m);
     void TakebackMove(const move_c m);
     iterator find_piece(const bool stm, const coord_t coord);
-    move_flag_t InitMoveFlag(const move_c move, char promo_to);
+    move_flag_t InitMoveFlag(const move_c move, const char promo_to);
     bool IsLegal(const move_c move);
     bool IsPseudoLegal(const move_c move);
     bool IsLegalCastle(const move_c move);
@@ -319,7 +319,7 @@ private:
     bool MakeCastleOrUpdateFlags(const move_c m, const coord_t from_coord);
     void TakebackCastle(const move_c m);
     bool MakeEnPassantOrUpdateFlags(const move_c m, const coord_t from_coord);
-    void InitAttacksOnePiece(coord_t coord);
+    void InitAttacksOnePiece(const coord_t coord);
     void UpdateAttacks(const move_c move, const coord_t from_coord);
     void UpdateAttacksOnePiece();
     char* ParseMainPartOfFen(char *ptr);
@@ -336,6 +336,6 @@ private:
     bool NoExtendedAttacks(const piece_t sq, const coord_t type,
                            const bool color, const shifts_t delta_col,
                            const shifts_t delta_row);
-    bool IsDiscoveredAttack(const coord_t to_coord, attack_t mask);
+    bool IsDiscoveredAttack(const coord_t to_coord, const attack_t mask);
     bool IsSliderAttack(const coord_t from_coord, const coord_t to_coord);
 };
