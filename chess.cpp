@@ -52,6 +52,7 @@ void k2chess::InitAttacks()
     bool sides[] = {black, white};
     for(auto stm : sides)
     {
+        update_mask[stm] = 0;
         for(auto it = coords[stm].rbegin(); it != coords[stm].rend(); ++it)
         {
             InitAttacksOnePiece(*it);
@@ -155,9 +156,32 @@ bool k2chess::NoExtendedAttacks(const piece_t sq, const coord_t type,
 
 
 //--------------------------------
-void k2chess::UpdateAttacks()
+void k2chess::UpdateAttacks(const move_c move, const coord_t from_coord)
 {
 
+    update_mask[white] |= attacks[white][from_coord];
+    update_mask[black] |= attacks[black][from_coord];
+    update_mask[white] |= attacks[white][move.to_coord];
+    update_mask[black] |= attacks[black][move.to_coord];
+    auto moving_piece_it = coords[!wtm].begin();
+    moving_piece_it = move.piece_iterator;
+    update_mask[!wtm] |= (1 << moving_piece_it.get_array_index());
+
+    for(auto &it : attacks[!wtm])
+        it &= ~update_mask[!wtm];
+
+    auto it = coords[!wtm].begin();
+    size_t i = 0;
+    const auto bits = sizeof(attack_t)*CHAR_BIT;
+    for(; i < bits; ++i)
+    {
+        if(!((update_mask[!wtm] >> i) & 1))
+            continue;
+        const auto attacker_coord = *it[i];
+        InitAttacksOnePiece(attacker_coord);
+    }
+
+    update_mask[!wtm] = 0;
 }
 
 
@@ -730,7 +754,8 @@ bool k2chess::MakeMove(const char* str)
     if(len < 4 || len > 5)  // only notation like 'g1f3', 'e7e8q' supported
         return false;
 
-    const auto it = find_piece(wtm, get_coord(str));
+    const auto from_coord = get_coord(str);
+    const auto it = find_piece(wtm, from_coord);
     if(it == coords[wtm].end())
         return false;
 
@@ -746,7 +771,7 @@ bool k2chess::MakeMove(const char* str)
 
     MakeMove(move);
     done_moves.push_back(move);
-    InitAttacks();
+    UpdateAttacks(move, from_coord);
 
     return true;
 }

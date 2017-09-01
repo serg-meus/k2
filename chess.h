@@ -212,6 +212,12 @@ protected:
     // masks for fast detection of attacking sliders
     attack_t slider_mask[sides];
 
+    // masks for fast detection of pawn possible moves
+    attack_t pawn_mask[sides];
+
+    // masks for update attack tables
+    attack_t update_mask[sides];
+
     // number of directions to move for each kind of piece
     coord_t rays[piece_types + 1];
 
@@ -314,7 +320,7 @@ private:
     void TakebackCastle(const move_c m);
     bool MakeEnPassantOrUpdateFlags(const move_c m, const coord_t from_coord);
     void InitAttacksOnePiece(coord_t coord);
-    void UpdateAttacks();
+    void UpdateAttacks(const move_c move, const coord_t from_coord);
     void UpdateAttacksOnePiece();
     char* ParseMainPartOfFen(char *ptr);
     char* ParseSideToMoveInFen(char *ptr);
