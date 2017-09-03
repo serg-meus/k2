@@ -26,7 +26,7 @@ k2chess::k2chess() :
             { 2,  1, -1, -2, -2, -1,  1,  2},  // knight
         },
        is_slider{false, false, true, true, true, false, false},
-       streng{0, 15000, 120, 60, 41, 40, 10}
+       streng{0, 15000, 1200, 600, 410, 400, 100}
 {
     cv = cur_moves;
     memset(b_state, 0, sizeof(b_state));
@@ -304,8 +304,7 @@ char* k2chess::ParseMainPartOfFen(char *ptr)
                 b[get_coord(col, row)] = piece;
                 auto color = get_color(piece);
                 if(get_type(piece) != king)
-                    material[color] +=
-                            streng[get_type(piece)]/streng_to_mat;
+                    material[color] += streng[get_type(piece)];
                 pieces[color]++;
             }
             ptr++;
@@ -549,13 +548,13 @@ void k2chess::MakeCapture(const move_c move)
     if (move.flag & is_en_passant)
     {
         to_coord += wtm ? -board_width : board_width;
-        material[!wtm]--;
+        material[!wtm] -= streng[pawn];
         quantity[!wtm][pawn]--;
     }
     else
     {
         const auto piece_index = get_type(state[ply].captured_piece);
-        material[!wtm] -= streng[piece_index]/streng_to_mat;
+        material[!wtm] -= streng[piece_index];
         quantity[!wtm][piece_index]--;
     }
     auto it_cap = find_piece(!wtm, to_coord);
@@ -581,7 +580,7 @@ void k2chess::MakePromotion(const move_c move, iterator it)
     const auto piece = pcs[piece_num];
     b[move.to_coord] = set_color(piece, wtm);
     material[wtm] +=
-            (streng[get_type(piece)] - streng[pawn])/streng_to_mat;
+            (streng[get_type(piece)] - streng[pawn]);
     quantity[wtm][pawn]--;
     quantity[wtm][get_type(piece)]++;
     state[ply].it_nxt = ++it;
@@ -646,7 +645,7 @@ void k2chess::TakebackCapture(const move_c move)
 
     if(move.flag & is_en_passant)
     {
-        material[!wtm]++;
+        material[!wtm] += streng[pawn];
         quantity[!wtm][pawn]++;
         if(wtm)
         {
@@ -662,7 +661,7 @@ void k2chess::TakebackCapture(const move_c move)
     else
     {
         const auto capt_index = get_type(state[ply].captured_piece);
-        material[!wtm] += streng[capt_index]/streng_to_mat;
+        material[!wtm] += streng[capt_index];
         quantity[!wtm][capt_index]++;
     }
 
@@ -686,7 +685,7 @@ void k2chess::TakebackPromotion(const move_c move)
     --before_king;
     coords[wtm].move_element(it_prom, before_king);
     const auto piece_index = get_type(pcs[piece_num]);
-    material[wtm] -= (streng[piece_index] - streng[pawn])/streng_to_mat;
+    material[wtm] -= (streng[piece_index] - streng[pawn]);
     quantity[wtm][pawn]++;
     quantity[wtm][piece_num]--;
 }
@@ -1183,8 +1182,10 @@ void k2chess::RunUnitTests()
     assert(reversible_moves == 0);
     assert(quantity[white][pawn] == 8);
     assert(quantity[black][pawn] == 7);
-    assert(material[white] == 48);
-    assert(material[black] == 47);
+    assert(material[white] == 8*streng[pawn] + streng[queen] +
+           2*streng[rook] + 2*streng[bishop] + 2*streng[knight]);
+    assert(material[black] == 7*streng[pawn] + streng[queen] +
+           2*streng[rook] + 2*streng[bishop] + 2*streng[knight]);
     assert(pieces[white] == 16);
     assert(pieces[black] == 15);
     assert(find_piece(black, get_coord("d5")) == coords[black].end());

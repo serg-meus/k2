@@ -96,8 +96,6 @@ protected:
     const static depth_t prev_states = 4;
     const static coord_t max_col = board_width - 1;
     const static coord_t max_row = board_height - 1;
-    const static streng_t streng_to_mat = 10;   // factor for convert
-    // piece strengths for counters of material
 
     const static piece_t
     empty_square = 0,
@@ -228,7 +226,7 @@ protected:
     // for quick detection if piece is a slider
     bool is_slider[piece_types + 1];
 
-    // piece strength values for material counters,
+    // piece values for material counters,
     // move priorities and sorting piece lists
     streng_t streng[piece_types + 1];
 
