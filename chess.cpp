@@ -687,7 +687,7 @@ void k2chess::TakebackPromotion(const move_c move)
     const auto piece_index = get_type(pcs[piece_num]);
     material[wtm] -= (piece_values[piece_index] - piece_values[pawn]);
     quantity[wtm][pawn]++;
-    quantity[wtm][piece_num]--;
+    quantity[wtm][piece_index]--;
 }
 
 
@@ -908,7 +908,22 @@ bool k2chess::IsPseudoLegal(const move_c move)
     if(to_piece != empty_square && get_color(to_piece) == wtm)
         return false;
     if(move.flag & is_castle)
-        return true;
+    {
+        const auto fr_col = get_col(*it);
+        const auto fr_row = get_row(*it);
+        const auto to_col = get_col(move.to_coord);
+        const auto to_row = get_row(move.to_coord);
+        if(fr_col == default_king_col
+                && get_type(b[*it]) == king
+                && get_color(b[*it]) == wtm
+                && (to_col == default_king_col - cstl_move_length ||
+                    to_col == default_king_col + cstl_move_length)
+                && ((wtm && fr_row == 0 && to_row == 0) ||
+                    (!wtm && fr_row == max_row && to_row == max_row)))
+            return true;
+        else
+            return false;
+    }
     const auto piece_index = it.get_array_index();
     const auto piece = b[*it];
     if(get_type(piece) == pawn && !(move.flag & is_capture))
@@ -1224,11 +1239,21 @@ void k2chess::RunUnitTests()
     assert(MakeMove("d7d8q"));
     assert(b[get_coord("d7")] == empty_square);
     assert(b[get_coord("d8")] == white_queen);
+    assert(quantity[white][pawn] == 0);
+    assert(quantity[white][queen] = 1);
+    assert(pieces[white] = 2);
+    assert(pieces[black] = 3);
+    assert(material[white] == piece_values[queen]);
+    assert(material[black] == piece_values[knight] + piece_values[rook]);
     assert(reversible_moves == 0);
 
     assert(TakebackMove());
     assert(b[get_coord("d7")] == white_pawn);
     assert(b[get_coord("d8")] == empty_square);
+    assert(material[white] == piece_values[pawn]);
+    assert(material[black] == piece_values[knight] + piece_values[rook]);
+    assert(quantity[white][pawn] == 1);
+    assert(quantity[white][queen] == 0);
     assert(reversible_moves == 4);
 
     assert(!TakebackMove());
@@ -1236,24 +1261,48 @@ void k2chess::RunUnitTests()
     assert(MakeMove("d7d8"));
     assert(b[get_coord("d7")] == empty_square);
     assert(b[get_coord("d8")] == white_queen);
+    assert(quantity[white][pawn] == 0);
+    assert(quantity[white][queen] = 1);
+    assert(pieces[white] = 2);
+    assert(pieces[black] = 3);
+    assert(material[white] == piece_values[queen]);
+    assert(material[black] == piece_values[knight] + piece_values[rook]);
     assert(reversible_moves == 0);
 
     assert(TakebackMove());
     assert(MakeMove("d7e8b"));
     assert(b[get_coord("d7")] == empty_square);
     assert(b[get_coord("e8")] == white_bishop);
+    assert(quantity[white][pawn] == 0);
+    assert(quantity[white][bishop] == 1);
+    assert(pieces[white] = 2);
+    assert(pieces[black] = 2);
+    assert(material[white] == piece_values[bishop]);
+    assert(material[black] == piece_values[knight]);
     assert(reversible_moves == 0);
 
     assert(SetupPosition("k7/8/8/8/8/7K/3p4/2N1R3 b - - 0 1"));
     assert(MakeMove("d2c1r"));
     assert(b[get_coord("d2")] == empty_square);
     assert(b[get_coord("c1")] == black_rook);
+    assert(quantity[black][pawn] == 0);
+    assert(quantity[black][rook] == 1);
+    assert(pieces[white] = 2);
+    assert(pieces[black] = 2);
+    assert(material[white] == piece_values[rook]);
+    assert(material[black] == piece_values[rook]);
     assert(reversible_moves == 0);
 
     assert(TakebackMove());
     assert(MakeMove("d2c1n"));
     assert(b[get_coord("d2")] == empty_square);
     assert(b[get_coord("c1")] == black_knight);
+    assert(quantity[black][pawn] == 0);
+    assert(quantity[black][knight] == 1);
+    assert(pieces[white] = 2);
+    assert(pieces[black] = 2);
+    assert(material[white] == piece_values[rook]);
+    assert(material[black] == piece_values[knight]);
     assert(reversible_moves == 0);
 
     assert(SetupPosition(start_position));
@@ -1272,6 +1321,29 @@ void k2chess::RunUnitTests()
     assert(!MakeMove("e2e8"));
     assert(!MakeMove("e2d3"));
 
+    assert(SetupPosition("8/8/1P3k1N/P1b3p1/8/8/3K4/8 w - - 0 1"));
+    assert(!MakeMove("b6c5"));
+    assert(!MakeMove("b6a5"));
+    assert(!MakeMove("b6b5"));
+    assert(!MakeMove("b6b8"));
+    assert(!MakeMove("h6a8"));
+    assert(!MakeMove("h6a4"));
+    assert(!MakeMove("h6b5"));
+    assert(!MakeMove("h6b7"));
+    assert(!MakeMove("d2g1"));
+    assert(MakeMove("b6b7"));
+    assert(!MakeMove("g5h6"));
+    assert(!MakeMove("g5f6"));
+    assert(!MakeMove("g5g6"));
+    assert(!MakeMove("c5h8"));
+    assert(!MakeMove("c5h7"));
+    assert(!MakeMove("c5h2"));
+    assert(!MakeMove("c5h1"));
+    assert(!MakeMove("f6h6"));
+    assert(!MakeMove("b6b8"));
+    assert(!MakeMove("f6g8"));
+    assert(MakeMove("g5g4"));
+
     assert(SetupPosition("r3k2r/p5pp/7N/4B3/4b3/6P1/7P/RN2K2R w KQkq - 0 1"));
     assert(MakeMove("e1g1"));
     assert(MakeMove("e8c8"));
@@ -1282,8 +1354,12 @@ void k2chess::RunUnitTests()
     assert(b[get_coord("h1")] == white_rook);
     assert(b[get_coord("a8")] == black_rook);
     assert(!MakeMove("e1c1"));
+    assert(!MakeMove("e1c8"));
+    assert(!MakeMove("e1g8"));
     assert(MakeMove("h2h3"));
     assert(!MakeMove("e8g8"));
+    assert(!MakeMove("e8g1"));
+    assert(!MakeMove("e8c1"));
     assert(TakebackMove());
     assert(MakeMove("e1e2"));
     assert(MakeMove("e8e7"));
