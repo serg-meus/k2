@@ -37,7 +37,7 @@ protected:
     typedef u8 piece_t;
     typedef u8 coord_t;
 
-    typedef i16 streng_t;
+    typedef i16 eval_t;
     typedef u8 move_flag_t;
     typedef u8 castle_t;
     typedef u8 enpass_t;
@@ -51,7 +51,7 @@ protected:
     public:
 
         piece_t *board;
-        streng_t *streng;
+        eval_t *piece_values;
 
         coord_t get_piece_type(piece_t piece)  // must be as in k2chess class
         {
@@ -72,8 +72,8 @@ protected:
                 {
                     iterator it_nxt = it;
                     ++it_nxt;
-                    auto s_it = streng[get_piece_type(board[*it])];
-                    auto s_nxt = streng[get_piece_type(board[*it_nxt])];
+                    auto s_it = piece_values[get_piece_type(board[*it])];
+                    auto s_nxt = piece_values[get_piece_type(board[*it_nxt])];
                     if(s_it > s_nxt)
                     {
                         direct_swap(it, it_nxt);
@@ -228,10 +228,10 @@ protected:
 
     // piece values for material counters,
     // move priorities and sorting piece lists
-    streng_t streng[piece_types + 1];
+    eval_t piece_values[piece_types + 1];
 
-    streng_t material[sides];  // material counters
-    streng_t pieces[sides];  // piece counters, including kings
+    eval_t material[sides];  // material counters
+    eval_t pieces[sides];  // piece counters, including kings
     coord_t quantity[sides][piece_types + 1];
 
     state_s b_state[prev_states + max_ply]; // engine state for each ply depth
