@@ -334,6 +334,7 @@ private:
     bool NoExtendedAttacks(const piece_t sq, const coord_t type,
                            const bool color, const shifts_t delta_col,
                            const shifts_t delta_row);
-    bool IsDiscoveredAttack(const coord_t to_coord, const attack_t mask);
+    bool IsDiscoveredAttack(const coord_t fr_coord, const coord_t to_coord,
+                            const attack_t mask);
     bool IsSliderAttack(const coord_t from_coord, const coord_t to_coord);
 };

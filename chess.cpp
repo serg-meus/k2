@@ -158,30 +158,29 @@ bool k2chess::NoExtendedAttacks(const piece_t sq, const coord_t type,
 //--------------------------------
 void k2chess::UpdateAttacks(const move_c move, const coord_t from_coord)
 {
-    for(auto stm : {black, white})
-    {
-        update_mask[stm] |= attacks[stm][from_coord];
-        update_mask[stm] |= attacks[stm][move.to_coord];
-    }
     auto moving_piece_it = coords[!wtm].begin();
     moving_piece_it = move.piece_iterator;
     update_mask[!wtm] |= (1 << moving_piece_it.get_array_index());
 
-    for(auto &it : attacks[!wtm])
-        it &= ~update_mask[!wtm];
-
-    auto it = coords[!wtm].begin();
-    size_t i = 0;
-    const auto bits = sizeof(attack_t)*CHAR_BIT;
-    for(; i < bits; ++i)
+    for(auto stm : {black, white})
     {
-        if(!((update_mask[!wtm] >> i) & 1))
-            continue;
-        const auto attacker_coord = *it[i];
-        InitAttacksOnePiece(attacker_coord);
-    }
+        update_mask[stm] |= attacks[stm][from_coord];
+        update_mask[stm] |= attacks[stm][move.to_coord];
 
-    update_mask[!wtm] = 0;
+        for(auto &it : attacks[stm])
+            it &= ~update_mask[stm];
+
+        auto it = coords[stm].begin();
+        const auto bits = sizeof(attack_t)*CHAR_BIT;
+        for(size_t i = 0; i < bits; ++i)
+        {
+            if(!((update_mask[stm] >> i) & 1))
+                continue;
+            const auto attacker_coord = *it[i];
+            InitAttacksOnePiece(attacker_coord);
+        }
+        update_mask[stm] = 0;
+    }
 }
 
 
@@ -395,6 +394,7 @@ char* k2chess::ParseEnPassantInFen(char *ptr)
 //--------------------------------
 void k2chess::ShowMove(const coord_t from_coord, const coord_t to_coord)
 {
+    assert(ply <= 100);
     char *cur = cur_moves + move_max_display_length*(ply - 1);
     *(cur++) = get_col(from_coord) + 'a';
     *(cur++) = get_row(from_coord) + '1';
@@ -1036,7 +1036,8 @@ bool k2chess::IsSliderAttack(const coord_t from_coord, const coord_t to_coord)
 
 
 //--------------------------------
-bool k2chess::IsDiscoveredAttack(const coord_t to_coord , const attack_t mask)
+bool k2chess::IsDiscoveredAttack(const coord_t fr_coord, const coord_t to_coord,
+                                 const attack_t mask)
 {
     auto it = coords[!wtm].begin();
     size_t i = 0;
@@ -1047,9 +1048,11 @@ bool k2chess::IsDiscoveredAttack(const coord_t to_coord , const attack_t mask)
             continue;
         const auto attacker_coord = *it[i];
         const auto k_coord = *king_coord[wtm];
-        if(!IsOnRay(k_coord, attacker_coord, to_coord))
+        if(!IsOnRay(k_coord, attacker_coord, fr_coord))
             continue;
-        if(!IsSliderAttack(to_coord, k_coord))
+        if(IsOnRay(k_coord, attacker_coord, to_coord))
+            continue;
+        if(!IsSliderAttack(fr_coord, k_coord))
             continue;
         if(mask == slider_mask[wtm])  // special for en_passant case
         {
@@ -1087,7 +1090,8 @@ bool k2chess::IsLegal(const move_c move)
     }
     else
     {
-        const auto attack_sum = attacks[!wtm][*king_coord[wtm]];
+        const auto k = *king_coord[wtm];
+        auto attack_sum = attacks[!wtm][k];
         const auto bits = sizeof(attack_t)*CHAR_BIT;
         const auto king_attackers = std::bitset<bits>(attack_sum).count();
         assert(king_attackers <= 2);
@@ -1095,16 +1099,22 @@ bool k2chess::IsLegal(const move_c move)
             return false;
         if((move.flag & is_en_passant))
         {
-            if(IsDiscoveredAttack(*it, slider_mask[!wtm]))
+            if(IsDiscoveredAttack(*it, 0, slider_mask[!wtm]))
                 return false;
         }
         const auto att_mask = attacks[!wtm][*it] & slider_mask[!wtm];
-        if(att_mask && IsDiscoveredAttack(*it, att_mask))
+        if(att_mask && IsDiscoveredAttack(*it, move.to_coord, att_mask))
             return false;
         if(king_attackers == 1)
         {
-            auto it = coords[wtm].begin();
-            const auto attacker_coord = *it[attack_sum];
+            auto attacker_id = 0;
+            for(;;)
+                if(attack_sum >>= 1)
+                    attacker_id++;
+                else
+                    break;
+            auto it = coords[!wtm].begin();
+            const auto attacker_coord = *it[attacker_id];
             if(is_slider[get_type(b[attacker_coord])])
                 return IsOnRay(*king_coord[wtm],
                                attacker_coord,
@@ -1204,6 +1214,37 @@ void k2chess::RunUnitTests()
     assert(pieces[white] == 16);
     assert(pieces[black] == 15);
     assert(find_piece(black, get_coord("d5")) == coords[black].end());
+
+    assert(MakeMove("e7d6"));
+    assert(MakeMove("c4b5"));
+    assert(MakeMove("d8d7"));
+    assert(MakeMove("b5c6"));
+    assert(MakeMove("d7c6"));
+    assert(MakeMove("d1f3"));
+    assert(MakeMove("c6f3"));
+    assert(MakeMove("g1f3"));
+    assert(MakeMove("d6b4"));
+    assert(MakeMove("c2c3"));
+    assert(TakebackMove());
+    assert(MakeMove("b1d2"));
+    assert(TakebackMove());
+    assert(MakeMove("c1d2"));
+    assert(MakeMove("h7h5"));
+    assert(MakeMove("d2c3"));
+    assert(ply == 21);
+    assert(reversible_moves == 1);
+    assert(quantity[white][pawn] == 7);
+    assert(quantity[black][pawn] == 7);
+    assert(quantity[white][bishop] == 1);
+    assert(quantity[black][knight] == 1);
+    assert(quantity[white][queen] == 0);
+    assert(quantity[black][queen] == 0);
+    assert(material[white] == 7*piece_values[pawn] +
+           2*piece_values[rook] + piece_values[bishop] + 2*piece_values[knight]);
+    assert(material[black] == 7*piece_values[pawn] +
+           2*piece_values[rook] + 2*piece_values[bishop] + piece_values[knight]);
+    assert(pieces[white] == 13);
+    assert(pieces[black] == 13);
 
     assert(SetupPosition("r3k2r/ppp2ppp/8/8/8/8/PPP2PPP/R3K2R w KQkq - 0 1"));
     assert(MakeMove("e1g1"));
@@ -1425,4 +1466,8 @@ void k2chess::RunUnitTests()
     assert(SetupPosition("3k2q1/2p5/8/3P4/8/8/K7/8 b - - 0 1"));
     assert(MakeMove("c7c5"));
     assert(!MakeMove("d5c6"));
+
+    assert(SetupPosition("8/3n3R/2k1p1p1/1r1pP1P1/p2P3P/1NK5/8/8 w - - 0 48"));
+    assert(MakeMove("b3a1"));
+    assert(MakeMove("b5b1"));
 }
