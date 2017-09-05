@@ -137,8 +137,6 @@ bool k2chess::NoExtendedAttacks(const piece_t sq, const coord_t type,
     const auto sq_type = get_type(sq);
     if(get_color(sq) != color)
         return true;
-    if(type < queen || type > bishop)
-        return true;
     if(sq_type < queen || sq_type > bishop)
         return true;
     if(sq_type != type && sq_type != queen && type != queen)
@@ -574,8 +572,6 @@ void k2chess::MakePromotion(const move_c move, iterator it)
 {
     piece_t pcs[] = {0, black_queen, black_knight, black_rook, black_bishop};
     const auto piece_num = move.flag & is_promotion;
-    if(piece_num == 0)
-        return;
 
     const auto piece = pcs[piece_num];
     b[move.to_coord] = set_color(piece, wtm);
