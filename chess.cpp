@@ -434,8 +434,8 @@ bool k2chess::MakeCastleOrUpdateFlags(const move_c move,
     if(b[move.to_coord] == set_color(black_rook, !wtm))  // rook is taken
     {
         const auto col = get_col(move.to_coord);
-        const auto row = get_row(from_coord);
-        if((wtm && row == max_col) || (!wtm && row == 0))
+        const auto row = get_row(move.to_coord);
+        if((wtm && row == max_row) || (!wtm && row == 0))
         {
             if(col == max_col)
                 state[ply].castling_rights &= wtm ? ~black_can_castle_right :
@@ -1054,7 +1054,7 @@ bool k2chess::IsDiscoveredAttack(const coord_t fr_coord, const coord_t to_coord,
             continue;
         if(!IsSliderAttack(fr_coord, k_coord))
             continue;
-        if(mask == slider_mask[wtm])  // special for en_passant case
+        if(mask == slider_mask[!wtm])  // special for en_passant case
         {
             const auto type = get_type(b[attacker_coord]);
             const auto d_col = get_col(attacker_coord) - get_col(k_coord);
@@ -1346,6 +1346,9 @@ void k2chess::RunUnitTests()
     assert(material[black] == piece_values[knight]);
     assert(reversible_moves == 0);
 
+    assert(TakebackMove());
+    assert(!MakeMove("d2d1m"));
+
     assert(SetupPosition(start_position));
     assert(!MakeMove("c1b2"));
     assert(!MakeMove("c1a3"));
@@ -1419,6 +1422,17 @@ void k2chess::RunUnitTests()
     assert(MakeMove("h2h3"));
     assert(!MakeMove("e8g8"));
 
+    assert(SetupPosition("r3k2r/1p5p/1N6/4B3/4b3/1n6/1P5P/R3K2R"
+                         " w KQkq - 0 1"));
+    assert(MakeMove("e5h8"));
+    assert(MakeMove("e4h1"));
+    assert(!MakeMove("e1g1"));
+    assert(!MakeMove("e8g8"));
+    assert(MakeMove("b6a8"));
+    assert(MakeMove("b3a1"));
+    assert(!MakeMove("e1c1"));
+    assert(!MakeMove("e8c8"));
+
     assert(SetupPosition("3Q4/8/7B/8/q2N4/2p2Pk1/8/2n1K2R b K - 0 1"));
     assert(MakeMove("g3g2"));
     assert(TakebackMove());
@@ -1466,8 +1480,34 @@ void k2chess::RunUnitTests()
     assert(SetupPosition("3k2q1/2p5/8/3P4/8/8/K7/8 b - - 0 1"));
     assert(MakeMove("c7c5"));
     assert(!MakeMove("d5c6"));
+    assert(SetupPosition("8/8/8/8/k1p4B/8/3P4/2K5 w - - 0 1"));
+    assert(MakeMove("d2d4"));
+    assert(MakeMove("c4d3"));
+    assert(SetupPosition("3k2r1/2p5/8/3P4/8/8/K7/8 b - - 0 1"));
+    assert(MakeMove("c7c5"));
+    assert(MakeMove("d5c6"));
+    assert(TakebackMove());
+    assert(MakeMove("a2b3"));
+    assert(MakeMove("c5c4"));
 
-    assert(SetupPosition("8/3n3R/2k1p1p1/1r1pP1P1/p2P3P/1NK5/8/8 w - - 0 48"));
+    assert(SetupPosition("8/3n3R/2k1p1p1/1r1pP1P1/p2P3P/1NK5/8/8 w - - 0 1"));
     assert(MakeMove("b3a1"));
     assert(MakeMove("b5b1"));
+
+    assert(SetupPosition("3k4/3r4/8/3b4/8/8/5P2/3K4 b - - 0 1"));
+    assert(MakeMove("d5b3"));
+    assert(!MakeMove("f2f4"));
+    assert(MakeMove("d1e1"));
+
+    assert(SetupPosition(("3k4/8/8/8/8/2n5/3P4/3K4 w - - 0 1")));
+    assert(!MakeMove("d2d3"));
+    assert(MakeMove("d2c3"));
+    assert(TakebackMove());
+    assert(MakeMove("d1c2"));
+
+    assert(SetupPosition("3k4/8/8/8/8/1b2N3/8/3K4 w - - 0 1"));
+    assert(!MakeMove("e3d5"));
+    assert(MakeMove("e3c2"));
+    assert(TakebackMove());
+    assert(MakeMove("d1c1"));
 }
