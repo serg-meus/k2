@@ -856,6 +856,7 @@ k2chess::move_flag_t k2chess::InitMoveFlag(const move_c move,
         if(wtm)
             required_row = max_row - required_row;
         if(en_passant_state && std::abs(delta) == 1
+                && get_col(move.to_coord) != get_col(from_coord)
                 && get_row(from_coord) == required_row)
             ans |= is_en_passant | is_capture;
     }
@@ -1545,11 +1546,15 @@ void k2chess::RunUnitTests()
     assert(SetupPosition("8/8/8/8/k1p4B/8/3P4/2K5 w - - 0 1"));
     assert(MakeMove("d2d4"));
     assert(MakeMove("c4d3"));
+    assert(TakebackMove());
+    assert(MakeMove("c4c3"));
+    assert(MakeMove("d4d5"));
+
     assert(SetupPosition("3k2r1/2p5/8/3P4/8/8/K7/8 b - - 0 1"));
     assert(MakeMove("c7c5"));
     assert(MakeMove("d5c6"));
     assert(TakebackMove());
-    assert(MakeMove("a2b3"));
+    assert(MakeMove("d5d6"));
     assert(MakeMove("c5c4"));
 
     assert(SetupPosition("8/3n3R/2k1p1p1/1r1pP1P1/p2P3P/1NK5/8/8 w - - 0 1"));
