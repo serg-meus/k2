@@ -410,11 +410,15 @@ void k2chess::ShowMove(const coord_t from_coord, const coord_t to_coord)
 bool k2chess::MakeCastleOrUpdateFlags(const move_c move,
                                       const coord_t from_coord)
 {
-    const auto cs = state[ply].castling_rights;
+    const auto old_rights = state[ply].castling_rights;
+    auto &new_rights = state[ply].castling_rights;
     if(move.piece_iterator == king_coord[wtm])  // king moves
-        state[ply].castling_rights &= wtm ?
-                    ~(white_can_castle_right | white_can_castle_left) :
-                    ~(black_can_castle_right | black_can_castle_left);
+    {
+        if(wtm)
+            new_rights &= ~(white_can_castle_right | white_can_castle_left);
+        else
+            new_rights &= ~(black_can_castle_right | black_can_castle_left);
+    }
     else if(b[from_coord] == set_color(black_rook, wtm))  // rook moves
     {
         const auto col = get_col(from_coord);
@@ -422,11 +426,19 @@ bool k2chess::MakeCastleOrUpdateFlags(const move_c move,
         if((wtm && row == 0) || (!wtm && row == max_col))
         {
             if(col == max_col)
-                state[ply].castling_rights &= wtm ? ~white_can_castle_right :
-                                         ~black_can_castle_right;
+            {
+                if(wtm)
+                    new_rights &= ~white_can_castle_right;
+                else
+                    new_rights &= ~black_can_castle_right;
+            }
             else if(col == 0)
-                state[ply].castling_rights &= wtm ? ~white_can_castle_left :
-                                         ~black_can_castle_left;
+            {
+                if(wtm)
+                    new_rights &= ~white_can_castle_left;
+                else
+                    new_rights &= ~black_can_castle_left;
+            }
         }
     }
     if(b[move.to_coord] == set_color(black_rook, !wtm))  // rook is taken
@@ -436,19 +448,32 @@ bool k2chess::MakeCastleOrUpdateFlags(const move_c move,
         if((wtm && row == max_row) || (!wtm && row == 0))
         {
             if(col == max_col)
-                state[ply].castling_rights &= wtm ? ~black_can_castle_right :
-                                         ~white_can_castle_right;
+            {
+                if(wtm)
+                    new_rights &= ~black_can_castle_right;
+                else
+                    new_rights &= ~white_can_castle_right;
+            }
             else if(col == 0)
-                state[ply].castling_rights &= wtm ? ~black_can_castle_left :
-                                         ~white_can_castle_left;
+            {
+                if(wtm)
+                    new_rights &= ~black_can_castle_left;
+                else
+                    new_rights &= ~white_can_castle_left;
+            }
         }
     }
-    bool castling_rights_changed = (cs != state[ply].castling_rights);
+    bool castling_rights_changed = (new_rights != old_rights);
     if(castling_rights_changed)
         reversible_moves = 0;
 
     if(!(move.flag & is_castle))
-        return castling_rights_changed;
+    {
+        if(castling_rights_changed)
+            return true;
+        else
+            return false;
+    }
 
     coord_t rook_from_coord, rook_to_coord;
     const auto row = wtm ? 0 : max_row;
@@ -626,7 +651,10 @@ bool k2chess::MakeMove(const move_c move)
     *it = move.to_coord;
     wtm = !wtm;
 
-    return is_special_move;
+    if(is_special_move)
+        return true;
+    else
+        return false;
 }
 
 
@@ -923,9 +951,19 @@ bool k2chess::IsPseudoLegal(const move_c move)
     const auto piece_index = it.get_array_index();
     const auto piece = b[*it];
     if(get_type(piece) == pawn && !(move.flag & is_capture))
-        return xattacks[wtm][move.to_coord] & (1 << piece_index);
+    {
+        if(xattacks[wtm][move.to_coord] & (1 << piece_index))
+            return true;
+        else
+            return false;
+    }
     else
-        return attacks[wtm][move.to_coord] & (1 << piece_index);
+    {
+        if(attacks[wtm][move.to_coord] & (1 << piece_index))
+            return true;
+        else
+            return false;
+    }
 }
 
 
@@ -992,9 +1030,19 @@ bool k2chess::IsOnRay(const coord_t k_coord, const coord_t attacker_coord,
     const int delta_x2 = get_col(to_coord) - get_col(k_coord);
     const int delta_y2 = get_row(to_coord) - get_row(k_coord);
     if(delta_x1 == 0 || delta_x2 == 0)
-        return board_width*delta_x1/delta_y1 == board_width*delta_x2/delta_y2;
+    {
+        if(board_width*delta_x1/delta_y1 == board_width*delta_x2/delta_y2)
+            return true;
+        else
+            return false;
+    }
     else
-        return board_width*delta_y1/delta_x1 == board_width*delta_y2/delta_x2;
+    {
+        if(board_width*delta_y1/delta_x1 == board_width*delta_y2/delta_x2)
+            return true;
+        else
+            return false;
+    }
 }
 
 
@@ -1080,9 +1128,19 @@ bool k2chess::IsLegal(const move_c move)
     if(piece_type == king)
     {
         if(!(move.flag & is_castle))
-            return attacks[!wtm][move.to_coord] == 0;
+        {
+            if(attacks[!wtm][move.to_coord] == 0)
+                return true;
+            else
+                return false;
+        }
         else
-            return IsLegalCastle(move);
+        {
+            if(IsLegalCastle(move))
+                return true;
+            else
+                return false;
+        }
     }
     else
     {
@@ -1112,11 +1170,19 @@ bool k2chess::IsLegal(const move_c move)
             auto it = coords[!wtm].begin();
             const auto attacker_coord = *it[attacker_id];
             if(is_slider[get_type(b[attacker_coord])])
-                return IsOnRay(*king_coord[wtm],
-                               attacker_coord,
-                               move.to_coord);
+            {
+                if(IsOnRay(*king_coord[wtm], attacker_coord, move.to_coord))
+                    return true;
+                else
+                    return false;
+            }
             else
-                return move.to_coord == attacker_coord;
+            {
+                if(move.to_coord == attacker_coord)
+                    return true;
+                else
+                    return false;
+            }
         }
     }
     return true;
