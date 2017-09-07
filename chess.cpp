@@ -1484,6 +1484,14 @@ void k2chess::RunUnitTests()
     assert(!MakeMove("e1g1"));
     assert(MakeMove("h2h3"));
     assert(!MakeMove("e8g8"));
+    assert(SetupPosition("rn2k2r/p5pp/8/8/8/6P1/P6P/R3K1NR w KQkq - 0 1"));
+    assert(MakeMove("a1b1"));
+    assert(MakeMove("h8g8"));
+    assert(MakeMove("b1a1"));
+    assert(MakeMove("g8h8"));
+    assert(!MakeMove("e1c1"));
+    assert(MakeMove("h2h3"));
+    assert(!MakeMove("e8g8"));
 
     assert(SetupPosition("r3k2r/1p5p/1N6/4B3/4b3/1n6/1P5P/R3K2R"
                          " w KQkq - 0 1"));
