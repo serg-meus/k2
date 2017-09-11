@@ -74,21 +74,40 @@ void k2chess::InitAttacksOnePiece(const coord_t coord)
     auto index = it.get_array_index();
     const auto type = get_type(b[coord]);
     if(type == pawn)
-    {
-        const auto col = get_col(coord);
-        auto row = get_row(coord);
-        const auto d_row = color ? 1 : -1;
-        if(col_within(col + 1))
-            attacks[color][get_coord(col + 1, row + d_row)] |= (1 << index);
-        if(col_within(col - 1))
-            attacks[color][get_coord(col - 1, row + d_row)] |= (1 << index);
-        xattacks[color][get_coord(col, row + d_row)] = (1 << index);
-        if(row == (color ? 1 : max_row - 1)
-                && b[get_coord(col, row + d_row)] == empty_square)
-            xattacks[color][get_coord(col, row + 2*d_row)] |=
-                    (1 << index);
-        return;
-    }
+        InitAttacksPawn(coord, color, index);
+    else
+        InitAttacksNotPawn(coord, color, index, type);
+}
+
+
+
+
+
+//--------------------------------
+void k2chess::InitAttacksPawn(coord_t coord, bool color, u8 index)
+{
+    const auto col = get_col(coord);
+    auto row = get_row(coord);
+    const auto d_row = color ? 1 : -1;
+    if(col_within(col + 1))
+        attacks[color][get_coord(col + 1, row + d_row)] |= (1 << index);
+    if(col_within(col - 1))
+        attacks[color][get_coord(col - 1, row + d_row)] |= (1 << index);
+    xattacks[color][get_coord(col, row + d_row)] = (1 << index);
+    if(row == (color ? 1 : max_row - 1)
+            && b[get_coord(col, row + d_row)] == empty_square)
+        xattacks[color][get_coord(col, row + 2*d_row)] |=
+                (1 << index);
+}
+
+
+
+
+
+//--------------------------------
+void k2chess::InitAttacksNotPawn(coord_t coord, bool color,
+                                 u8 index, coord_t type)
+{
     const auto max_len = std::max((size_t)board_height, (size_t)board_width);
     for(auto ray = 0; ray < rays[type]; ray++)
     {
@@ -169,8 +188,7 @@ void k2chess::UpdateAttacks(const move_c move, const coord_t from_coord)
             it &= ~update_mask[stm];
 
         auto it = coords[stm].begin();
-        const auto bits = sizeof(attack_t)*CHAR_BIT;
-        for(size_t i = 0; i < bits; ++i)
+        for(size_t i = 0; i < attack_digits; ++i)
         {
             if(!((update_mask[stm] >> i) & 1))
                 continue;
@@ -230,6 +248,7 @@ bool k2chess::SetupPosition(const char *fen)
     done_moves.clear();
     return true;
 }
+
 
 
 
@@ -363,6 +382,7 @@ char *k2chess::ParseCastlingRightsInFen(char *ptr)
     state[0].castling_rights = castling_rights;
     return ptr;
 }
+
 
 
 
@@ -876,55 +896,6 @@ k2chess::move_flag_t k2chess::InitMoveFlag(const move_c move,
 
 
 //--------------------------------
-size_t k2chess::test_count_attacked_squares(const bool stm,
-                                            const bool use_extended_attacks)
-{
-    size_t ans = 0;
-    for(auto it : use_extended_attacks ? xattacks[stm] : attacks[stm])
-        if(it != 0)
-            ans++;
-    return ans;
-}
-
-
-
-
-
-//--------------------------------
-size_t k2chess::test_count_all_attacks(const bool stm,
-                                       const bool use_extended_attacks)
-{
-    size_t ans = 0;
-    for(auto it : use_extended_attacks ? xattacks[stm] : attacks[stm])
-        ans += std::bitset<sizeof(attack_t)*CHAR_BIT>(it).count();
-    return ans;
-}
-
-
-
-
-
-//--------------------------------
-void k2chess::test_attack_tables(const size_t att_w, const size_t att_b,
-                                 const size_t all_w, const size_t all_b,
-                                 const bool use_extended_attacks)
-{
-    size_t att_squares_w, att_squares_b, all_attacks_w, all_attacks_b;
-    att_squares_w = test_count_attacked_squares(white, use_extended_attacks);
-    att_squares_b = test_count_attacked_squares(black, use_extended_attacks);
-    all_attacks_w = test_count_all_attacks(white, use_extended_attacks);
-    all_attacks_b = test_count_all_attacks(black, use_extended_attacks);
-    assert(att_squares_w == att_w);
-    assert(att_squares_b == att_b);
-    assert(all_attacks_w == all_w);
-    assert(all_attacks_b == all_b);
-}
-
-
-
-
-
-//--------------------------------
 bool k2chess::IsPseudoLegal(const move_c move)
 {
     auto it = coords[wtm].begin();
@@ -1086,8 +1057,7 @@ bool k2chess::IsDiscoveredAttack(const coord_t fr_coord, const coord_t to_coord,
 {
     auto it = coords[!wtm].begin();
     size_t i = 0;
-    const auto bits = sizeof(attack_t)*CHAR_BIT;
-    for(; i < bits; ++i)
+    for(; i < attack_digits; ++i)
     {
         if(!((mask >> i) & 1))
             continue;
@@ -1147,8 +1117,8 @@ bool k2chess::IsLegal(const move_c move)
     {
         const auto k = *king_coord[wtm];
         auto attack_sum = attacks[!wtm][k];
-        const auto bits = sizeof(attack_t)*CHAR_BIT;
-        const auto king_attackers = std::bitset<bits>(attack_sum).count();
+        const auto king_attackers =
+                std::bitset<attack_digits>(attack_sum).count();
         assert(king_attackers <= 2);
         if(king_attackers == 2)
             return false;
@@ -1188,6 +1158,55 @@ bool k2chess::IsLegal(const move_c move)
     }
     return true;
 
+}
+
+
+
+
+
+//--------------------------------
+size_t k2chess::test_count_attacked_squares(const bool stm,
+                                            const bool use_extended_attacks)
+{
+    size_t ans = 0;
+    for(auto it : use_extended_attacks ? xattacks[stm] : attacks[stm])
+        if(it != 0)
+            ans++;
+    return ans;
+}
+
+
+
+
+
+//--------------------------------
+size_t k2chess::test_count_all_attacks(const bool stm,
+                                       const bool use_extended_attacks)
+{
+    size_t ans = 0;
+    for(auto it : use_extended_attacks ? xattacks[stm] : attacks[stm])
+        ans += std::bitset<attack_digits>(it).count();
+    return ans;
+}
+
+
+
+
+
+//--------------------------------
+void k2chess::test_attack_tables(const size_t att_w, const size_t att_b,
+                                 const size_t all_w, const size_t all_b,
+                                 const bool use_extended_attacks)
+{
+    size_t att_squares_w, att_squares_b, all_attacks_w, all_attacks_b;
+    att_squares_w = test_count_attacked_squares(white, use_extended_attacks);
+    att_squares_b = test_count_attacked_squares(black, use_extended_attacks);
+    all_attacks_w = test_count_all_attacks(white, use_extended_attacks);
+    all_attacks_b = test_count_all_attacks(black, use_extended_attacks);
+    assert(att_squares_w == att_w);
+    assert(att_squares_b == att_b);
+    assert(all_attacks_w == all_w);
+    assert(all_attacks_b == all_b);
 }
 
 
@@ -1271,9 +1290,11 @@ void k2chess::RunUnitTests()
     assert(quantity[white][pawn] == 8);
     assert(quantity[black][pawn] == 7);
     assert(material[white] == 8*piece_values[pawn] + piece_values[queen] +
-           2*piece_values[rook] + 2*piece_values[bishop] + 2*piece_values[knight]);
+           2*piece_values[rook] + 2*piece_values[bishop] +
+           2*piece_values[knight]);
     assert(material[black] == 7*piece_values[pawn] + piece_values[queen] +
-           2*piece_values[rook] + 2*piece_values[bishop] + 2*piece_values[knight]);
+           2*piece_values[rook] + 2*piece_values[bishop] +
+           2*piece_values[knight]);
     assert(pieces[white] == 16);
     assert(pieces[black] == 15);
     assert(find_piece(black, get_coord("d5")) == coords[black].end());
@@ -1303,9 +1324,11 @@ void k2chess::RunUnitTests()
     assert(quantity[white][queen] == 0);
     assert(quantity[black][queen] == 0);
     assert(material[white] == 7*piece_values[pawn] +
-           2*piece_values[rook] + piece_values[bishop] + 2*piece_values[knight]);
+           2*piece_values[rook] + piece_values[bishop] +
+           2*piece_values[knight]);
     assert(material[black] == 7*piece_values[pawn] +
-           2*piece_values[rook] + 2*piece_values[bishop] + piece_values[knight]);
+           2*piece_values[rook] + 2*piece_values[bishop] +
+           piece_values[knight]);
     assert(pieces[white] == 13);
     assert(pieces[black] == 13);
 
@@ -1493,8 +1516,7 @@ void k2chess::RunUnitTests()
     assert(MakeMove("h2h3"));
     assert(!MakeMove("e8g8"));
 
-    assert(SetupPosition("r3k2r/1p5p/1N6/4B3/4b3/1n6/1P5P/R3K2R"
-                         " w KQkq - 0 1"));
+    assert(SetupPosition("r3k2r/1p5p/1N6/4B3/4b3/1n6/1P5P/R3K2R w KQkq -"));
     assert(MakeMove("e5h8"));
     assert(MakeMove("e4h1"));
     assert(!MakeMove("e1g1"));

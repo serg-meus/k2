@@ -137,6 +137,7 @@ protected:
     pawn_default_row = 1,
     pawn_long_move_length = 2;
     static const size_t move_max_display_length = 5;
+    static const attack_t attack_digits = sizeof(attack_t)*CHAR_BIT;
 
     const piece_t
     pawn = get_type(black_pawn),
@@ -337,4 +338,7 @@ private:
     bool IsDiscoveredAttack(const coord_t fr_coord, const coord_t to_coord,
                             const attack_t mask);
     bool IsSliderAttack(const coord_t from_coord, const coord_t to_coord);
+    void InitAttacksPawn(coord_t coord, bool color, u8 index);
+    void InitAttacksNotPawn(coord_t coord, bool color,
+                            u8 index, coord_t type);
 };
