@@ -55,7 +55,7 @@ void k2chess::InitAttacks()
         update_mask[stm] = 0;
         for(auto it = coords[stm].rbegin(); it != coords[stm].rend(); ++it)
         {
-            InitAttacksOnePiece(*it);
+            InitAttacksOnePiece(*it, &k2chess::set_bit);
             if(is_slider[get_type(b[*it])])
                 slider_mask[stm] |= (1 << it.get_array_index());
         }
@@ -67,16 +67,17 @@ void k2chess::InitAttacks()
 
 
 //--------------------------------
-void k2chess::InitAttacksOnePiece(const coord_t coord)
+void k2chess::InitAttacksOnePiece(const coord_t coord,
+                                  change_bit_ptr change_bit)
 {
     const auto color = get_color(b[coord]);
     auto it = find_piece(color, coord);
     auto index = it.get_array_index();
     const auto type = get_type(b[coord]);
     if(type == pawn)
-        InitAttacksPawn(coord, color, index);
+        InitAttacksPawn(coord, color, index, change_bit);
     else
-        InitAttacksNotPawn(coord, color, index, type);
+        InitAttacksNotPawn(coord, color, index, type, change_bit);
 }
 
 
@@ -106,19 +107,20 @@ void k2chess::clear_bit(attack_t (*attacks)[board_height*board_width],
 
 
 //--------------------------------
-void k2chess::InitAttacksPawn(coord_t coord, bool color, u8 index)
+void k2chess::InitAttacksPawn(coord_t coord, bool color,
+                              u8 index, change_bit_ptr change_bit)
 {
     const auto col = get_col(coord);
     auto row = get_row(coord);
     const auto d_row = color ? 1 : -1;
     if(col_within(col + 1))
-        set_bit(attacks, color, col + 1, row + d_row, index);
+        (this->*change_bit)(attacks, color, col + 1, row + d_row, index);
     if(col_within(col - 1))
-        set_bit(attacks, color, col - 1, row + d_row, index);
-    set_bit(xattacks, color, col, row + d_row, index);
+        (this->*change_bit)(attacks, color, col - 1, row + d_row, index);
+    (this->*change_bit)(xattacks, color, col, row + d_row, index);
     if(row == (color ? 1 : max_row - 1)
             && b[get_coord(col, row + d_row)] == empty_square)
-        set_bit(xattacks, color, col, row + 2*d_row, index);
+        (this->*change_bit)(xattacks, color, col, row + 2*d_row, index);
 }
 
 
@@ -127,7 +129,8 @@ void k2chess::InitAttacksPawn(coord_t coord, bool color, u8 index)
 
 //--------------------------------
 void k2chess::InitAttacksNotPawn(coord_t coord, bool color,
-                                 u8 index, coord_t type)
+                                 u8 index, coord_t type,
+                                 change_bit_ptr change_bit)
 {
     const auto max_len = std::max((size_t)board_height, (size_t)board_width);
     for(auto ray = 0; ray < rays[type]; ray++)
@@ -143,7 +146,7 @@ void k2chess::InitAttacksNotPawn(coord_t coord, bool color,
             row += d_row;
             if(!col_within(col) || !row_within(row))
                 break;
-            set_bit(attacks, color, col, row, index);
+            (this->*change_bit)(attacks, color, col, row, index);
             if(!is_slider[type])
                 break;
             if(b[get_coord(col, row)] != empty_square)
@@ -158,7 +161,7 @@ void k2chess::InitAttacksNotPawn(coord_t coord, bool color,
             row += d_row;
             if(!col_within(col) || !row_within(row))
                 break;
-            set_bit(xattacks, color, col, row, index);
+            (this->*change_bit)(xattacks, color, col, row, index);
             if(b[get_coord(col, row)] != empty_square)
                 break;
         }
@@ -214,7 +217,7 @@ void k2chess::UpdateAttacks(const move_c move, const coord_t from_coord)
             if(!((update_mask[stm] >> i) & 1))
                 continue;
             const auto attacker_coord = *it[i];
-            InitAttacksOnePiece(attacker_coord);
+            InitAttacksOnePiece(attacker_coord, &k2chess::set_bit);
         }
         update_mask[stm] = 0;
     }

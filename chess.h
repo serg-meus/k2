@@ -97,6 +97,10 @@ protected:
     const static coord_t max_col = board_width - 1;
     const static coord_t max_row = board_height - 1;
 
+    typedef void(k2chess::*change_bit_ptr)
+        (attack_t (*att)[board_height*board_width],
+         bool, coord_t, coord_t, u8);
+
     const static piece_t
     empty_square = 0,
     black_king = 2,
@@ -318,7 +322,7 @@ private:
     bool MakeCastleOrUpdateFlags(const move_c m, const coord_t from_coord);
     void TakebackCastle(const move_c m);
     bool MakeEnPassantOrUpdateFlags(const move_c m, const coord_t from_coord);
-    void InitAttacksOnePiece(const coord_t coord);
+    void InitAttacksOnePiece(const coord_t coord, change_bit_ptr change_bit);
     void UpdateAttacks(const move_c move, const coord_t from_coord);
     void UpdateAttacksOnePiece();
     char* ParseMainPartOfFen(char *ptr);
@@ -338,9 +342,10 @@ private:
     bool IsDiscoveredAttack(const coord_t fr_coord, const coord_t to_coord,
                             const attack_t mask);
     bool IsSliderAttack(const coord_t from_coord, const coord_t to_coord);
-    void InitAttacksPawn(coord_t coord, bool color, u8 index);
-    void InitAttacksNotPawn(coord_t coord, bool color,
-                            u8 index, coord_t type);
+    void InitAttacksPawn(coord_t coord, bool color, u8 index,
+                         change_bit_ptr change_bit);
+    void InitAttacksNotPawn(coord_t coord, bool color, u8 index, coord_t type,
+                            change_bit_ptr change_bit);
     void set_bit(attack_t (*attacks)[board_height*board_width],
                  bool color, coord_t col, coord_t row, u8 index);
     void clear_bit(attack_t (*attacks)[board_height*board_width],
