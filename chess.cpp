@@ -217,7 +217,7 @@ void k2chess::UpdateAttacks(const move_c move, const coord_t from_coord)
             if(it == moving_piece_it)
                 coord = from_coord;
             UpdateAttacksOnePiece(coord, it[i], &k2chess::clear_bit);
-            UpdateAttacksOnePiece(*it, it[i], &k2chess::set_bit);
+            UpdateAttacksOnePiece(coord, it[i], &k2chess::set_bit);
         }
         update_mask[stm] = 0;
     }
@@ -234,10 +234,13 @@ void k2chess::UpdateAttacksOnePiece(coord_t from_coord, iterator it,
     const auto color = get_color(b[*it]);
     auto index = it.get_array_index();
     const auto type = get_type(b[*it]);
+    auto coord = from_coord;
+    if(change_bit == &k2chess::set_bit)
+        coord = *it;
     if(type == pawn)
-        InitAttacksPawn(from_coord, color, index, change_bit);
-    else
-        InitAttacksNotPawn(from_coord, color, index, type, change_bit);
+        InitAttacksPawn(coord, color, index, change_bit);
+    else if(is_slider[type] || from_coord != *it)
+        InitAttacksNotPawn(coord, color, index, type, change_bit);
 }
 
 
