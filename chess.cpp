@@ -208,16 +208,16 @@ void k2chess::UpdateAttacks(const move_c move, const coord_t from_coord)
         update_mask[stm] |= attacks[stm][from_coord];
         update_mask[stm] |= attacks[stm][move.to_coord];
 
-        for(auto &it : attacks[stm])
-            it &= ~update_mask[stm];
-
         auto it = coords[stm].begin();
         for(size_t i = 0; i < attack_digits; ++i)
         {
             if(!((update_mask[stm] >> i) & 1))
                 continue;
-            const auto attacker_coord = *it[i];
-            InitAttacksOnePiece(attacker_coord, &k2chess::set_bit);
+            auto coord = *it[i];
+            if(it == moving_piece_it)
+                coord = from_coord;
+            UpdateAttacksOnePiece(coord, it[i], &k2chess::clear_bit);
+            UpdateAttacksOnePiece(*it, it[i], &k2chess::set_bit);
         }
         update_mask[stm] = 0;
     }
@@ -228,9 +228,16 @@ void k2chess::UpdateAttacks(const move_c move, const coord_t from_coord)
 
 
 //--------------------------------
-void k2chess::UpdateAttacksOnePiece()
+void k2chess::UpdateAttacksOnePiece(coord_t from_coord, iterator it,
+                                    change_bit_ptr change_bit)
 {
-
+    const auto color = get_color(b[*it]);
+    auto index = it.get_array_index();
+    const auto type = get_type(b[*it]);
+    if(type == pawn)
+        InitAttacksPawn(from_coord, color, index, change_bit);
+    else
+        InitAttacksNotPawn(from_coord, color, index, type, change_bit);
 }
 
 
