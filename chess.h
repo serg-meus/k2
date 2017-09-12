@@ -341,4 +341,8 @@ private:
     void InitAttacksPawn(coord_t coord, bool color, u8 index);
     void InitAttacksNotPawn(coord_t coord, bool color,
                             u8 index, coord_t type);
+    void set_bit(attack_t (*attacks)[board_height*board_width],
+                 bool color, coord_t col, coord_t row, u8 index);
+    void clear_bit(attack_t (*attacks)[board_height*board_width],
+                   bool color, coord_t col, coord_t row, u8 index);
 };

@@ -84,20 +84,41 @@ void k2chess::InitAttacksOnePiece(const coord_t coord)
 
 
 //--------------------------------
+void k2chess::set_bit(attack_t (*attacks)[board_height*board_width],
+                      bool color, coord_t col, coord_t row, u8 index)
+{
+    attacks[color][get_coord(col, row)] |= (1 << index);
+}
+
+
+
+
+
+//--------------------------------
+void k2chess::clear_bit(attack_t (*attacks)[board_height*board_width],
+                        bool color, coord_t col, coord_t row, u8 index)
+{
+    attacks[color][get_coord(col, row)] &= ~(1 << index);
+}
+
+
+
+
+
+//--------------------------------
 void k2chess::InitAttacksPawn(coord_t coord, bool color, u8 index)
 {
     const auto col = get_col(coord);
     auto row = get_row(coord);
     const auto d_row = color ? 1 : -1;
     if(col_within(col + 1))
-        attacks[color][get_coord(col + 1, row + d_row)] |= (1 << index);
+        set_bit(attacks, color, col + 1, row + d_row, index);
     if(col_within(col - 1))
-        attacks[color][get_coord(col - 1, row + d_row)] |= (1 << index);
-    xattacks[color][get_coord(col, row + d_row)] = (1 << index);
+        set_bit(attacks, color, col - 1, row + d_row, index);
+    set_bit(xattacks, color, col, row + d_row, index);
     if(row == (color ? 1 : max_row - 1)
             && b[get_coord(col, row + d_row)] == empty_square)
-        xattacks[color][get_coord(col, row + 2*d_row)] |=
-                (1 << index);
+        set_bit(xattacks, color, col, row + 2*d_row, index);
 }
 
 
@@ -122,7 +143,7 @@ void k2chess::InitAttacksNotPawn(coord_t coord, bool color,
             row += d_row;
             if(!col_within(col) || !row_within(row))
                 break;
-            attacks[color][get_coord(col, row)] |= (1 << index);
+            set_bit(attacks, color, col, row, index);
             if(!is_slider[type])
                 break;
             if(b[get_coord(col, row)] != empty_square)
@@ -137,7 +158,7 @@ void k2chess::InitAttacksNotPawn(coord_t coord, bool color,
             row += d_row;
             if(!col_within(col) || !row_within(row))
                 break;
-            xattacks[color][get_coord(col, row)] |= (1 << index);
+            set_bit(xattacks, color, col, row, index);
             if(b[get_coord(col, row)] != empty_square)
                 break;
         }
