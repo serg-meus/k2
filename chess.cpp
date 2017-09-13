@@ -268,6 +268,15 @@ void k2chess::UpdateAttacks(const move_c move, const coord_t from_coord)
         }
         update_mask[stm] = 0;
     }
+#ifndef NDEBUG
+    attack_t tmp[sides][board_height*board_width];
+    const auto sz = sizeof(attacks);
+    memcpy(tmp, attacks, sz);
+    InitAttacks();
+    if(memcmp(tmp, attacks, sz) != 0)
+        ply = ply;
+    assert(memcmp(tmp, attacks, sz) == 0);
+#endif
 }
 
 
