@@ -488,7 +488,7 @@ char* k2chess::ParseEnPassantInFen(char *ptr)
 //--------------------------------
 void k2chess::ShowMove(const coord_t from_coord, const coord_t to_coord)
 {
-    assert(ply <= 100);
+    assert(ply <= max_ply);
     char *cur = cur_moves + move_max_display_length*(ply - 1);
     *(cur++) = get_col(from_coord) + 'a';
     *(cur++) = get_row(from_coord) + '1';
