@@ -133,37 +133,62 @@ void k2chess::InitAttacksNotPawn(coord_t coord, bool color,
                                  change_bit_ptr change_bit)
 {
     const auto max_len = std::max((size_t)board_height, (size_t)board_width);
-    for(auto ray = 0; ray < rays[type]; ray++)
+    if(change_bit == &k2chess::set_bit)
     {
-        auto col = get_col(coord);
-        auto row = get_row(coord);
-        const auto d_col = delta_col[type][ray];
-        const auto d_row = delta_row[type][ray];
-        size_t i = 0;
-        for(; i < max_len; ++i)
+        for(auto ray = 0; ray < rays[type]; ray++)
         {
-            col += d_col;
-            row += d_row;
-            if(!col_within(col) || !row_within(row))
-                break;
-            (this->*change_bit)(attacks, color, col, row, index);
-            if(!is_slider[type])
-                break;
-            if(b[get_coord(col, row)] != empty_square)
-                break;
+            auto col = get_col(coord);
+            auto row = get_row(coord);
+            const auto d_col = delta_col[type][ray];
+            const auto d_row = delta_row[type][ray];
+            size_t i = 0;
+            for(; i < max_len; ++i)
+            {
+                col += d_col;
+                row += d_row;
+                if(!col_within(col) || !row_within(row))
+                    break;
+                set_bit(attacks, color, col, row, index);
+                if(!is_slider[type])
+                    break;
+                if(b[get_coord(col, row)] != empty_square)
+                    break;
+            }
+            if(!is_slider[type] || NoExtendedAttacks(b[get_coord(col, row)],
+                                                     type, color, d_col, d_row))
+                continue;
+            for(size_t j = i; j < max_len; ++j)
+            {
+                col += d_col;
+                row += d_row;
+                if(!col_within(col) || !row_within(row))
+                    break;
+                set_bit(xattacks, color, col, row, index);
+                if(b[get_coord(col, row)] != empty_square)
+                    break;
+            }
         }
-        if(!is_slider[type] || NoExtendedAttacks(b[get_coord(col, row)],
-                                                 type, color, d_col, d_row))
-            continue;
-        for(size_t j = i; j < max_len; ++j)
+    }
+    else
+    {
+        for(auto ray = 0; ray < rays[type]; ray++)
         {
-            col += d_col;
-            row += d_row;
-            if(!col_within(col) || !row_within(row))
-                break;
-            (this->*change_bit)(xattacks, color, col, row, index);
-            if(b[get_coord(col, row)] != empty_square)
-                break;
+            auto col = get_col(coord);
+            auto row = get_row(coord);
+            const auto d_col = delta_col[type][ray];
+            const auto d_row = delta_row[type][ray];
+            size_t i = 0;
+            for(; i < max_len; ++i)
+            {
+                col += d_col;
+                row += d_row;
+                if(!col_within(col) || !row_within(row))
+                    break;
+                clear_bit(attacks, color, col, row, index);
+                clear_bit(xattacks, color, col, row, index);
+                if(!is_slider[type])
+                    break;
+            }
         }
     }
 }
@@ -1641,4 +1666,10 @@ void k2chess::RunUnitTests()
     assert(MakeMove("e3c2"));
     assert(TakebackMove());
     assert(MakeMove("d1c1"));
+
+    assert(SetupPosition("1n2k3/1pp5/8/8/8/1P6/2PPB3/4K3 w - - 0 1"));
+    assert(MakeMove("e2b5"));
+    assert(MakeMove("b8c6"));
+    assert(MakeMove("b5a4"));
+    assert(MakeMove("e8d7"));
 }
