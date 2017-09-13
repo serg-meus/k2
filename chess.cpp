@@ -259,10 +259,11 @@ void k2chess::UpdateAttacks(const move_c move, const coord_t from_coord)
             bool is_move = stm != wtm && it == moving_piece_it;
 
             UpdateAttacksOnePiece(is_move ? from_coord : coord,
-                                  color, type, is_move, index,
+                                  color, type, is_move || is_capture, index,
                                   &k2chess::clear_bit);
             if(!is_capt)
-                UpdateAttacksOnePiece(coord, color, type, is_move, index,
+                UpdateAttacksOnePiece(coord, color, type,
+                                      is_move || is_capture, index,
                                       &k2chess::set_bit);
         }
         update_mask[stm] = 0;
@@ -1694,4 +1695,10 @@ void k2chess::RunUnitTests()
     assert(MakeMove("d1f1"));
     assert(MakeMove("d8f8"));
     assert(MakeMove("f1f8"));
+
+    assert(SetupPosition("8/5k2/8/8/2n5/8/5P2/1N3K2 b - - 0 1"));
+    assert(MakeMove("c4d2"));
+    assert(MakeMove("b1d2"));
+    assert(MakeMove("f7f6"));
+    assert(MakeMove("f2f4"));
 }
