@@ -324,7 +324,8 @@ private:
     bool MakeEnPassantOrUpdateFlags(const move_c m, const coord_t from_coord);
     void InitAttacksOnePiece(const coord_t coord, change_bit_ptr change_bit);
     void UpdateAttacks(const move_c move, const coord_t from_coord);
-    void UpdateAttacksOnePiece(coord_t from_coord, iterator it,
+    void UpdateAttacksOnePiece(coord_t coord, bool color,
+                               coord_t type, bool is_move, u8 index,
                                change_bit_ptr change_bit);
     char* ParseMainPartOfFen(char *ptr);
     char* ParseSideToMoveInFen(char *ptr);
