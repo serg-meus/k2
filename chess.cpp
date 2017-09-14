@@ -227,17 +227,39 @@ void k2chess::UpdateAttacks(const move_c move, const coord_t from_coord)
     auto moving_piece_it = coords[!wtm].begin();
     moving_piece_it = move.piece_iterator;
     update_mask[!wtm] |= (1 << moving_piece_it.get_array_index());
+    auto cstl_it = coords[!wtm].begin();
+    if(move.flag & is_castle)
+    {
+        cstl_it = state[ply].castled_rook_it;
+        update_mask[!wtm] |= (1 << cstl_it.get_array_index());
+    }
     auto captured_it = coords[wtm].begin();
     if(move.flag & is_capture)
     {
         captured_it = state[ply].captured_it;
         update_mask[wtm] |= (1 << captured_it.get_array_index());
     }
+    bool is_enps = move.flag & is_en_passant;
 
     for(auto stm : {black, white})
     {
         update_mask[stm] |= attacks[stm][from_coord];
         update_mask[stm] |= attacks[stm][move.to_coord];
+        if(is_enps)
+            update_mask[stm] |= attacks[stm]
+                    [move.to_coord + (wtm ? board_width : -board_width)];
+        else if(move.flag & is_left_castle)
+        {
+            update_mask[stm] |= attacks[stm][from_coord - cstl_move_length + 1];
+            update_mask[stm] |= attacks[stm]
+                    [get_coord(0, wtm ? max_row : 0)];
+        }
+        else if(move.flag & is_right_castle)
+        {
+            update_mask[stm] |= attacks[stm][from_coord + cstl_move_length - 1];
+            update_mask[stm] |= attacks[stm]
+                    [get_coord(max_col, wtm ? max_row : 0)];
+        }
 
         auto it = coords[stm].begin();
         for(size_t i = 0; i < attack_digits; ++i)
@@ -253,14 +275,24 @@ void k2chess::UpdateAttacks(const move_c move, const coord_t from_coord)
             if(is_capt)
             {
                 color = stm;
-                type = get_type(state[ply].captured_piece);
+                type = is_enps ? pawn : get_type(state[ply].captured_piece);
                 index = captured_it.get_array_index();
             }
             bool is_move = stm != wtm && it == moving_piece_it;
+            if(is_move && (move.flag & is_promotion))
+                type = pawn;
+            bool is_cstl = move.flag & is_castle && stm != wtm && it == cstl_it;
+            if(is_cstl)
+                coord = get_coord((move.flag & is_left_castle) ? 0 : max_col,
+                                  wtm ? max_row : 0);
 
             UpdateAttacksOnePiece(is_move ? from_coord : coord,
                                   color, type, is_move || is_capture, index,
                                   &k2chess::clear_bit);
+            if(is_cstl)
+                coord = *it[i];
+            else if(is_move && (move.flag & is_promotion))
+                type = get_type(b[*it[i]]);
             if(!is_capt)
                 UpdateAttacksOnePiece(coord, color, type,
                                       is_move || is_capture, index,
@@ -272,9 +304,8 @@ void k2chess::UpdateAttacks(const move_c move, const coord_t from_coord)
     attack_t tmp[sides][board_height*board_width];
     const auto sz = sizeof(attacks);
     memcpy(tmp, attacks, sz);
+    memset(attacks, 0, sz);
     InitAttacks();
-    if(memcmp(tmp, attacks, sz) != 0)
-        ply = ply;
     assert(memcmp(tmp, attacks, sz) == 0);
 #endif
 }
@@ -1710,4 +1741,24 @@ void k2chess::RunUnitTests()
     assert(MakeMove("b1d2"));
     assert(MakeMove("f7f6"));
     assert(MakeMove("f2f4"));
+
+    assert(SetupPosition("8/2p2k2/8/K2P4/8/8/8/8 b - - 0 1"));
+    assert(MakeMove("c7c5"));
+    assert(MakeMove("d5c6"));
+    assert(MakeMove("f7f6"));
+    assert(MakeMove("a5b4"));
+
+    assert(SetupPosition("6k1/8/8/8/8/8/8/4K2R w K - 0 1"));
+    assert(MakeMove("e1g1"));
+    assert(MakeMove("g8h8"));
+
+    assert(SetupPosition("r3k3/8/8/8/8/8/8/1K6 b q - 0 1"));
+    assert(MakeMove("e8c8"));
+    assert(MakeMove("b1a1"));
+
+    assert(SetupPosition("8/2pPk3/8/8/8/8/8/2K5 w - - 0 1"));
+    assert(MakeMove("d7d8n"));
+    assert(MakeMove("e7d8"));
+    assert(MakeMove("c1c2"));
+    assert(MakeMove("d8c8"));
 }
