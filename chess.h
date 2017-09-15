@@ -357,4 +357,5 @@ private:
     void clear_bit(attack_t (* const attacks)[board_height*board_width],
                    const bool color, const coord_t col, const coord_t row,
                    const u8 index);
+    bool IsPseudoLegalPawn(const move_c move, const coord_t from_coord);
 };

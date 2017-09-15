@@ -1027,17 +1027,13 @@ bool k2chess::IsPseudoLegal(const move_c move)
         else
             return false;
     }
-    const auto piece_index = it.get_array_index();
+    const auto from_coord = *it;
     const auto piece = b[*it];
-    if(get_type(piece) == pawn && !(move.flag & is_capture))
-    {
-        if(xattacks[wtm][move.to_coord] & (1 << piece_index))
-            return true;
-        else
-            return false;
-    }
+    if(get_type(piece) == pawn)
+        return IsPseudoLegalPawn(move, from_coord);
     else
     {
+        const auto piece_index = it.get_array_index();
         if(attacks[wtm][move.to_coord] & (1 << piece_index))
             return true;
         else
@@ -1045,6 +1041,47 @@ bool k2chess::IsPseudoLegal(const move_c move)
     }
 }
 
+
+
+
+//--------------------------------
+bool k2chess::IsPseudoLegalPawn(const move_c move, const coord_t from_coord)
+{
+    const auto delta = wtm ? board_width : -board_width;
+    if(move.to_coord == from_coord + delta
+            && b[move.to_coord] == empty_square)
+        return true;
+    const auto init_row = (wtm ? pawn_default_row :
+                                 max_row - pawn_default_row);
+    if(move.to_coord == from_coord + 2*delta
+            && get_row(from_coord) == init_row
+            && b[move.to_coord] == empty_square
+            && b[move.to_coord - delta] == empty_square)
+        return true;
+    else if((move.to_coord == from_coord + delta + 1
+        || move.to_coord == from_coord + delta - 1))
+    {
+        if(b[move.to_coord] != empty_square)
+        {
+            if(get_color(b[move.to_coord]) != wtm)
+                return true;
+        }
+        else //en passant
+        {
+            const auto col = get_col(from_coord);
+            auto row = pawn_default_row + pawn_long_move_length;
+            if(wtm)
+                row = max_row - row;
+            const auto delta2 = move.to_coord - from_coord - delta;
+            const auto rights = state[ply].en_passant_rights;
+            const auto pw = set_color(black_pawn, !wtm);
+            if(get_row(from_coord) == row && rights - 1 == col + delta2
+                    && b[get_coord(col + delta2, row)] == pw)
+                return true;
+        }
+    }
+    return false;
+}
 
 
 
