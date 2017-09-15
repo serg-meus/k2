@@ -358,4 +358,6 @@ private:
                    const bool color, const coord_t col, const coord_t row,
                    const u8 index);
     bool IsPseudoLegalPawn(const move_c move, const coord_t from_coord);
+    bool IsPseudoLegalKing(const move_c move, const coord_t from_coord);
+    bool IsPseudoLegalKnight(const move_c move, const coord_t from_coord);
 };

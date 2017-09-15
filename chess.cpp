@@ -1010,36 +1010,60 @@ bool k2chess::IsPseudoLegal(const move_c move)
     const auto to_piece = b[move.to_coord];
     if(to_piece != empty_square && get_color(to_piece) == wtm)
         return false;
-    if(move.flag & is_castle)
-    {
-        const auto fr_col = get_col(*it);
-        const auto fr_row = get_row(*it);
-        const auto to_col = get_col(move.to_coord);
-        const auto to_row = get_row(move.to_coord);
-        if(fr_col == default_king_col
-                && get_type(b[*it]) == king
-                && get_color(b[*it]) == wtm
-                && (to_col == default_king_col - cstl_move_length ||
-                    to_col == default_king_col + cstl_move_length)
-                && ((wtm && fr_row == 0 && to_row == 0) ||
-                    (!wtm && fr_row == max_row && to_row == max_row)))
-            return true;
-        else
-            return false;
-    }
+
     const auto from_coord = *it;
+    if(from_coord == move.to_coord)
+        return false;
     const auto piece = b[*it];
     if(get_type(piece) == pawn)
         return IsPseudoLegalPawn(move, from_coord);
+    else if(is_slider[get_type(piece)])
+        return IsSliderAttack(from_coord, move.to_coord);
+    else if(get_type(piece) == king)
+        return IsPseudoLegalKing(move, from_coord);
     else
-    {
-        const auto piece_index = it.get_array_index();
-        if(attacks[wtm][move.to_coord] & (1 << piece_index))
-            return true;
-        else
-            return false;
-    }
+        return IsPseudoLegalKnight(move, from_coord);
 }
+
+
+
+
+
+//--------------------------------
+bool k2chess::IsPseudoLegalKing(const move_c move, const coord_t from_coord)
+{
+    const auto fr_col = get_col(from_coord);
+    const auto fr_row = get_row(from_coord);
+    const auto to_col = get_col(move.to_coord);
+    const auto to_row = get_row(move.to_coord);
+
+    if(std::abs(fr_col - to_col) <= 1 && std::abs(fr_row - to_row) <= 1)
+        return true;
+
+    if(fr_col == default_king_col && get_type(b[from_coord]) == king
+            && get_color(b[from_coord]) == wtm
+            && (to_col == default_king_col - cstl_move_length ||
+                to_col == default_king_col + cstl_move_length)
+            && ((wtm && fr_row == 0 && to_row == 0) ||
+                (!wtm && fr_row == max_row && to_row == max_row)))
+                return true;
+    return false;
+}
+
+
+
+
+
+//--------------------------------
+bool k2chess::IsPseudoLegalKnight(const move_c move, const coord_t from_coord)
+{
+    const auto d_col = std::abs(get_col(from_coord) - get_col(move.to_coord));
+    const auto d_row = std::abs(get_row(from_coord) - get_row(move.to_coord));
+    if(d_col + d_row == 3 && (d_col == 1 || d_row == 1))
+        return true;
+    return false;
+}
+
 
 
 
@@ -1082,6 +1106,7 @@ bool k2chess::IsPseudoLegalPawn(const move_c move, const coord_t from_coord)
     }
     return false;
 }
+
 
 
 
