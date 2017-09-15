@@ -322,11 +322,13 @@ private:
     bool MakeCastleOrUpdateFlags(const move_c m, const coord_t from_coord);
     void TakebackCastle(const move_c m);
     bool MakeEnPassantOrUpdateFlags(const move_c m, const coord_t from_coord);
-    void InitAttacksOnePiece(const coord_t coord, change_bit_ptr change_bit);
+    void InitAttacksOnePiece(const coord_t coord,
+                             const change_bit_ptr change_bit);
     void UpdateAttacks(const move_c move, const coord_t from_coord);
-    void UpdateAttacksOnePiece(coord_t coord, bool color,
-                               coord_t type, bool is_move, u8 index,
-                               change_bit_ptr change_bit);
+    void UpdateAttacksOnePiece(const coord_t coord, const bool color,
+                               const coord_t type, const bool is_move,
+                               const u8 index,
+                               const change_bit_ptr change_bit);
     char* ParseMainPartOfFen(char *ptr);
     char* ParseSideToMoveInFen(char *ptr);
     char* ParseCastlingRightsInFen(char *ptr);
@@ -344,12 +346,15 @@ private:
     bool IsDiscoveredAttack(const coord_t fr_coord, const coord_t to_coord,
                             const attack_t mask);
     bool IsSliderAttack(const coord_t from_coord, const coord_t to_coord);
-    void InitAttacksPawn(coord_t coord, bool color, u8 index,
-                         change_bit_ptr change_bit);
-    void InitAttacksNotPawn(coord_t coord, bool color, u8 index, coord_t type,
-                            change_bit_ptr change_bit);
+    void InitAttacksPawn(const coord_t coord, const bool color, const u8 index,
+                         const change_bit_ptr change_bit);
+    void InitAttacksNotPawn(const coord_t coord, const bool color,
+                            const u8 index, const coord_t type,
+                            const change_bit_ptr change_bit);
     void set_bit(attack_t (*attacks)[board_height*board_width],
-                 bool color, coord_t col, coord_t row, u8 index);
-    void clear_bit(attack_t (*attacks)[board_height*board_width],
-                   bool color, coord_t col, coord_t row, u8 index);
+                 const bool color, const coord_t col, const coord_t row,
+                 const u8 index);
+    void clear_bit(attack_t (* const attacks)[board_height*board_width],
+                   const bool color, const coord_t col, const coord_t row,
+                   const u8 index);
 };

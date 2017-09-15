@@ -67,12 +67,11 @@ void k2chess::InitAttacks()
 
 
 //--------------------------------
-void k2chess::InitAttacksOnePiece(const coord_t coord,
-                                  change_bit_ptr change_bit)
+void k2chess::InitAttacksOnePiece(const coord_t coord, const change_bit_ptr change_bit)
 {
     const auto color = get_color(b[coord]);
-    auto it = find_piece(color, coord);
-    auto index = it.get_array_index();
+    const auto it = find_piece(color, coord);
+    const auto index = it.get_array_index();
     const auto type = get_type(b[coord]);
     if(type == pawn)
         InitAttacksPawn(coord, color, index, change_bit);
@@ -85,8 +84,9 @@ void k2chess::InitAttacksOnePiece(const coord_t coord,
 
 
 //--------------------------------
-void k2chess::set_bit(attack_t (*attacks)[board_height*board_width],
-                      bool color, coord_t col, coord_t row, u8 index)
+void k2chess::set_bit(attack_t (* const attacks)[board_height*board_width],
+                      const bool color, const coord_t col, const coord_t row,
+                      const u8 index)
 {
     attacks[color][get_coord(col, row)] |= (1 << index);
 }
@@ -96,8 +96,9 @@ void k2chess::set_bit(attack_t (*attacks)[board_height*board_width],
 
 
 //--------------------------------
-void k2chess::clear_bit(attack_t (*attacks)[board_height*board_width],
-                        bool color, coord_t col, coord_t row, u8 index)
+void k2chess::clear_bit(attack_t (* const attacks)[board_height*board_width],
+                        const bool color, const coord_t col, const coord_t row,
+                        const u8 index)
 {
     attacks[color][get_coord(col, row)] &= ~(1 << index);
 }
@@ -107,11 +108,11 @@ void k2chess::clear_bit(attack_t (*attacks)[board_height*board_width],
 
 
 //--------------------------------
-void k2chess::InitAttacksPawn(coord_t coord, bool color,
-                              u8 index, change_bit_ptr change_bit)
+void k2chess::InitAttacksPawn(const coord_t coord, const bool color,
+                              const u8 index, const change_bit_ptr change_bit)
 {
     const auto col = get_col(coord);
-    auto row = get_row(coord);
+    const auto row = get_row(coord);
     const auto d_row = color ? 1 : -1;
     if(col_within(col + 1))
         (this->*change_bit)(attacks, color, col + 1, row + d_row, index);
@@ -128,9 +129,9 @@ void k2chess::InitAttacksPawn(coord_t coord, bool color,
 
 
 //--------------------------------
-void k2chess::InitAttacksNotPawn(coord_t coord, bool color,
-                                 u8 index, coord_t type,
-                                 change_bit_ptr change_bit)
+void k2chess::InitAttacksNotPawn(const coord_t coord, const bool color,
+                                 const u8 index, const coord_t type,
+                                 const change_bit_ptr change_bit)
 {
     const auto max_len = std::max((size_t)board_height, (size_t)board_width);
     if(change_bit == &k2chess::set_bit)
@@ -239,7 +240,7 @@ void k2chess::UpdateAttacks(const move_c move, const coord_t from_coord)
         captured_it = state[ply].captured_it;
         update_mask[wtm] |= (1 << captured_it.get_array_index());
     }
-    bool is_enps = move.flag & is_en_passant;
+    const bool is_enps = move.flag & is_en_passant;
 
     for(auto stm : {black, white})
     {
@@ -258,7 +259,7 @@ void k2chess::UpdateAttacks(const move_c move, const coord_t from_coord)
             auto color = get_color(b[*it[i]]);
             auto type = get_type(b[*it[i]]);
             auto index = it[i].get_array_index();
-            bool is_capt = (move.flag & is_capture) && stm == wtm
+            const bool is_capt = (move.flag & is_capture) && stm == wtm
                     && coord == *captured_it;
             if(is_capt)
             {
@@ -266,10 +267,11 @@ void k2chess::UpdateAttacks(const move_c move, const coord_t from_coord)
                 type = is_enps ? pawn : get_type(state[ply].captured_piece);
                 index = captured_it.get_array_index();
             }
-            bool is_move = stm != wtm && it == moving_piece_it;
+            const bool is_move = stm != wtm && it == moving_piece_it;
             if(is_move && (move.flag & is_promotion))
                 type = pawn;
-            bool is_cstl = move.flag & is_castle && stm != wtm && it == cstl_it;
+            const bool is_cstl = (move.flag & is_castle) && stm != wtm
+                    && it == cstl_it;
             if(is_cstl)
                 coord = get_coord((move.flag & is_left_castle) ? 0 : max_col,
                                   wtm ? max_row : 0);
@@ -303,9 +305,10 @@ void k2chess::UpdateAttacks(const move_c move, const coord_t from_coord)
 
 
 //--------------------------------
-void k2chess::UpdateAttacksOnePiece(coord_t coord, bool color,
-                                    coord_t type, bool is_move, u8 index,
-                                    change_bit_ptr change_bit)
+void k2chess::UpdateAttacksOnePiece(const coord_t coord, const bool color,
+                                    const coord_t type, const bool is_move,
+                                    const u8 index,
+                                    const change_bit_ptr change_bit)
 {
     if(type == pawn)
         InitAttacksPawn(coord, color, index, change_bit);
