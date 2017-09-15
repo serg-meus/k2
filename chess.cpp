@@ -248,18 +248,6 @@ void k2chess::UpdateAttacks(const move_c move, const coord_t from_coord)
         if(is_enps)
             update_mask[stm] |= attacks[stm]
                     [move.to_coord + (wtm ? board_width : -board_width)];
-        else if(move.flag & is_left_castle)
-        {
-            update_mask[stm] |= attacks[stm][from_coord - cstl_move_length + 1];
-            update_mask[stm] |= attacks[stm]
-                    [get_coord(0, wtm ? max_row : 0)];
-        }
-        else if(move.flag & is_right_castle)
-        {
-            update_mask[stm] |= attacks[stm][from_coord + cstl_move_length - 1];
-            update_mask[stm] |= attacks[stm]
-                    [get_coord(max_col, wtm ? max_row : 0)];
-        }
 
         auto it = coords[stm].begin();
         for(size_t i = 0; i < attack_digits; ++i)
