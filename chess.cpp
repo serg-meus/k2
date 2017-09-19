@@ -268,6 +268,8 @@ void k2chess::UpdateAttacks(const move_c move, const coord_t from_coord)
                 index = captured_it.get_array_index();
             }
             const bool is_move = stm != wtm && it == moving_piece_it;
+            if(!is_move && !is_capt && !(slider_mask[stm] & (1 << index)))
+                continue;
             if(is_move && (move.flag & is_promotion))
                 type = pawn;
             const bool is_cstl = (move.flag & is_castle) && stm != wtm
