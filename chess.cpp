@@ -256,9 +256,9 @@ void k2chess::UpdateAttacks(const move_c move, const coord_t from_coord)
             if(!((update_mask[stm] >> i) & 1))
                 continue;
             auto coord = *it[i];
-            auto color = get_color(b[*it[i]]);
-            auto type = get_type(b[*it[i]]);
-            auto index = it[i].get_array_index();
+            auto color = get_color(b[*it]);
+            auto type = get_type(b[*it]);
+            auto index = it.get_array_index();
             const bool is_capt = (move.flag & is_capture) && stm == wtm
                     && coord == *captured_it;
             if(is_capt)
@@ -282,9 +282,9 @@ void k2chess::UpdateAttacks(const move_c move, const coord_t from_coord)
                                   color, type, is_move || is_capture, index,
                                   &k2chess::clear_bit);
             if(is_cstl)
-                coord = *it[i];
+                coord = *it;
             else if(is_move && (move.flag & is_promotion))
-                type = get_type(b[*it[i]]);
+                type = get_type(b[*it]);
             if(!is_capt)
                 UpdateAttacksOnePiece(coord, color, type,
                                       is_move || is_capture, index,
@@ -308,13 +308,17 @@ void k2chess::UpdateAttacks(const move_c move, const coord_t from_coord)
 
 //--------------------------------
 void k2chess::UpdateAttacksOnePiece(const coord_t coord, const bool color,
-                                    const coord_t type, const bool is_move,
+                                    const coord_t type, const bool move_or_capt,
                                     const u8 index,
                                     const change_bit_ptr change_bit)
 {
+    assert(type > 0);
+    assert(index > 0);
+    assert(type <= pawn);
+    assert(index <= attack_digits);
     if(type == pawn)
         InitAttacksPawn(coord, color, index, change_bit);
-    else if(is_slider[type] || is_move)
+    else if(is_slider[type] || move_or_capt)
         InitAttacksNotPawn(coord, color, index, type, change_bit);
 }
 
