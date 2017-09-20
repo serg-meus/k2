@@ -48,18 +48,10 @@ void k2chess::InitAttacks()
 {
     memset(attacks, 0, sizeof(attacks));
     memset(xattacks, 0, sizeof(xattacks));
-    memset(slider_mask, 0, sizeof(slider_mask));
 
     for(auto stm : {black, white})
-    {
-        update_mask[stm] = 0;
         for(auto it = coords[stm].rbegin(); it != coords[stm].rend(); ++it)
-        {
             InitAttacksOnePiece(*it, &k2chess::set_bit);
-            if(is_slider[get_type(b[*it])])
-                slider_mask[stm] |= (1 << it.get_array_index());
-        }
-    }
 }
 
 
@@ -358,6 +350,12 @@ bool k2chess::SetupPosition(const char *fen)
     king_coord[black] = --coords[black].end();
 
     InitAttacks();
+    memset(slider_mask, 0, sizeof(slider_mask));
+    memset(update_mask, 0, sizeof(update_mask));
+    for(auto stm : {black, white})
+        for(auto it = coords[stm].rbegin(); it != coords[stm].rend(); ++it)
+            if(is_slider[get_type(b[*it])])
+                slider_mask[stm] |= (1 << it.get_array_index());
     done_moves.clear();
     return true;
 }
@@ -732,15 +730,20 @@ void k2chess::MakePromotion(const move_c move, iterator it)
     const auto piece_num = move.flag & is_promotion;
 
     const auto piece = pcs[piece_num];
+    const auto type = get_type(piece);
     b[move.to_coord] = set_color(piece, wtm);
-    material[wtm] +=
-            (piece_values[get_type(piece)] - piece_values[pawn]);
+    material[wtm] += piece_values[type] - piece_values[pawn];
     quantity[wtm][pawn]--;
-    quantity[wtm][get_type(piece)]++;
+    quantity[wtm][type]++;
     state[ply].it_nxt = ++it;
     --it;
     coords[wtm].move_element(king_coord[wtm], it);
     reversible_moves = 0;
+    if(is_slider[type])
+    {
+        const auto index = it.get_array_index();
+        slider_mask[wtm] |= (1 << index);
+    }
 }
 
 
@@ -841,10 +844,15 @@ void k2chess::TakebackPromotion(const move_c move)
     auto before_king = king_coord[wtm];
     --before_king;
     coords[wtm].move_element(it_prom, before_king);
-    const auto piece_index = get_type(pcs[piece_num]);
-    material[wtm] -= (piece_values[piece_index] - piece_values[pawn]);
+    const auto type = get_type(pcs[piece_num]);
+    material[wtm] -= (piece_values[type] - piece_values[pawn]);
     quantity[wtm][pawn]++;
-    quantity[wtm][piece_index]--;
+    quantity[wtm][type]--;
+    if(is_slider[type])
+    {
+        const auto index = it_prom.get_array_index();
+        slider_mask[wtm] &= ~(1 << index);
+    }
 }
 
 
@@ -1821,4 +1829,13 @@ void k2chess::RunUnitTests()
     assert(MakeMove("e7d8"));
     assert(MakeMove("c1c2"));
     assert(MakeMove("d8c8"));
+
+    assert(SetupPosition("4K3/2P5/2B5/8/b7/1p6/7P/3k4 w - - 0 1"));
+    assert(MakeMove("c6a4"));
+    assert(TakebackMove());
+    assert(!MakeMove("c6h1"));
+    assert(MakeMove("c7c8"));
+    assert(MakeMove("d1c1"));
+    assert(MakeMove("c6a4"));
+    assert(!MakeMove("b3a4"));
 }
