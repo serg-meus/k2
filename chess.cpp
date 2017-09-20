@@ -926,6 +926,7 @@ bool k2chess::MakeMove(const char* str)
     if(!IsLegal(move))
         return false;
 
+    memcpy(done_attacks[ply], attacks, sizeof(attacks));
     MakeMove(move);
     done_moves.push_back(move);
     UpdateAttacks(move, from_coord);
@@ -946,7 +947,7 @@ bool k2chess::TakebackMove()
     auto move = done_moves.back();
     done_moves.pop_back();
     TakebackMove(move);
-    InitAttacks();
+    memcpy(attacks, done_attacks[ply], sizeof(attacks));
     return true;
 }
 

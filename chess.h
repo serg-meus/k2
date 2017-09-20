@@ -252,6 +252,8 @@ protected:
 
     std::vector<move_c> done_moves;
 
+    attack_t done_attacks  [max_ply][sides][board_height*board_width];
+
     bool MakeMove(const move_c m);
     void TakebackMove(const move_c m);
     iterator find_piece(const bool stm, const coord_t coord);
