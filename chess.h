@@ -80,6 +80,15 @@ protected:
                         replaced = true;
                     }
                 }
+#ifndef NDEBUG
+                for(it = this->begin(); it != --(this->end()); ++it)
+                {
+                    iterator it_nxt = it;
+                    ++it_nxt;
+                    assert(piece_values[get_piece_type(board[*it])] >=
+                        piece_values[get_piece_type(board[*it])]);
+                }
+#endif
             }
         }
     };
@@ -254,6 +263,8 @@ protected:
 
     attack_t done_attacks  [max_ply][sides][board_height*board_width];
 
+    std::vector<k2list> store_coords;
+
     bool MakeMove(const move_c m);
     void TakebackMove(const move_c m);
     iterator find_piece(const bool stm, const coord_t coord);
@@ -313,12 +324,12 @@ protected:
 private:
 
 
-    void InitAttacks();
+    void InitAttacks(bool stm);
     bool InitPieceLists();
     void ShowMove(const coord_t from_coord, const coord_t to_coord);
     void StoreCurrentBoardState(const move_c m, const coord_t from_coord);
     void MakeCapture(const move_c m);
-    void MakePromotion(const move_c m, iterator it);
+    void MakePromotion(const move_c m);
     void TakebackCapture(const move_c m);
     void TakebackPromotion(move_c m);
     bool MakeCastleOrUpdateFlags(const move_c m, const coord_t from_coord);
@@ -326,7 +337,7 @@ private:
     bool MakeEnPassantOrUpdateFlags(const move_c m, const coord_t from_coord);
     void InitAttacksOnePiece(const coord_t coord,
                              const change_bit_ptr change_bit);
-    void UpdateAttacks(const move_c move, const coord_t from_coord);
+    void UpdateAttacks(move_c move, const coord_t from_coord);
     void UpdateAttacksOnePiece(const coord_t coord, const bool color,
                                const coord_t type, const bool move_or_capt,
                                const u8 index,
@@ -362,4 +373,5 @@ private:
     bool IsPseudoLegalPawn(const move_c move, const coord_t from_coord);
     bool IsPseudoLegalKing(const move_c move, const coord_t from_coord);
     bool IsPseudoLegalKnight(const move_c move, const coord_t from_coord);
+    void InitSliderMask(bool stm);
 };

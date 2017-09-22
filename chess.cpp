@@ -44,14 +44,13 @@ k2chess::k2chess() :
 
 
 //--------------------------------
-void k2chess::InitAttacks()
+void k2chess::InitAttacks(bool stm)
 {
-    memset(attacks, 0, sizeof(attacks));
-    memset(xattacks, 0, sizeof(xattacks));
+    memset(attacks[stm], 0, sizeof(attacks[0]));
+    memset(xattacks[stm], 0, sizeof(xattacks[0]));
 
-    for(auto stm : {black, white})
-        for(auto it = coords[stm].rbegin(); it != coords[stm].rend(); ++it)
-            InitAttacksOnePiece(*it, &k2chess::set_bit);
+    for(auto it = coords[stm].rbegin(); it != coords[stm].rend(); ++it)
+        InitAttacksOnePiece(*it, &k2chess::set_bit);
 }
 
 
@@ -288,8 +287,8 @@ void k2chess::UpdateAttacks(const move_c move, const coord_t from_coord)
     attack_t tmp[sides][board_height*board_width];
     const auto sz = sizeof(attacks);
     memcpy(tmp, attacks, sz);
-    memset(attacks, 0, sz);
-    InitAttacks();
+    InitAttacks(white);
+    InitAttacks(black);
     assert(memcmp(tmp, attacks, sz) == 0);
 #endif
 }
@@ -349,15 +348,31 @@ bool k2chess::SetupPosition(const char *fen)
     king_coord[white] = --coords[white].end();
     king_coord[black] = --coords[black].end();
 
-    InitAttacks();
-    memset(slider_mask, 0, sizeof(slider_mask));
+    InitAttacks(white);
+    InitAttacks(black);
     memset(update_mask, 0, sizeof(update_mask));
-    for(auto stm : {black, white})
-        for(auto it = coords[stm].rbegin(); it != coords[stm].rend(); ++it)
-            if(is_slider[get_type(b[*it])])
-                slider_mask[stm] |= (1 << it.get_array_index());
+    InitSliderMask(white);
+    InitSliderMask(black);
     done_moves.clear();
     return true;
+}
+
+
+
+
+
+//--------------------------------
+void k2chess::InitSliderMask(bool stm)
+{
+    slider_mask[stm] = 0;
+    for(auto it = coords[stm].rbegin(); it != coords[stm].rend(); ++it)
+    {
+        const auto piece = b[*it];
+        assert(piece > empty_square);
+        assert(piece <= white_pawn);
+        if(is_slider[get_type(piece)])
+            slider_mask[stm] |= (1 << it.get_array_index());
+    }
 }
 
 
@@ -724,7 +739,7 @@ void k2chess::MakeCapture(const move_c move)
 
 
 //--------------------------------
-void k2chess::MakePromotion(const move_c move, iterator it)
+void k2chess::MakePromotion(const move_c move)
 {
     piece_t pcs[] = {0, black_queen, black_knight, black_rook, black_bishop};
     const auto piece_num = move.flag & is_promotion;
@@ -735,15 +750,10 @@ void k2chess::MakePromotion(const move_c move, iterator it)
     material[wtm] += piece_values[type] - piece_values[pawn];
     quantity[wtm][pawn]--;
     quantity[wtm][type]++;
-    state[ply].it_nxt = ++it;
-    --it;
-    coords[wtm].move_element(king_coord[wtm], it);
     reversible_moves = 0;
-    if(is_slider[type])
-    {
-        const auto index = it.get_array_index();
-        slider_mask[wtm] |= (1 << index);
-    }
+    store_coords.push_back(coords[wtm]);
+    coords[wtm].sort();
+    InitSliderMask(wtm);
 }
 
 
@@ -780,11 +790,10 @@ bool k2chess::MakeMove(const move_c move)
 
     b[move.to_coord] = b[from_coord];
     b[from_coord] = empty_square;
+    *it = move.to_coord;
 
     if(move.flag & is_promotion)
-        MakePromotion(move, it);
-
-    *it = move.to_coord;
+        MakePromotion(move);
     wtm = !wtm;
 
     if(is_special_move)
@@ -841,18 +850,11 @@ void k2chess::TakebackPromotion(const move_c move)
 
     auto it_prom = coords[wtm].begin();
     it_prom = state[ply].it_nxt;
-    auto before_king = king_coord[wtm];
-    --before_king;
-    coords[wtm].move_element(it_prom, before_king);
     const auto type = get_type(pcs[piece_num]);
     material[wtm] -= (piece_values[type] - piece_values[pawn]);
     quantity[wtm][pawn]++;
     quantity[wtm][type]--;
-    if(is_slider[type])
-    {
-        const auto index = it_prom.get_array_index();
-        slider_mask[wtm] &= ~(1 << index);
-    }
+    InitSliderMask(wtm);
 }
 
 
@@ -862,6 +864,11 @@ void k2chess::TakebackPromotion(const move_c move)
 //--------------------------------
 void k2chess::TakebackMove(const move_c move)
 {
+    if(move.flag & is_promotion)
+    {
+        coords[!wtm] = store_coords.back();
+        store_coords.pop_back();
+    }
     const auto from_coord = state[ply].from_coord;
     auto it = coords[!wtm].begin();
     it = move.piece_iterator;
@@ -937,7 +944,10 @@ bool k2chess::MakeMove(const char* str)
     memcpy(done_attacks[ply], attacks, sizeof(attacks));
     MakeMove(move);
     done_moves.push_back(move);
-    UpdateAttacks(move, from_coord);
+    if(move.flag & is_promotion)
+        InitAttacks(!wtm);
+    else
+        UpdateAttacks(move, from_coord);
 
     return true;
 }
@@ -1838,4 +1848,7 @@ void k2chess::RunUnitTests()
     assert(MakeMove("d1c1"));
     assert(MakeMove("c6a4"));
     assert(!MakeMove("b3a4"));
+    for(auto i = 0; i < 3; ++i)
+        assert(TakebackMove());
+    assert(MakeMove("c7c8r"));
 }
