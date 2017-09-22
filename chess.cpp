@@ -345,14 +345,13 @@ bool k2chess::SetupPosition(const char *fen)
             reversible_moves += (*ptr++ - '0');
         }
     InitPieceLists();
-    king_coord[white] = --coords[white].end();
-    king_coord[black] = --coords[black].end();
-
-    InitAttacks(white);
-    InitAttacks(black);
-    memset(update_mask, 0, sizeof(update_mask));
-    InitSliderMask(white);
-    InitSliderMask(black);
+    for(auto stm : {black, white})
+    {
+        king_coord[stm] = --coords[stm].end();
+        InitAttacks(stm);
+        InitSliderMask(stm);
+        update_mask[stm] = 0;
+    }
     done_moves.clear();
     return true;
 }
@@ -553,6 +552,21 @@ void k2chess::ShowMove(const coord_t from_coord, const coord_t to_coord)
 
 
 //--------------------------------
+void k2chess::StoreCurrentBoardState(const move_c move,
+                                     const coord_t from_coord)
+{
+    state[ply].castling_rights = state[ply - 1].castling_rights;
+    state[ply].captured_piece = b[move.to_coord];
+
+    state[ply].from_coord = from_coord;
+    state[ply].reversible_moves = reversible_moves;
+}
+
+
+
+
+
+//--------------------------------
 bool k2chess::MakeCastleOrUpdateFlags(const move_c move,
                                       const coord_t from_coord)
 {
@@ -696,21 +710,6 @@ bool k2chess::MakeEnPassantOrUpdateFlags(const move_c move,
 
 
 //--------------------------------
-void k2chess::StoreCurrentBoardState(const move_c move,
-                                     const coord_t from_coord)
-{
-    state[ply].castling_rights = state[ply - 1].castling_rights;
-    state[ply].captured_piece = b[move.to_coord];
-
-    state[ply].from_coord = from_coord;
-    state[ply].reversible_moves = reversible_moves;
-}
-
-
-
-
-
-//--------------------------------
 void k2chess::MakeCapture(const move_c move)
 {
     auto to_coord = move.to_coord;
@@ -739,6 +738,42 @@ void k2chess::MakeCapture(const move_c move)
 
 
 //--------------------------------
+void k2chess::TakebackCapture(const move_c move)
+{
+    auto it_cap = coords[!wtm].begin();
+    it_cap = state[ply].captured_it;
+
+    if(move.flag & is_en_passant)
+    {
+        material[!wtm] += piece_values[pawn];
+        quantity[!wtm][pawn]++;
+        if(wtm)
+        {
+            b[move.to_coord - board_width] = black_pawn;
+            *it_cap = move.to_coord - board_width;
+        }
+        else
+        {
+            b[move.to_coord + board_width] = white_pawn;
+            *it_cap = move.to_coord + board_width;
+        }
+    }
+    else
+    {
+        const auto capt_index = get_type(state[ply].captured_piece);
+        material[!wtm] += piece_values[capt_index];
+        quantity[!wtm][capt_index]++;
+    }
+
+    coords[!wtm].restore(it_cap);
+    pieces[!wtm]++;
+}
+
+
+
+
+
+//--------------------------------
 void k2chess::MakePromotion(const move_c move)
 {
     piece_t pcs[] = {0, black_queen, black_knight, black_rook, black_bishop};
@@ -753,6 +788,25 @@ void k2chess::MakePromotion(const move_c move)
     reversible_moves = 0;
     store_coords.push_back(coords[wtm]);
     coords[wtm].sort();
+    InitSliderMask(wtm);
+}
+
+
+
+
+
+//--------------------------------
+void k2chess::TakebackPromotion(const move_c move)
+{
+    piece_t pcs[] = {0, black_queen, black_knight, black_rook, black_bishop};
+    const move_flag_t piece_num = move.flag & is_promotion;
+
+    auto it_prom = coords[wtm].begin();
+    it_prom = state[ply].it_nxt;
+    const auto type = get_type(pcs[piece_num]);
+    material[wtm] -= (piece_values[type] - piece_values[pawn]);
+    quantity[wtm][pawn]++;
+    quantity[wtm][type]--;
     InitSliderMask(wtm);
 }
 
@@ -807,61 +861,6 @@ bool k2chess::MakeMove(const move_c move)
 
 
 //--------------------------------
-void k2chess::TakebackCapture(const move_c move)
-{
-    auto it_cap = coords[!wtm].begin();
-    it_cap = state[ply].captured_it;
-
-    if(move.flag & is_en_passant)
-    {
-        material[!wtm] += piece_values[pawn];
-        quantity[!wtm][pawn]++;
-        if(wtm)
-        {
-            b[move.to_coord - board_width] = black_pawn;
-            *it_cap = move.to_coord - board_width;
-        }
-        else
-        {
-            b[move.to_coord + board_width] = white_pawn;
-            *it_cap = move.to_coord + board_width;
-        }
-    }
-    else
-    {
-        const auto capt_index = get_type(state[ply].captured_piece);
-        material[!wtm] += piece_values[capt_index];
-        quantity[!wtm][capt_index]++;
-    }
-
-    coords[!wtm].restore(it_cap);
-    pieces[!wtm]++;
-}
-
-
-
-
-
-//--------------------------------
-void k2chess::TakebackPromotion(const move_c move)
-{
-    piece_t pcs[] = {0, black_queen, black_knight, black_rook, black_bishop};
-    const move_flag_t piece_num = move.flag & is_promotion;
-
-    auto it_prom = coords[wtm].begin();
-    it_prom = state[ply].it_nxt;
-    const auto type = get_type(pcs[piece_num]);
-    material[wtm] -= (piece_values[type] - piece_values[pawn]);
-    quantity[wtm][pawn]++;
-    quantity[wtm][type]--;
-    InitSliderMask(wtm);
-}
-
-
-
-
-
-//--------------------------------
 void k2chess::TakebackMove(const move_c move)
 {
     if(move.flag & is_promotion)
@@ -896,22 +895,6 @@ void k2chess::TakebackMove(const move_c move)
 #ifndef NDEBUG
     cur_moves[move_max_display_length*ply] = '\0';
 #endif // NDEBUG
-}
-
-
-
-
-
-//--------------------------------
-k2chess::iterator k2chess::find_piece(const bool stm,
-                                      const coord_t coord)
-{
-    auto it = coords[stm].begin();
-    const auto it_end = coords[stm].end();
-    for(; it != it_end; ++it)
-        if(*it == coord)
-            break;
-    return it;
 }
 
 
@@ -967,6 +950,22 @@ bool k2chess::TakebackMove()
     TakebackMove(move);
     memcpy(attacks, done_attacks[ply], sizeof(attacks));
     return true;
+}
+
+
+
+
+
+//--------------------------------
+k2chess::iterator k2chess::find_piece(const bool stm,
+                                      const coord_t coord)
+{
+    auto it = coords[stm].begin();
+    const auto it_end = coords[stm].end();
+    for(; it != it_end; ++it)
+        if(*it == coord)
+            break;
+    return it;
 }
 
 
@@ -1175,6 +1174,7 @@ bool k2chess::IsLegalCastle(const move_c move)
 
 
 
+
 //--------------------------------
 bool k2chess::IsOnRay(const coord_t k_coord, const coord_t attacker_coord,
                       const coord_t to_coord)
@@ -1246,8 +1246,8 @@ bool k2chess::IsSliderAttack(const coord_t from_coord, const coord_t to_coord)
 
 
 //--------------------------------
-bool k2chess::IsDiscoveredAttack(const coord_t fr_coord, const coord_t to_coord,
-                                 const attack_t mask)
+bool k2chess::IsDiscoveredAttack(const coord_t fr_coord,
+                                 const coord_t to_coord, const attack_t mask)
 {
     auto it = coords[!wtm].begin();
     size_t i = 0;
