@@ -339,8 +339,8 @@ private:
                              const change_bit_ptr change_bit);
     void UpdateAttacks(move_c move, const coord_t from_coord);
     void UpdateAttacksOnePiece(const coord_t coord, const bool color,
-                               const coord_t type, const bool move_or_capt,
-                               const u8 index,
+                               const coord_t type, const bool is_move,
+                               const bool captured, const u8 index,
                                const change_bit_ptr change_bit);
     char* ParseMainPartOfFen(char *ptr);
     char* ParseSideToMoveInFen(char *ptr);
