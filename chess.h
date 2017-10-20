@@ -44,6 +44,7 @@ protected:
     typedef u32 attack_t;
     typedef i8 shifts_t;
     typedef u8 priority_t;
+    typedef u8 ray_mask_t;
 
     class k2list : public short_list<coord_t, 16>
     {
@@ -160,6 +161,19 @@ protected:
     queen = get_type(black_queen),
     king = get_type(black_king);
 
+    const ray_mask_t all_rays = 0xff;
+
+    // depends on delta_col, delta_row arrays content
+    const ray_mask_t
+    rays_North = 1,
+    rays_South = 8,
+    rays_East = 2,
+    rays_West = 4,
+    rays_NE = 1,
+    rays_NW = 2,
+    rays_SW = 4,
+    rays_SE = 8;
+
     const char *start_position =
             "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
@@ -261,7 +275,7 @@ protected:
 
     std::vector<move_c> done_moves;
 
-    attack_t done_attacks  [max_ply][sides][board_height*board_width];
+    attack_t done_attacks[max_ply][sides][board_height*board_width];
 
     std::vector<k2list> store_coords;
 
@@ -338,7 +352,8 @@ private:
     void InitAttacksOnePiece(const coord_t coord,
                              const change_bit_ptr change_bit);
     void UpdateAttacks(move_c move, const coord_t from_coord);
-    void UpdateAttacksOnePiece(const coord_t coord, const bool color,
+    void UpdateAttacksOnePiece(const coord_t from_coord,
+                               const coord_t to_coord, const bool color,
                                const coord_t type, const bool is_move,
                                const bool captured, const u8 index,
                                const change_bit_ptr change_bit);
@@ -363,7 +378,8 @@ private:
                          const change_bit_ptr change_bit);
     void InitAttacksNotPawn(const coord_t coord, const bool color,
                             const u8 index, const coord_t type,
-                            const change_bit_ptr change_bit);
+                            const change_bit_ptr change_bit,
+                            ray_mask_t ray_mask);
     void set_bit(attack_t (*attacks)[board_height*board_width],
                  const bool color, const coord_t col, const coord_t row,
                  const u8 index);
@@ -374,4 +390,7 @@ private:
     bool IsPseudoLegalKing(const move_c move, const coord_t from_coord);
     bool IsPseudoLegalKnight(const move_c move, const coord_t from_coord);
     void InitSliderMask(bool stm);
+    ray_mask_t GetRayMask(const bool is_move, const coord_t from_coord,
+                          const coord_t to_coord,
+                          const change_bit_ptr change_bit);
 };

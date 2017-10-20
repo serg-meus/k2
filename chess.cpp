@@ -10,18 +10,18 @@ k2chess::k2chess() :
     delta_col
         {
             { 0,  0,  0,  0,  0,  0,  0,  0},
-            { 1,  0, -1,  1, -1, -1,  0,  1},  // king
-            { 1,  0, -1,  1, -1, -1,  0,  1},  // queen
-            { 1,  0, -1,  0,  0,  0,  0,  0},  // rook
-            { 1, -1,  1, -1,  0,  0,  0,  0},  // bishop
+            { 1, -1, -1,  1,  0,  1, -1,  0},  // king
+            { 1, -1, -1,  1,  0,  1, -1,  0},  // queen
+            { 0,  1, -1,  0,  0,  0,  0,  0},  // rook
+            { 1, -1, -1,  1,  0,  0,  0,  0},  // bishop
             { 1,  2,  2,  1, -1, -2, -2, -1},  // knight
         },
     delta_row
         {
             { 0,  0,  0,  0,  0,  0,  0,  0},
-            { 1,  1,  1,  0,  0, -1, -1, -1},  // king
-            { 1,  1,  1,  0,  0, -1, -1, -1},  // queen
-            { 0,  1,  0, -1,  0,  0,  0,  0},  // rook
+            { 1,  1, -1, -1,  1,  0,  0, -1},  // king
+            { 1,  1, -1, -1,  1,  0,  0, -1},  // queen
+            { 1,  0,  0, -1,  0,  0,  0,  0},  // rook
             { 1,  1, -1, -1,  0,  0,  0,  0},  // bishop
             { 2,  1, -1, -2, -2, -1,  1,  2},  // knight
         },
@@ -67,7 +67,7 @@ void k2chess::InitAttacksOnePiece(const coord_t coord, const change_bit_ptr chan
     if(type == pawn)
         InitAttacksPawn(coord, color, index, change_bit);
     else
-        InitAttacksNotPawn(coord, color, index, type, change_bit);
+        InitAttacksNotPawn(coord, color, index, type, change_bit, all_rays);
 }
 
 
@@ -122,13 +122,16 @@ void k2chess::InitAttacksPawn(const coord_t coord, const bool color,
 //--------------------------------
 void k2chess::InitAttacksNotPawn(const coord_t coord, const bool color,
                                  const u8 index, const coord_t type,
-                                 const change_bit_ptr change_bit)
+                                 const change_bit_ptr change_bit,
+                                 ray_mask_t ray_mask)
 {
     const auto max_len = std::max((size_t)board_height, (size_t)board_width);
     if(change_bit == &k2chess::set_bit)
     {
-        for(auto ray = 0; ray < rays[type]; ray++)
+        for(auto ray = 0; ray < rays[type]; ray++, ray_mask >>= 1)
         {
+            if(!(ray_mask & 1))
+                continue;
             auto col = get_col(coord);
             auto row = get_row(coord);
             const auto d_col = delta_col[type][ray];
@@ -163,8 +166,10 @@ void k2chess::InitAttacksNotPawn(const coord_t coord, const bool color,
     }
     else
     {
-        for(auto ray = 0; ray < rays[type]; ray++)
+        for(auto ray = 0; ray < rays[type]; ray++, ray_mask >>= 1)
         {
+            if(!(ray_mask & 1))
+                continue;
             auto col = get_col(coord);
             auto row = get_row(coord);
             const auto d_col = delta_col[type][ray];
@@ -269,7 +274,7 @@ void k2chess::UpdateAttacks(const move_c move, const coord_t from_coord)
                 coord = get_coord((move.flag & is_left_castle) ? 0 : max_col,
                                   wtm ? max_row : 0);
 
-            UpdateAttacksOnePiece(is_move ? from_coord : coord,
+            UpdateAttacksOnePiece(from_coord, coord,
                                   color, type, is_move, captured, index,
                                   &k2chess::clear_bit);
             if(is_cstl)
@@ -277,7 +282,7 @@ void k2chess::UpdateAttacks(const move_c move, const coord_t from_coord)
             else if(is_move && (move.flag & is_promotion))
                 type = get_type(b[*it]);
             if(!captured)
-                UpdateAttacksOnePiece(coord, color, type,
+                UpdateAttacksOnePiece(from_coord, coord, color, type,
                                       is_move, captured, index,
                                       &k2chess::set_bit);
         }
@@ -298,19 +303,79 @@ void k2chess::UpdateAttacks(const move_c move, const coord_t from_coord)
 
 
 //--------------------------------
-void k2chess::UpdateAttacksOnePiece(const coord_t coord, const bool color,
+void k2chess::UpdateAttacksOnePiece(const coord_t from_coord,
+                                    const coord_t to_coord, const bool color,
                                     const coord_t type, const bool is_move,
                                     const bool captured, const u8 index,
                                     const change_bit_ptr change_bit)
 {
-    assert(type > 0);
-    assert(index > 0);
     assert(type <= pawn);
     assert(index <= attack_digits);
+    assert(!is_move || !captured);
+    auto coord = to_coord;
+    if(is_move && change_bit == &k2chess::clear_bit)
+        coord = from_coord;
     if(type == pawn)
         InitAttacksPawn(coord, color, index, change_bit);
-    else if(is_slider[type] || is_move || captured)
-        InitAttacksNotPawn(coord, color, index, type, change_bit);
+    else if(is_move && is_slider[type])
+    {
+        const auto ray_mask = GetRayMask(is_move, from_coord, to_coord,
+                                         change_bit);
+        InitAttacksNotPawn(coord, color, index, type, change_bit, ray_mask);
+        coord = change_bit == &k2chess::clear_bit ? to_coord : from_coord;
+        (this->*change_bit)(attacks, color, get_col(coord), get_row(coord),
+                index);
+    }
+    else if(captured || is_move || is_slider[type])
+        InitAttacksNotPawn(coord, color, index, type, change_bit, all_rays);
+}
+
+
+
+
+
+//--------------------------------
+k2chess::ray_mask_t k2chess::GetRayMask(const bool is_move,
+                                        const coord_t from_coord,
+                                        const coord_t to_coord,
+                                        const change_bit_ptr change_bit)
+{
+    ray_mask_t ans = all_rays;
+
+    if(!is_move)
+        return ans;
+    if(get_type(b[to_coord]) == queen)
+        return ans;
+
+    auto delta_col = get_col(to_coord) - get_col(from_coord);
+    auto delta_row = get_row(to_coord) - get_row(from_coord);
+    if(delta_col == 0)
+        ans = rays_East | rays_West;
+    else if(delta_row == 0)
+        ans = rays_North | rays_South;
+    else if(delta_col == delta_row)
+        ans = rays_NW | rays_SE;
+    else if(delta_col == -delta_row)
+        ans = rays_NE | rays_SW;
+    else
+        assert(false);
+
+    if(change_bit == &k2chess::set_bit
+            && state[ply].captured_piece != empty_square)
+    {
+        if(delta_col == 0)
+            ans |= delta_row > 0 ? rays_North : rays_South;
+        else if(delta_row == 0)
+            ans |= delta_col > 0 ? rays_East : rays_West;
+        else if(delta_col == delta_row)
+            ans |= delta_col > 0 ? rays_NE : rays_SW;
+        else if(delta_col == -delta_row)
+            ans |= delta_col > 0 ? rays_SE : rays_NW;
+        else
+            assert(false);
+    }
+
+    return ans;
 }
 
 
