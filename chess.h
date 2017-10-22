@@ -176,7 +176,10 @@ protected:
     rays_N_or_S = rays_North | rays_South,
     rays_E_or_W = rays_East | rays_West,
     rays_NE_or_SW = rays_NE | rays_SW,
-    rays_NW_or_SE = rays_NW | rays_SE;
+    rays_NW_or_SE = rays_NW | rays_SE,
+    rays_rook = rays_N_or_S | rays_E_or_W,
+    rays_bishop = rays_NE_or_SW | rays_NW_or_SE,
+    rays_rook_q = rays_rook << 4;  // special case if queen moves as rook
 
     const char *start_position =
             "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";

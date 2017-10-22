@@ -344,8 +344,6 @@ k2chess::ray_mask_t k2chess::GetRayMask(const bool is_move,
 
     if(!is_move)
         return ans;
-    if(get_type(b[to_coord]) == queen)
-        return ans;
 
     const auto dir_col = sgn(get_col(to_coord) - get_col(from_coord));
     const auto dir_row = sgn(get_row(to_coord) - get_row(from_coord));
@@ -357,12 +355,26 @@ k2chess::ray_mask_t k2chess::GetRayMask(const bool is_move,
     ans = RB_masks[index];
     assert(ans);
 
+    const ray_mask_t Q_masks[] = {rays_rook_q, rays_bishop, rays_rook_q,
+                                  rays_bishop, 0, rays_bishop,
+                                  rays_rook_q, rays_bishop, rays_rook_q};
+    bool queen_moves_as_rook = false;
+    if(get_type(b[to_coord]) == queen)
+    {
+        if(dir_col == 0 || dir_row == 0)
+        {
+            queen_moves_as_rook = true;
+            ans <<= 4;  // due to delta_col and delta_row arrays content
+        }
+        ans |= Q_masks[index];
+    }
+
     const ray_mask_t capture_mask[] = {rays_SW, rays_South, rays_SE,
                                        rays_West, 0, rays_East,
                                        rays_NW, rays_North, rays_NE};
     if(change_bit == &k2chess::set_bit
             && state[ply].captured_piece != empty_square)
-        ans |= capture_mask[index];
+        ans |= (capture_mask[index] << (queen_moves_as_rook ? 4 : 0));
 
     return ans;
 }
