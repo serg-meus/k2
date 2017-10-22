@@ -347,33 +347,22 @@ k2chess::ray_mask_t k2chess::GetRayMask(const bool is_move,
     if(get_type(b[to_coord]) == queen)
         return ans;
 
-    auto delta_col = get_col(to_coord) - get_col(from_coord);
-    auto delta_row = get_row(to_coord) - get_row(from_coord);
-    if(delta_col == 0)
-        ans = rays_East | rays_West;
-    else if(delta_row == 0)
-        ans = rays_North | rays_South;
-    else if(delta_col == delta_row)
-        ans = rays_NW | rays_SE;
-    else if(delta_col == -delta_row)
-        ans = rays_NE | rays_SW;
-    else
-        assert(false);
+    const auto dir_col = sgn(get_col(to_coord) - get_col(from_coord));
+    const auto dir_row = sgn(get_row(to_coord) - get_row(from_coord));
+    const auto index = 3*(1 + dir_row) + 1 + dir_col;
 
+    const ray_mask_t RB_masks[] = {rays_NW_or_SE, rays_E_or_W, rays_NE_or_SW,
+                                   rays_N_or_S, 0, rays_N_or_S,
+                                   rays_NE_or_SW, rays_E_or_W, rays_NW_or_SE};
+    ans = RB_masks[index];
+    assert(ans);
+
+    const ray_mask_t capture_mask[] = {rays_SW, rays_South, rays_SE,
+                                       rays_West, 0, rays_East,
+                                       rays_NW, rays_North, rays_NE};
     if(change_bit == &k2chess::set_bit
             && state[ply].captured_piece != empty_square)
-    {
-        if(delta_col == 0)
-            ans |= delta_row > 0 ? rays_North : rays_South;
-        else if(delta_row == 0)
-            ans |= delta_col > 0 ? rays_East : rays_West;
-        else if(delta_col == delta_row)
-            ans |= delta_col > 0 ? rays_NE : rays_SW;
-        else if(delta_col == -delta_row)
-            ans |= delta_col > 0 ? rays_SE : rays_NW;
-        else
-            assert(false);
-    }
+        ans |= capture_mask[index];
 
     return ans;
 }

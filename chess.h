@@ -172,7 +172,11 @@ protected:
     rays_NE = 1,
     rays_NW = 2,
     rays_SW = 4,
-    rays_SE = 8;
+    rays_SE = 8,
+    rays_N_or_S = rays_North | rays_South,
+    rays_E_or_W = rays_East | rays_West,
+    rays_NE_or_SW = rays_NE | rays_SW,
+    rays_NW_or_SE = rays_NW | rays_SE;
 
     const char *start_position =
             "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
@@ -329,9 +333,15 @@ protected:
     {
         return piece & white;
     }
+
     piece_t set_color(const piece_t piece, const bool stm)
     {
         return (piece & ~white) | stm;
+    }
+
+    template <typename T> int sgn(T val)
+    {
+        return (T(0) < val) - (val < T(0));
     }
 
 
