@@ -368,7 +368,7 @@ private:
     void UpdateAttacksOnePiece(const coord_t from_coord,
                                const coord_t to_coord, const bool color,
                                const coord_t type, const bool is_move,
-                               const bool captured, const u8 index,
+                               const u8 index,
                                const change_bit_ptr change_bit);
     char* ParseMainPartOfFen(char *ptr);
     char* ParseSideToMoveInFen(char *ptr);

@@ -251,40 +251,38 @@ void k2chess::UpdateAttacks(const move_c move, const coord_t from_coord)
         {
             if(!((update_mask[stm] >> i) & 1))
                 continue;
-            auto coord = *it[i];
+            auto piece_coord = *it[i];
             auto color = get_color(b[*it]);
             auto type = get_type(b[*it]);
             auto index = it.get_array_index();
-            const bool captured = (move.flag & is_capture) && stm == wtm
-                    && coord == *captured_it;
-            if(captured)
+            const bool is_captured = (move.flag & is_capture) && stm == wtm
+                    && piece_coord == *captured_it;
+            if(is_captured)
             {
                 color = stm;
                 type = is_enps ? pawn : get_type(state[ply].captured_piece);
                 index = captured_it.get_array_index();
             }
             const bool is_move = stm != wtm && it == moving_piece_it;
-            if(!is_move && !captured && !(slider_mask[stm] & (1 << index)))
+            if(!is_move && !is_captured && !(slider_mask[stm] & (1 << index)))
                 continue;
             if(is_move && (move.flag & is_promotion))
                 type = pawn;
             const bool is_cstl = (move.flag & is_castle) && stm != wtm
                     && it == cstl_it;
             if(is_cstl)
-                coord = get_coord((move.flag & is_left_castle) ? 0 : max_col,
-                                  wtm ? max_row : 0);
+                piece_coord = get_coord((move.flag & is_left_castle) ?
+                                            0 : max_col, wtm ? max_row : 0);
 
-            UpdateAttacksOnePiece(from_coord, coord,
-                                  color, type, is_move, captured, index,
-                                  &k2chess::clear_bit);
+            UpdateAttacksOnePiece(from_coord, piece_coord, color, type,
+                                  is_move, index, &k2chess::clear_bit);
             if(is_cstl)
-                coord = *it;
+                piece_coord = *it;
             else if(is_move && (move.flag & is_promotion))
                 type = get_type(b[*it]);
-            if(!captured)
-                UpdateAttacksOnePiece(from_coord, coord, color, type,
-                                      is_move, captured, index,
-                                      &k2chess::set_bit);
+            if(!is_captured)
+                UpdateAttacksOnePiece(from_coord, piece_coord, color, type,
+                                      is_move, index, &k2chess::set_bit);
         }
         update_mask[stm] = 0;
     }
@@ -304,29 +302,29 @@ void k2chess::UpdateAttacks(const move_c move, const coord_t from_coord)
 
 //--------------------------------
 void k2chess::UpdateAttacksOnePiece(const coord_t from_coord,
-                                    const coord_t to_coord, const bool color,
+                                    const coord_t piece_coord,
+                                    const bool color,
                                     const coord_t type, const bool is_move,
-                                    const bool captured, const u8 index,
+                                    const u8 index,
                                     const change_bit_ptr change_bit)
 {
     assert(type <= pawn);
     assert(index <= attack_digits);
-    assert(!is_move || !captured);
-    auto coord = to_coord;
+    auto coord = piece_coord;
     if(is_move && change_bit == &k2chess::clear_bit)
         coord = from_coord;
     if(type == pawn)
         InitAttacksPawn(coord, color, index, change_bit);
     else if(is_move && is_slider[type])
     {
-        const auto ray_mask = GetRayMask(is_move, from_coord, to_coord,
+        const auto ray_mask = GetRayMask(is_move, from_coord, piece_coord,
                                          change_bit);
         InitAttacksNotPawn(coord, color, index, type, change_bit, ray_mask);
-        coord = change_bit == &k2chess::clear_bit ? to_coord : from_coord;
+        coord = change_bit == &k2chess::clear_bit ? piece_coord : from_coord;
         (this->*change_bit)(attacks, color, get_col(coord), get_row(coord),
                 index);
     }
-    else if(captured || is_move || is_slider[type])
+    else
         InitAttacksNotPawn(coord, color, index, type, change_bit, all_rays);
 }
 
