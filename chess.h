@@ -366,8 +366,10 @@ private:
                              const change_bit_ptr change_bit);
     void UpdateAttacks(move_c move, const coord_t from_coord);
     void UpdateAttacksOnePiece(const coord_t from_coord,
-                               const coord_t to_coord, const bool color,
-                               const coord_t type, const bool is_move,
+                               const coord_t to_coord,
+                               const coord_t piece_coord,
+                               const bool color, const coord_t type,
+                               const bool is_move, const bool is_special_move,
                                const u8 index,
                                const change_bit_ptr change_bit);
     char* ParseMainPartOfFen(char *ptr);
@@ -404,6 +406,10 @@ private:
     bool IsPseudoLegalKnight(const move_c move, const coord_t from_coord);
     void InitSliderMask(bool stm);
     ray_mask_t GetRayMask(const bool is_move, const coord_t from_coord,
-                          const coord_t to_coord,
+                          const coord_t to_coord, const coord_t piece_coord,
                           const change_bit_ptr change_bit);
+    size_t GetRayIndex(const coord_t from_coord, const coord_t to_coord,
+                   coord_t *type);
+    ray_mask_t GetRayMaskNotForMove(const coord_t target_coord,
+                                    const coord_t piece_coord);
 };

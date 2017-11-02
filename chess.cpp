@@ -257,6 +257,7 @@ void k2chess::UpdateAttacks(const move_c move, const coord_t from_coord)
             auto index = it.get_array_index();
             const bool is_captured = (move.flag & is_capture) && stm == wtm
                     && piece_coord == *captured_it;
+            const auto to_coord = move.to_coord;
             if(is_captured)
             {
                 color = stm;
@@ -274,15 +275,19 @@ void k2chess::UpdateAttacks(const move_c move, const coord_t from_coord)
                 piece_coord = get_coord((move.flag & is_left_castle) ?
                                             0 : max_col, wtm ? max_row : 0);
 
-            UpdateAttacksOnePiece(from_coord, piece_coord, color, type,
-                                  is_move, index, &k2chess::clear_bit);
+            UpdateAttacksOnePiece(from_coord, to_coord, piece_coord,
+                                  color, type, is_move,
+                                  is_captured || is_enps || is_cstl,
+                                  index, &k2chess::clear_bit);
             if(is_cstl)
                 piece_coord = *it;
             else if(is_move && (move.flag & is_promotion))
                 type = get_type(b[*it]);
             if(!is_captured)
-                UpdateAttacksOnePiece(from_coord, piece_coord, color, type,
-                                      is_move, index, &k2chess::set_bit);
+                UpdateAttacksOnePiece(from_coord, to_coord, piece_coord,
+                                      color, type, is_move,
+                                      is_captured || is_enps || is_cstl,
+                                      index, &k2chess::set_bit);
         }
         update_mask[stm] = 0;
     }
@@ -302,9 +307,11 @@ void k2chess::UpdateAttacks(const move_c move, const coord_t from_coord)
 
 //--------------------------------
 void k2chess::UpdateAttacksOnePiece(const coord_t from_coord,
+                                    const coord_t to_coord,
                                     const coord_t piece_coord,
                                     const bool color,
                                     const coord_t type, const bool is_move,
+                                    const bool is_special_move,
                                     const u8 index,
                                     const change_bit_ptr change_bit)
 {
@@ -315,14 +322,20 @@ void k2chess::UpdateAttacksOnePiece(const coord_t from_coord,
         coord = from_coord;
     if(type == pawn)
         InitAttacksPawn(coord, color, index, change_bit);
-    else if(is_move && is_slider[type])
+    else if(is_slider[type])
     {
-        const auto ray_mask = GetRayMask(is_move, from_coord, piece_coord,
-                                         change_bit);
+        auto ray_mask = GetRayMask(is_move, from_coord, to_coord,
+                                         piece_coord, change_bit);
+        if(is_special_move)
+            ray_mask = all_rays;
         InitAttacksNotPawn(coord, color, index, type, change_bit, ray_mask);
-        coord = change_bit == &k2chess::clear_bit ? piece_coord : from_coord;
-        (this->*change_bit)(attacks, color, get_col(coord), get_row(coord),
-                index);
+        if(is_move)
+        {
+            coord = change_bit == &k2chess::clear_bit ? piece_coord :
+                                                        from_coord;
+            (this->*change_bit)(attacks, color, get_col(coord),
+                get_row(coord), index);
+        }
     }
     else
         InitAttacksNotPawn(coord, color, index, type, change_bit, all_rays);
@@ -336,16 +349,19 @@ void k2chess::UpdateAttacksOnePiece(const coord_t from_coord,
 k2chess::ray_mask_t k2chess::GetRayMask(const bool is_move,
                                         const coord_t from_coord,
                                         const coord_t to_coord,
+                                        const coord_t piece_coord,
                                         const change_bit_ptr change_bit)
 {
-    ray_mask_t ans = all_rays;
-
+    ray_mask_t ans;
     if(!is_move)
+    {
+        ans = GetRayMaskNotForMove(to_coord, piece_coord);
+        if(change_bit == &k2chess::set_bit)
+            ans |= GetRayMaskNotForMove(from_coord, piece_coord);
         return ans;
-
-    const auto dir_col = sgn(get_col(to_coord) - get_col(from_coord));
-    const auto dir_row = sgn(get_row(to_coord) - get_row(from_coord));
-    const auto index = 3*(1 + dir_row) + 1 + dir_col;
+    }
+    coord_t move_type;
+    auto index = GetRayIndex(from_coord, to_coord, &move_type);
 
     const ray_mask_t RB_masks[] = {rays_NW_or_SE, rays_E_or_W, rays_NE_or_SW,
                                    rays_N_or_S, 0, rays_N_or_S,
@@ -356,12 +372,12 @@ k2chess::ray_mask_t k2chess::GetRayMask(const bool is_move,
     const ray_mask_t Q_masks[] = {rays_rook_q, rays_bishop, rays_rook_q,
                                   rays_bishop, 0, rays_bishop,
                                   rays_rook_q, rays_bishop, rays_rook_q};
-    bool queen_moves_as_rook = false;
+    bool queen_as_rook = false;
     if(get_type(b[to_coord]) == queen)
     {
-        if(dir_col == 0 || dir_row == 0)
+        if(move_type == rook)
         {
-            queen_moves_as_rook = true;
+            queen_as_rook = true;
             ans <<= 4;  // due to delta_col and delta_row arrays content
         }
         ans |= Q_masks[index];
@@ -372,9 +388,49 @@ k2chess::ray_mask_t k2chess::GetRayMask(const bool is_move,
                                        rays_NW, rays_North, rays_NE};
     if(change_bit == &k2chess::set_bit
             && state[ply].captured_piece != empty_square)
-        ans |= (capture_mask[index] << (queen_moves_as_rook ? 4 : 0));
+        ans |= (capture_mask[index] << (queen_as_rook ? 4 : 0));
 
     return ans;
+}
+
+
+
+
+
+//--------------------------------
+k2chess::ray_mask_t k2chess::GetRayMaskNotForMove(const coord_t target_coord,
+                                                  const coord_t piece_coord)
+{
+    const ray_mask_t masks[] = {rays_NE, rays_North, rays_NW,
+                                rays_East, 0, rays_West,
+                                rays_SE, rays_South, rays_SW};
+    coord_t move_type;
+    auto index = GetRayIndex(target_coord, piece_coord, &move_type);
+    auto type = get_type(b[piece_coord]);
+    if(move_type == 0 || (type != queen && move_type != type))
+        index = 4;
+    auto mask = masks[index];
+    if(type == queen && move_type == rook)
+        mask <<= 4;
+    return mask;
+}
+
+
+
+
+
+//--------------------------------
+size_t k2chess::GetRayIndex(const coord_t from_coord, const coord_t to_coord,
+                            coord_t *move_type)
+{
+    const auto delta_col = get_col(to_coord) - get_col(from_coord);
+    const auto delta_row = get_row(to_coord) - get_row(from_coord);
+    *move_type = 0;
+    if(delta_col == 0 || delta_row == 0)
+        *move_type = rook;
+    else if(delta_col == delta_row || delta_col == -delta_row)
+        *move_type = bishop;
+    return 3*(1 + sgn(delta_row)) + 1 + sgn(delta_col);
 }
 
 
