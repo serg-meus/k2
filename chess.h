@@ -54,7 +54,7 @@ protected:
         piece_t *board;
         eval_t *piece_values;
 
-        coord_t get_piece_type(piece_t piece)  // must be as in k2chess class
+        coord_t get_type(piece_t piece)  // must be as in k2chess class
         {
             return piece/sides;
         }
@@ -73,8 +73,8 @@ protected:
                 {
                     iterator it_nxt = it;
                     ++it_nxt;
-                    auto s_it = piece_values[get_piece_type(board[*it])];
-                    auto s_nxt = piece_values[get_piece_type(board[*it_nxt])];
+                    auto s_it = piece_values[get_type(board[*it])];
+                    auto s_nxt = piece_values[get_type(board[*it_nxt])];
                     if(s_it > s_nxt)
                     {
                         direct_swap(it, it_nxt);
@@ -86,8 +86,8 @@ protected:
                 {
                     iterator it_nxt = it;
                     ++it_nxt;
-                    assert(piece_values[get_piece_type(board[*it])] >=
-                        piece_values[get_piece_type(board[*it])]);
+                    assert(piece_values[get_type(board[*it])] >=
+                        piece_values[get_type(board[*it])]);
                 }
 #endif
             }
@@ -269,7 +269,7 @@ protected:
     eval_t pieces[sides];  // piece counters, including kings
     coord_t quantity[sides][piece_types + 1];
 
-    state_s b_state[prev_states + max_ply]; // engine state for each ply depth
+    state_s b_state[prev_states + max_ply]; // board state for each ply depth
     state_s *state;  // pointer to engine state, state[0] = b_state[prev_states];
     depth_t ply;  // current ply depth
     depth_t reversible_moves;
