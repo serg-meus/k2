@@ -1,9 +1,6 @@
 #include "chess.h"
 
-#include <fstream>  // to work with files (ifstream, getline())
-#include <cstdlib>  // to convert strings to floats (atof())
 #include <iostream>
-#include <vector>
 
 
 
@@ -15,13 +12,15 @@ class k2eval : public k2chess
 
 public:
     k2eval();
+    void RunUnitTests();
 
 protected:
 
     typedef i8 pst_t;
     typedef u8 rank_t;
+    typedef u8 dist_t;
 
-    const score_t
+    const eval_t
     pawn_val_opn = 100,
     kinght_val_opn = 395,
     bishop_val_opn = 405,
@@ -37,17 +36,16 @@ protected:
     king_value = 32000,
     infinite_score = 32760;
 
-    score_t val_opn, val_end;
-    score_t initial_score;
-    rank_t p_max[10][2], p_min[10][2];
-    rank_t (*pawn_max)[2], (*pawn_min)[2];
-    score_t material_values_opn[7];
-    score_t material_values_end[7];
-    dist_t king_dist[120];
-    tropism_t king_tropism[2];
-    tropism_t tropism_factor[2][7];
+    eval_t val_opn, val_end;
+    eval_t initial_score;
+    rank_t p_max[board_width + 2][sides], p_min[board_width + 2][sides];
+    rank_t (*pawn_max)[sides], (*pawn_min)[sides];
+    eval_t material_values_opn[piece_types + 1];
+    eval_t material_values_end[piece_types + 1];
+    dist_t king_tropism[sides];
+    dist_t tropism_factor[2][7];
 
-    const pst_t pst[6][2][8][8];
+    const pst_t pst[piece_types][sides][board_height][board_width];
     piece_t pawn, knight, bishop, rook, queen, king;
 //    std::vector<float> tuning_factors;
 
@@ -55,76 +53,88 @@ protected:
 public:
 
 
-    score_t EvalDebug();
+    eval_t EvalDebug();
 
-    bool FenToBoard(char *p)
+    bool SetupPosition(const char *p)
     {
-        bool ans = k2chess::FenToBoard(p);
+        bool ans = k2chess::SetupPosition(p);
         InitPawnStruct();
+        InitEvalOfMaterialAndPst();
         return ans;
     }
 
 
 protected:
 
+    struct state_s
+    {
+        eval_t val_opn;
+        eval_t val_end;
+        dist_t tropism[sides];
+    };
 
-    void InitEval();
+    state_s e_state[prev_states + max_ply]; // eval state for each ply depth
+    state_s *state;  // pointer to eval state
+
     void FastEval(move_c m);
-    score_t Eval();
-    void InitEvaOfMaterialAndPst();
+    eval_t Eval();
+    void InitEvalOfMaterialAndPst();
     void InitPawnStruct();
     void SetPawnStruct(coord_t col);
-    bool IsPasser(coord_t col, side_to_move_t stm);
-    bool MkMoveAndEval(move_c m);
-    void UnMoveAndEval(move_c m);
+    bool IsPasser(coord_t col, bool stm);
+    bool MakeMove(move_c m);
+    void TakebackMove(move_c m);
 
     void MkEvalAfterFastMove(move_c m)
     {
         state[ply - 1].val_opn = val_opn;
         state[ply - 1].val_end = val_end;
 
-        auto from_coord = state[ply].from_coord;
+        auto from_coord = k2chess::state[ply].from_coord;
 
         MoveKingTropism(from_coord, m, wtm);
 
         MovePawnStruct(b[m.to_coord], from_coord, m);
     }
 
-    score_t ReturnEval(side_to_move_t stm)
+    eval_t ReturnEval(const bool stm)
     {
         i32 X, Y;
         X = material[0] + 1 + material[1] + 1 - pieces[0] - pieces[1];
 
         Y = ((val_opn - val_end)*X + 80*val_end)/80;
-        return stm ? (score_t)(Y) : (score_t)(-Y);
+        return stm ? (eval_t)(Y) : (eval_t)(-Y);
     }
 
-    bool is_light(piece_t piece, side_to_move_t stm)
+    bool is_light(const piece_t piece, const bool stm)
     {
         return piece != empty_square && (piece & white) == stm;
     }
 
-    bool is_dark(piece_t piece, side_to_move_t stm)
+    bool is_dark(const piece_t piece, const bool stm)
     {
         return piece != empty_square && (piece & white) != stm;
+    }
+
+    dist_t king_dist(const coord_t from_coord, const coord_t to_coord)
+    {
+        return std::max(std::abs(get_col(from_coord) - get_col(to_coord)),
+                        std::abs(get_row(from_coord) - get_row(to_coord)));
     }
 
 
 private:
 
+    const size_t opening = 0, endgame = 1;
 
-    void EvalPawns(side_to_move_t stm);
-    void ClampedRook(side_to_move_t stm);
-    bool IsUnstoppablePawn(coord_t x, coord_t y, side_to_move_t stm);
-    void KingSafety(side_to_move_t king_color);
-    void BishopMobility(side_to_move_t stm);
+    void EvalPawns(bool stm);
+    bool IsUnstoppablePawn(coord_t x, coord_t y, bool stm);
+    void KingSafety(bool king_color);
     void MaterialImbalances();
-    score_t KingWeakness(side_to_move_t king_color);
-    score_t CountKingTropism(side_to_move_t king_color);
+    eval_t KingWeakness(bool king_color);
+    eval_t CountKingTropism(bool king_color);
     void MoveKingTropism(coord_t from_coord, move_c m,
-                          side_to_move_t king_color);
-    score_t KingOpenFiles(side_to_move_t king_color);
+                          bool king_color);
+    eval_t KingOpenFiles(bool king_color);
     void MovePawnStruct(piece_t movedPiece, coord_t from_coord, move_c m);
-    score_t OneBishopMobility(coord_t b_coord);
-
 };

@@ -18,12 +18,12 @@ int main(int argc, char* argv[])
     UNUSED(argc);
     UNUSED(argv);
 
-    k2chess *chess = new k2chess();
+    k2eval *eval = new k2eval();
 
 #ifndef NDEBUG
-    chess->RunUnitTests();
+    eval->RunUnitTests();
     std::cout << "All unit tests passed" << std::endl;
 #endif
 
-    delete chess;
+    delete eval;
 }

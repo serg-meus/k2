@@ -26,6 +26,7 @@ k2engine::k2engine() :
     infinite_analyze = false;
     spent_exact_time = false;
     randomness = true;
+    initial_score = 0;
 
     InitEngine();
 }
@@ -1152,7 +1153,6 @@ bool k2engine::FenStringToEngine(char *fen)
     if(!ans)
         return false;
 
-    InitEvaOfMaterialAndPst();
     time_spent = 0;
     time_remains = time_base;
     finaly_made_moves = 0;

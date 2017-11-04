@@ -38,7 +38,7 @@ protected:
 
 
         short_key_t key;
-        score_t value;
+        eval_t value;
         move_c best_move;
 
         hdepth_t depth;
@@ -62,7 +62,7 @@ protected:
 
         bool set_size(size_t size_mb);
         hash_entry_s* count(hash_key_t key);
-        void add(hash_key_t key, score_t value, move_c best, depth_t depth,
+        void add(hash_key_t key, eval_t value, move_c best, depth_t depth,
                  hbound_t bound_type, depth_t half_mov_cr, bool one_reply,
                  node_t nodes);
         void clear();
@@ -105,15 +105,15 @@ protected:
 
     hash_key_t InitHashKey();
 
-    void MkMove(move_c m)
+    void MakeMove(move_c m)
     {
-        bool special_move = MkMoveAndEval(m);
+        bool special_move = k2eval::MakeMove(m);
         MoveHashKey(m, special_move);
     }
 
-    void UnMove(move_c m)
+    void TakeBackMove(move_c m)
     {
-        UnMoveAndEval(m);
+        k2eval::TakebackMove(m);
         hash_key = doneHashKeys[FIFTY_MOVES + ply];
     }
 

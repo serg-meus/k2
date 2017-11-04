@@ -6,7 +6,8 @@ CONFIG -= qt
 SOURCES += \
     Timer.cpp \
     main.cpp \
-    chess.cpp
+    chess.cpp \
+    eval.cpp
 
 OTHER_FILES +=
 
@@ -14,6 +15,7 @@ HEADERS += \
     Timer.h \
     main.h \
     chess.h \
+    eval.h \
     short_list.h
 
 QMAKE_CXXFLAGS += -std=c++0x

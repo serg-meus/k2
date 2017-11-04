@@ -1,3 +1,3 @@
 all:
 
-	g++ main.cpp chess.cpp -std=c++0x -O3 -pthread -o ./bin/Debug/k2
+	g++ main.cpp chess.cpp eval.cpp -std=c++0x -O0 -pthread -o ./bin/Debug/k2

@@ -49,6 +49,8 @@
 		</Linker>
 		<Unit filename="chess.cpp" />
 		<Unit filename="chess.h" />
+		<Unit filename="eval.cpp" />
+		<Unit filename="eval.h" />
 		<Unit filename="main.cpp" />
 		<Unit filename="main.h" />
 		<Unit filename="short_list.h" />
@@ -65,7 +67,4 @@
 				<doxyfile_output />
 				<doxyfile_dot />
 				<general />
-			</DoxyBlocks>
-		</Extensions>
-	</Project>
-</CodeBlocks_project_file>
+			</DoxyBlo

@@ -40,7 +40,7 @@ protected:
 
 
     movcr_t GenMoves(move_c *list, move_c *best_move, priority_t apprice);
-    streng_t SEE_main(move_c m);
+    eval_t SEE_main(move_c m);
     movcr_t GenCaptures(move_c *list);
 
 
@@ -52,7 +52,7 @@ private:
     void GenCastles(move_c *list, movcr_t *movCr);
     void AppriceMoves(move_c *list, movcr_t moveCr, move_c *best_move);
     void AppriceQuiesceMoves(move_c *list, movcr_t moveCr);
-    streng_t SEE(coord_t to_coord, streng_t frStreng, score_t val, bool stm);
+    eval_t SEE(coord_t to_coord, eval_t frStreng, eval_t val, bool stm);
     iterator SeeMinAttacker(coord_t to_coord);
     void SortQuiesceMoves(move_c *move_array, movcr_t moveCr);
     void PushMove(move_c *move_array, movcr_t *movCr, iterator it,
