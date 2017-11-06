@@ -292,57 +292,57 @@ protected:
     move_flag_t InitMoveFlag(const move_c move, const char promo_to);
     bool IsLegal(const move_c move);
     bool IsPseudoLegal(const move_c move);
-    bool IsLegalCastle(const move_c move);
+    bool IsLegalCastle(const move_c move) const;
     bool IsOnRay(const coord_t k_coord, const coord_t attacker_coord,
-                 const coord_t to_coord);
+                 const coord_t to_coord) const;
 
-    coord_t get_coord(const coord_t col, const coord_t row)
+    coord_t get_coord(const coord_t col, const coord_t row) const
     {
         return (board_width*row) + col;
     }
 
-    coord_t get_coord(const char *str)
+    coord_t get_coord(const char *str) const
     {
         return get_coord(str[0] - 'a', str[1] - '1');
     }
 
-    coord_t get_col(const coord_t coord)
+    coord_t get_col(const coord_t coord) const
     {
         assert((board_height & (board_height - 1)) == 0);
         return coord & (board_height - 1);
     }
 
-    coord_t get_row(const coord_t coord)
+    coord_t get_row(const coord_t coord) const
     {
         return coord/board_width;
     }
 
-    coord_t get_type(const piece_t piece)
+    coord_t get_type(const piece_t piece) const
     {
         return piece/sides;
     }
 
-    bool col_within(const shifts_t col)
+    bool col_within(const shifts_t col) const
     {
         return col >= 0 && col < board_width;
     }
 
-    bool row_within(const shifts_t row)
+    bool row_within(const shifts_t row) const
     {
         return row >= 0 && row < board_height;
     }
 
-    bool get_color(const piece_t piece)
+    bool get_color(const piece_t piece) const
     {
         return piece & white;
     }
 
-    piece_t set_color(const piece_t piece, const bool stm)
+    piece_t set_color(const piece_t piece, const bool stm) const
     {
         return (piece & ~white) | stm;
     }
 
-    template <typename T> int sgn(T val)
+    template <typename T> int sgn(T val) const
     {
         return (T(0) < val) - (val < T(0));
     }
@@ -385,10 +385,11 @@ private:
                             const bool use_extended_attacks);
     bool NoExtendedAttacks(const piece_t sq, const coord_t type,
                            const bool color, const shifts_t delta_col,
-                           const shifts_t delta_row);
+                           const shifts_t delta_row) const;
     bool IsDiscoveredAttack(const coord_t fr_coord, const coord_t to_coord,
                             const attack_t mask);
-    bool IsSliderAttack(const coord_t from_coord, const coord_t to_coord);
+    bool IsSliderAttack(const coord_t from_coord,
+                        const coord_t to_coord) const;
     void InitAttacksPawn(const coord_t coord, const bool color, const u8 index,
                          const change_bit_ptr change_bit);
     void InitAttacksNotPawn(const coord_t coord, const bool color,
@@ -401,15 +402,15 @@ private:
     void clear_bit(attack_t (* const attacks)[board_height*board_width],
                    const bool color, const coord_t col, const coord_t row,
                    const u8 index);
-    bool IsPseudoLegalPawn(const move_c move, const coord_t from_coord);
-    bool IsPseudoLegalKing(const move_c move, const coord_t from_coord);
-    bool IsPseudoLegalKnight(const move_c move, const coord_t from_coord);
+    bool IsPseudoLegalPawn(const move_c move, const coord_t from_coord) const;
+    bool IsPseudoLegalKing(const move_c move, const coord_t from_coord) const;
+    bool IsPseudoLegalKnight(const move_c move, const coord_t from_coord) const;
     void InitSliderMask(bool stm);
     ray_mask_t GetRayMask(const bool is_move, const coord_t from_coord,
                           const coord_t to_coord, const coord_t piece_coord,
-                          const change_bit_ptr change_bit);
+                          const change_bit_ptr change_bit) const;
     size_t GetRayIndex(const coord_t from_coord, const coord_t to_coord,
-                   coord_t *type);
+                   coord_t *type) const;
     ray_mask_t GetRayMaskNotForMove(const coord_t target_coord,
-                                    const coord_t piece_coord);
+                                    const coord_t piece_coord) const;
 };

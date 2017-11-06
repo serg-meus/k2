@@ -32,7 +32,7 @@ k2chess::eval_t k2eval::Eval()
 
 
 //-----------------------------
-void k2eval::FastEval(move_c m)
+void k2eval::FastEval(const move_c m)
 {
     eval_t ansO = 0, ansE = 0;
 
@@ -161,7 +161,7 @@ void k2eval::InitEvalOfMaterialAndPst()
 
 
 //--------------------------------
-bool k2eval::IsPasser(coord_t col, bool stm)
+bool k2eval::IsPasser(const coord_t col, const bool stm) const
 {
     auto mx = pawn_max[col][stm];
 
@@ -178,7 +178,7 @@ bool k2eval::IsPasser(coord_t col, bool stm)
 
 
 //--------------------------------
-void k2eval::EvalPawns(bool stm)
+void k2eval::EvalPawns(const bool stm)
 {
     eval_t ansO = 0, ansE = 0;
     bool passer, prev_passer = false;
@@ -277,8 +277,7 @@ void k2eval::EvalPawns(bool stm)
         prev_passer = true;
 
         // unstoppable
-        if(opp_only_pawns && IsUnstoppablePawn(col, pawn_max[col][stm],
-                                               stm, wtm))
+        if(opp_only_pawns && IsUnstoppablePawn(col, stm, wtm))
         {
             ansO += 120*mx + 350;
             ansE += 120*mx + 350;
@@ -293,9 +292,10 @@ void k2eval::EvalPawns(bool stm)
 
 
 //-----------------------------
-bool k2eval::IsUnstoppablePawn(const coord_t col, coord_t pmax,
-                               const bool side_of_pawn, const bool stm)
+bool k2eval::IsUnstoppablePawn(const coord_t col, const bool side_of_pawn,
+                               const bool stm) const
 {
+    auto pmax = pawn_max[col][side_of_pawn];
     if(pmax == pawn_default_row)
         pmax++;
     auto promo_square = get_coord(col, side_of_pawn ? max_row : 0);
@@ -404,8 +404,7 @@ void k2eval::MaterialImbalances()
             auto it = coords[stm].rbegin();
             ++it;
             auto colp = get_col(*it);
-            bool unstop = IsUnstoppablePawn(colp, pawn_max[colp][stm],
-                                            stm, wtm);
+            bool unstop = IsUnstoppablePawn(colp, stm, wtm);
             auto dist_k = king_dist(*king_coord[stm], *it);
             auto dist_opp_k = king_dist(*king_coord[!stm], *it);
 
@@ -551,7 +550,7 @@ k2chess::eval_t k2eval::EvalDebug()
 
 
 //-----------------------------
-void k2eval::SetPawnStruct(k2chess::coord_t col)
+void k2eval::SetPawnStruct(const coord_t col)
 {
     assert(col <= max_col);
     coord_t y;
@@ -586,8 +585,9 @@ void k2eval::SetPawnStruct(k2chess::coord_t col)
 
 
 //-----------------------------
-void k2eval::MovePawnStruct(piece_t moved_piece, coord_t from_coord,
-                            move_c move)
+void k2eval::MovePawnStruct(const piece_t moved_piece,
+                            const coord_t from_coord,
+                            const move_c move)
 {
     if(get_type(moved_piece) == pawn || (move.flag & is_promotion))
     {
@@ -664,7 +664,7 @@ void k2eval::InitPawnStruct()
 
 
 //-----------------------------
-k2chess::eval_t k2eval::CountKingTropism(bool king_color)
+k2chess::eval_t k2eval::CountKingTropism(const bool king_color)
 {
     auto occ_cr = 0;
     auto rit = coords[!king_color].rbegin();
@@ -687,8 +687,8 @@ k2chess::eval_t k2eval::CountKingTropism(bool king_color)
 
 
 //-----------------------------
-void k2eval::MoveKingTropism(coord_t from_coord, move_c move,
-                             bool king_color)
+void k2eval::MoveKingTropism(const coord_t from_coord, const move_c move,
+                             const bool king_color)
 {
     state[ply].tropism[black] = king_tropism[black];
     state[ply].tropism[white] = king_tropism[white];
@@ -735,7 +735,7 @@ void k2eval::MoveKingTropism(coord_t from_coord, move_c move,
 
 
 //-----------------------------
-bool k2eval::MakeMove(move_c m)
+bool k2eval::MakeMove(const move_c m)
 {
     state[ply].val_opn = val_opn;
     state[ply].val_end = val_end;
@@ -756,7 +756,7 @@ bool k2eval::MakeMove(move_c m)
 
 
 //-----------------------------
-void k2eval::TakebackMove(move_c m)
+void k2eval::TakebackMove(const move_c m)
 {
     king_tropism[black] = state[ply].tropism[black];
     king_tropism[white] = state[ply].tropism[white];
@@ -780,7 +780,7 @@ void k2eval::TakebackMove(move_c m)
 
 
 //-----------------------------
-k2chess::eval_t k2eval::KingOpenFiles(bool king_color)
+k2chess::eval_t k2eval::KingOpenFiles(const bool king_color)
 {
     auto ans = 0;
     auto k = *king_coord[king_color];
@@ -835,7 +835,7 @@ k2chess::eval_t k2eval::KingOpenFiles(bool king_color)
 
 
 //-----------------------------
-k2chess::eval_t k2eval::KingWeakness(bool king_color)
+k2chess::eval_t k2eval::KingWeakness(const bool king_color)
 {
     auto ans = 0;
     auto k = *king_coord[king_color];
@@ -906,7 +906,7 @@ k2chess::eval_t k2eval::KingWeakness(bool king_color)
 
 
 //-----------------------------
-void k2eval::KingSafety(bool king_color)
+void k2eval::KingSafety(const bool king_color)
 {
     eval_t trp = king_tropism[king_color];
 
@@ -1106,13 +1106,6 @@ pst
     pawn_min = &p_min[1];
     state = &e_state[prev_states];
 
-    pawn = get_type(black_pawn);
-    knight = get_type(black_knight);
-    bishop = get_type(black_bishop);
-    rook = get_type(black_rook);
-    queen = get_type(black_queen);
-    king = get_type(black_king);
-
     val_opn = 0;
     val_end = 0;
 
@@ -1147,12 +1140,12 @@ void k2eval::RunUnitTests()
 	assert(king_dist(get_coord("h1"), get_coord("a8")) == 7);
 
 	SetupPosition("5k2/8/2P5/8/8/8/8/K7 w - - 0 1");
-	assert(IsUnstoppablePawn(2, pawn_max[2][white], white, white));
-	assert(!IsUnstoppablePawn(2, pawn_max[2][white], white, black));
+	assert(IsUnstoppablePawn(2, white, white));
+	assert(!IsUnstoppablePawn(2, white, black));
 	SetupPosition("k7/7p/8/8/8/8/8/1K6 b - - 0 1");
-	assert(IsUnstoppablePawn(7, pawn_max[7][black], black, black));
-	assert(!IsUnstoppablePawn(7, pawn_max[7][black], black, white));
+	assert(IsUnstoppablePawn(7, black, black));
+	assert(!IsUnstoppablePawn(7, black, white));
 	SetupPosition("8/7p/8/8/7k/8/8/K7 w - - 0 1");
-	assert(IsUnstoppablePawn(7, pawn_max[7][black], black, black));
-	assert(!IsUnstoppablePawn(7, pawn_max[7][black], black, white));
+	assert(IsUnstoppablePawn(7, black, black));
+	assert(!IsUnstoppablePawn(7, black, white));
 }

@@ -46,7 +46,6 @@ protected:
     dist_t tropism_factor[2][7];
 
     const pst_t pst[piece_types][sides][board_height][board_width];
-    piece_t pawn, knight, bishop, rook, queen, king;
 //    std::vector<float> tuning_factors;
 
 
@@ -66,6 +65,7 @@ public:
 
 protected:
 
+
     struct state_s
     {
         eval_t val_opn;
@@ -76,16 +76,16 @@ protected:
     state_s e_state[prev_states + max_ply]; // eval state for each ply depth
     state_s *state;  // pointer to eval state
 
-    void FastEval(move_c m);
+    void FastEval(const move_c m);
     eval_t Eval();
     void InitEvalOfMaterialAndPst();
     void InitPawnStruct();
-    void SetPawnStruct(coord_t col);
-    bool IsPasser(coord_t col, bool stm);
-    bool MakeMove(move_c m);
-    void TakebackMove(move_c m);
+    void SetPawnStruct(const coord_t col);
+    bool IsPasser(const coord_t col, const bool stm) const;
+    bool MakeMove(const move_c m);
+    void TakebackMove(const move_c m);
 
-    void MkEvalAfterFastMove(move_c m)
+    void MkEvalAfterFastMove(const move_c m)
     {
         state[ply - 1].val_opn = val_opn;
         state[ply - 1].val_end = val_end;
@@ -97,7 +97,7 @@ protected:
         MovePawnStruct(b[m.to_coord], from_coord, m);
     }
 
-    eval_t ReturnEval(const bool stm)
+    eval_t ReturnEval(const bool stm) const
     {
         i32 X, Y;
         X = material[0] + 1 + material[1] + 1 - pieces[0] - pieces[1];
@@ -106,17 +106,17 @@ protected:
         return stm ? (eval_t)(Y) : (eval_t)(-Y);
     }
 
-    bool is_light(const piece_t piece, const bool stm)
+    bool is_light(const piece_t piece, const bool stm) const
     {
         return piece != empty_square && (piece & white) == stm;
     }
 
-    bool is_dark(const piece_t piece, const bool stm)
+    bool is_dark(const piece_t piece, const bool stm) const
     {
         return piece != empty_square && (piece & white) != stm;
     }
 
-    dist_t king_dist(const coord_t from_coord, const coord_t to_coord)
+    dist_t king_dist(const coord_t from_coord, const coord_t to_coord) const
     {
         return std::max(std::abs(get_col(from_coord) - get_col(to_coord)),
                         std::abs(get_row(from_coord) - get_row(to_coord)));
@@ -127,15 +127,16 @@ private:
 
     const size_t opening = 0, endgame = 1;
 
-    void EvalPawns(bool stm);
-    bool IsUnstoppablePawn(const coord_t x, const coord_t y,
-                           const bool side_of_pawn, const bool stm);
-    void KingSafety(bool king_color);
+    void EvalPawns(const bool stm);
+    bool IsUnstoppablePawn(const coord_t col, const bool side_of_pawn,
+                           const bool stm) const;
+    void KingSafety(const bool king_color);
     void MaterialImbalances();
-    eval_t KingWeakness(bool king_color);
-    eval_t CountKingTropism(bool king_color);
-    void MoveKingTropism(coord_t from_coord, move_c m,
-                         bool king_color);
-    eval_t KingOpenFiles(bool king_color);
-    void MovePawnStruct(piece_t movedPiece, coord_t from_coord, move_c m);
+    eval_t KingWeakness(const bool king_color);
+    eval_t CountKingTropism(const bool king_color);
+    void MoveKingTropism(const coord_t from_coord, const move_c move,
+                         const bool king_color);
+    eval_t KingOpenFiles(const bool king_color);
+    void MovePawnStruct(const piece_t movedPiece, const coord_t from_coord,
+                        const move_c m);
 };

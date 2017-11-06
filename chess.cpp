@@ -197,7 +197,7 @@ void k2chess::InitAttacksNotPawn(const coord_t coord, const bool color,
 //--------------------------------
 bool k2chess::NoExtendedAttacks(const piece_t sq, const coord_t type,
                                 const bool color, const shifts_t delta_col,
-                                const shifts_t delta_row)
+                                const shifts_t delta_row) const
 {
     const auto sq_type = get_type(sq);
     if(get_color(sq) != color)
@@ -350,7 +350,7 @@ k2chess::ray_mask_t k2chess::GetRayMask(const bool is_move,
                                         const coord_t from_coord,
                                         const coord_t to_coord,
                                         const coord_t piece_coord,
-                                        const change_bit_ptr change_bit)
+                                        const change_bit_ptr change_bit) const
 {
     ray_mask_t ans;
     if(!is_move)
@@ -400,6 +400,7 @@ k2chess::ray_mask_t k2chess::GetRayMask(const bool is_move,
 //--------------------------------
 k2chess::ray_mask_t k2chess::GetRayMaskNotForMove(const coord_t target_coord,
                                                   const coord_t piece_coord)
+                                                  const
 {
     const ray_mask_t masks[] = {rays_NE, rays_North, rays_NW,
                                 rays_East, 0, rays_West,
@@ -421,7 +422,7 @@ k2chess::ray_mask_t k2chess::GetRayMaskNotForMove(const coord_t target_coord,
 
 //--------------------------------
 size_t k2chess::GetRayIndex(const coord_t from_coord, const coord_t to_coord,
-                            coord_t *move_type)
+                            coord_t *move_type) const
 {
     const auto delta_col = get_col(to_coord) - get_col(from_coord);
     const auto delta_row = get_row(to_coord) - get_row(from_coord);
@@ -1174,7 +1175,8 @@ bool k2chess::IsPseudoLegal(const move_c move)
 
 
 //--------------------------------
-bool k2chess::IsPseudoLegalKing(const move_c move, const coord_t from_coord)
+bool k2chess::IsPseudoLegalKing(const move_c move,
+                                const coord_t from_coord) const
 {
     const auto fr_col = get_col(from_coord);
     const auto fr_row = get_row(from_coord);
@@ -1199,7 +1201,8 @@ bool k2chess::IsPseudoLegalKing(const move_c move, const coord_t from_coord)
 
 
 //--------------------------------
-bool k2chess::IsPseudoLegalKnight(const move_c move, const coord_t from_coord)
+bool k2chess::IsPseudoLegalKnight(const move_c move,
+                                  const coord_t from_coord) const
 {
     const auto d_col = std::abs(get_col(from_coord) - get_col(move.to_coord));
     const auto d_row = std::abs(get_row(from_coord) - get_row(move.to_coord));
@@ -1213,7 +1216,8 @@ bool k2chess::IsPseudoLegalKnight(const move_c move, const coord_t from_coord)
 
 
 //--------------------------------
-bool k2chess::IsPseudoLegalPawn(const move_c move, const coord_t from_coord)
+bool k2chess::IsPseudoLegalPawn(const move_c move,
+                                const coord_t from_coord) const
 {
     const auto delta = wtm ? board_width : -board_width;
     if(move.to_coord == from_coord + delta
@@ -1256,7 +1260,7 @@ bool k2chess::IsPseudoLegalPawn(const move_c move, const coord_t from_coord)
 
 
 //--------------------------------
-bool k2chess::IsLegalCastle(const move_c move)
+bool k2chess::IsLegalCastle(const move_c move) const
 {
     const auto row = wtm ? 0 : max_row;
     coord_t begin_col1, begin_col2, end_col1, end_col2;
@@ -1297,7 +1301,7 @@ bool k2chess::IsLegalCastle(const move_c move)
 
 //--------------------------------
 bool k2chess::IsOnRay(const coord_t k_coord, const coord_t attacker_coord,
-                      const coord_t to_coord)
+                      const coord_t to_coord) const
 {
     if(to_coord == attacker_coord)
         return true;
@@ -1336,7 +1340,8 @@ bool k2chess::IsOnRay(const coord_t k_coord, const coord_t attacker_coord,
 
 
 //--------------------------------
-bool k2chess::IsSliderAttack(const coord_t from_coord, const coord_t to_coord)
+bool k2chess::IsSliderAttack(const coord_t from_coord,
+                             const coord_t to_coord) const
 {
     auto d_col = get_col(to_coord) - get_col(from_coord);
     auto d_row = get_row(to_coord) - get_row(from_coord);
@@ -1367,7 +1372,8 @@ bool k2chess::IsSliderAttack(const coord_t from_coord, const coord_t to_coord)
 
 //--------------------------------
 bool k2chess::IsDiscoveredAttack(const coord_t fr_coord,
-                                 const coord_t to_coord, const attack_t mask)
+                                 const coord_t to_coord,
+                                 const attack_t mask)
 {
     auto it = coords[!wtm].begin();
     size_t i = 0;
