@@ -277,8 +277,8 @@ void k2eval::EvalPawns(bool stm)
         prev_passer = true;
 
         // unstoppable
-        if(opp_only_pawns
-                && IsUnstoppablePawn(col, max_row - pawn_max[col][stm], stm))
+        if(opp_only_pawns && IsUnstoppablePawn(col, pawn_max[col][stm],
+                                               stm, wtm))
         {
             ansO += 120*mx + 350;
             ansE += 120*mx + 350;
@@ -293,18 +293,17 @@ void k2eval::EvalPawns(bool stm)
 
 
 //-----------------------------
-bool k2eval::IsUnstoppablePawn(coord_t col, coord_t row, bool stm)
+bool k2eval::IsUnstoppablePawn(const coord_t col, coord_t pmax,
+                               const bool side_of_pawn, const bool stm)
 {
-    auto k = *king_coord[!stm];
-
-    if(row > 5)
-        row = 5;
-    auto psq = get_coord(col, stm ? max_row : 0);
-    auto d = king_dist(k, psq);
-    if(get_col(*king_coord[stm]) == col
-            && king_dist(*king_coord[stm], psq) <= row)
-        row++;
-    return (eval_t)d - (stm != wtm) > row;
+    if(pmax == pawn_default_row)
+        pmax++;
+    auto promo_square = get_coord(col, side_of_pawn ? max_row : 0);
+    int dist = king_dist(*king_coord[!side_of_pawn], promo_square);
+    auto k = *king_coord[side_of_pawn];
+    if(get_col(k) == col && king_dist(k, promo_square) <= max_row - pmax)
+        pmax--;
+    return dist - (side_of_pawn  != stm) > max_row - pmax;
 }
 
 
@@ -405,9 +404,8 @@ void k2eval::MaterialImbalances()
             auto it = coords[stm].rbegin();
             ++it;
             auto colp = get_col(*it);
-            bool unstop = IsUnstoppablePawn(colp,
-                                            7 - pawn_max[colp][stm],
-                                            stm);
+            bool unstop = IsUnstoppablePawn(colp, pawn_max[colp][stm],
+                                            stm, wtm);
             auto dist_k = king_dist(*king_coord[stm], *it);
             auto dist_opp_k = king_dist(*king_coord[!stm], *it);
 
@@ -1147,4 +1145,14 @@ void k2eval::RunUnitTests()
 	assert(king_dist(get_coord("e5"), get_coord("d3")) == 2);
 	assert(king_dist(get_coord("h1"), get_coord("h8")) == 7);
 	assert(king_dist(get_coord("h1"), get_coord("a8")) == 7);
+
+	SetupPosition("5k2/8/2P5/8/8/8/8/K7 w - - 0 1");
+	assert(IsUnstoppablePawn(2, pawn_max[2][white], white, white));
+	assert(!IsUnstoppablePawn(2, pawn_max[2][white], white, black));
+	SetupPosition("k7/7p/8/8/8/8/8/1K6 b - - 0 1");
+	assert(IsUnstoppablePawn(7, pawn_max[7][black], black, black));
+	assert(!IsUnstoppablePawn(7, pawn_max[7][black], black, white));
+	SetupPosition("8/7p/8/8/7k/8/8/K7 w - - 0 1");
+	assert(IsUnstoppablePawn(7, pawn_max[7][black], black, black));
+	assert(!IsUnstoppablePawn(7, pawn_max[7][black], black, white));
 }

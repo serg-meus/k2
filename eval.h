@@ -128,13 +128,14 @@ private:
     const size_t opening = 0, endgame = 1;
 
     void EvalPawns(bool stm);
-    bool IsUnstoppablePawn(coord_t x, coord_t y, bool stm);
+    bool IsUnstoppablePawn(const coord_t x, const coord_t y,
+                           const bool side_of_pawn, const bool stm);
     void KingSafety(bool king_color);
     void MaterialImbalances();
     eval_t KingWeakness(bool king_color);
     eval_t CountKingTropism(bool king_color);
     void MoveKingTropism(coord_t from_coord, move_c m,
-                          bool king_color);
+                         bool king_color);
     eval_t KingOpenFiles(bool king_color);
     void MovePawnStruct(piece_t movedPiece, coord_t from_coord, move_c m);
 };
