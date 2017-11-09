@@ -21,20 +21,49 @@ protected:
     typedef u8 dist_t;
 
     const eval_t
+    king_value = 32000,
+    infinite_score = 32760,
+
     pawn_val_opn = 100,
     kinght_val_opn = 395,
     bishop_val_opn = 405,
     rook_val_opn = 600,
     queen_val_opn = 1200,
-
     pawn_val_end = 128,
     kinght_val_end = 369,
     bishop_val_end = 405,
     rook_val_end = 640,
     queen_val_end = 1200,
 
-    king_value = 32000,
-    infinite_score = 32760;
+    pawn_dbl_iso_opn = -15,
+    pawn_dbl_iso_end = -55,
+    pawn_iso_opn = -15,
+    pawn_iso_end = -25,
+    pawn_dbl_opn = -5,
+    pawn_dbl_end = -15,
+    pawn_hole_opn = -30,
+    pawn_hole_end = 0,
+    pawn_gap_opn = 0,
+    pawn_gap_end = -30,
+    pawn_king_tropism1 = 30,
+    pawn_king_tropism2 = 10,
+    pawn_king_tropism3 = 15,
+    pawn_pass_1 = 0,
+    pawn_pass_2 = 21,
+    pawn_pass_3 = 40,
+    pawn_pass_4 = 85,
+    pawn_pass_5 = 150,
+    pawn_pass_6 = 200,
+    pawn_blk_pass_1 = 0,
+    pawn_blk_pass_2 = 10,
+    pawn_blk_pass_3 = 30,
+    pawn_blk_pass_4 = 65,
+    pawn_blk_pass_5 = 80,
+    pawn_blk_pass_6 = 120,
+    pawn_pass_opn_divider = 3,
+    pawn_pass_connected = 28,
+    pawn_unstoppable_1 = 120,
+    pawn_unstoppable_2 = 350;
 
     eval_t val_opn, val_end;
     eval_t initial_score;

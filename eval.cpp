@@ -201,18 +201,18 @@ void k2eval::EvalPawns(const bool stm)
             isolany = true;
         if(doubled && isolany)
         {
-            ansE -= 55;
-            ansO -= 15;
+            ansE += pawn_dbl_iso_end;
+            ansO += pawn_dbl_iso_opn;
         }
         else if(isolany)
         {
-            ansE -= 25;
-            ansO -= 15;
+            ansE += pawn_iso_end;
+            ansO += pawn_iso_opn;
         }
         else if(doubled)
         {
-            ansE -= 15;
-            ansO -= 5;
+            ansE += pawn_dbl_end;
+            ansO += pawn_dbl_opn;
         }
 
         passer = IsPasser(col, stm);
@@ -227,14 +227,18 @@ void k2eval::EvalPawns(const bool stm)
                 bool occupied = is_dark(op_piece, stm)
                                 && get_type(op_piece) != pawn;
                 if(occupied)
-                    ansO -= 30;
+                {
+                    ansE += pawn_hole_end;
+                    ansO += pawn_hole_opn;
+                }
             }
-
             // gaps in pawn structure
             if(pawn_max[col - 1][stm]
                     && std::abs(mx - pawn_max[col - 1][stm]) > 1)
-                ansE -= 33;
-
+            {
+                ansE += pawn_gap_end;
+                ansO += pawn_gap_opn;
+            }
             prev_passer = false;
             continue;
         }
@@ -248,23 +252,26 @@ void k2eval::EvalPawns(const bool stm)
         auto opp_k_dist = king_dist(opp_k, pawn_coord);
 
         if(k_dist <= 1)
-            ansE += 30 + 10*mx;
+            ansE += pawn_king_tropism1 + pawn_king_tropism2*mx;
         else if(k_dist == 2)
-            ansE += 15;
+            ansE += pawn_king_tropism3;
         if(opp_k_dist <= 1)
-            ansE -= 30 + 10*mx;
+            ansE -= pawn_king_tropism1 + pawn_king_tropism2*mx;
         else if(opp_k_dist == 2)
-            ansE -= 15;
+            ansE -= pawn_king_tropism3;
 
         // passed pawn evaluation
-        eval_t pass[] =         {0, 0, 21, 40, 85, 150, 200};
-        eval_t blocked_pass[] = {0, 0, 10, 30, 65,  80, 120};
+        eval_t pass[] = {0, pawn_pass_1, pawn_pass_2, pawn_pass_3,
+                         pawn_pass_4, pawn_pass_5, pawn_pass_6};
+        eval_t blocked_pass[] = {0, pawn_blk_pass_1, pawn_blk_pass_2,
+                                 pawn_blk_pass_3, pawn_blk_pass_4,
+                                 pawn_blk_pass_5, pawn_blk_pass_6};
         auto next_square = get_coord(col, stm ? mx + 1 : max_row - mx - 1);
         bool blocked = b[next_square] != empty_square;
         auto delta = blocked ? blocked_pass[mx] : pass[mx];
 
         ansE += delta;
-        ansO += delta/3;
+        ansO += delta/pawn_pass_opn_divider;
 
         // connected passers
         if(passer && prev_passer
@@ -272,15 +279,15 @@ void k2eval::EvalPawns(const bool stm)
         {
             auto mmx = std::max(pawn_max[col - 1][stm], mx);
             if(mmx > 4)
-                ansE += 28*mmx;
+                ansE += pawn_pass_connected*mmx;
         }
         prev_passer = true;
 
         // unstoppable
         if(opp_only_pawns && IsUnstoppablePawn(col, stm, wtm))
         {
-            ansO += 120*mx + 350;
-            ansE += 120*mx + 350;
+            ansO += pawn_unstoppable_1*mx + pawn_unstoppable_2;
+            ansE += pawn_unstoppable_1*mx + pawn_unstoppable_2;
         }
     }
     val_opn += stm ? ansO : -ansO;
@@ -1148,4 +1155,63 @@ void k2eval::RunUnitTests()
 	SetupPosition("8/7p/8/8/7k/8/8/K7 w - - 0 1");
 	assert(IsUnstoppablePawn(7, black, black));
 	assert(!IsUnstoppablePawn(7, black, white));
+
+    SetupPosition("3k4/p7/B1Pp4/7p/K3P3/7P/2n5/8 w - - 0 1");
+    assert(IsPasser(0, black));
+    assert(IsPasser(2, white));
+    assert(!IsPasser(3, black));
+    assert(!IsPasser(4, white));
+    assert(!IsPasser(7, black));
+    assert(!IsPasser(7, white));
+    assert(!IsPasser(1, black));
+
+    SetupPosition("4k3/1p6/8/8/1P6/8/1P6/4K3 w - - 0 1");
+    val_opn = 0;
+    val_end = 0;
+    EvalPawns(white);
+    assert(val_opn == pawn_dbl_iso_opn);
+    assert(val_end == pawn_dbl_iso_end);
+    val_opn = 0;
+    val_end = 0;
+    EvalPawns(black);
+    assert(val_opn == -pawn_iso_opn);
+    assert(val_end == -pawn_iso_end);
+    SetupPosition("4k3/1pp5/1p6/8/1P6/1P6/1P6/4K3 w - - 0 1");
+    val_opn = 0;
+    val_end = 0;
+    EvalPawns(white);
+    assert(val_opn == pawn_dbl_iso_opn);
+    assert(val_end == pawn_dbl_iso_end);
+    val_opn = 0;
+    val_end = 0;
+    EvalPawns(black);
+    assert(val_opn == -pawn_dbl_opn);
+    assert(val_end == -pawn_dbl_end);
+    SetupPosition("4k3/2p1p1p1/2Np1pPp/7P/1p6/Pr1PnP2/1P2P3/4K3 b - - 0 1");
+    val_opn = 0;
+    val_end = 0;
+    EvalPawns(white);
+    assert(val_opn == 2*pawn_hole_opn + pawn_gap_opn);
+    assert(val_end == 2*pawn_hole_end + pawn_gap_end);
+    val_opn = 0;
+    val_end = 0;
+    EvalPawns(black);
+    assert(val_opn == -pawn_hole_opn - pawn_gap_opn);
+    assert(val_end == -pawn_hole_end - pawn_gap_end);
+    SetupPosition("8/8/3K1P2/3p2P1/1Pkn4/8/8/8 w - - 0 1");
+    val_opn = 0;
+    val_end = 0;
+    EvalPawns(white);
+    assert(val_opn == pawn_pass_3/pawn_pass_opn_divider +
+           pawn_pass_4/pawn_pass_opn_divider +
+           pawn_pass_5/pawn_pass_opn_divider + pawn_iso_opn);
+    assert(val_end == pawn_pass_3 + pawn_pass_4 + pawn_pass_5 +
+           2*pawn_king_tropism3 - pawn_king_tropism1 - 3*pawn_king_tropism2 +
+           5*pawn_pass_connected + pawn_iso_end);
+    val_opn = 0;
+    val_end = 0;
+    EvalPawns(black);
+    assert(val_opn == -pawn_blk_pass_3/pawn_pass_opn_divider - pawn_iso_opn);
+    assert(val_end == -pawn_blk_pass_3 - pawn_king_tropism1 -
+           3*pawn_king_tropism2 + pawn_king_tropism3 - pawn_iso_end);
 }
