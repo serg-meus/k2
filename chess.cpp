@@ -44,13 +44,40 @@ k2chess::k2chess() :
 
 
 //--------------------------------
-void k2chess::InitAttacks(bool stm)
+void k2chess::InitMobility(const bool color)
 {
-    memset(attacks[stm], 0, sizeof(attacks[0]));
-    memset(xattacks[stm], 0, sizeof(xattacks[0]));
-
-    for(auto it = coords[stm].rbegin(); it != coords[stm].rend(); ++it)
-        InitAttacksOnePiece(*it, &k2chess::set_bit);
+    memset(mobility[color], 0, sizeof(mobility[0]));
+    for(auto it = coords[color].rbegin(); it != coords[color].rend(); ++it)
+    {
+		const auto type = get_type(b[*it]);
+		if(type == pawn)
+			continue;
+		const auto max_len =
+			std::max((size_t)board_height, (size_t)board_width);
+		for(auto ray = 0; ray < rays[type]; ++ray)
+		{
+			const int d_col = delta_col[type][ray];
+			const int d_row = delta_row[type][ray];
+			int col = get_col(*it);
+			int row = get_row(*it);
+			for(size_t i = 0; i < max_len; ++i)
+			{
+				col += d_col;
+				row += d_row;
+				if(!col_within(col) || !row_within(row))
+					break;
+				const auto sq = b[get_coord(col, row)];
+				if(sq != empty_square && get_color(sq) == color)
+					break;
+                auto index = it.get_array_index();
+                mobility[color][index][ray]++;
+				if(!is_slider[type])
+					break;
+				if(sq != empty_square && get_color(sq) != color)
+					break;
+			}
+		}
+    }
 }
 
 
@@ -58,7 +85,24 @@ void k2chess::InitAttacks(bool stm)
 
 
 //--------------------------------
-void k2chess::InitAttacksOnePiece(const coord_t coord, const change_bit_ptr change_bit)
+void k2chess::InitAttacks(bool stm)
+{
+    memset(attacks[stm], 0, sizeof(attacks[0]));
+    memset(xattacks[stm], 0, sizeof(xattacks[0]));
+
+    for(auto it = coords[stm].rbegin(); it != coords[stm].rend(); ++it)
+        InitAttacksOnePiece(*it, &k2chess::set_bit);
+
+    InitMobility(stm);
+}
+
+
+
+
+
+//--------------------------------
+void k2chess::InitAttacksOnePiece(const coord_t coord,
+                                  const change_bit_ptr change_bit)
 {
     const auto color = get_color(b[coord]);
     const auto it = find_piece(color, coord);
@@ -144,6 +188,9 @@ void k2chess::InitAttacksNotPawn(const coord_t coord, const bool color,
                 if(!col_within(col) || !row_within(row))
                     break;
                 set_bit(attacks, color, col, row, index);
+                auto sq = b[get_coord(col, row)];
+                if(sq == empty_square || get_color(sq) != color)
+                    mobility[color][index][ray]++;
                 if(!is_slider[type])
                     break;
                 if(b[get_coord(col, row)] != empty_square)
@@ -170,6 +217,7 @@ void k2chess::InitAttacksNotPawn(const coord_t coord, const bool color,
         {
             if(!(ray_mask & 1))
                 continue;
+            mobility[color][index][ray] = 0;
             auto col = get_col(coord);
             auto row = get_row(coord);
             const auto d_col = delta_col[type][ray];
@@ -229,6 +277,14 @@ void k2chess::UpdateAttacks(const move_c move, const coord_t from_coord)
     {
         cstl_it = state[ply].castled_rook_it;
         update_mask[!wtm] |= (1 << cstl_it.get_array_index());
+        const auto from_col = move.flag == is_right_castle ? max_col : 0;
+        const auto from_row = wtm ? max_row : 0;
+        const auto rook_from_coord = get_coord(from_col, from_row);
+        for(auto stm : {black, white})
+        {
+            update_mask[stm] |= attacks[stm][rook_from_coord];
+            update_mask[stm] |= attacks[stm][*cstl_it];
+        }
     }
     auto captured_it = coords[wtm].begin();
     if(move.flag & is_capture)
@@ -265,8 +321,6 @@ void k2chess::UpdateAttacks(const move_c move, const coord_t from_coord)
                 index = captured_it.get_array_index();
             }
             const bool is_move = stm != wtm && it == moving_piece_it;
-            if(!is_move && !is_captured && !(slider_mask[stm] & (1 << index)))
-                continue;
             if(is_move && (move.flag & is_promotion))
                 type = pawn;
             const bool is_cstl = (move.flag & is_castle) && stm != wtm
@@ -277,7 +331,8 @@ void k2chess::UpdateAttacks(const move_c move, const coord_t from_coord)
 
             UpdateAttacksOnePiece(from_coord, to_coord, piece_coord,
                                   color, type, is_move,
-                                  is_captured || is_enps || is_cstl,
+                                  is_captured || is_enps ||
+                                  (move.flag & is_castle),
                                   index, &k2chess::clear_bit);
             if(is_cstl)
                 piece_coord = *it;
@@ -286,18 +341,23 @@ void k2chess::UpdateAttacks(const move_c move, const coord_t from_coord)
             if(!is_captured)
                 UpdateAttacksOnePiece(from_coord, to_coord, piece_coord,
                                       color, type, is_move,
-                                      is_captured || is_enps || is_cstl,
+                                      is_captured || is_enps ||
+                                      (move.flag & is_castle),
                                       index, &k2chess::set_bit);
         }
         update_mask[stm] = 0;
     }
 #ifndef NDEBUG
-    attack_t tmp[sides][board_height*board_width];
-    const auto sz = sizeof(attacks);
-    memcpy(tmp, attacks, sz);
+    attack_t tmp_a[sides][board_height*board_width];
+    const auto sz_a = sizeof(attacks);
+    memcpy(tmp_a, attacks, sz_a);
+    coord_t tmp_m[sides][max_pieces_one_side][max_rays];
+    const auto sz_m = sizeof(mobility);
+    memcpy(tmp_m, mobility, sz_m);
     InitAttacks(white);
     InitAttacks(black);
-    assert(memcmp(tmp, attacks, sz) == 0);
+    assert(memcmp(tmp_a, attacks, sz_a) == 0);
+    assert(memcmp(tmp_m, mobility, sz_m) == 0);
 #endif
 }
 
@@ -335,6 +395,35 @@ void k2chess::UpdateAttacksOnePiece(const coord_t from_coord,
                                                         from_coord;
             (this->*change_bit)(attacks, color, get_col(coord),
                 get_row(coord), index);
+
+            if(change_bit == &k2chess::set_bit)
+            {
+                enum {ray_N, ray_E, ray_W, ray_S};
+                enum {ray_NE, ray_NW, ray_SW, ray_SE};
+                const auto d_col = get_col(to_coord) - get_col(from_coord);
+                const auto d_row = get_row(to_coord) - get_row(from_coord);
+                auto is_q = 4*(get_type(b[to_coord]) == queen);
+                if(d_col == 0)
+                {
+                    mobility[color][index][ray_N + is_q] -= d_row;
+                    mobility[color][index][ray_S + is_q] += d_row;
+                }
+                else if(d_row == 0)
+                {
+                    mobility[color][index][ray_E + is_q] -= d_col;
+                    mobility[color][index][ray_W + is_q] += d_col;
+                }
+                else if(sgn(d_col) == sgn(d_row))
+                {
+                    mobility[color][index][ray_NE] -= d_col;
+                    mobility[color][index][ray_SW] += d_col;
+                }
+                else
+                {
+                    mobility[color][index][ray_SE] -= d_col;
+                    mobility[color][index][ray_NW] += d_col;
+                }
+            }
         }
     }
     else
@@ -356,8 +445,7 @@ k2chess::ray_mask_t k2chess::GetRayMask(const bool is_move,
     if(!is_move)
     {
         ans = GetRayMaskNotForMove(to_coord, piece_coord);
-        if(change_bit == &k2chess::set_bit)
-            ans |= GetRayMaskNotForMove(from_coord, piece_coord);
+        ans |= GetRayMaskNotForMove(from_coord, piece_coord);
         return ans;
     }
     coord_t move_type;
@@ -1046,6 +1134,7 @@ bool k2chess::MakeMove(const char* str)
         return false;
 
     memcpy(done_attacks[ply], attacks, sizeof(attacks));
+    memcpy(done_mobility[ply], mobility, sizeof(mobility));
     MakeMove(move);
     done_moves.push_back(move);
     if(move.flag & is_promotion)
@@ -1070,6 +1159,7 @@ bool k2chess::TakebackMove()
     done_moves.pop_back();
     TakebackMove(move);
     memcpy(attacks, done_attacks[ply], sizeof(attacks));
+    memcpy(mobility, done_mobility[ply], sizeof(mobility));
     return true;
 }
 
@@ -1534,27 +1624,49 @@ void k2chess::test_attack_tables(const size_t att_w, const size_t att_b,
 
 
 //--------------------------------
+size_t k2chess::test_mobility(const bool color)
+{
+	size_t ans = 0;
+    for(auto index = 0; index < max_pieces_one_side; ++index)
+        for(auto ray = 0; ray < max_rays; ++ray)
+            ans += mobility[color][index][ray];
+    return ans;
+}
+
+
+
+
+
+//--------------------------------
 void k2chess::RunUnitTests()
 {
     assert(SetupPosition(start_position));
     bool extended_attacks = true;
     test_attack_tables(22, 22, 38, 38, false);
     test_attack_tables(16, 16, 16, 16, extended_attacks);
+    assert(test_mobility(black) == 4);
+    assert(test_mobility(white) == 4);
 
     assert(SetupPosition("4k3/8/5n2/5n2/8/8/8/3RK3 w - - 0 1"));
     test_attack_tables(15, 19, 16, 21, false);
     test_attack_tables(0, 0, 0, 0, extended_attacks);
+    assert(test_mobility(black) == 20);
+    assert(test_mobility(white) == 14);
 
     assert(SetupPosition(
                "2r2rk1/p4q2/1p2b3/1n6/1N6/1P2B3/P4Q2/2R2RK1 w - - 0 1"));
     test_attack_tables(39, 39, 58, 58, false);
     test_attack_tables(14, 14, 15, 15, extended_attacks);
+    assert(test_mobility(black) == 42);
+    assert(test_mobility(white) == 42);
 
     assert(SetupPosition(
                "2k1r2r/1pp3pp/p2b4/2p1n2q/6b1/1NQ1B3/PPP2PPP/R3RNK1 b - -"
                "0 1"));
     test_attack_tables(32, 38, 58, 61, false);
     test_attack_tables(11, 15, 11, 15, extended_attacks);
+    assert(test_mobility(black) == 34);
+    assert(test_mobility(white) == 30);
 
     assert(SetupPosition(start_position));
     assert(b[*coords[white].begin()] == white_pawn);
@@ -1618,6 +1730,8 @@ void k2chess::RunUnitTests()
     assert(pieces[white] == 16);
     assert(pieces[black] == 15);
     assert(find_piece(black, get_coord("d5")) == coords[black].end());
+    assert(test_mobility(black) == 18);
+    assert(test_mobility(white) == 28);
 
     assert(MakeMove("e7d6"));
     assert(MakeMove("c4b5"));
@@ -1835,6 +1949,8 @@ void k2chess::RunUnitTests()
     assert(!MakeMove("e1c1"));
     assert(MakeMove("h2h3"));
     assert(!MakeMove("e8g8"));
+    assert(SetupPosition("r3k2r/p5pp/7N/8/2B1b3/6P1/7P/RN2K2R w KQkq - 0 1"));
+    assert(MakeMove("e1g1"));
 
     assert(SetupPosition("r3k2r/1p5p/1N6/4B3/4b3/1n6/1P5P/R3K2R w KQkq -"));
     assert(MakeMove("e5h8"));

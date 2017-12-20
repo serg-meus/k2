@@ -208,12 +208,14 @@ public:
 
         unsigned char get_array_index() const
         {
-            return this->num;
+            assert(this->num <= n);
+            return this->num - 1;
         }
 
         iterator operator [](unsigned index)
         {
-            num = index;
+            num = index + 1;
+            assert(num <= n);
             return *this;
         }
     };
@@ -295,7 +297,15 @@ public:
 
         unsigned char get_array_index() const
         {
-            return this->num;
+            assert(this->num <= n);
+            return this->num - 1;
+        }
+
+        iterator operator [](unsigned index)
+        {
+            num = index + 1;
+            assert(num <= n);
+            return *this;
         }
     };
 

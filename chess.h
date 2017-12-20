@@ -45,8 +45,20 @@ protected:
     typedef i8 shifts_t;
     typedef u8 priority_t;
     typedef u8 ray_mask_t;
+    const static depth_t max_ply = 100;  // maximum search depth
+    const static coord_t board_width = 8;
+    const static coord_t board_height = 8;
+    const static u8 sides = 2;  // black and white
+    const static u8 piece_types = 6;  // pawns, knights, ...
+    const static bool white = true;
+    const static bool black = false;
+    const static depth_t prev_states = 4;
+    const static coord_t max_col = board_width - 1;
+    const static coord_t max_row = board_height - 1;
+    const static u8 max_pieces_one_side = 16;
+    const static u8 max_rays = 8;
 
-    class k2list : public short_list<coord_t, 16>
+    class k2list : public short_list<coord_t, max_pieces_one_side>
     {
 
     public:
@@ -95,17 +107,6 @@ protected:
     };
     typedef k2list::iterator_entity iterator_entity;
     typedef k2list::iterator iterator;
-
-    const static depth_t max_ply = 100;  // maximum search depth
-    const static coord_t board_width = 8;
-    const static coord_t board_height = 8;
-    const static u8 sides = 2;  // black and white
-    const static u8 piece_types = 6;  // pawns, knights, ...
-    const static bool white = true;
-    const static bool black = false;
-    const static depth_t prev_states = 4;
-    const static coord_t max_col = board_width - 1;
-    const static coord_t max_row = board_height - 1;
 
     typedef void(k2chess::*change_bit_ptr)
         (attack_t (*att)[board_height*board_width],
@@ -251,12 +252,14 @@ protected:
     // masks for update attack tables
     attack_t update_mask[sides];
 
+    coord_t mobility[sides][max_pieces_one_side][max_rays];
+
     // number of directions to move for each kind of piece
     coord_t rays[piece_types + 1];
 
     // biases defining directions for 'rays'
-    shifts_t delta_col[piece_types][board_width];
-    shifts_t delta_row[piece_types][board_height];
+    shifts_t delta_col[piece_types][max_rays];
+    shifts_t delta_row[piece_types][max_rays];
 
     // for quick detection if piece is a slider
     bool is_slider[piece_types + 1];
@@ -285,6 +288,8 @@ protected:
     attack_t done_attacks[max_ply][sides][board_height*board_width];
 
     std::vector<k2list> store_coords;
+
+    coord_t done_mobility[max_ply][sides][max_pieces_one_side][max_rays];
 
     bool MakeMove(const move_c m);
     void TakebackMove(const move_c m);
@@ -413,4 +418,6 @@ private:
                    coord_t *type) const;
     ray_mask_t GetRayMaskNotForMove(const coord_t target_coord,
                                     const coord_t piece_coord) const;
+    void InitMobility(const bool color);
+    size_t test_mobility(const bool color);
 };
