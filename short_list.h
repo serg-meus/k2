@@ -8,7 +8,8 @@
 // - maximum capacity is 255 elements;
 // - ability to store iterator as one element of type 'unsigned char';
 // - methods for change position of elements within list;
-// - methods for restore erased elements.
+// - methods for restore erased elements;
+// - direct access to elements by index like in classic array.
 
 
 // Here is simple example of using the short_list container:
@@ -31,7 +32,7 @@
 
 */
 
-// Version: 2.1.0
+// Version: 3.0.0
 // Author: Sergey Meus (serg_meus@mail.ru),
 // Krasnoyarsk Kray, Russia
 // Copyright 2017
@@ -49,87 +50,6 @@ public:
 
     class iterator;
     class reverse_iterator;
-
-    // iterator with size of one unsigned char
-    class iterator_entity
-    {
-        friend class iterator;
-
-        unsigned char num;
-
-    public:
-        iterator_entity() {}
-
-        iterator_entity(iterator it)
-        {
-            num = it.num;
-        }
-
-        void operator =(iterator it)
-        {
-            num = it.num;
-        }
-
-        bool operator ==(iterator_entity it) const
-        {
-            return num == it.num;
-        }
-
-        bool operator !=(iterator_entity it) const
-        {
-            return num != it.num;
-        }
-
-        bool operator ==(iterator it) const
-        {
-            return num == it.num;
-        }
-
-        bool operator != (iterator it) const
-        {
-            return num != it.num;
-        }
-    };
-
-    class reverse_iterator_entity
-    {
-        friend class reverse_iterator;
-
-        unsigned char num;
-
-    public:
-        reverse_iterator_entity() {}
-
-        reverse_iterator_entity(reverse_iterator it)
-        {
-            num = it.num;
-        }
-
-        void operator =(reverse_iterator it)
-        {
-            num = it.num;
-        }
-
-        bool operator ==(reverse_iterator_entity it) const
-        {
-            return num == it.num;
-        }
-
-        bool operator !=(reverse_iterator_entity it) const
-        {
-            return num != it.num;
-        }
-
-        bool operator ==(reverse_iterator it) const
-        {
-            return num == it.num;
-        }
-
-        bool operator !=(reverse_iterator it) const
-        {
-            return num != it.num;
-        }
-    };
 
     class iterator
     {
@@ -160,9 +80,10 @@ public:
             linked_class = it.linked_class;
         }
 
-        void operator =(iterator_entity ite)
+        void operator =(reverse_iterator it)
         {
-            num = ite.num;
+            num = it.num;
+            linked_class = it.linked_class;
         }
 
         T& operator *() const
@@ -194,16 +115,6 @@ public:
             iterator tmp = *this;
             --*this;
             return tmp;
-        }
-
-        bool operator ==(iterator_entity ite) const
-        {
-            return num == ite.num;
-        }
-
-        bool operator !=(iterator_entity ite) const
-        {
-            return num != ite.num;
         }
 
         unsigned char get_array_index() const
@@ -249,9 +160,10 @@ public:
             linked_class = it.linked_class;
         }
 
-        void operator =(reverse_iterator_entity ite)
+        void operator =(iterator it)
         {
-            num = ite.num;
+            num = it.num;
+            linked_class = it.linked_class;
         }
 
         T& operator *() const
@@ -283,16 +195,6 @@ public:
             reverse_iterator tmp = *this;
             --*this;
             return tmp;
-        }
-
-        bool operator ==(reverse_iterator_entity ite) const
-        {
-            return num == ite.num;
-        }
-
-        bool operator !=(reverse_iterator_entity ite) const
-        {
-            return num != ite.num;
         }
 
         unsigned char get_array_index() const
@@ -330,6 +232,7 @@ public:
 
         iterator begin();
         iterator end();
+        iterator at(unsigned char index);
         reverse_iterator rbegin();
         reverse_iterator rend();
 
@@ -342,6 +245,9 @@ public:
 
         void rerase(reverse_iterator);
         void rrestore(reverse_iterator);
+
+        void erase(unsigned char index);
+        void restore(unsigned char index);
 
         inline void clear();
         int max_size() const
@@ -453,6 +359,23 @@ void short_list<T, n>::erase(iterator it)
 
 //-----------------------------
 template <class T, int n>
+void short_list<T, n>::erase(unsigned char index)
+{
+    unsigned char prv = ptr_prev[index + 1];
+    unsigned char nxt = ptr_next[index + 1];
+
+    ptr_next[prv] = nxt;
+    ptr_prev[nxt] = prv;
+
+    _size--;
+}
+
+
+
+
+
+//-----------------------------
+template <class T, int n>
 void short_list<T, n>::rerase(reverse_iterator it)
 {
     if(it.num == 0)
@@ -479,6 +402,23 @@ void short_list<T, n>::restore(iterator it)
 
     ptr_next[prev] = it.num;
     ptr_prev[next] = it.num;
+
+    _size++;
+}
+
+
+
+
+
+//-----------------------------
+template <class T, int n>
+void short_list<T, n>::restore(unsigned char index)
+{
+    unsigned char prev = ptr_prev[index + 1];
+    unsigned char next = ptr_next[index + 1];
+
+    ptr_next[prev] = index + 1;
+    ptr_prev[next] = index + 1;
 
     _size++;
 }
@@ -577,7 +517,8 @@ void short_list<T, n>::sort(bool (*less_foo)(T data1, T data2))
 }
 
 
-#endif // SHORT_LIST_H
+
+
 
 //-----------------------------
 template <class T, int n>
@@ -630,3 +571,20 @@ typename short_list<T, n>::reverse_iterator short_list<T, n>::rend()
     it.linked_class = this;
     return it;
 }
+
+
+//-----------------------------
+template <class T, int n>
+typename short_list<T, n>::iterator short_list<T, n>::at(unsigned char index)
+{
+    iterator it;
+    it.num = index + 1;
+    it.linked_class = this;
+    return it;
+}
+
+
+
+
+
+#endif // SHORT_LIST_H
