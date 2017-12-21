@@ -1165,7 +1165,7 @@ size_t k2chess::find_piece(const bool stm, const coord_t coord)
         if(*it == coord)
             break;
     if(it == coords[stm].end())
-        return -1;
+        return -1U;
     return it.get_array_index();
 }
 
