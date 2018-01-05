@@ -35,6 +35,7 @@ k2chess::k2chess() :
     coords[black].piece_values = piece_values;
     coords[white].board = b;
     coords[white].piece_values = piece_values;
+    max_ray_length = std::max((size_t)board_height, (size_t)board_width);
 
     SetupPosition(start_position);
 }
@@ -52,15 +53,13 @@ void k2chess::InitMobility(const bool color)
 		const auto type = get_type(b[*it]);
 		if(type == pawn)
 			continue;
-		const auto max_len =
-			std::max((size_t)board_height, (size_t)board_width);
 		for(auto ray = 0; ray < rays[type]; ++ray)
 		{
 			const int d_col = delta_col[type][ray];
 			const int d_row = delta_row[type][ray];
 			int col = get_col(*it);
 			int row = get_row(*it);
-			for(size_t i = 0; i < max_len; ++i)
+            for(size_t i = 0; i < max_ray_length; ++i)
 			{
 				col += d_col;
 				row += d_row;
@@ -168,7 +167,6 @@ void k2chess::InitAttacksNotPawn(const coord_t coord, const bool color,
                                  const change_bit_ptr change_bit,
                                  ray_mask_t ray_mask)
 {
-    const auto max_len = std::max((size_t)board_height, (size_t)board_width);
     if(change_bit == &k2chess::set_bit)
     {
         for(auto ray = 0; ray < rays[type]; ray++, ray_mask >>= 1)
@@ -180,7 +178,7 @@ void k2chess::InitAttacksNotPawn(const coord_t coord, const bool color,
             const auto d_col = delta_col[type][ray];
             const auto d_row = delta_row[type][ray];
             size_t i = 0;
-            for(; i < max_len; ++i)
+            for(; i < max_ray_length; ++i)
             {
                 col += d_col;
                 row += d_row;
@@ -198,7 +196,7 @@ void k2chess::InitAttacksNotPawn(const coord_t coord, const bool color,
             if(!is_slider[type] || NoExtendedAttacks(b[get_coord(col, row)],
                                                      type, color, d_col, d_row))
                 continue;
-            for(size_t j = i; j < max_len; ++j)
+            for(size_t j = i; j < max_ray_length; ++j)
             {
                 col += d_col;
                 row += d_row;
@@ -222,7 +220,7 @@ void k2chess::InitAttacksNotPawn(const coord_t coord, const bool color,
             const auto d_col = delta_col[type][ray];
             const auto d_row = delta_row[type][ray];
             size_t i = 0;
-            for(; i < max_len; ++i)
+            for(; i < max_ray_length; ++i)
             {
                 col += d_col;
                 row += d_row;

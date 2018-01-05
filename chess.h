@@ -57,6 +57,7 @@ protected:
     const static coord_t max_row = board_height - 1;
     const static u8 max_pieces_one_side = 16;
     const static u8 max_rays = 8;
+    coord_t max_ray_length;
 
     class k2list : public short_list<coord_t, max_pieces_one_side>
     {
