@@ -53,6 +53,8 @@
 		<Unit filename="eval.h" />
 		<Unit filename="main.cpp" />
 		<Unit filename="main.h" />
+                <Unit filename="movegen.cpp" />
+                <Unit filename="movegen.h" />
 		<Unit filename="short_list.h" />
 		<Extensions>
 			<code_completion />
@@ -67,4 +69,7 @@
 				<doxyfile_output />
 				<doxyfile_dot />
 				<general />
-			</DoxyBlo
+			</DoxyBlocks>
+		</Extensions>
+	</Project>
+</CodeBlocks_project_file>

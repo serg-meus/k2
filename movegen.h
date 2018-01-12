@@ -9,12 +9,28 @@ class k2movegen : public k2eval
 {
 
 
+public:
+
+
+	void RunUnitTests();
+	bool MakeMove(const char *in)
+	{
+		return k2chess::MakeMove(in);
+	}
+	bool TakebackMove()
+	{
+		return k2chess::TakebackMove();
+	}
+
+
 protected:
 
 
     typedef u8 movcr_t;
     typedef u8 apprice_t;
     typedef u32 history_t;
+
+    const static size_t move_array_size = 256;
 
     const priority_t
     second_killer = 198,
@@ -35,35 +51,39 @@ protected:
     history_t history[2][6][128];
     history_t min_history, max_history;
 
-
-protected:
-
-
-    movcr_t GenMoves(move_c *list, move_c *best_move, priority_t apprice);
-    eval_t SEE_main(move_c m);
-    movcr_t GenCaptures(move_c *list);
+    movcr_t GenMoves(move_c * const list, const bool only_captures);
+    eval_t SEE_main(const move_c m);
+    movcr_t GenCaptures(move_c * const list);
 
 
 private:
 
 
-    void GenPawn(move_c *list, movcr_t *movCr, iterator it);
-    void GenPawnCap(move_c *list, movcr_t *movCr, iterator it);
-    void GenCastles(move_c *list, movcr_t *movCr);
-    void AppriceMoves(move_c *list, movcr_t moveCr, move_c *best_move);
-    void AppriceQuiesceMoves(move_c *list, movcr_t moveCr);
-    eval_t SEE(coord_t to_coord, eval_t frStreng, eval_t val, bool stm);
-    iterator SeeMinAttacker(coord_t to_coord);
-    void SortQuiesceMoves(move_c *move_array, movcr_t moveCr);
-    void PushMove(move_c *move_array, movcr_t *movCr, iterator it,
-                     coord_t to_coord, move_flag_t flag)
+    void GenPawnSilent(move_c * const list, movcr_t * const movCr,
+                 const iterator it);
+    void GenPawnCapturesPromotions(move_c * const list, movcr_t * const movCr,
+                 const iterator it);
+    void GenCastles(move_c * const list, movcr_t * const movCr);
+    void AppriceMoves(move_c * const list, const movcr_t moveCr,
+                      move_c * const best_move);
+    eval_t SEE(const coord_t to_coord, const eval_t frStreng,
+               eval_t val, const bool stm);
+    size_t SeeMinAttacker(const coord_t to_coord);
+
+    void PushMove(move_c * const move_array, movcr_t * const movCr,
+                  const coord_t it, const coord_t to_coord,
+                  const move_flag_t flag)
     {
         move_c m;
-        m.piece_iterator = it;
+        m.piece_index = it;
         m.to_coord = to_coord;
         m.flag = flag;
 
         move_array[(*movCr)++] = m;
     }
+    void ProcessSeeBatteries(coord_t to_coord, coord_t attacker_coord);
 
+    size_t test_gen_pawn(const char* coord, bool captures_and_promotions);
+    size_t test_gen_castles();
+    size_t test_gen_moves();
 };

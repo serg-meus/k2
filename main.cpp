@@ -18,12 +18,12 @@ int main(int argc, char* argv[])
     UNUSED(argc);
     UNUSED(argv);
 
-    k2eval *eval = new k2eval();
+    k2movegen *movegen = new k2movegen();
 
 #ifndef NDEBUG
-    eval->RunUnitTests();
+    movegen->RunUnitTests();
     std::cout << "All unit tests passed" << std::endl;
 #endif
 
-    delete eval;
+    delete movegen;
 }

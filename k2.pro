@@ -4,18 +4,18 @@ CONFIG -= app_bundle
 CONFIG -= qt
 
 SOURCES += \
-    Timer.cpp \
     main.cpp \
     chess.cpp \
-    eval.cpp
+    eval.cpp \
+    movegen.cpp
 
 OTHER_FILES +=
 
 HEADERS += \
-    Timer.h \
     main.h \
     chess.h \
     eval.h \
+    movegen.h \
     short_list.h
 
 QMAKE_CXXFLAGS += -std=c++0x
