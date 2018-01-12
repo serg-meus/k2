@@ -299,6 +299,10 @@ protected:
     bool IsLegalCastle(const move_c move) const;
     bool IsOnRay(const coord_t k_coord, const coord_t attacker_coord,
                  const coord_t to_coord) const;
+    bool IsDiscoveredAttack(const coord_t fr_coord, const coord_t to_coord,
+                            const attack_t mask);
+    bool IsSliderAttack(const coord_t from_coord,
+                        const coord_t to_coord) const;
 
     coord_t get_coord(const coord_t col, const coord_t row) const
     {
@@ -351,6 +355,22 @@ protected:
         return (T(0) < val) - (val < T(0));
     }
 
+    move_c MoveFromStr(const char *str)
+    {
+        move_c ans;
+        const auto from_coord = get_coord(str);
+        const auto index = find_piece(wtm, from_coord);
+        if(index == -1U)
+        {
+            ans.flag = is_bad_move_flag;
+            return ans;
+        }
+        ans.to_coord = get_coord(&str[2]);
+        ans.piece_index = index;
+        ans.flag = InitMoveFlag(ans, str[4]);
+        return ans;
+    }
+
 
 private:
 
@@ -390,10 +410,6 @@ private:
     bool NoExtendedAttacks(const piece_t sq, const coord_t type,
                            const bool color, const shifts_t delta_col,
                            const shifts_t delta_row) const;
-    bool IsDiscoveredAttack(const coord_t fr_coord, const coord_t to_coord,
-                            const attack_t mask);
-    bool IsSliderAttack(const coord_t from_coord,
-                        const coord_t to_coord) const;
     void InitAttacksPawn(const coord_t coord, const bool color, const u8 index,
                          const change_bit_ptr change_bit);
     void InitAttacksNotPawn(const coord_t coord, const bool color,

@@ -1104,16 +1104,7 @@ bool k2chess::MakeMove(const char* str)
     const auto len = strlen(str);
     if(len < 4 || len > 5)  // only notation like 'g1f3', 'e7e8q' supported
         return false;
-
-    const auto from_coord = get_coord(str);
-    const auto it = find_piece(wtm, from_coord);
-    if(it == -1U)
-        return false;
-
-    move_c move;
-    move.to_coord = get_coord(&str[2]);
-    move.piece_index = it;
-    move.flag = InitMoveFlag(move, str[4]);
+    auto move = MoveFromStr(str);
     if(move.flag == is_bad_move_flag)
         return false;
 
@@ -1122,6 +1113,7 @@ bool k2chess::MakeMove(const char* str)
 
     memcpy(done_attacks[ply], attacks, sizeof(attacks));
     memcpy(done_mobility[ply], mobility, sizeof(mobility));
+    const auto from_coord = *coords[wtm].at(move.piece_index);
     MakeMove(move);
     done_moves.push_back(move);
     if(move.flag & is_promotion)
