@@ -41,7 +41,7 @@ k2movegen::movcr_t k2movegen::GenMoves(move_c * const move_array,
                 bool capture = !empty && get_color(b[to_coord]) != wtm;
                 if(capt_or_promo && !capture)
                     continue;
-                if(!capt_or_promo && is_slider[type] && capture)
+                if(!capt_or_promo && capture)
                     continue;
                 if(col_within(col) && row_within(row) && (empty || capture))
                     PushMove(move_array, &move_cr, it.get_array_index(),
@@ -511,10 +511,11 @@ void k2movegen::RunUnitTests()
     assert(MakeMove("e1e2"));
     assert(test_gen_castles() == 1);
 
-	SetupPosition("r3k1nr/ppp1bppp/8/2Ppp3/4P2q/3P4/PP3PPP/RNBQK2R w KQq d6");
-	assert(test_gen_moves() == 35);
-	assert(MakeMove("a2a3"));
-	assert(test_gen_moves() == 39);
+	SetupPosition(
+        "r3k1r1/ppp1bpp1/5n1p/2Ppp3/4P2q/Q1NP4/PP3PPP/R1B1K2R w KQq d6");
+	assert(test_gen_moves() == 36);
+	assert(MakeMove("a1b1"));
+	assert(test_gen_moves() == 37);
 
     SetupPosition("3k4/3b4/8/1Q5p/6B1/1r4N1/4p1nR/4K3 w - - 0 1");
     auto index = SeeMinAttacker(get_coord("e2"));
