@@ -1015,6 +1015,9 @@ void k2chess::TakebackPromotion(const move_c move)
 //--------------------------------
 bool k2chess::MakeMove(const move_c move)
 {
+    memcpy(done_attacks[ply], attacks, sizeof(attacks));
+    memcpy(done_mobility[ply], mobility, sizeof(mobility));
+
     bool is_special_move = false;
     ply++;
     auto it = coords[wtm].at(move.piece_index);
@@ -1046,6 +1049,12 @@ bool k2chess::MakeMove(const move_c move)
     if(move.flag & is_promotion)
         MakePromotion(move);
     wtm = !wtm;
+
+    done_moves.push_back(move);
+    if(move.flag & is_promotion)
+        InitAttacks(!wtm);
+    else
+        UpdateAttacks(move, from_coord);
 
     if(is_special_move)
         return true;
@@ -1088,6 +1097,9 @@ void k2chess::TakebackMove(const move_c move)
 
     ply--;
 
+    memcpy(attacks, done_attacks[ply], sizeof(attacks));
+    memcpy(mobility, done_mobility[ply], sizeof(mobility));
+
 #ifndef NDEBUG
     cur_moves[move_max_display_length*ply] = '\0';
 #endif // NDEBUG
@@ -1111,15 +1123,7 @@ bool k2chess::MakeMove(const char* str)
     if(!IsLegal(move))
         return false;
 
-    memcpy(done_attacks[ply], attacks, sizeof(attacks));
-    memcpy(done_mobility[ply], mobility, sizeof(mobility));
-    const auto from_coord = *coords[wtm].at(move.piece_index);
     MakeMove(move);
-    done_moves.push_back(move);
-    if(move.flag & is_promotion)
-        InitAttacks(!wtm);
-    else
-        UpdateAttacks(move, from_coord);
 
     return true;
 }
@@ -1137,8 +1141,6 @@ bool k2chess::TakebackMove()
     auto move = done_moves.back();
     done_moves.pop_back();
     TakebackMove(move);
-    memcpy(attacks, done_attacks[ply], sizeof(attacks));
-    memcpy(mobility, done_mobility[ply], sizeof(mobility));
     return true;
 }
 
@@ -1550,7 +1552,7 @@ bool k2chess::IsLegal(const move_c move)
 
 
 
-
+#ifndef NDEBUG
 //--------------------------------
 size_t k2chess::test_count_attacked_squares(const bool stm,
                                             const bool use_extended_attacks)
@@ -2071,3 +2073,4 @@ void k2chess::RunUnitTests()
         assert(TakebackMove());
     assert(MakeMove("c7c8r"));
 }
+#endif // NDEBUG

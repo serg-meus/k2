@@ -51,21 +51,27 @@ protected:
     history_t history[2][6][128];
     history_t min_history, max_history;
 
-    movcr_t GenMoves(move_c * const list, const bool only_captures);
+    movcr_t GenMoves(move_c * const move_array, const bool only_captures);
     eval_t SEE_main(const move_c m);
-    movcr_t GenCaptures(move_c * const list);
+    void AppriceMoves(move_c * const move_array, const movcr_t moveCr,
+                      move_c * const best_move);
 
+    movcr_t GenAllMoves(move_c * const move_array)
+    {
+        movcr_t move_cr = GenMoves(move_array, true);
+        move_cr += GenMoves(&move_array[move_cr], false);
+        return move_cr;
+    }
 
 private:
 
 
-    void GenPawnSilent(move_c * const list, movcr_t * const movCr,
+    void GenPawnSilent(move_c * const move_array, movcr_t * const movCr,
                  const iterator it);
-    void GenPawnCapturesPromotions(move_c * const list, movcr_t * const movCr,
+    void GenPawnCapturesPromotions(move_c * const move_array,
+                                   movcr_t * const movCr,
                  const iterator it);
-    void GenCastles(move_c * const list, movcr_t * const movCr);
-    void AppriceMoves(move_c * const list, const movcr_t moveCr,
-                      move_c * const best_move);
+    void GenCastles(move_c * const move_array, movcr_t * const movCr);
     eval_t SEE(const coord_t to_coord, const eval_t frStreng,
                eval_t val, const bool stm);
     size_t SeeMinAttacker(const coord_t to_coord);
@@ -81,6 +87,7 @@ private:
 
         move_array[(*movCr)++] = m;
     }
+
     void ProcessSeeBatteries(coord_t to_coord, coord_t attacker_coord);
 
     size_t test_gen_pawn(const char* coord, bool captures_and_promotions);

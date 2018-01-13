@@ -1135,7 +1135,7 @@ pst
 
 
 
-
+#ifndef NDEBUG
 //-----------------------------
 void k2eval::RunUnitTests()
 {
@@ -1215,3 +1215,4 @@ void k2eval::RunUnitTests()
     assert(val_end == -pawn_blk_pass_3 - pawn_king_tropism1 -
            3*pawn_king_tropism2 + pawn_king_tropism3 - pawn_iso_end);
 }
+#endif // NDEBUG

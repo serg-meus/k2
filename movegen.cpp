@@ -393,7 +393,7 @@ k2chess::eval_t k2movegen::SEE_main(const move_c move)
 
 
 
-
+#ifndef NDEBUG
 //--------------------------------
 size_t k2movegen::test_gen_pawn(const char* coord,
                                 bool captures_and_promotions)
@@ -436,8 +436,7 @@ size_t k2movegen::test_gen_castles()
 size_t k2movegen::test_gen_moves()
 {
     move_c move_array[move_array_size];
-    movcr_t move_cr = GenMoves(move_array, true);
-    move_cr += GenMoves(&move_array[move_cr], false);
+    movcr_t move_cr = GenAllMoves(move_array);
     for(auto i = 0; i < move_cr; ++i)
         if(!IsPseudoLegal(move_array[i]))
             return -1U;
@@ -589,3 +588,4 @@ void k2movegen::RunUnitTests()
     move = MoveFromStr("c3b4");
     assert(SEE_main(move) == 0);
 }
+#endif // NDEBUG
