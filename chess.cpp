@@ -1120,6 +1120,8 @@ bool k2chess::MakeMove(const char* str)
     if(move.flag == is_bad_move_flag)
         return false;
 
+    if(!IsPseudoLegal(move))
+        return false;
     if(!IsLegal(move))
         return false;
 
@@ -1481,8 +1483,6 @@ bool k2chess::IsDiscoveredAttack(const coord_t fr_coord,
 //--------------------------------
 bool k2chess::IsLegal(const move_c move)
 {
-    if(!IsPseudoLegal(move))
-        return false;
     auto it = coords[wtm].at(move.piece_index);
     const auto piece_type = get_type(b[*it]);
     if(piece_type == king)
@@ -1490,7 +1490,22 @@ bool k2chess::IsLegal(const move_c move)
         if(!(move.flag & is_castle))
         {
             if(attacks[!wtm][move.to_coord] == 0)
+            {
+                const auto att_mask = attacks[!wtm][*it] & slider_mask[!wtm];
+                if(!att_mask)
+                    return true;
+                for(size_t i = 0; i < attack_digits; ++i)
+                {
+                    if(!((att_mask >> i) & 1))
+                        continue;
+                    if(!(att_mask >> i))
+                        break;
+                    const auto attacker_coord = *coords[!wtm].at(i);
+                    if(IsOnRay(move.to_coord, attacker_coord, *it))
+                        return false;
+                }
                 return true;
+            }
             else
                 return false;
         }
@@ -2072,5 +2087,21 @@ void k2chess::RunUnitTests()
     for(auto i = 0; i < 3; ++i)
         assert(TakebackMove());
     assert(MakeMove("c7c8r"));
+
+    assert(SetupPosition("4k3/8/8/b7/1r6/8/1P1K1N2/8 b - - 0 1"));
+    assert(MakeMove("b4d4"));
+    assert(!MakeMove("d2c3"));
+    assert(!MakeMove("d2e1"));
+    assert(!MakeMove("d2d3"));
+    assert(!MakeMove("d2d1"));
+    assert(!MakeMove("b2b4"));
+    assert(!MakeMove("f2d3"));
+    assert(MakeMove("d2c1"));
+    assert(TakebackMove());
+    assert(MakeMove("d2c2"));
+    assert(TakebackMove());
+    assert(MakeMove("d2e3"));
+    assert(TakebackMove());
+    assert(MakeMove("d2e2"));
 }
 #endif // NDEBUG
