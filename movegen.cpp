@@ -238,7 +238,7 @@ void k2movegen::AppriceMoves(move_c * const move_array, const movcr_t moveCr,
                 dst = 0;
             if(dst && dst - src <= 0)
             {
-                auto tmp = SEE_main(m);
+                auto tmp = SEE_main(m)/10;
                 dst = tmp;
                 src = 0;
             }
