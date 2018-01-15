@@ -1052,7 +1052,11 @@ bool k2chess::MakeMove(const move_c move)
 
     done_moves.push_back(move);
     if(move.flag & is_promotion)
+    {
         InitAttacks(!wtm);
+        if(move.flag & is_capture)
+            InitAttacks(wtm);
+    }
     else
         UpdateAttacks(move, from_coord);
 
@@ -2103,5 +2107,11 @@ void k2chess::RunUnitTests()
     assert(MakeMove("d2e3"));
     assert(TakebackMove());
     assert(MakeMove("d2e2"));
+
+    assert(SetupPosition(
+        "r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq -"));
+    assert(MakeMove("d2d4"));
+    assert(MakeMove("b2a1q"));
+    assert(MakeMove("h6f7"));
 }
 #endif // NDEBUG
