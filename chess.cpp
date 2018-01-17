@@ -1073,6 +1073,7 @@ bool k2chess::MakeMove(const move_c move)
 //--------------------------------
 void k2chess::TakebackMove(const move_c move)
 {
+    done_moves.pop_back();
     if(move.flag & is_promotion)
     {
         coords[!wtm] = store_coords.back();
@@ -1145,7 +1146,7 @@ bool k2chess::TakebackMove()
         return false;
 
     auto move = done_moves.back();
-    done_moves.pop_back();
+
     TakebackMove(move);
     return true;
 }
