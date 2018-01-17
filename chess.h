@@ -225,6 +225,7 @@ protected:
         enpass_t en_passant_rights;  // 0 = no en passant, 1..8 =
         // pawn col + 1, not null only if opponent pawn is near
         depth_t reversible_moves;  // reversible halfmove counter
+        attack_t slider_mask;  // see slider_mask below
     };
 
     // side to move or white to move, k2chess::white (true) or k2chess::black

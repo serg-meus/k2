@@ -347,10 +347,17 @@ void k2chess::UpdateAttacks(const move_c move, const coord_t from_coord)
     coord_t tmp_m[sides][max_pieces_one_side][max_rays];
     const auto sz_m = sizeof(mobility);
     memcpy(tmp_m, mobility, sz_m);
+    attack_t tmp_s[sides];
+    memcpy(tmp_s, slider_mask, sizeof(slider_mask));
+    InitSliderMask(white);
+    InitSliderMask(black);
     InitAttacks(white);
     InitAttacks(black);
     assert(memcmp(tmp_a, attacks, sz_a) == 0);
     assert(memcmp(tmp_m, mobility, sz_m) == 0);
+    assert((slider_mask[black] & ~tmp_s[black]) == 0);
+    assert((slider_mask[white] & ~tmp_s[white]) == 0);
+    memcpy(slider_mask, tmp_s, sizeof(slider_mask));
 #endif
 }
 
@@ -989,6 +996,7 @@ void k2chess::MakePromotion(const move_c move)
     reversible_moves = 0;
     store_coords.push_back(coords[wtm]);
     coords[wtm].sort();
+    state[ply].slider_mask = slider_mask[wtm];
     InitSliderMask(wtm);
 }
 
@@ -1005,7 +1013,7 @@ void k2chess::TakebackPromotion(const move_c move)
     material[wtm] -= (piece_values[type] - piece_values[pawn]);
     quantity[wtm][pawn]++;
     quantity[wtm][type]--;
-    InitSliderMask(wtm);
+    slider_mask[wtm] = state[ply].slider_mask;
 }
 
 
@@ -1054,8 +1062,8 @@ bool k2chess::MakeMove(const move_c move)
     if(move.flag & is_promotion)
     {
         InitAttacks(!wtm);
-        if(move.flag & is_capture)
-            InitAttacks(wtm);
+        InitAttacks(wtm);
+
     }
     else
         UpdateAttacks(move, from_coord);
@@ -2158,5 +2166,9 @@ void k2chess::RunUnitTests()
     assert(MakeMove("d2d4"));
     assert(MakeMove("b2a1q"));
     assert(MakeMove("h6f7"));
+    assert(SetupPosition(
+        "rnb2k1r/pp1PbBpp/1qp5/8/8/8/PPP1NnPP/RNBQK2R w KQ -"));
+    assert(MakeMove("d7d8q"));
+    assert(MakeMove("e7d8"));
 }
 #endif // NDEBUG
