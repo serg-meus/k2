@@ -1460,20 +1460,45 @@ bool k2chess::IsDiscoveredAttack(const coord_t fr_coord,
             continue;
         const auto attacker_coord = *it[i];
         const auto k_coord = *king_coord[wtm];
-        if(!IsOnRay(k_coord, attacker_coord, fr_coord))
-            continue;
-        if(IsOnRay(k_coord, attacker_coord, to_coord))
-            continue;
-        if(!IsSliderAttack(fr_coord, k_coord))
-            continue;
-        if(mask == slider_mask[!wtm])  // special for en_passant case
+        if(fr_coord == to_coord)  // special for en_passant case
+
+
+
+
+
+
         {
             const auto type = get_type(b[attacker_coord]);
+            if(b[attacker_coord] == empty_square || !is_slider[type]
+                    || get_color(b[attacker_coord]) == wtm)
+                continue;
+            if(!IsOnRay(k_coord, attacker_coord, fr_coord))
+                continue;
+            const auto p_coord = get_coord(state[ply].en_passant_rights - 1,
+                                           get_row(fr_coord));
+            const auto tmp1 = b[p_coord];
+            const auto tmp2 = b[fr_coord];
+            b[p_coord] = empty_square;
+            b[fr_coord] = empty_square;
+            const bool check = IsSliderAttack(k_coord, attacker_coord);
+            b[p_coord] = tmp1;
+            b[fr_coord] = tmp2;
+            if(!check)
+                continue;
             const auto d_col = get_col(attacker_coord) - get_col(k_coord);
             const auto d_row = get_row(attacker_coord) - get_row(k_coord);
             if(type == bishop && (d_col == 0 || d_row == 0))
                 continue;
             if(type == rook && d_col != 0 && d_row != 0)
+                continue;
+        }
+        else
+        {
+            if(!IsOnRay(k_coord, attacker_coord, fr_coord))
+                continue;
+            if(IsOnRay(k_coord, attacker_coord, to_coord))
+                continue;
+            if(!IsSliderAttack(fr_coord, k_coord))
                 continue;
         }
         return true;
@@ -1531,9 +1556,9 @@ bool k2chess::IsLegal(const move_c move)
         assert(king_attackers <= 2);
         if(king_attackers == 2)
             return false;
-        if((move.flag & is_en_passant))
+        if(move.flag & is_en_passant)
         {
-            if(IsDiscoveredAttack(*it, 0, slider_mask[!wtm]))
+            if(IsDiscoveredAttack(*it, *it, slider_mask[!wtm]))
                 return false;
         }
         const auto att_mask = attacks[!wtm][*it] & slider_mask[!wtm];
@@ -1559,6 +1584,10 @@ bool k2chess::IsLegal(const move_c move)
             else
             {
                 if(move.to_coord == attacker_coord)
+                    return true;
+                else if((move.flag & is_en_passant) &&
+                        move.to_coord == attacker_coord +
+                        (wtm ? board_width : -board_width))
                     return true;
                 else
                     return false;
@@ -2014,6 +2043,21 @@ void k2chess::RunUnitTests()
     assert(TakebackMove());
     assert(MakeMove("c4c3"));
     assert(MakeMove("d4d5"));
+    assert(SetupPosition(
+        "rnb2k1r/pp1Pbppp/2p5/q7/1PB5/8/P1P1NnPP/RNBQK2R w KQ -"));
+    assert(MakeMove("b4a5"));
+    assert(MakeMove("b7b5"));
+    assert(MakeMove("a5b6"));
+    assert(SetupPosition("8/2p5/3p4/KP5r/1R3pPk/8/4P3/8 b - g3 0 1"));
+    assert(!MakeMove("f4g3"));
+    assert(SetupPosition("8/8/3p4/KPp4r/1R3p1k/4P3/6P1/8 w - c6 0 2"));
+    assert(!MakeMove("b5c6"));
+    assert(SetupPosition("8/2p5/8/KP1p3r/1R2PpPk/8/8/8 b - g3 0 2"));
+    assert(MakeMove("f4g3"));
+    assert(SetupPosition("8/2p5/8/KP1p3r/1R2PpPk/8/8/8 b - e3 0 2"));
+    assert(MakeMove("f4e3"));
+    assert(SetupPosition("8/8/3p4/1Pp3r1/1K2Rp1k/8/4P1P1/8 w - c6 0 3"));
+    assert(MakeMove("b5c6"));
 
     assert(SetupPosition("3k2r1/2p5/8/3P4/8/8/K7/8 b - - 0 1"));
     assert(MakeMove("c7c5"));
