@@ -1,3 +1,3 @@
 all:
 
-	g++ main.cpp chess.cpp eval.cpp movegen.cpp -std=c++0x -O0 -pthread -o ./bin/Debug/k2
+	g++ main.cpp engine.cpp eval.cpp hash.cpp movegen.cpp chess.cpp Timer.cpp -DNDEBUG=1 -std=c++0x -O3 -pthread -o ./bin/Release/k2

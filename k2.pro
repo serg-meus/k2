@@ -7,7 +7,10 @@ SOURCES += \
     main.cpp \
     chess.cpp \
     eval.cpp \
-    movegen.cpp
+    movegen.cpp \
+    hash.cpp \
+    engine.cpp \
+    Timer.cpp
 
 OTHER_FILES +=
 
@@ -16,6 +19,9 @@ HEADERS += \
     chess.h \
     eval.h \
     movegen.h \
+    hash.h \
+    engine.h \
+    Timer.h \
     short_list.h
 
 QMAKE_CXXFLAGS += -std=c++0x

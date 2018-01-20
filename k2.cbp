@@ -53,8 +53,14 @@
 		<Unit filename="eval.h" />
 		<Unit filename="main.cpp" />
 		<Unit filename="main.h" />
-                <Unit filename="movegen.cpp" />
-                <Unit filename="movegen.h" />
+		<Unit filename="movegen.cpp" />
+		<Unit filename="movegen.h" />
+		<Unit filename="hash.cpp" />
+		<Unit filename="hash.h" />
+		<Unit filename="engine.cpp" />
+		<Unit filename="engine.h" />
+		<Unit filename="Timer.cpp" />
+		<Unit filename="Timer.h" />
 		<Unit filename="short_list.h" />
 		<Extensions>
 			<code_completion />

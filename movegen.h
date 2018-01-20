@@ -13,14 +13,21 @@ public:
 
 
 	void RunUnitTests();
+
 	bool MakeMove(const char *in)
 	{
 		return k2chess::MakeMove(in);
 	}
-	bool TakebackMove()
+
+    bool TakebackMove()
 	{
-		return k2chess::TakebackMove();
+        return k2chess::TakebackMove();
 	}
+
+    void TakebackMove(const move_c move)
+    {
+        k2chess::TakebackMove(move);
+    }
 
 
 protected:

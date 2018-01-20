@@ -1,4 +1,4 @@
-#include "movegen.h"
+#include "engine.h"
 #include <thread>
 
 
@@ -7,7 +7,7 @@
 
 int main(int argc, char* argv[]);
 
-/*
+
 class k2main : public k2engine
 {
 
@@ -19,6 +19,12 @@ public:
 
     void LevelCommand(std::string in);
     void MemoryCommand(std::string in);
+
+    void RunUnitTests()
+    {
+        k2movegen::RunUnitTests();
+        SetupPosition(start_position);
+    }
 
 
 protected:
@@ -81,4 +87,3 @@ protected:
     void SetvalueCommand(std::string in);
     void OptionCommand(std::string in);
 };
-*/

@@ -105,13 +105,13 @@ protected:
 
     hash_key_t InitHashKey();
 
-    void MakeMove(move_c m)
+    void MakeMove(const move_c m)
     {
         bool special_move = k2eval::MakeMove(m);
         MoveHashKey(m, special_move);
     }
 
-    void TakeBackMove(move_c m)
+    void TakebackMove(const move_c m)
     {
         k2eval::TakebackMove(m);
         hash_key = doneHashKeys[FIFTY_MOVES + ply];

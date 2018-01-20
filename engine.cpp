@@ -5,9 +5,9 @@
 
 
 k2engine::k2engine() :
-    engine_version{"0.88dev"},
+    engine_version{"0.90dev"},
     stop_str{""},
-    stop_ply{0}
+    stop_ply{}
 {
     busy = false;
     uci = false;
@@ -15,6 +15,7 @@ k2engine::k2engine() :
     pondering_in_process = false;
     stop = false;
     resign_cr = 0;
+    state = &eng_state[prev_states];
 
     max_search_depth = k2chess::max_ply;
     time_remains = 300000000;
@@ -25,10 +26,28 @@ k2engine::k2engine() :
     time_command_sent = false;
     infinite_analyze = false;
     spent_exact_time = false;
+#ifndef NDEBUG
+    randomness = false;
+#else
     randomness = true;
+#endif
     initial_score = 0;
 
-    InitEngine();
+    hash_key = InitHashKey();
+
+    std::cin.rdbuf()->pubsetbuf(nullptr, 0);
+    std::cout.rdbuf()->pubsetbuf(nullptr, 0);
+
+    stop = false;
+    total_nodes = 0;
+    total_time_spent = 0;
+
+    spent_exact_time = false;
+    finaly_made_moves = 0;
+    resign_cr = 0;
+    time_spent = 0;
+
+    memset(history, 0, sizeof(history));
 }
 
 
@@ -36,7 +55,7 @@ k2engine::k2engine() :
 
 
 //--------------------------------
-k2chess::score_t k2engine::Search(depth_t depth, score_t alpha, score_t beta,
+k2chess::eval_t k2engine::Search(depth_t depth, eval_t alpha, eval_t beta,
                                   node_type_t node_type)
 {
     if(ply >= max_ply - 1 || DrawDetect())
@@ -44,7 +63,7 @@ k2chess::score_t k2engine::Search(depth_t depth, score_t alpha, score_t beta,
         pv[ply][0].flag = 0;
         return 0;
     }
-    bool in_check = Attack(*king_coord[wtm], !wtm);
+    bool in_check = attacks[!wtm][*king_coord[wtm]];
 
     if(depth < 0)
         depth = 0;
@@ -52,8 +71,8 @@ k2chess::score_t k2engine::Search(depth_t depth, score_t alpha, score_t beta,
         depth++;
 
     if(!in_check
-            && state[ply - 1].captured_piece
-            && state[ply].captured_piece
+            && k2chess::state[ply - 1].captured_piece
+            && k2chess::state[ply].captured_piece
             && state[ply].to_coord == state[ply - 1].to_coord
             && state[ply - 1].priority > bad_captures
             && state[ply].priority > bad_captures
@@ -73,7 +92,7 @@ k2chess::score_t k2engine::Search(depth_t depth, score_t alpha, score_t beta,
     if(NullMove(depth, beta, in_check))
         return beta;
 
-    score_t x, initial_alpha = alpha;
+    eval_t x, initial_alpha = alpha;
     hash_entry_s *entry = nullptr;
     if(HashProbe(depth, &alpha, beta, &entry))
         return -alpha;
@@ -92,30 +111,20 @@ k2chess::score_t k2engine::Search(depth_t depth, score_t alpha, score_t beta,
     for(; move_cr < max_moves; move_cr++)
     {
         cur_move = Next(move_array, move_cr, &max_moves,
-                        entry, wtm, all_moves, cur_move);
+                        entry, all_moves, cur_move);
         if(max_moves <= 0)
             break;
-
-        bool is_special_move = MkMoveFast(cur_move);
+        if(!IsLegal(cur_move))
+            continue;
+        if(depth <= 2 && !cur_move.flag && !in_check
+                && node_type == all_node && legal_moves > 4)
+            break;
+        MakeMove(cur_move);
 #ifndef NDEBUG
         if((!stop_ply || root_ply == stop_ply) && strcmp(stop_str, cv) == 0)
             std::cout << "( breakpoint )" << std::endl;
 #endif // NDEBUG
 
-        if(!Legal(state[ply].from_coord, cur_move.to_coord, in_check))
-        {
-            UnMoveFast(cur_move);
-            continue;
-        }
-
-        if(depth <= 2 && !cur_move.flag && !in_check
-                && node_type == all_node && legal_moves > 4)
-        {
-            UnMoveFast(cur_move);
-            break;
-        }
-
-        MkMoveIncrementally(cur_move, is_special_move);
         FastEval(cur_move);
 
         auto lmr = 1;
@@ -123,7 +132,7 @@ k2chess::score_t k2engine::Search(depth_t depth, score_t alpha, score_t beta,
             lmr = 0;
         else if(legal_moves < 4)
             lmr = 0;
-        else if(to_black(b[cur_move.to_coord]) == black_pawn
+        else if(get_type(b[cur_move.to_coord]) == pawn
                 && IsPasser(get_col(cur_move.to_coord), !wtm))
             lmr = 0;
         else if(depth <= 4 && legal_moves > 8)
@@ -143,7 +152,7 @@ k2chess::score_t k2engine::Search(depth_t depth, score_t alpha, score_t beta,
             if(lmr && x > alpha)
                 x = -Search(depth - 1, -beta, -alpha, pv_node);
         }
-        UnMove(cur_move);
+        TakebackMove(cur_move);
 
         if(legal_moves == 0)
             first_legal = move_cr;
@@ -182,14 +191,14 @@ k2chess::score_t k2engine::Search(depth_t depth, score_t alpha, score_t beta,
 
 
 //-----------------------------
-k2chess::score_t k2engine::QSearch(score_t alpha, score_t beta)
+k2chess::eval_t k2engine::QSearch(eval_t alpha, eval_t beta)
 {
     if(ply >= max_ply - 1)
         return 0;
 
     pv[ply][0].flag = 0;
 
-    if(material[0] + material[1] > 24
+    if(material[0] + material[1] > 2400
             && ReturnEval(wtm) > beta + 250)
         return beta;
 
@@ -211,40 +220,40 @@ k2chess::score_t k2engine::QSearch(score_t alpha, score_t beta)
     for(; move_cr < max_moves; move_cr++)
     {
         move_c cur_move = Next(move_array, move_cr, &max_moves,
-                               nullptr, wtm, captures_only, cur_move);
+                               nullptr, captures_only, cur_move);
         if(max_moves <= 0)
             break;
 
         if(cur_move.priority <= bad_captures)
             break;
 
-        if(material[white] + material[black]
+        if(material[white]/100 + material[black]/100
                 - pieces[white] - pieces[black] > 24
-                && to_black(b[cur_move.to_coord]) != black_king
+                && get_type(b[cur_move.to_coord]) != king
                 && !(cur_move.flag & is_promotion))
         {
             auto cur_eval = ReturnEval(wtm);
-            auto capture = 100*pc_streng[get_index(b[cur_move.to_coord])];
+            auto capture = piece_values[get_type(b[cur_move.to_coord])];
             auto margin = 100;
             if(cur_eval + capture + margin < alpha)
                 break;
         }
-        MkMoveAndEval(cur_move);
+        MakeMove(cur_move);
         legal_moves++;
 #ifndef NDEBUG
         if((!stop_ply || root_ply == stop_ply) && strcmp(stop_str, cv) == 0)
             std::cout << "( breakpoint )" << std::endl;
 #endif // NDEBUG
-        if(to_black(state[ply].captured_piece) == black_king)
+        if(get_type(k2chess::state[ply].captured_piece) == king)
         {
-            UnMoveAndEval(cur_move);
+            TakebackMove(cur_move);
             return king_value;
         }
         FastEval(cur_move);
 
         x = -QSearch(-beta, -alpha);
 
-        UnMoveAndEval(cur_move);
+        TakebackMove(cur_move);
 
         if(stop)
             break;
@@ -273,8 +282,7 @@ k2chess::score_t k2engine::QSearch(score_t alpha, score_t beta)
 void k2engine::Perft(depth_t depth)
 {
     move_c move_array[move_array_size];
-    bool in_check = Attack(*king_coord[wtm], !wtm);
-    auto max_moves = GenMoves(move_array, nullptr, not_apprice);
+    auto max_moves = GenAllMoves(move_array);
     for(auto move_cr = 0; move_cr < max_moves; move_cr++)
     {
 #ifndef NDEBUG
@@ -283,22 +291,24 @@ void k2engine::Perft(depth_t depth)
             tmpCr = nodes;
 #endif
         auto cur_move = move_array[move_cr];
-        MkMoveFast(cur_move);
+
+        if(!IsLegal(cur_move))
+            continue;
+
+        k2chess::MakeMove(cur_move);
 #ifndef NDEBUG
         if(strcmp(stop_str, cv) == 0)
             std::cout << "( breakpoint )" << std::endl;
 #endif // NDEBUG
-//        bool legal = !Attack(king_coord[!wtm], wtm);
-        bool legal = Legal(state[ply].from_coord, cur_move.to_coord, in_check);
-        if(depth > 1 && legal)
+        if(depth > 1)
             Perft(depth - 1);
-        if(depth == 1 && legal)
+        else if(depth == 1)
             nodes++;
 #ifndef NDEBUG
-        if(depth == max_search_depth && legal)
+        if(depth == max_search_depth)
             std::cout << cv << nodes - tmpCr << std::endl;
 #endif
-        UnMoveFast(cur_move);
+        k2chess::TakebackMove(cur_move);
     }
 }
 
@@ -352,10 +362,9 @@ void k2engine::UpdateStatistics(move_c move, depth_t depth,
         killers[ply][0] = move;
     }
 
-    auto it = coords[wtm].begin();
-    it = move.piece_iterator;
+    const auto it = coords[wtm].at(move.piece_index);
     auto from_coord = *it;
-    auto &h = history[wtm][get_index(b[from_coord]) - 1][move.to_coord];
+    auto &h = history[wtm][get_type(b[from_coord]) - 1][move.to_coord];
     h += depth*depth + 1;
 }
 
@@ -366,10 +375,12 @@ void k2engine::UpdateStatistics(move_c move, depth_t depth,
 //--------------------------------
 void k2engine::MainSearch()
 {
+//    return;
+
     busy = true;
     InitSearch();
 
-    score_t x, prev_x;
+    eval_t x, prev_x;
 
     root_ply = 1;
     x = QSearch(-infinite_score, infinite_score);
@@ -381,7 +392,7 @@ void k2engine::MainSearch()
     for(; root_ply <= max_ply; ++root_ply)
     {
         prev_x = x;
-        const score_t asp_margin = 47;
+        const eval_t asp_margin = 47;
 
         x = RootSearch(root_ply, x - asp_margin, x + asp_margin);
         if(!stop && x <= prev_x - asp_margin)
@@ -426,7 +437,7 @@ void k2engine::MainSearch()
         pondering_in_process = false;
         spent_exact_time = false;
     }
-    if(x < initial_score - score_to_resign || x < -mate_score)
+    if(x < initial_score - eval_to_resign || x < -mate_score)
         resign_cr++;
     else if(max_root_moves == 1 && resign_cr > 0)
         resign_cr++;
@@ -455,18 +466,18 @@ void k2engine::MainSearch()
 
 
 //--------------------------------
-k2chess::score_t k2engine::RootSearch(depth_t depth, score_t alpha,
-                                      score_t beta)
+k2chess::eval_t k2engine::RootSearch(depth_t depth, eval_t alpha,
+                                      eval_t beta)
 {
-    bool in_check = Attack(*king_coord[wtm], !wtm);
+    bool in_check = attacks[!wtm][*king_coord[wtm]];
     if(max_root_moves == 0)
-        RootMoveGen(in_check);
+        RootMoveGen();
     if(max_root_moves > 0)
         pv[0][1] = root_moves.at(0).second;
 
     root_move_cr = 0;
 
-    score_t x;
+    eval_t x;
     move_c cur_move;
     bool beta_cutoff = false;
     const node_t unconfirmed_fail_high = -1,
@@ -476,7 +487,7 @@ k2chess::score_t k2engine::RootSearch(depth_t depth, score_t alpha,
     {
         cur_move = root_moves.at(root_move_cr).second;
 
-        MkMove(cur_move);
+        MakeMove(cur_move);
         nodes++;
 
 #ifndef NDEBUG
@@ -535,12 +546,12 @@ k2chess::score_t k2engine::RootSearch(depth_t depth, score_t alpha,
             beta_cutoff = true;
             std::swap(root_moves.at(root_move_cr),
                       root_moves.at(0));
-            UnMove(cur_move);
+            TakebackMove(cur_move);
             break;
         }
         else if(x > alpha)
         {
-            UnMove(cur_move);
+            TakebackMove(cur_move);
             alpha = x;
             StorePV(cur_move);
             if(depth > 3 && x != -infinite_score && !stop)
@@ -549,7 +560,7 @@ k2chess::score_t k2engine::RootSearch(depth_t depth, score_t alpha,
                       root_moves.at(0));
         }
         else
-            UnMove(cur_move);
+            TakebackMove(cur_move);
 
         if(stop)
             break;
@@ -577,9 +588,9 @@ k2chess::score_t k2engine::RootSearch(depth_t depth, score_t alpha,
 
 
 //--------------------------------
-void k2engine::ShowPVfailHighOrLow(move_c m, score_t x, char type_of_bound)
+void k2engine::ShowPVfailHighOrLow(move_c m, eval_t x, char type_of_bound)
 {
-    UnMove(m);
+    TakebackMove(m);
     char mstr[6];
     MoveToStr(m, wtm, mstr);
 
@@ -592,7 +603,7 @@ void k2engine::ShowPVfailHighOrLow(move_c m, score_t x, char type_of_bound)
     pv[0][0].flag = tmp0.flag;
     pv[0][1] = tmp1;
 
-    MkMove(m);
+    MakeMove(m);
     FastEval(m);
 }
 
@@ -601,12 +612,12 @@ void k2engine::ShowPVfailHighOrLow(move_c m, score_t x, char type_of_bound)
 
 
 //--------------------------------
-void k2engine::RootMoveGen(bool in_check)
+void k2engine::RootMoveGen()
 {
     move_c move_array[move_array_size], cur_move;
     auto max_moves = init_max_moves;
 
-    score_t alpha = -infinite_score, beta = infinite_score;
+    eval_t alpha = -infinite_score, beta = infinite_score;
     cur_move.flag = not_a_move;
 
     hash_entry_s *entry = nullptr;
@@ -615,20 +626,18 @@ void k2engine::RootMoveGen(bool in_check)
     for(movcr_t move_cr = 0; move_cr < max_moves; move_cr++)
     {
         cur_move = Next(move_array, move_cr, &max_moves,
-                        nullptr, wtm, all_moves, cur_move);
+                        nullptr, all_moves, cur_move);
     }
 
     root_moves.clear();
     for(movcr_t move_cr = 0; move_cr < max_moves; move_cr++)
     {
         cur_move = move_array[move_cr];
-        MkMoveFast(cur_move);
-        if(Legal(state[ply].from_coord, cur_move.to_coord, in_check))
+        if(IsLegal(cur_move))
         {
             root_moves.push_back(std::pair<node_t, move_c>(0, cur_move));
             max_root_moves++;
         }
-        UnMoveFast(cur_move);
     }
 
     if(root_ply != 1)
@@ -700,13 +709,13 @@ void k2engine::InitSearch()
 
 
 
+
 //--------------------------------
 void k2engine::MoveToStr(move_c move, bool stm, char *out)
 {
     char proms[] = {'?', 'q', 'n', 'r', 'b'};
 
-    auto it = coords[stm].begin();
-    it = move.piece_iterator;
+    const auto it = coords[stm].at(move.piece_index);
     auto f = *it;
     out[0] = get_col(f) + 'a';
     out[1] = get_row(f) + '1';
@@ -826,7 +835,7 @@ void k2engine::PrintFinalSearchResult()
 
 
 //--------------------------------
-void k2engine::PrintCurrentSearchResult(score_t max_value, char type_of_bound)
+void k2engine::PrintCurrentSearchResult(eval_t max_value, char type_of_bound)
 {
     using namespace std;
 
@@ -934,8 +943,7 @@ bool k2engine::ShowPV(depth_t cur_ply)
         for(; ply_cr < pv_len; ply_cr++)
         {
             move_c cur_move = pv[cur_ply][ply_cr + 1];
-            auto it = coords[wtm].begin();
-            it = cur_move.piece_iterator;
+            const auto it = coords[wtm].at(cur_move.piece_index);
             auto from_coord = *it;
             std::cout << (char)(get_col(from_coord) + 'a')
                       << (char)(get_row(from_coord) + '1')
@@ -945,10 +953,10 @@ bool k2engine::ShowPV(depth_t cur_ply)
             if(cur_move.flag & is_promotion)
                 std::cout << proms[cur_move.flag & is_promotion];
             std::cout << " ";
-            MkMoveFast(cur_move);
-            bool in_check = Attack(*king_coord[wtm], !wtm);
-            if(!Legal(state[ply].from_coord, cur_move.to_coord, in_check))
+
+            if(!IsLegal(cur_move))
                 ans = false;
+            k2chess::MakeMove(cur_move);
         }
     }
     else
@@ -956,8 +964,7 @@ bool k2engine::ShowPV(depth_t cur_ply)
         for(; ply_cr < pv_len; ply_cr++)
         {
             auto cur_move = pv[cur_ply][ply_cr + 1];
-            auto it = coords[wtm].begin();
-            it = cur_move.piece_iterator;
+            const auto it = coords[wtm].at(cur_move.piece_index);
             char piece_char = pc2chr[b[*it]];
             if(piece_char == 'K' && get_col(*it) == 4
                     && get_col(cur_move.to_coord) == 6)
@@ -976,8 +983,7 @@ bool k2engine::ShowPV(depth_t cur_ply)
             }
             else if(cur_move.flag & is_capture)
             {
-                it = coords[wtm].begin();
-                it = cur_move.piece_iterator;
+                const auto it = coords[wtm].at(cur_move.piece_index);
                 std::cout << (char)(get_col(*it) + 'a')
                           << "x"
                           << (char)(get_col(cur_move.to_coord) + 'a')
@@ -990,14 +996,14 @@ bool k2engine::ShowPV(depth_t cur_ply)
             if(piece_char == 'P' && (cur_move.flag & is_promotion))
                 std::cout << proms[cur_move.flag & is_promotion];
             std::cout << ' ';
-            MkMoveFast(cur_move);
-            bool in_check = Attack(*king_coord[wtm], !wtm);
-            if(!Legal(state[ply].from_coord, cur_move.to_coord, in_check))
+
+            if(!IsLegal(cur_move))
                 ans = false;
+            k2chess::MakeMove(cur_move);
         }
     }
     for(; ply_cr > 0; ply_cr--)
-        UnMoveFast(*(move_c *) &pv[cur_ply][ply_cr]);
+        k2chess::TakebackMove(*(move_c *) &pv[cur_ply][ply_cr]);
     return ans;
 }
 
@@ -1010,24 +1016,22 @@ void k2engine::FindAndPrintForAmbiguousMoves(move_c move)
 {
     move_c move_array[8];
     auto amb_cr = 0;
-    auto it = coords[wtm].begin();
-    it = move.piece_iterator;
+    auto it = coords[wtm].at(move.piece_index);
     auto init_from_coord = *it;
-    auto init_piece_type = get_index(b[init_from_coord]);
+    auto init_piece_type = get_type(b[init_from_coord]);
 
     for(it = coords[wtm].begin(); it != coords[wtm].end(); ++it)
     {
-        if(it == move.piece_iterator)
+        if(it.get_array_index() == move.piece_index)
             continue;
         auto from_coord = *it;
 
-        auto piece_type = get_index(b[from_coord]);
+        auto piece_type = get_type(b[from_coord]);
         if(piece_type != init_piece_type)
             continue;
-        if(!(attacks[120 + from_coord - move.to_coord] & (1 << piece_type)))
+        if(!(attacks[wtm][from_coord] & (1 << piece_type)))
             continue;
-        if(slider[piece_type] && !SliderAttack(from_coord, move.to_coord))
-            continue;
+
         auto tmp = move;
         tmp.priority = from_coord;
         move_array[amb_cr++] = tmp;
@@ -1063,17 +1067,15 @@ bool k2engine::MakeMoveFinaly(char *move_str)
     auto ln = strlen(move_str);
     if(ln < 4 || ln > 5)
         return false;
-    bool in_check = Attack(*king_coord[wtm], !wtm);
     max_root_moves = 0;
-    RootMoveGen(in_check);
+    RootMoveGen();
 
     char cur_move_str[6];
     char proms[] = {'?', 'q', 'n', 'r', 'b'};
     for(movcr_t i = 0; i < max_root_moves; ++i)
     {
         auto cur_move = root_moves.at(i).second;
-        auto it = coords[wtm].begin();
-        it = cur_move.piece_iterator;
+        auto it = coords[wtm].at(cur_move.piece_index);
         cur_move_str[0] = get_col(*it) + 'a';
         cur_move_str[1] = get_row(*it) + '1';
         cur_move_str[2] = get_col(cur_move.to_coord) + 'a';
@@ -1085,19 +1087,22 @@ bool k2engine::MakeMoveFinaly(char *move_str)
         if(strcmp(move_str, cur_move_str) != 0)
             continue;
 
-        it = coords[wtm].begin();
-        it = cur_move.piece_iterator;
+        it = coords[wtm].at(cur_move.piece_index);
 
-        MkMove(cur_move);
+        MakeMove(cur_move);
         FastEval(cur_move);
 
         auto store_val_opn = val_opn;
         auto store_val_end = val_end;
 
         memmove(&b_state[0], &b_state[1],
-                (prev_states + 2)*sizeof(state_s));
+                (prev_states + 2)*sizeof(k2chess::state_s));
+        memmove(&e_state[0], &e_state[1],
+                (prev_states + 2)*sizeof(k2eval::state_s));
+        memmove(&eng_state[0], &eng_state[1],
+                (prev_states + 2)*sizeof(k2engine::state_s));
         ply--;
-        InitEvaOfMaterialAndPst();
+        InitEvalOfMaterialAndPst();
         if(val_opn != store_val_opn || val_end != store_val_end)
         {
             std::cout << "telluser err02: wrong score. Fast: "
@@ -1120,35 +1125,9 @@ bool k2engine::MakeMoveFinaly(char *move_str)
 
 
 //--------------------------------
-void k2engine::InitEngine()
+bool k2engine::SetupPosition(const char *fen)
 {
-    InitChess();
-    InitEval();
-    hash_key = InitHashKey();
-
-    std::cin.rdbuf()->pubsetbuf(nullptr, 0);
-    std::cout.rdbuf()->pubsetbuf(nullptr, 0);
-
-    stop = false;
-    total_nodes = 0;
-    total_time_spent = 0;
-
-    spent_exact_time = false;
-    finaly_made_moves = 0;
-    resign_cr = 0;
-    time_spent = 0;
-
-    memset(history, 0, sizeof(history));
-}
-
-
-
-
-
-//--------------------------------
-bool k2engine::FenStringToEngine(char *fen)
-{
-    bool ans = FenToBoard(fen);
+    bool ans = k2eval::SetupPosition(fen);
 
     if(!ans)
         return false;
@@ -1173,10 +1152,10 @@ bool k2engine::DrawDetect()
     if(material[0] + material[1] == 0)
         return true;
     if(pieces[0] + pieces[1] == 3
-            && (material[0] == 4 || material[1] == 4))
+            && (material[0]/100 == 4 || material[1]/100 == 4))
         return true;
     if(pieces[0] == 2 && pieces[1] == 2
-            && material[0] == 4 && material[1] == 4)
+            && material[0]/100 == 4 && material[1]/100 == 4)
         return true;
 
     if(reversible_moves == FIFTY_MOVES)
@@ -1235,9 +1214,11 @@ void k2engine::MakeNullMove()
         std::cout << "( breakpoint )" << std::endl;
 #endif // NDEBUG
 
-    state[ply + 1] = state[ply];
+    k2chess::state[ply + 1] = k2chess::state[ply];
+    k2eval::state[ply + 1] = k2eval::state[ply];
+    k2engine::state[ply + 1] = k2engine::state[ply];
     state[ply].to_coord = is_null_move;
-    state[ply + 1].ep = 0;
+    k2chess::state[ply + 1].en_passant_rights = 0;
 
     ply++;
 
@@ -1257,7 +1238,7 @@ void k2engine::UnMakeNullMove()
     wtm ^= white;
     cur_moves[5*ply] = '\0';
     ply--;
-    hash_key ^= -1ULL;
+    hash_key ^= key_for_side_to_move;
 }
 
 
@@ -1265,20 +1246,19 @@ void k2engine::UnMakeNullMove()
 
 
 //-----------------------------
-bool k2engine::NullMove(depth_t depth, score_t beta, bool in_check)
+bool k2engine::NullMove(depth_t depth, eval_t beta, bool in_check)
 {
     if(in_check || depth < 2
-            || material[wtm] - pieces[wtm] < 3)
+            || material[wtm]/100 - pieces[wtm] < 3)
         return false;
 
     null_probe_cr++;
 
     if(state[ply - 1].to_coord == is_null_move
-            && state[ply - 2].to_coord == is_null_move
-      )
+            && state[ply - 2].to_coord == is_null_move)
         return false;
 
-    auto store_ep = state[ply].ep;
+    auto store_ep = k2chess::state[ply].en_passant_rights;
     auto store_to = state[ply].to_coord;
     auto store_rv = reversible_moves;
     reversible_moves = 0;
@@ -1293,7 +1273,7 @@ bool k2engine::NullMove(depth_t depth, score_t beta, bool in_check)
 
     UnMakeNullMove();
     state[ply].to_coord = store_to;
-    state[ply].ep = store_ep;
+    k2chess::state[ply].en_passant_rights = store_ep;
     reversible_moves = store_rv;
 
     if(store_ep)
@@ -1310,9 +1290,9 @@ bool k2engine::NullMove(depth_t depth, score_t beta, bool in_check)
 
 
 //-----------------------------
-bool k2engine::Futility(depth_t depth, score_t beta)
+bool k2engine::Futility(depth_t depth, eval_t beta)
 {
-    if(state[ply].captured_piece == 0
+    if(k2chess::state[ply].captured_piece == 0
             && state[ply - 1].to_coord != is_null_move
       )
     {
@@ -1383,9 +1363,9 @@ void k2engine::ShowFen()
                 std::cout << blank_cr;
             blank_cr = 0;
             if(piece & white)
-                std::cout << whites[get_index(piece) - 1];
+                std::cout << whites[get_type(piece) - 1];
             else
-                std::cout << blacks[get_index(piece) - 1];
+                std::cout << blacks[get_type(piece) - 1];
         }
         if(blank_cr != 0)
             std::cout << blank_cr;
@@ -1394,7 +1374,7 @@ void k2engine::ShowFen()
     }
     std::cout << " " << (wtm ? 'w' : 'b') << " ";
 
-    auto cstl = state[0].cstl;
+    auto cstl = k2chess::state[0].castling_rights;
     if(cstl & 0x0F)
     {
         if(cstl & 0x01)
@@ -1435,8 +1415,8 @@ void k2engine::ReHash(size_t size_mb)
 
 
 //--------------------------------
-bool k2engine::HashProbe(depth_t depth, score_t *alpha,
-        score_t beta, hash_entry_s **entry)
+bool k2engine::HashProbe(depth_t depth, eval_t *alpha,
+        eval_t beta, hash_entry_s **entry)
 {
     *entry = hash_table.count(hash_key);
     if(*entry == nullptr || stop)
@@ -1476,134 +1456,10 @@ bool k2engine::HashProbe(depth_t depth, score_t *alpha,
 
 
 
-//-----------------------------
-bool k2engine::MoveIsPseudoLegal(move_c &move, bool stm)
-{
-    if(move.flag == not_a_move)
-        return false;
-    auto it = coords[stm].begin();
-    for(; it != coords[stm].end(); ++it)
-        if(it == move.piece_iterator)
-            break;
-    if(it == coords[stm].end())
-        return false;
-    it = move.piece_iterator;
-    auto from_coord = *it;
-    auto piece = b[move.to_coord];
-    int delta_col = get_col(move.to_coord) - get_col(from_coord);
-    int delta_row = get_row(move.to_coord) - get_row(from_coord);
-    if(!delta_col && !delta_row)
-        return false;
-    if(!is_light(b[from_coord], stm))
-        return false;
-    if(to_black(b[from_coord]) != black_pawn
-            && ((!is_dark(piece, stm) && (move.flag & is_capture))
-                || (piece != empty_square && !(move.flag & is_capture))))
-        return false;
-    if(to_black(b[from_coord]) != black_pawn && (move.flag & is_promotion))
-        return false;
-    bool long_move;
-    switch (to_black(b[from_coord]))
-    {
-    case black_pawn :
-        if((move.flag & is_promotion)
-                && ((stm && get_row(from_coord) != 6)
-                    || (!stm && get_row(from_coord) != 1)))
-            return false;
-        if((move.flag & is_capture)
-                && (std::abs(delta_col) != 1 || (stm && delta_row != 1)
-                    || (!stm && delta_row != -1)
-                    || (!(move.flag & is_en_passant)
-                        && !is_dark(piece, stm))))
-            return false;
-        if((move.flag & is_en_passant)
-                && (piece != empty_square
-                    || state[ply].ep == 0))
-            return false;
-        if(get_row(move.to_coord) == (stm ? 7 : 0)
-                && !(move.flag & is_promotion))
-            return false;
-        if(!(move.flag & is_capture))
-        {
-            if(!stm)
-                delta_row = -delta_row;
-            if(piece != empty_square || delta_col != 0
-                    || (stm && delta_row <= 0))
-                return false;
-            long_move = (get_row(from_coord) == (stm ? 1 : 6));
-            if(long_move ? delta_row > 2 : delta_row != 1)
-                return false;
-            if(long_move && delta_row == 2
-                    && b[get_coord(get_col(from_coord),
-                                   (get_row(from_coord) +
-                                    get_row(move.to_coord))/2)]
-                    != empty_square)
-                return false;
-        }
-
-        break;
-    case black_knight :
-        move.flag &= is_capture;
-        if(std::abs(delta_col) + std::abs(delta_row) != 3)
-            return false;
-        if(std::abs(delta_col) != 1 && std::abs(delta_row) != 1)
-            return false;
-        break;
-    case black_bishop :
-    case black_rook :
-    case black_queen :
-        move.flag &= is_capture;
-        if(!(attacks[120 + move.to_coord - from_coord]
-                & (1 << get_index(b[from_coord])))
-                || !SliderAttack(move.to_coord, from_coord))
-            return false;
-        break;
-    case black_king :
-        if(!(move.flag & is_castle))
-        {
-            if((std::abs(delta_col) > 1 || std::abs(delta_row) > 1))
-                return false;
-            else
-                return true;
-        }
-        if(std::abs(delta_col) != 2 || std::abs(delta_row) != 0)
-            return false;
-        if(get_col(from_coord) != 4 || get_row(from_coord) != stm ? 0 : 7)
-            return false;
-        if((state[ply].cstl &
-                (move.flag >> 3 >> (2*stm))) == 0)
-            return false;
-        if(b[get_coord(get_col(move.to_coord), get_row(from_coord))]
-                != empty_square)
-            return false;
-        if(b[get_coord((get_col(move.to_coord) + get_col(from_coord))/2,
-                       get_row(from_coord))] != empty_square)
-            return false;
-        if((move.flag &is_castle_kingside)
-                && to_black(b[get_coord(7, get_row(from_coord))])
-                != black_rook)
-            return false;
-        if((move.flag &is_castle_queenside)
-                && to_black(b[get_coord(0, get_row(from_coord))])
-                != black_rook)
-            return false;
-        break;
-
-    default :
-        return false;
-    }
-    return true;
-}
-
-
-
-
-
 //--------------------------------
 k2chess::move_c k2engine::Next(move_c *move_array, movcr_t cur_move,
                                movcr_t *max_moves, hash_entry_s *entry,
-                               side_to_move_t stm, bool only_captures,
-                               move_c prev_move)
+                               bool only_captures, move_c prev_move)
 {
     move_c ans;
     if(cur_move == 0)
@@ -1611,9 +1467,11 @@ k2chess::move_c k2engine::Next(move_c *move_array, movcr_t cur_move,
         if(entry == nullptr)
         {
             if(!only_captures)
-                *max_moves = GenMoves(move_array, nullptr, apprice_all);
+                *max_moves = GenAllMoves(move_array);
             else
-                *max_moves = GenCaptures(move_array);
+                *max_moves = GenMoves(move_array, true);
+
+            AppriceMoves(move_array, *max_moves, nullptr);
 
             if(*max_moves > 1
                     && move_array[0].priority > bad_captures
@@ -1627,16 +1485,19 @@ k2chess::move_c k2engine::Next(move_c *move_array, movcr_t cur_move,
         {
             ans = entry->best_move;
 
-            bool pseudo_legal = MoveIsPseudoLegal(ans, stm);
+            bool pseudo_legal = IsPseudoLegal(ans);
 #ifndef NDEBUG
-            auto mx_ = GenMoves(move_array, nullptr, not_apprice);
+            auto mx_ = GenAllMoves(move_array);
             auto i = 0;
             for(; i < mx_; ++i)
                 if(move_array[i] == ans)
                     break;
             bool tt_move_found = i < mx_;
             if(tt_move_found != pseudo_legal)
-                MoveIsPseudoLegal(ans, stm);
+            {
+                IsPseudoLegal(ans);
+                GenAllMoves(move_array);
+            }
             assert(tt_move_found == pseudo_legal);
 #endif
             if(pseudo_legal)
@@ -1647,13 +1508,15 @@ k2chess::move_c k2engine::Next(move_c *move_array, movcr_t cur_move,
             else
             {
                 entry = nullptr;
-                *max_moves = GenMoves(move_array, nullptr, apprice_all);
+                *max_moves = GenAllMoves(move_array);
             }
         }
     }
     else if(cur_move == 1 && entry != nullptr)
     {
-        *max_moves = GenMoves(move_array, &prev_move, apprice_all);
+        *max_moves = GenAllMoves(move_array);
+        AppriceMoves(move_array, *max_moves, &prev_move);
+
         if(*max_moves <= 1)
         {
             *max_moves = 0;
@@ -1699,7 +1562,7 @@ k2chess::move_c k2engine::Next(move_c *move_array, movcr_t cur_move,
 
 
 //-----------------------------
-void k2engine::StoreInHash(depth_t depth, score_t score,
+void k2engine::StoreInHash(depth_t depth, eval_t score,
                                  move_c best_move, hbound_t bound_type)
 {
     if(stop)
@@ -1707,6 +1570,7 @@ void k2engine::StoreInHash(depth_t depth, score_t score,
     CorrectHashScore(&score, depth);
     hash_table.add(hash_key, -score, best_move, depth,
                    bound_type, finaly_made_moves/2, false, nodes);
+    assert(IsPseudoLegal(best_move));
 }
 
 
@@ -1722,7 +1586,7 @@ void k2engine::ShowCurrentUciInfo()
               << " nps " << (i32)(1000000 * nodes / (t - time0 + 1));
 
     auto move = root_moves.at(root_move_cr).second;
-    auto from_coord = state[1].from_coord;
+    auto from_coord = k2chess::state[1].from_coord;
     std::cout << " currmove "
               << (char)(get_col(from_coord) + 'a')
               << (char)(get_row(from_coord) + '1')
