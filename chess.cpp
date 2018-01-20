@@ -1236,23 +1236,52 @@ k2chess::move_flag_t k2chess::InitMoveFlag(const move_c move,
 //--------------------------------
 bool k2chess::IsPseudoLegal(const move_c move)
 {
-    auto it = coords[wtm].at(move.piece_index);
+    auto it = coords[wtm].begin();
+    for(; it != coords[wtm].end(); ++it)
+        if(it.get_array_index() == move.piece_index)
+            break;
+    if(it == coords[wtm].end())
+        return false;
+
     const auto to_piece = b[move.to_coord];
     if(to_piece != empty_square && get_color(to_piece) == wtm)
+        return false;
+    if((move.flag & is_capture) && !(move.flag & is_en_passant) &&
+            to_piece == empty_square)
         return false;
 
     const auto from_coord = *it;
     if(from_coord == move.to_coord)
         return false;
+    if(move.flag & is_castle && get_type(b[from_coord]) != king)
+        return false;
     const auto piece = b[*it];
-    if(get_type(piece) == pawn)
+    if(piece == empty_square || get_color(piece) != wtm)
+        return false;
+    const auto type = get_type(piece);
+    if(type == pawn)
         return IsPseudoLegalPawn(move, from_coord);
-    else if(is_slider[get_type(piece)])
+    if(move.flag & is_promotion || move.flag & is_en_passant)
+        return false;
+    if(is_slider[type])
+    {
+        const auto fr_col = get_col(from_coord);
+        const auto to_col = get_col(move.to_coord);
+        const auto fr_row = get_row(from_coord);
+        const auto to_row = get_row(move.to_coord);
+        if(type == bishop && std::abs(fr_col - to_col) !=
+                std::abs(fr_row - to_row))
+            return false;
+        if(type == rook && fr_col != to_col && fr_row != to_row)
+            return false;
         return IsSliderAttack(from_coord, move.to_coord);
-    else if(get_type(piece) == king)
+    }
+    else if(type == king)
         return IsPseudoLegalKing(move, from_coord);
-    else
+    else if(type == knight)
         return IsPseudoLegalKnight(move, from_coord);
+    else
+        return false;
 }
 
 
