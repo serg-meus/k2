@@ -182,7 +182,7 @@ void k2eval::EvalPawns(const bool stm)
 {
     eval_t ansO = 0, ansE = 0;
     bool passer, prev_passer = false;
-    bool opp_only_pawns = material[!stm] == pieces[!stm] - 1;
+    bool opp_only_pawns = material[!stm]/100 == pieces[!stm] - 1;
 
     for(auto col = 0; col <= max_col; col++)
     {
@@ -320,10 +320,10 @@ bool k2eval::IsUnstoppablePawn(const coord_t col, const bool side_of_pawn,
 //-----------------------------
 void k2eval::MaterialImbalances()
 {
-    auto X = material[black] + 1 + material[white] + 1
+    auto X = material[black]/100 + 1 + material[white]/100 + 1
              - pieces[black] - pieces[white];
 
-    if(X == 3 && (material[black] == 4 || material[white] == 4))
+    if(X == 3 && (material[black]/100 == 4 || material[white]/100 == 4))
     {
         // KNk, KBk, Kkn, Kkb
         if(pieces[black] + pieces[white] == 3)
@@ -333,14 +333,14 @@ void k2eval::MaterialImbalances()
             return;
         }
         // KPkn, KPkb
-        if(material[white] == 1 && material[black] == 4)
+        if(material[white]/100 == 1 && material[black]/100 == 4)
             val_end += bishop_val_end + pawn_val_end/4;
         // KNkp, KBkp
-        if(material[black] == 1 && material[white] == 4)
+        if(material[black]/100 == 1 && material[white]/100 == 4)
             val_end -= bishop_val_end + pawn_val_end/4;
     }
     // KNNk, KBNk, KBBk, etc
-    else if(X == 6 && (material[0] == 0 || material[1] == 0))
+    else if(X == 6 && (material[0]/100 == 0 || material[1]/100 == 0))
     {
         if(quantity[white][knight] == 2
                 || quantity[black][knight] == 2)
@@ -405,9 +405,9 @@ void k2eval::MaterialImbalances()
     else if(X == 0)
     {
         // KPk
-        if(material[white] + material[black] == 1)
+        if(material[white]/100 + material[black]/100 == 1)
         {
-            bool stm = material[white] == 1;
+            bool stm = material[white]/100 == 1;
             auto it = coords[stm].rbegin();
             ++it;
             auto colp = get_col(*it);
@@ -469,8 +469,8 @@ void k2eval::MaterialImbalances()
 
         if((sum_coord_w & 1) != (sum_coord_b & 1))
         {
-            if(material[white] - pieces[white] == 4 - 2
-                    && material[black] - pieces[black] == 4 - 2)
+            if(material[white]/100 - pieces[white] == 4 - 2
+                    && material[black]/100 - pieces[black] == 4 - 2)
                 val_end /= 2;
             else
                 val_end = val_end*4/5;
@@ -846,7 +846,7 @@ k2chess::eval_t k2eval::KingWeakness(const bool king_color)
 {
     auto ans = 0;
     auto k = *king_coord[king_color];
-    auto shft = king_color ? 16 : -16;
+    auto shft = king_color ? board_width : -board_width;
 
     if(get_col(k) == 0)
         k++;
@@ -931,7 +931,7 @@ void k2eval::KingSafety(const bool king_color)
         trp *= 4;
     trp += trp*trp/5;
 
-    if(material[!king_color] - pieces[!king_color] < 24)
+    if(material[!king_color]/100 - pieces[!king_color] < 24)
         trp /= 2;
 
     auto kw = KingWeakness(king_color);
@@ -946,7 +946,7 @@ void k2eval::KingSafety(const bool king_color)
     if(k2chess::state[ply].castling_rights & (0x0C >> 2*king_color))
         kw /= 4;
     else
-        kw = (material[!king_color] + 24)*kw/72;
+        kw = (material[!king_color]/100 + 24)*kw/72;
 
     auto ans = -3*(kw + trp)/2;
 

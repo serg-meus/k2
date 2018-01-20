@@ -129,7 +129,7 @@ protected:
     eval_t ReturnEval(const bool stm) const
     {
         i32 X, Y;
-        X = material[0] + 1 + material[1] + 1 - pieces[0] - pieces[1];
+        X = material[0]/100 + 1 + material[1]/100 + 1 - pieces[0] - pieces[1];
 
         Y = ((val_opn - val_end)*X + 80*val_end)/80;
         return stm ? (eval_t)(Y) : (eval_t)(-Y);
