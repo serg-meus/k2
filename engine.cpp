@@ -938,13 +938,20 @@ bool k2engine::ShowPV(depth_t cur_ply)
     depth_t ply_cr = 0;
     auto pv_len = pv[cur_ply][0].flag;
 
-    if(uci)
+
+    for(; ply_cr < pv_len; ply_cr++)
     {
-        for(; ply_cr < pv_len; ply_cr++)
+        move_c cur_move = pv[cur_ply][ply_cr + 1];
+
+        if(!IsPseudoLegal(cur_move) || !IsLegal(cur_move))
         {
-            move_c cur_move = pv[cur_ply][ply_cr + 1];
-            const auto it = coords[wtm].at(cur_move.piece_index);
-            auto from_coord = *it;
+            ans = false;
+            break;
+        }
+        const auto it = coords[wtm].at(cur_move.piece_index);
+        auto from_coord = *it;
+        if(uci)
+        {
             std::cout << (char)(get_col(from_coord) + 'a')
                       << (char)(get_row(from_coord) + '1')
                       << (char)(get_col(cur_move.to_coord) + 'a')
@@ -953,23 +960,14 @@ bool k2engine::ShowPV(depth_t cur_ply)
             if(cur_move.flag & is_promotion)
                 std::cout << proms[cur_move.flag & is_promotion];
             std::cout << " ";
-
-            if(!IsLegal(cur_move))
-                ans = false;
-            k2chess::MakeMove(cur_move);
         }
-    }
-    else
-    {
-        for(; ply_cr < pv_len; ply_cr++)
+        else
         {
-            auto cur_move = pv[cur_ply][ply_cr + 1];
-            const auto it = coords[wtm].at(cur_move.piece_index);
-            char piece_char = pc2chr[b[*it]];
-            if(piece_char == 'K' && get_col(*it) == 4
+            char piece_char = pc2chr[b[from_coord]];
+            if(piece_char == 'K' && get_col(from_coord) == 4
                     && get_col(cur_move.to_coord) == 6)
                 std::cout << "OO";
-            else if(piece_char == 'K' && get_col(*it) == 4
+            else if(piece_char == 'K' && get_col(from_coord) == 4
                     && get_col(cur_move.to_coord) == 2)
                 std::cout << "OOO";
             else if(piece_char != 'P')
@@ -996,12 +994,11 @@ bool k2engine::ShowPV(depth_t cur_ply)
             if(piece_char == 'P' && (cur_move.flag & is_promotion))
                 std::cout << proms[cur_move.flag & is_promotion];
             std::cout << ' ';
-
-            if(!IsLegal(cur_move))
-                ans = false;
-            k2chess::MakeMove(cur_move);
         }
+
+        k2chess::MakeMove(cur_move);
     }
+
     for(; ply_cr > 0; ply_cr--)
         k2chess::TakebackMove(*(move_c *) &pv[cur_ply][ply_cr]);
     return ans;
