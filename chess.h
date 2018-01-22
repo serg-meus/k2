@@ -108,9 +108,7 @@ protected:
     };
     typedef k2list::iterator iterator;
 
-    typedef void(k2chess::*change_bit_ptr)
-        (attack_t (*att)[board_height*board_width],
-         bool, coord_t, coord_t, u8);
+    typedef void(k2chess::*change_bit_ptr)(bool, coord_t, coord_t, u8);
 
     const static piece_t
     empty_square = 0,
@@ -239,9 +237,6 @@ protected:
 
     // two tables for each color with attacks of all pieces
     attack_t attacks[sides][board_width*board_height];
-
-    // extended attacks for SEE algorithm and pawn silent moves
-    attack_t xattacks[sides][board_width*board_height];
 
     // masks for fast detection of attacking sliders
     attack_t slider_mask[sides];
@@ -401,27 +396,18 @@ private:
     char* ParseSideToMoveInFen(char *ptr);
     char* ParseCastlingRightsInFen(char *ptr);
     char* ParseEnPassantInFen(char *ptr);
-    size_t test_count_attacked_squares(const bool stm,
-                                       const bool use_extended_attacks);
-    size_t test_count_all_attacks(const bool stm,
-                                  const bool use_extended_attacks);
-    void test_attack_tables(const size_t att_w, const size_t att_b,
-                            const size_t all_w, const size_t all_b,
-                            const bool use_extended_attacks);
-    bool NoExtendedAttacks(const piece_t sq, const coord_t type,
-                           const bool color, const shifts_t delta_col,
-                           const shifts_t delta_row) const;
+    size_t test_count_attacked_squares(const bool stm);
+    size_t test_count_all_attacks(const bool stm);
+    void test_attack_tables(const size_t att_w, const size_t att_b);
     void InitAttacksPawn(const coord_t coord, const bool color, const u8 index,
                          const change_bit_ptr change_bit);
     void InitAttacksNotPawn(const coord_t coord, const bool color,
                             const u8 index, const coord_t type,
                             const change_bit_ptr change_bit,
                             ray_mask_t ray_mask);
-    void set_bit(attack_t (*attacks)[board_height*board_width],
-                 const bool color, const coord_t col, const coord_t row,
+    void set_bit(const bool color, const coord_t col, const coord_t row,
                  const u8 index);
-    void clear_bit(attack_t (* const attacks)[board_height*board_width],
-                   const bool color, const coord_t col, const coord_t row,
+    void clear_bit(const bool color, const coord_t col, const coord_t row,
                    const u8 index);
     bool IsPseudoLegalPawn(const move_c move, const coord_t from_coord) const;
     bool IsPseudoLegalKing(const move_c move, const coord_t from_coord) const;
