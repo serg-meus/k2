@@ -296,7 +296,7 @@ protected:
     bool IsOnRay(const coord_t k_coord, const coord_t attacker_coord,
                  const coord_t to_coord) const;
     bool IsDiscoveredAttack(const coord_t fr_coord, const coord_t to_coord,
-                            const attack_t mask);
+                            attack_t mask);
     bool IsSliderAttack(const coord_t from_coord,
                         const coord_t to_coord) const;
 

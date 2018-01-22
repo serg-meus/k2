@@ -162,7 +162,7 @@ void k2chess::InitAttacksNotPawn(const coord_t coord, const bool color,
 {
     if(change_bit == &k2chess::set_bit)
     {
-        for(auto ray = 0; ray < rays[type]; ray++, ray_mask >>= 1)
+        for(auto ray = 0; ray < rays[type] && ray_mask; ray++, ray_mask >>= 1)
         {
             if(!(ray_mask & 1))
                 continue;
@@ -190,7 +190,7 @@ void k2chess::InitAttacksNotPawn(const coord_t coord, const bool color,
     }
     else
     {
-        for(auto ray = 0; ray < rays[type]; ray++, ray_mask >>= 1)
+        for(auto ray = 0; ray < rays[type] && ray_mask; ray++, ray_mask >>= 1)
         {
             if(!(ray_mask & 1))
                 continue;
@@ -251,9 +251,10 @@ void k2chess::UpdateAttacks(const move_c move, const coord_t from_coord)
                     [move.to_coord + (wtm ? board_width : -board_width)];
 
         auto it = coords[stm].begin();
-        for(size_t i = 0; i < attack_digits; ++i)
+        auto msk = update_mask[stm];
+        for(size_t i = 0; i < attack_digits && msk; ++i, msk >>= 1)
         {
-            if(!((update_mask[stm] >> i) & 1))
+            if(!(msk & 1))
                 continue;
             auto piece_coord = *it[i];
             auto color = get_color(b[*it]);
@@ -1440,13 +1441,13 @@ bool k2chess::IsSliderAttack(const coord_t from_coord,
 //--------------------------------
 bool k2chess::IsDiscoveredAttack(const coord_t fr_coord,
                                  const coord_t to_coord,
-                                 const attack_t mask)
+                                 attack_t mask)
 {
     auto it = coords[!wtm].begin();
     size_t i = 0;
-    for(; i < attack_digits; ++i)
+    for(; i < attack_digits && mask; ++i, mask >>= 1)
     {
-        if(!((mask >> i) & 1))
+        if(!(mask & 1))
             continue;
         const auto attacker_coord = *it[i];
         const auto k_coord = *king_coord[wtm];
