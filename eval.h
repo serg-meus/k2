@@ -168,4 +168,5 @@ private:
     eval_t KingOpenFiles(const bool king_color);
     void MovePawnStruct(const piece_t movedPiece, const coord_t from_coord,
                         const move_c m);
+    void MobilityEval(bool stm);
 };
