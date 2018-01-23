@@ -154,9 +154,6 @@ void k2eval::InitEvalOfMaterialAndPst()
     }
     state[ply].val_opn = val_opn;
     state[ply].val_end = val_end;
-
-    king_tropism[white] = CountKingTropism(white);
-    king_tropism[black] = CountKingTropism(black);
 }
 
 
@@ -712,76 +709,6 @@ void k2eval::InitPawnStruct()
 
 
 
-//-----------------------------
-k2chess::eval_t k2eval::CountKingTropism(const bool king_color)
-{
-    auto occ_cr = 0;
-    auto rit = coords[!king_color].rbegin();
-    ++rit;
-    for(; rit != coords[!king_color].rend(); ++rit)
-    {
-        auto type = get_type(b[*rit]);
-        if(type == pawn)
-            break;
-        auto dist = king_dist(*king_coord[king_color], *rit);
-        if(dist >= 4)
-            continue;
-        occ_cr += tropism_factor[dist < 3][type];
-    }
-    return occ_cr;
-}
-
-
-
-
-
-//-----------------------------
-void k2eval::MoveKingTropism(const coord_t from_coord, const move_c move,
-                             const bool king_color)
-{
-    state[ply].tropism[black] = king_tropism[black];
-    state[ply].tropism[white] = king_tropism[white];
-
-    auto type = get_type(b[move.to_coord]);
-
-    if(type == king)
-    {
-        king_tropism[king_color] = CountKingTropism(king_color);
-        king_tropism[!king_color] = CountKingTropism(!king_color);
-
-        return;
-    }
-    auto k_coord = *king_coord[king_color];
-    auto dist_to = king_dist(k_coord, move.to_coord);
-    auto dist_fr = king_dist(k_coord, from_coord);
-
-
-    if(dist_fr < 4 && !(move.flag & is_promotion))
-        king_tropism[king_color] -= tropism_factor[dist_fr < 3][type];
-    if(dist_to < 4)
-        king_tropism[king_color] += tropism_factor[dist_to < 3][type];
-
-    auto cap_t = get_type(k2chess::state[ply].captured_piece);
-    if(move.flag & is_capture)
-    {
-        dist_to = king_dist(*king_coord[!king_color], move.to_coord);
-        if(dist_to < 4)
-            king_tropism[!king_color] -= tropism_factor[dist_to < 3][cap_t];
-    }
-
-#ifndef NDEBUG
-    auto tmp = CountKingTropism(king_color);
-    if(king_tropism[king_color] != tmp && cap_t != king)
-        ply = ply;
-    tmp = CountKingTropism(!king_color);
-    if(king_tropism[!king_color] != tmp && cap_t != king)
-        ply = ply;
-#endif // NDEBUG
-}
-
-
-
-
 
 //-----------------------------
 bool k2eval::MakeMove(const move_c m)
@@ -792,9 +719,6 @@ bool k2eval::MakeMove(const move_c m)
     bool is_special_move = k2chess::MakeMove(m);
 
     auto from_coord = k2chess::state[ply].from_coord;
-
-    MoveKingTropism(from_coord, m, wtm);
-
     MovePawnStruct(b[m.to_coord], from_coord, m);
 
     return is_special_move;
@@ -807,9 +731,6 @@ bool k2eval::MakeMove(const move_c m)
 //-----------------------------
 void k2eval::TakebackMove(const move_c m)
 {
-    king_tropism[black] = state[ply].tropism[black];
-    king_tropism[white] = state[ply].tropism[white];
-
     auto from_coord = k2chess::state[ply].from_coord;
 
     k2chess::TakebackMove(m);
@@ -829,172 +750,26 @@ void k2eval::TakebackMove(const move_c m)
 
 
 //-----------------------------
-k2chess::eval_t k2eval::KingOpenFiles(const bool king_color)
+void k2eval::KingSafety(const bool stm)
 {
     auto ans = 0;
-    auto k = *king_coord[king_color];
+    const auto k_coord = *king_coord[stm];
+    const auto k_col = get_col(k_coord);
+    const auto k_row = get_row(k_coord);
 
-    if(get_col(k) == 0)
-        k++;
-    else if(get_col(k) == max_col)
-        k--;
-
-    int open_files_near_king = 0, open_files[3] = {0};
-    for(auto i = 0; i < 3; ++i)
-    {
-        auto col = get_col(k) + i - 1;
-        if(col < 0 || col > max_col)
-            continue;
-        if(pawn_max[col][!king_color] == 0)
+    for(auto delta_col = -1; delta_col <= 1; ++delta_col)
+        for(auto delta_row = -1; delta_row <= 1; ++delta_row)
         {
-            open_files_near_king++;
-            open_files[i]++;
+            const auto col = k_col + delta_col;
+            const auto row = k_row + delta_row;
+            if(!row_within(row) || !col_within(col))
+                continue;
+            const auto target = get_coord(col, row);
+            ans += __builtin_popcount(attacks[!stm][target]);
         }
-    }
-
-    if(open_files_near_king == 0)
-        return 0;
-
-    int rooks_queens_on_file[board_width] = {0};
-    auto rit = coords[!king_color].rbegin();
-    ++rit;
-    for(; rit != coords[!king_color].rend(); ++rit)
-    {
-        auto type = get_type(b[*rit]);
-        if(type != queen && type != rook)
-            break;
-        auto k = pawn_max[get_col(*rit)][king_color] ? 1 : 2;
-        rooks_queens_on_file[get_col(*rit)] +=
-            k*(type == rook ? 2 : 1);
-    }
-
-    for(auto i = 0; i < 3; ++i)
-    {
-        if(open_files[i])
-            ans += rooks_queens_on_file[get_col(k) + i - 1];
-    }
-    if(ans <= 2)
-        ans = ans/2;
-
-    return ans;
+    ans = 8*ans + ans*ans;
+    val_opn += stm ? -ans : ans;
 }
-
-
-
-
-
-//-----------------------------
-k2chess::eval_t k2eval::KingWeakness(const bool king_color)
-{
-    auto ans = 0;
-    auto k = *king_coord[king_color];
-    auto shft = king_color ? board_width : -board_width;
-
-    if(get_col(k) == 0)
-        k++;
-    else if(get_col(k) == max_col)
-        k--;
-
-    if(get_col(k) == 2 || get_col(k) == 5)
-        ans += 30;
-    if(get_col(k) == 3 || get_col(k) == 4)
-    {
-        // if able to castle
-        if(k2chess::state[ply].castling_rights & (0x0C >> 2*king_color))
-            ans += 30;
-        else
-            ans += 60;
-    }
-    if((king_color == white && get_row(k) > 1)
-            || (king_color == black && get_row(k) < 6))
-    {
-        ans += 60;
-    }
-
-
-    auto idx = 0;
-    for(auto col = 0; col < 3; ++col)
-    {
-        if(col + k + 2*shft - 1 < 0
-                || col + k + 2*shft - 1 >= (eval_t)(sizeof(b)/sizeof(*b)))
-            continue;
-        auto pt1 = b[col + k + shft - 1];
-        auto pt2 = b[col + k + 2*shft - 1];
-        const piece_t pwn = black_pawn | king_color;
-        if(pt1 == pwn || pt2 == pwn)
-            continue;
-
-        if(is_light(pt1, king_color) && is_light(pt2, king_color))
-            continue;
-
-        if(col + k + shft - 2 < 0)
-            continue;
-
-        if(is_light(pt2, king_color)
-                && (b[col + k + shft - 2] == pwn
-                    || b[col + k + shft + 0] == pwn))
-            continue;
-
-        idx += (1 << col);
-    }
-    idx = 7 - idx;
-    // cases: ___, __p, _p_, _pp, p__, p_p, pp_, ppp
-    size_t cases[] = {0, 1, 1, 3, 1, 2, 3, 4};
-    eval_t scores[] = {140, 75, 75, 10, 0};
-
-    ans += scores[cases[idx]];
-
-    if(cases[idx] != 4)
-        ans += 25*KingOpenFiles(king_color);
-
-    return ans;
-}
-
-
-
-
-
-//-----------------------------
-void k2eval::KingSafety(const bool king_color)
-{
-    eval_t trp = king_tropism[king_color];
-
-    if(quantity[!king_color][queen] == 0)
-    {
-        trp += trp*trp/15;
-        val_opn += king_color ? -trp : trp;
-
-        return;
-    }
-
-    if(trp == 21 || trp == 10)
-        trp /= 4;
-    else if(trp >= 60)
-        trp *= 4;
-    trp += trp*trp/5;
-
-    if(material[!king_color]/100 - pieces[!king_color] < 24)
-        trp /= 2;
-
-    auto kw = KingWeakness(king_color);
-    if(trp <= 6)
-        kw /= 2;
-    else if(kw >= 40)
-        trp *= 2;
-
-    if(trp > 500)
-        trp = 500;
-    // if able to castle
-    if(k2chess::state[ply].castling_rights & (0x0C >> 2*king_color))
-        kw /= 4;
-    else
-        kw = (material[!king_color]/100 + 24)*kw/72;
-
-    auto ans = -3*(kw + trp)/2;
-
-    val_opn += king_color ? ans : -ans;
-}
-
 
 
 
@@ -1004,11 +779,6 @@ k2eval::k2eval() : material_values_opn {0, 0, queen_val_opn, rook_val_opn,
             bishop_val_opn, kinght_val_opn, pawn_val_opn},
     material_values_end {0, 0, queen_val_end, rook_val_end,
                            bishop_val_end, kinght_val_end, pawn_val_end},
-    tropism_factor  //  k  Q   R   B   N   P
-{
-    {0, 0, 10, 10, 10,  4, 4},  // 4 >= dist > 3
-    {0, 0, 21, 21, 10,  0, 10}  // dist < 3
-},
 pst
 {
     {
@@ -1169,9 +939,6 @@ pst
     p_max[9][white] = 0;
     p_min[9][black] = 7;
     p_min[9][white] = 7;
-
-    king_tropism[white] = 0;
-    king_tropism[black] = 0;
 }
 
 

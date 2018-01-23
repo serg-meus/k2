@@ -71,8 +71,6 @@ protected:
     rank_t (*pawn_max)[sides], (*pawn_min)[sides];
     eval_t material_values_opn[piece_types + 1];
     eval_t material_values_end[piece_types + 1];
-    dist_t king_tropism[sides];
-    dist_t tropism_factor[2][7];
 
     const pst_t pst[piece_types][sides][board_height][board_width];
 //    std::vector<float> tuning_factors;
@@ -99,7 +97,6 @@ protected:
     {
         eval_t val_opn;
         eval_t val_end;
-        dist_t tropism[sides];
     };
 
     state_s e_state[prev_states + max_ply]; // eval state for each ply depth
@@ -114,23 +111,10 @@ protected:
     bool MakeMove(const move_c m);
     void TakebackMove(const move_c m);
 
-    void MkEvalAfterFastMove(const move_c m)
-    {
-        state[ply - 1].val_opn = val_opn;
-        state[ply - 1].val_end = val_end;
-
-        auto from_coord = k2chess::state[ply].from_coord;
-
-        MoveKingTropism(from_coord, m, wtm);
-
-        MovePawnStruct(b[m.to_coord], from_coord, m);
-    }
-
     eval_t ReturnEval(const bool stm) const
     {
         i32 X, Y;
         X = material[0]/100 + 1 + material[1]/100 + 1 - pieces[0] - pieces[1];
-
         Y = ((val_opn - val_end)*X + 80*val_end)/80;
         return stm ? (eval_t)(Y) : (eval_t)(-Y);
     }
@@ -159,14 +143,9 @@ private:
     void EvalPawns(const bool stm);
     bool IsUnstoppablePawn(const coord_t col, const bool side_of_pawn,
                            const bool stm) const;
-    void KingSafety(const bool king_color);
     void MaterialImbalances();
-    eval_t KingWeakness(const bool king_color);
-    eval_t CountKingTropism(const bool king_color);
-    void MoveKingTropism(const coord_t from_coord, const move_c move,
-                         const bool king_color);
-    eval_t KingOpenFiles(const bool king_color);
     void MovePawnStruct(const piece_t movedPiece, const coord_t from_coord,
                         const move_c m);
     void MobilityEval(bool stm);
+    void KingSafety(const bool king_color);
 };

@@ -117,12 +117,6 @@ protected:
         hash_key = doneHashKeys[FIFTY_MOVES + ply];
     }
 
-    void MkMoveIncrementally(move_c m, bool special_move)
-    {
-        MkEvalAfterFastMove(m);
-        MoveHashKey(m, special_move);
-    }
-
 
 private:
 
