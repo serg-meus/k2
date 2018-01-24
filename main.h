@@ -1,6 +1,10 @@
 #include "engine.h"
 #include <thread>
 
+#ifndef NDEBUG
+    #define DONT_USE_THREAD_FOR_INPUT
+#endif
+
 
 
 
