@@ -1528,11 +1528,6 @@ k2chess::move_c k2engine::Next(move_c *move_array, movcr_t cur_move,
             }
         assert(i < *max_moves);
     }
-
-    if(only_captures)  // already sorted
-        return move_array[cur_move];
-
-
     auto max_score = 0;
     auto max_index = cur_move;
 
