@@ -160,6 +160,8 @@ protected:
 
     void MakeMove(const move_c move)
     {
+        state[ply].to_coord = move.to_coord;
+        state[ply].priority = move.priority;
         k2hash::MakeMove(move);
     }
 
