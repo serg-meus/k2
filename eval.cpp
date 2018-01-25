@@ -750,6 +750,47 @@ void k2eval::TakebackMove(const move_c m)
 
 
 //-----------------------------
+bool k2eval::Sheltered(const coord_t k_col, coord_t k_row,
+                       const bool stm)
+{
+    if(!col_within(k_col))
+        return false;
+    if((stm && k_row >= max_row - 1) || (!stm && k_row < 1))
+        return false;
+    const auto shft = stm ? board_width : -board_width;
+    const auto coord = get_coord(k_col, k_row);
+    const auto p = black_pawn ^ stm;
+    if(b[coord + shft] == p ||
+            (get_color_and_not_empty(b[coord + shft]) == stm &&
+             get_color_and_not_empty(b[coord + 2*shft]) == stm))
+        return true;
+    return false;
+}
+
+
+
+
+
+//-----------------------------
+k2chess::eval_t k2eval::KingShelter(const coord_t k_col, coord_t k_row,
+                           const bool stm)
+{
+    const i32 cstl[] = {black_can_castle_left | black_can_castle_right,
+                        white_can_castle_left | white_can_castle_right};
+    if(quantity[!stm][queen] == 0 ||
+            k2chess::state[ply].castling_rights & cstl[stm])
+        return 0;
+    if(!Sheltered(k_col, k_row, stm))
+        return king_no_shelter;
+    if(!Sheltered(k_col - 1, k_row, stm) || !Sheltered(k_col - 1, k_row, stm))
+        return king_no_shelter;
+    return 0;
+}
+
+
+
+
+//-----------------------------
 void k2eval::KingSafety(const bool stm)
 {
     auto ans = 0;
@@ -768,6 +809,7 @@ void k2eval::KingSafety(const bool stm)
             ans += __builtin_popcount(attacks[!stm][target]);
         }
     ans = 8*ans + ans*ans;
+    ans -= KingShelter(k_col, k_row, stm);
     val_opn += stm ? -ans : ans;
 }
 

@@ -63,7 +63,8 @@ protected:
     pawn_pass_opn_divider = 3,
     pawn_pass_connected = 28,
     pawn_unstoppable_1 = 120,
-    pawn_unstoppable_2 = 350;
+    pawn_unstoppable_2 = 350,
+    king_no_shelter = -47;
 
     eval_t val_opn, val_end;
     eval_t initial_score;
@@ -148,4 +149,8 @@ private:
                         const move_c m);
     void MobilityEval(bool stm);
     void KingSafety(const bool king_color);
+    eval_t KingShelter(const coord_t k_col, coord_t k_row,
+                       const bool stm);
+    bool Sheltered(const coord_t k_col, coord_t k_row,
+                           const bool stm);
 };
