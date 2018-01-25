@@ -69,7 +69,7 @@ void k2main::start()
         }
         else if(!busy && LooksLikeMove((std::string)in))
         {
-            if(!MakeMoveFinaly(in))
+            if(!MakeMove(in))
                 std::cout << "Illegal move" << std::endl;
             else if(!force)
             {
@@ -692,7 +692,7 @@ void k2main::ProcessMoveSequence(std::string in)
         GetFirstArg(arg1, &arg1, &arg2);
         if(arg1.empty())
             break;
-        if(!MakeMoveFinaly((char *)arg1.c_str()))
+        if(!MakeMove((char *)arg1.c_str()))
             break;
         arg1 = arg2;
     }

@@ -232,13 +232,13 @@ void k2movegen::AppriceMoves(move_c * const move_array, const movcr_t moveCr,
         }
         else
         {
-            auto src = piece_values[get_type(fr_sq)]/10;
-            auto dst =  piece_values[get_type(to_sq)]/10;
+            auto src = values[get_type(fr_sq)]/10;
+            auto dst =  values[get_type(to_sq)]/10;
             if(!(m.flag & is_capture))
                 dst = 0;
             if(dst && dst - src <= 0)
             {
-                auto tmp = SEE_main(m)/10;
+                auto tmp = StaticExchangeEval(m)/10;
                 dst = tmp;
                 src = 0;
             }
@@ -340,7 +340,7 @@ k2chess::eval_t k2movegen::SEE(const coord_t to_coord, const eval_t fr_value,
     val -= fr_value;
     const auto tmp1 = -val;
     wtm = !wtm;
-    const auto tmp2 = -SEE(to_coord, piece_values[type], -val, stm);
+    const auto tmp2 = -SEE(to_coord, values[type], -val, stm);
     wtm = !wtm;
     val = std::min(tmp1, tmp2);
 
@@ -365,15 +365,15 @@ size_t k2movegen::SeeMinAttacker(const coord_t to_coord)
 
 
 //-----------------------------
-k2chess::eval_t k2movegen::SEE_main(const move_c move)
+k2chess::eval_t k2movegen::StaticExchangeEval(const move_c move)
 {
     const auto it = coords[wtm].at(move.piece_index);
     const auto fr_piece = b[*it];
     const auto to_piece = b[move.to_coord];
     const auto fr_type = get_type(fr_piece);
     const auto to_type = get_type(to_piece);
-    const auto src = piece_values[fr_type];
-    const auto dst = (move.flag & is_capture) ? piece_values[to_type] : 0;
+    const auto src = values[fr_type];
+    const auto dst = (move.flag & is_capture) ? values[to_type] : 0;
     const auto store_att1 = attacks[wtm][move.to_coord];
     const auto store_att2 = attacks[!wtm][move.to_coord];
 
@@ -541,52 +541,52 @@ void k2movegen::RunUnitTests()
 
     SetupPosition("1b3rk1/4n2p/6p1/5p2/6P1/3B2N1/6PP/5RK1 w - - 0 1");
     auto move = MoveFromStr("g4f5");
-    assert(SEE_main(move) == piece_values[pawn]);
+    assert(StaticExchangeEval(move) == values[pawn]);
     SetupPosition("2b2rk1/4n2p/6p1/5p2/6P1/3B2N1/6PP/5RK1 w - - 0 1");
     move = MoveFromStr("g4f5");
-    assert(SEE_main(move) == 0);
+    assert(StaticExchangeEval(move) == 0);
     SetupPosition("B2r2k1/4nb2/1N3n2/3R4/8/2N5/8/3R2K1 b - - 0 1");
     move = MoveFromStr("e7d5");
-    assert(SEE_main(move) == piece_values[rook] - piece_values[knight]);
+    assert(StaticExchangeEval(move) == values[rook] - values[knight]);
     move = MoveFromStr("f6d5");
-    assert(SEE_main(move) == piece_values[rook] - piece_values[knight]);
+    assert(StaticExchangeEval(move) == values[rook] - values[knight]);
     move = MoveFromStr("f7d5");
-    assert(SEE_main(move) == piece_values[rook] - piece_values[bishop]);
+    assert(StaticExchangeEval(move) == values[rook] - values[bishop]);
     move = MoveFromStr("d8d5");
-    assert(SEE_main(move) == 0);
+    assert(StaticExchangeEval(move) == 0);
     SetupPosition("3rk3/8/8/8/8/8/8/3QK3 w - - 0 1");
     move = MoveFromStr("d1d8");
-    assert(SEE_main(move) == piece_values[rook] - piece_values[queen]);
+    assert(StaticExchangeEval(move) == values[rook] - values[queen]);
     SetupPosition("q2b1rk1/5pp1/n6p/8/2Q5/7P/3P2P1/2R2BK1 w - - 0 1");
     move = MoveFromStr("c4a6");
-    assert(SEE_main(move) == piece_values[knight]);
+    assert(StaticExchangeEval(move) == values[knight]);
     assert(MakeMove("d2d3"));
     assert(MakeMove("h6h5"));
-    assert(SEE_main(move) == piece_values[knight] - piece_values[queen]);
+    assert(StaticExchangeEval(move) == values[knight] - values[queen]);
     SetupPosition("r1b3k1/4nr1p/5qp1/5p2/6P1/3B1RN1/5RPP/5QK1 w - - 0 1");
     move = MoveFromStr("g4f5");
-    assert(SEE_main(move) == piece_values[pawn]);
+    assert(StaticExchangeEval(move) == values[pawn]);
     SetupPosition("r1b3k1/4nr1p/5qp1/5p2/6P1/3R1RN1/5BPP/5QK1 w - - 0 1");
     move = MoveFromStr("g4f5");
-    assert(SEE_main(move) == 0);
+    assert(StaticExchangeEval(move) == 0);
     SetupPosition("5rk1/5q2/5r2/8/8/5R2/5R2/5QK1 w - - 0 1");
     move = MoveFromStr("f3f6");
-    assert(SEE_main(move) == piece_values[rook]);
+    assert(StaticExchangeEval(move) == values[rook]);
     SetupPosition("5rk1/5q2/5r2/8/8/5R2/5B2/5QK1 w - - 0 1");
     move = MoveFromStr("f3f6");
-    assert(SEE_main(move) == 0);
+    assert(StaticExchangeEval(move) == 0);
     SetupPosition("3bn1k1/3np1p1/rpqr1p2/4P1PN/6NB/5R2/5RPP/5QK1 w - - 0 1");
     move = MoveFromStr("e5f6");
-    assert(SEE_main(move) == piece_values[pawn]);
+    assert(StaticExchangeEval(move) == values[pawn]);
     move = MoveFromStr("g5f6");
-    assert(SEE_main(move) == piece_values[pawn]);
+    assert(StaticExchangeEval(move) == values[pawn]);
     move = MoveFromStr("h5f6");
-    assert(SEE_main(move) == 2*piece_values[pawn] - piece_values[knight]);
+    assert(StaticExchangeEval(move) == 2*values[pawn] - values[knight]);
     SetupPosition("5b2/8/8/2k5/1p6/2P5/3B4/4K3 w - - 0 1");
     move = MoveFromStr("c3b4");
-    assert(SEE_main(move) == piece_values[pawn]);
+    assert(StaticExchangeEval(move) == values[pawn]);
     SetupPosition("5b2/8/8/k7/1p6/2P5/3B4/4K3 w - - 0 1");
     move = MoveFromStr("c3b4");
-    assert(SEE_main(move) == 0);
+    assert(StaticExchangeEval(move) == 0);
 }
 #endif // NDEBUG

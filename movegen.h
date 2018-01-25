@@ -59,7 +59,7 @@ protected:
     history_t min_history, max_history;
 
     movcr_t GenMoves(move_c * const move_array, const bool only_captures);
-    eval_t SEE_main(const move_c m);
+    eval_t StaticExchangeEval(const move_c m);
     void AppriceMoves(move_c * const move_array, const movcr_t moveCr,
                       move_c * const best_move);
 

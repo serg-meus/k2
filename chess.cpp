@@ -26,15 +26,15 @@ k2chess::k2chess() :
             { 2,  1, -1, -2, -2, -1,  1,  2},  // knight
         },
        is_slider{false, false, true, true, true, false, false},
-       piece_values{0, 15000, 1200, 600, 410, 400, 100}
+       values{0, 15000, 1200, 600, 410, 400, 100}
 {
     cv = cur_moves;
     memset(b_state, 0, sizeof(b_state));
     state = &b_state[prev_states];
     coords[black].board = b;
-    coords[black].piece_values = piece_values;
+    coords[black].values = values;
     coords[white].board = b;
-    coords[white].piece_values = piece_values;
+    coords[white].values = values;
     max_ray_length = std::max((size_t)board_height, (size_t)board_width);
 
     SetupPosition(start_position);
@@ -609,7 +609,7 @@ char* k2chess::ParseMainPartOfFen(char *ptr)
                 b[get_coord(col, row)] = piece;
                 auto color = get_color(piece);
                 if(get_type(piece) != king)
-                    material[color] += piece_values[get_type(piece)];
+                    material[color] += values[get_type(piece)];
                 pieces[color]++;
             }
             ptr++;
@@ -879,13 +879,13 @@ void k2chess::MakeCapture(const move_c move)
     if (move.flag & is_en_passant)
     {
         to_coord += wtm ? -board_width : board_width;
-        material[!wtm] -= piece_values[pawn];
+        material[!wtm] -= values[pawn];
         quantity[!wtm][pawn]--;
     }
     else
     {
         const auto piece_index = get_type(state[ply].captured_piece);
-        material[!wtm] -= piece_values[piece_index];
+        material[!wtm] -= values[piece_index];
         quantity[!wtm][piece_index]--;
     }
     auto id = find_piece(!wtm, to_coord);
@@ -907,7 +907,7 @@ void k2chess::TakebackCapture(const move_c move)
 
     if(move.flag & is_en_passant)
     {
-        material[!wtm] += piece_values[pawn];
+        material[!wtm] += values[pawn];
         quantity[!wtm][pawn]++;
         if(wtm)
         {
@@ -923,7 +923,7 @@ void k2chess::TakebackCapture(const move_c move)
     else
     {
         const auto capt_index = get_type(state[ply].captured_piece);
-        material[!wtm] += piece_values[capt_index];
+        material[!wtm] += values[capt_index];
         quantity[!wtm][capt_index]++;
     }
 
@@ -944,7 +944,7 @@ void k2chess::MakePromotion(const move_c move)
     const auto piece = pcs[piece_num];
     const auto type = get_type(piece);
     b[move.to_coord] = set_color(piece, wtm);
-    material[wtm] += piece_values[type] - piece_values[pawn];
+    material[wtm] += values[type] - values[pawn];
     quantity[wtm][pawn]--;
     quantity[wtm][type]++;
     reversible_moves = 0;
@@ -964,7 +964,7 @@ void k2chess::TakebackPromotion(const move_c move)
     piece_t pcs[] = {0, black_queen, black_knight, black_rook, black_bishop};
     const move_flag_t piece_num = move.flag & is_promotion;
     const auto type = get_type(pcs[piece_num]);
-    material[wtm] -= (piece_values[type] - piece_values[pawn]);
+    material[wtm] -= (values[type] - values[pawn]);
     quantity[wtm][pawn]++;
     quantity[wtm][type]--;
     slider_mask[wtm] = state[ply].slider_mask;
@@ -1727,12 +1727,10 @@ void k2chess::RunUnitTests()
     assert(reversible_moves == 0);
     assert(quantity[white][pawn] == 8);
     assert(quantity[black][pawn] == 7);
-    assert(material[white] == 8*piece_values[pawn] + piece_values[queen] +
-           2*piece_values[rook] + 2*piece_values[bishop] +
-           2*piece_values[knight]);
-    assert(material[black] == 7*piece_values[pawn] + piece_values[queen] +
-           2*piece_values[rook] + 2*piece_values[bishop] +
-           2*piece_values[knight]);
+    assert(material[white] == 8*values[pawn] + values[queen] +
+           2*values[rook] + 2*values[bishop] + 2*values[knight]);
+    assert(material[black] == 7*values[pawn] + values[queen] +
+           2*values[rook] + 2*values[bishop] + 2*values[knight]);
     assert(pieces[white] == 16);
     assert(pieces[black] == 15);
     assert(find_piece(black, get_coord("d5")) == -1U);
@@ -1763,12 +1761,12 @@ void k2chess::RunUnitTests()
     assert(quantity[black][knight] == 1);
     assert(quantity[white][queen] == 0);
     assert(quantity[black][queen] == 0);
-    assert(material[white] == 7*piece_values[pawn] +
-           2*piece_values[rook] + piece_values[bishop] +
-           2*piece_values[knight]);
-    assert(material[black] == 7*piece_values[pawn] +
-           2*piece_values[rook] + 2*piece_values[bishop] +
-           piece_values[knight]);
+    assert(material[white] == 7*values[pawn] +
+           2*values[rook] + values[bishop] +
+           2*values[knight]);
+    assert(material[black] == 7*values[pawn] +
+           2*values[rook] + 2*values[bishop] +
+           values[knight]);
     assert(pieces[white] == 13);
     assert(pieces[black] == 13);
 
@@ -1810,15 +1808,15 @@ void k2chess::RunUnitTests()
     assert(quantity[white][queen] = 1);
     assert(pieces[white] = 2);
     assert(pieces[black] = 3);
-    assert(material[white] == piece_values[queen]);
-    assert(material[black] == piece_values[knight] + piece_values[rook]);
+    assert(material[white] == values[queen]);
+    assert(material[black] == values[knight] + values[rook]);
     assert(reversible_moves == 0);
 
     assert(TakebackMove());
     assert(b[get_coord("d7")] == white_pawn);
     assert(b[get_coord("d8")] == empty_square);
-    assert(material[white] == piece_values[pawn]);
-    assert(material[black] == piece_values[knight] + piece_values[rook]);
+    assert(material[white] == values[pawn]);
+    assert(material[black] == values[knight] + values[rook]);
     assert(quantity[white][pawn] == 1);
     assert(quantity[white][queen] == 0);
     assert(reversible_moves == 4);
@@ -1832,8 +1830,8 @@ void k2chess::RunUnitTests()
     assert(quantity[white][queen] = 1);
     assert(pieces[white] = 2);
     assert(pieces[black] = 3);
-    assert(material[white] == piece_values[queen]);
-    assert(material[black] == piece_values[knight] + piece_values[rook]);
+    assert(material[white] == values[queen]);
+    assert(material[black] == values[knight] + values[rook]);
     assert(reversible_moves == 0);
 
     assert(TakebackMove());
@@ -1844,8 +1842,8 @@ void k2chess::RunUnitTests()
     assert(quantity[white][bishop] == 1);
     assert(pieces[white] = 2);
     assert(pieces[black] = 2);
-    assert(material[white] == piece_values[bishop]);
-    assert(material[black] == piece_values[knight]);
+    assert(material[white] == values[bishop]);
+    assert(material[black] == values[knight]);
     assert(reversible_moves == 0);
 
     assert(SetupPosition("k7/8/8/8/8/7K/3p4/2N1R3 b - - 0 1"));
@@ -1856,8 +1854,8 @@ void k2chess::RunUnitTests()
     assert(quantity[black][rook] == 1);
     assert(pieces[white] = 2);
     assert(pieces[black] = 2);
-    assert(material[white] == piece_values[rook]);
-    assert(material[black] == piece_values[rook]);
+    assert(material[white] == values[rook]);
+    assert(material[black] == values[rook]);
     assert(reversible_moves == 0);
 
     assert(TakebackMove());
@@ -1868,8 +1866,8 @@ void k2chess::RunUnitTests()
     assert(quantity[black][knight] == 1);
     assert(pieces[white] = 2);
     assert(pieces[black] = 2);
-    assert(material[white] == piece_values[rook]);
-    assert(material[black] == piece_values[knight]);
+    assert(material[white] == values[rook]);
+    assert(material[black] == values[knight]);
     assert(reversible_moves == 0);
 
     assert(TakebackMove());

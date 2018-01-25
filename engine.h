@@ -61,8 +61,8 @@ public:
 protected:
 
 
-    const char *stop_str;
-    depth_t stop_ply;
+    const char *debug_variation;
+    depth_t debug_ply;
 
     Timer timer;
     double time0;
@@ -99,7 +99,7 @@ public:
 
     void MainSearch();
     void Perft(depth_t depth);
-    bool MakeMoveFinaly(char *mov);
+    bool MakeMove(const char *mov);
     bool SetupPosition(const char *fen);
     void ShowFen();
     void ReHash(size_t size_mb);
@@ -141,14 +141,19 @@ protected:
     bool DrawByRepetition();
     bool HashProbe(depth_t depth, eval_t *alpha, eval_t beta,
                             hash_entry_s **entry);
-    bool MoveIsPseudoLegal(move_c &m, bool stm);
-    move_c Next(move_c *move_array, movcr_t cur, movcr_t *top,
+    move_c NextMove(move_c *move_array, movcr_t cur, movcr_t *top,
                 hash_entry_s *entry, bool captures_only, move_c prev_move);
     void StoreInHash(depth_t depth, eval_t score, move_c best_move,
                            hbound_t bound);
     void ShowCurrentUciInfo();
     void MoveToStr(move_c m, bool stm, char *out);
     void ShowPVfailHighOrLow(move_c m, eval_t x, char exclimation);
+    bool GetFirstMove(move_c *move_array, movcr_t *max_moves,
+                       hash_entry_s *entry, bool only_captures, move_c *ans);
+    bool GetSecondMove(move_c *move_array, movcr_t *max_moves,
+                       move_c prev_move, move_c *ans);
+    size_t FindMaxMoveIndex(move_c *move_array, movcr_t max_moves,
+                            movcr_t cur_move);
 
     void CorrectHashScore(eval_t *x, depth_t depth)
     {

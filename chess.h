@@ -65,7 +65,7 @@ protected:
     public:
 
         piece_t *board;
-        eval_t *piece_values;
+        eval_t *values;
 
         coord_t get_type(piece_t piece)  // must be as in k2chess class
         {
@@ -86,8 +86,8 @@ protected:
                 {
                     iterator it_nxt = it;
                     ++it_nxt;
-                    auto s_it = piece_values[get_type(board[*it])];
-                    auto s_nxt = piece_values[get_type(board[*it_nxt])];
+                    auto s_it = values[get_type(board[*it])];
+                    auto s_nxt = values[get_type(board[*it_nxt])];
                     if(s_it > s_nxt)
                     {
                         direct_swap(it, it_nxt);
@@ -99,8 +99,8 @@ protected:
                 {
                     iterator it_nxt = it;
                     ++it_nxt;
-                    assert(piece_values[get_type(board[*it])] >=
-                        piece_values[get_type(board[*it])]);
+                    assert(values[get_type(board[*it])] >=
+                        values[get_type(board[*it])]);
                 }
 #endif
             }
@@ -261,7 +261,7 @@ protected:
 
     // piece values for material counters,
     // move priorities and sorting piece lists
-    eval_t piece_values[piece_types + 1];
+    eval_t values[piece_types + 1];
 
     eval_t material[sides];  // material counters
     eval_t pieces[sides];  // piece counters, including kings

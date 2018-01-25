@@ -6,8 +6,8 @@
 
 k2engine::k2engine() :
     engine_version{"0.90dev"},
-    stop_str{""},
-    stop_ply{}
+    debug_variation{""},
+    debug_ply{}
 {
     busy = false;
     uci = false;
@@ -110,7 +110,7 @@ k2chess::eval_t k2engine::Search(depth_t depth, eval_t alpha, eval_t beta,
 
     for(; move_cr < max_moves; move_cr++)
     {
-        cur_move = Next(move_array, move_cr, &max_moves,
+        cur_move = NextMove(move_array, move_cr, &max_moves,
                         entry, all_moves, cur_move);
         if(max_moves <= 0)
             break;
@@ -121,7 +121,8 @@ k2chess::eval_t k2engine::Search(depth_t depth, eval_t alpha, eval_t beta,
             break;
         MakeMove(cur_move);
 #ifndef NDEBUG
-        if((!stop_ply || root_ply == stop_ply) && strcmp(stop_str, cv) == 0)
+        if((!debug_ply || root_ply == debug_ply) &&
+                strcmp(debug_variation, cv) == 0)
             std::cout << "( breakpoint )" << std::endl;
 #endif // NDEBUG
 
@@ -219,7 +220,7 @@ k2chess::eval_t k2engine::QSearch(eval_t alpha, eval_t beta)
 
     for(; move_cr < max_moves; move_cr++)
     {
-        move_c cur_move = Next(move_array, move_cr, &max_moves,
+        move_c cur_move = NextMove(move_array, move_cr, &max_moves,
                                nullptr, captures_only, cur_move);
         if(max_moves <= 0)
             break;
@@ -233,7 +234,7 @@ k2chess::eval_t k2engine::QSearch(eval_t alpha, eval_t beta)
                 && !(cur_move.flag & is_promotion))
         {
             auto cur_eval = ReturnEval(wtm);
-            auto capture = piece_values[get_type(b[cur_move.to_coord])];
+            auto capture = values[get_type(b[cur_move.to_coord])];
             auto margin = 100;
             if(cur_eval + capture + margin < alpha)
                 break;
@@ -241,7 +242,8 @@ k2chess::eval_t k2engine::QSearch(eval_t alpha, eval_t beta)
         MakeMove(cur_move);
         legal_moves++;
 #ifndef NDEBUG
-        if((!stop_ply || root_ply == stop_ply) && strcmp(stop_str, cv) == 0)
+        if((!debug_ply || root_ply == debug_ply) &&
+                strcmp(debug_variation, cv) == 0)
             std::cout << "( breakpoint )" << std::endl;
 #endif // NDEBUG
         if(get_type(k2chess::state[ply].captured_piece) == king)
@@ -297,7 +299,7 @@ void k2engine::Perft(depth_t depth)
 
         k2chess::MakeMove(cur_move);
 #ifndef NDEBUG
-        if(strcmp(stop_str, cv) == 0)
+        if(strcmp(debug_variation, cv) == 0)
             std::cout << "( breakpoint )" << std::endl;
 #endif // NDEBUG
         if(depth > 1)
@@ -375,8 +377,6 @@ void k2engine::UpdateStatistics(move_c move, depth_t depth,
 //--------------------------------
 void k2engine::MainSearch()
 {
-//    return;
-
     busy = true;
     InitSearch();
 
@@ -491,7 +491,7 @@ k2chess::eval_t k2engine::RootSearch(depth_t depth, eval_t alpha,
         nodes++;
 
 #ifndef NDEBUG
-        if(strcmp(stop_str, cv) == 0 && (!stop_ply || root_ply == stop_ply))
+        if(strcmp(debug_variation, cv) == 0 && (!debug_ply || root_ply == debug_ply))
             std::cout << "( breakpoint )" << std::endl;
 #endif // NDEBUG
 
@@ -625,7 +625,7 @@ void k2engine::RootMoveGen()
 
     for(movcr_t move_cr = 0; move_cr < max_moves; move_cr++)
     {
-        cur_move = Next(move_array, move_cr, &max_moves,
+        cur_move = NextMove(move_array, move_cr, &max_moves,
                         nullptr, all_moves, cur_move);
     }
 
@@ -736,7 +736,7 @@ void k2engine::PrintFinalSearchResult()
     char move_str[6];
     MoveToStr(pv[0][1], wtm, move_str);
 
-    if(!uci && !MakeMoveFinaly(move_str))
+    if(!uci && !MakeMove(move_str))
         std::cout << "tellusererror err01"
                   << std::endl << "resign" << std::endl;
 
@@ -1059,7 +1059,7 @@ void k2engine::FindAndPrintForAmbiguousMoves(move_c move)
 
 
 //-----------------------------
-bool k2engine::MakeMoveFinaly(char *move_str)
+bool k2engine::MakeMove(const char *move_str)
 {
     auto ln = strlen(move_str);
     if(ln < 4 || ln > 5)
@@ -1207,7 +1207,7 @@ void k2engine::MakeNullMove()
 {
 #ifndef NDEBUG
     strcpy(&cur_moves[5*ply], "NULL ");
-    if((!stop_ply || root_ply == stop_ply) && strcmp(stop_str, cv) == 0)
+    if((!debug_ply || root_ply == debug_ply) && strcmp(debug_variation, cv) == 0)
         std::cout << "( breakpoint )" << std::endl;
 #endif // NDEBUG
 
@@ -1454,84 +1454,99 @@ bool k2engine::HashProbe(depth_t depth, eval_t *alpha,
 
 
 //--------------------------------
-k2chess::move_c k2engine::Next(move_c *move_array, movcr_t cur_move,
-                               movcr_t *max_moves, hash_entry_s *entry,
-                               bool only_captures, move_c prev_move)
+bool k2engine::GetFirstMove(move_c *move_array, movcr_t *max_moves,
+                             hash_entry_s *entry, bool only_captures,
+                             move_c *ans)
 {
-    move_c ans;
-    if(cur_move == 0)
+    if(entry == nullptr)
     {
-        if(entry == nullptr)
+        if(!only_captures)
+            *max_moves = GenAllMoves(move_array);
+        else
+            *max_moves = GenMoves(move_array, true);
+
+        AppriceMoves(move_array, *max_moves, nullptr);
+
+        if(*max_moves > 1
+                && move_array[0].priority > bad_captures
+                && move_array[0].priority == move_array[1].priority)
         {
-            if(!only_captures)
-                *max_moves = GenAllMoves(move_array);
-            else
-                *max_moves = GenMoves(move_array, true);
+            if(StaticExchangeEval(move_array[0]) <
+                    StaticExchangeEval(move_array[1]))
+                std::swap(move_array[0], move_array[1]);
+        }
+    }
+    else
+    {
+        *ans = entry->best_move;
 
-            AppriceMoves(move_array, *max_moves, nullptr);
-
-            if(*max_moves > 1
-                    && move_array[0].priority > bad_captures
-                    && move_array[0].priority == move_array[1].priority)
-            {
-                if(SEE_main(move_array[0]) < SEE_main(move_array[1]))
-                    std::swap(move_array[0], move_array[1]);
-            }
+        bool pseudo_legal = IsPseudoLegal(*ans);
+#ifndef NDEBUG
+        auto mx_ = GenAllMoves(move_array);
+        auto i = 0;
+        for(; i < mx_; ++i)
+            if(move_array[i] == *ans)
+                break;
+        bool tt_move_found = i < mx_;
+        if(tt_move_found != pseudo_legal)
+        {
+            IsPseudoLegal(*ans);
+            GenAllMoves(move_array);
+        }
+        assert(tt_move_found == pseudo_legal);
+#endif
+        if(pseudo_legal)
+        {
+            ans->priority = move_from_hash;
+            return true;
         }
         else
         {
-            ans = entry->best_move;
-
-            bool pseudo_legal = IsPseudoLegal(ans);
-#ifndef NDEBUG
-            auto mx_ = GenAllMoves(move_array);
-            auto i = 0;
-            for(; i < mx_; ++i)
-                if(move_array[i] == ans)
-                    break;
-            bool tt_move_found = i < mx_;
-            if(tt_move_found != pseudo_legal)
-            {
-                IsPseudoLegal(ans);
-                GenAllMoves(move_array);
-            }
-            assert(tt_move_found == pseudo_legal);
-#endif
-            if(pseudo_legal)
-            {
-                ans.priority = move_from_hash;
-                return ans;
-            }
-            else
-            {
-                entry = nullptr;
-                *max_moves = GenAllMoves(move_array);
-            }
+            entry = nullptr;
+            *max_moves = GenAllMoves(move_array);
         }
     }
-    else if(cur_move == 1 && entry != nullptr)
+    return false;
+}
+
+
+
+
+//--------------------------------
+bool k2engine::GetSecondMove(move_c *move_array, movcr_t *max_moves,
+                             move_c prev_move, move_c *ans)
+{
+    *max_moves = GenAllMoves(move_array);
+    AppriceMoves(move_array, *max_moves, &prev_move);
+
+    if(*max_moves <= 1)
     {
-        *max_moves = GenAllMoves(move_array);
-        AppriceMoves(move_array, *max_moves, &prev_move);
-
-        if(*max_moves <= 1)
-        {
-            *max_moves = 0;
-            return move_array[0];
-        }
-        auto i = 0;
-        for(; i < *max_moves; i++)
-            if(move_array[i].priority == move_from_hash)
-            {
-                std::swap(move_array[0], move_array[i]);
-                break;
-            }
-        assert(i < *max_moves);
+        *max_moves = 0;
+        *ans = move_array[0];
+        return true;
     }
+    auto i = 0;
+    for(; i < *max_moves; i++)
+        if(move_array[i].priority == move_from_hash)
+        {
+            std::swap(move_array[0], move_array[i]);
+            break;
+        }
+    assert(i < *max_moves);
+    return false;
+}
+
+
+
+
+
+//--------------------------------
+size_t k2engine::FindMaxMoveIndex(move_c *move_array, movcr_t max_moves,
+                                  movcr_t cur_move)
+{
     auto max_score = 0;
     auto max_index = cur_move;
-
-    for(auto i = cur_move; i < *max_moves; i++)
+    for(auto i = cur_move; i < max_moves; i++)
     {
         auto score = move_array[i].priority;
         if(score > max_score)
@@ -1540,13 +1555,32 @@ k2chess::move_c k2engine::Next(move_c *move_array, movcr_t cur_move,
             max_index = i;
         }
     }
-    ans = move_array[max_index];
-    if(max_index != cur_move)
+    return max_index;
+}
+
+
+
+
+
+//--------------------------------
+k2chess::move_c k2engine::NextMove(move_c *move_array, movcr_t cur_move,
+                               movcr_t *max_moves, hash_entry_s *entry,
+                               bool only_captures, move_c prev_move)
+{
+    move_c ans;
+    if(cur_move == 0)
     {
-        move_array[max_index] = move_array[cur_move];
-        move_array[cur_move] = ans;
+        if(GetFirstMove(move_array, max_moves, entry, only_captures, &ans))
+            return ans;
     }
-    return ans;
+    else if(cur_move == 1 && entry != nullptr)
+    {
+        if(GetSecondMove(move_array, max_moves, prev_move, &ans))
+            return ans;
+    }
+    auto max_index = FindMaxMoveIndex(move_array, *max_moves, cur_move);
+    std::swap(move_array[max_index], move_array[cur_move]);
+    return move_array[cur_move];
 }
 
 
