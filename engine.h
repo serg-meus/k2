@@ -122,7 +122,7 @@ protected:
                    node_type_t node_type);
     eval_t QSearch(eval_t alpha, eval_t beta);
     void StorePV(move_c m);
-    void UpdateStatistics(move_c m, depth_t dpt, movcr_t legal_moves,
+    void UpdateStatistics(move_c m, depth_t dpt, movcr_t move_cr,
                           hash_entry_s *entry);
     eval_t RootSearch(depth_t depth, eval_t alpha, eval_t beta);
     void RootMoveGen();

@@ -87,12 +87,13 @@ private:
                   const coord_t it, const coord_t to_coord,
                   const move_flag_t flag)
     {
-        move_c m;
-        m.piece_index = it;
-        m.to_coord = to_coord;
-        m.flag = flag;
+        move_c move;
+        move.piece_index = it;
+        move.to_coord = to_coord;
+        move.flag = flag;
 
-        move_array[(*movCr)++] = m;
+        if(IsLegal(move))
+            move_array[(*movCr)++] = move;
     }
 
     void ProcessSeeBatteries(coord_t to_coord, coord_t attacker_coord);

@@ -105,8 +105,7 @@ k2chess::eval_t k2engine::Search(depth_t depth, eval_t alpha, eval_t beta,
         CheckForInterrupt();
 
     move_c move_array[move_array_size], cur_move;
-    movcr_t move_cr = 0, legal_moves = 0, first_legal = 0;
-    movcr_t max_moves = init_max_moves;
+    movcr_t move_cr = 0, max_moves = init_max_moves;
 
     for(; move_cr < max_moves; move_cr++)
     {
@@ -114,10 +113,8 @@ k2chess::eval_t k2engine::Search(depth_t depth, eval_t alpha, eval_t beta,
                         entry, all_moves, cur_move);
         if(max_moves <= 0)
             break;
-        if(!IsLegal(cur_move))
-            continue;
         if(depth <= 2 && !cur_move.flag && !in_check
-                && node_type == all_node && legal_moves > 4)
+                && node_type == all_node && move_cr > 4)
             break;
         MakeMove(cur_move);
 #ifndef NDEBUG
@@ -131,15 +128,15 @@ k2chess::eval_t k2engine::Search(depth_t depth, eval_t alpha, eval_t beta,
         auto lmr = 1;
         if(depth < 3 || cur_move.flag || in_check)
             lmr = 0;
-        else if(legal_moves < 4)
+        else if(move_cr < 4)
             lmr = 0;
         else if(get_type(b[cur_move.to_coord]) == pawn
                 && IsPasser(get_col(cur_move.to_coord), !wtm))
             lmr = 0;
-        else if(depth <= 4 && legal_moves > 8)
+        else if(depth <= 4 && move_cr > 8)
             lmr = 2;
 
-        if(legal_moves == 0)
+        if(move_cr == 0)
             x = -Search(depth - 1, -beta, -alpha, -node_type);
         else if(beta > alpha + 1)
         {
@@ -155,14 +152,10 @@ k2chess::eval_t k2engine::Search(depth_t depth, eval_t alpha, eval_t beta,
         }
         TakebackMove(cur_move);
 
-        if(legal_moves == 0)
-            first_legal = move_cr;
-        legal_moves++;
-
         if(x >= beta)
         {
             StoreInHash(depth, beta, cur_move, lower_bound);
-            UpdateStatistics(cur_move, depth, legal_moves, entry);
+            UpdateStatistics(cur_move, depth, move_cr, entry);
             return beta;
         }
         else if(x > alpha)
@@ -175,14 +168,14 @@ k2chess::eval_t k2engine::Search(depth_t depth, eval_t alpha, eval_t beta,
             break;
     }
 
-    if(!legal_moves)
+    if(move_cr == 0)
     {
         pv[ply][0].flag = 0;
         return in_check ? -king_value + ply : 0;
     }
     else if(alpha == initial_alpha)
         StoreInHash(depth, initial_alpha,
-                    move_array[first_legal], upper_bound);
+                    move_array[0], upper_bound);
 
     return alpha;
 }
@@ -216,7 +209,7 @@ k2chess::eval_t k2engine::QSearch(eval_t alpha, eval_t beta)
         CheckForInterrupt();
 
     move_c move_array[move_array_size];
-    movcr_t move_cr = 0, legal_moves = 0, max_moves = init_max_moves;
+    movcr_t move_cr = 0, max_moves = init_max_moves;
 
     for(; move_cr < max_moves; move_cr++)
     {
@@ -240,7 +233,6 @@ k2chess::eval_t k2engine::QSearch(eval_t alpha, eval_t beta)
                 break;
         }
         MakeMove(cur_move);
-        legal_moves++;
 #ifndef NDEBUG
         if((!debug_ply || root_ply == debug_ply) &&
                 strcmp(debug_variation, cv) == 0)
@@ -263,8 +255,8 @@ k2chess::eval_t k2engine::QSearch(eval_t alpha, eval_t beta)
         if(x >= beta)
         {
             q_cut_cr++;
-            if(legal_moves < 1 + (sizeof(q_cut_num_cr)/sizeof(*q_cut_num_cr)))
-                q_cut_num_cr[legal_moves - 1]++;
+            if(move_cr < (sizeof(q_cut_num_cr)/sizeof(*q_cut_num_cr)))
+                q_cut_num_cr[move_cr]++;
             return beta;
         }
         else if(x > alpha)
@@ -293,10 +285,6 @@ void k2engine::Perft(depth_t depth)
             tmpCr = nodes;
 #endif
         auto cur_move = move_array[move_cr];
-
-        if(!IsLegal(cur_move))
-            continue;
-
         k2chess::MakeMove(cur_move);
 #ifndef NDEBUG
         if(strcmp(debug_variation, cv) == 0)
@@ -333,11 +321,11 @@ void k2engine::StorePV(move_c move)
 
 //-----------------------------
 void k2engine::UpdateStatistics(move_c move, depth_t depth,
-                                movcr_t legal_moves, hash_entry_s *entry)
+                                movcr_t move_cr, hash_entry_s *entry)
 {
     if(entry != nullptr && entry->best_move.flag != not_a_move)
         hash_best_move_cr++;
-    if(legal_moves == 1)
+    if(move_cr == 1)
     {
         if(entry != nullptr && entry->best_move.flag != not_a_move)
             hash_cutoff_by_best_move_cr++;
@@ -347,8 +335,6 @@ void k2engine::UpdateStatistics(move_c move, depth_t depth,
             killer2_hits++;
     }
     cut_cr++;
-    assert(legal_moves > 0);
-    movcr_t move_cr = legal_moves - 1;
     if(move_cr < sizeof(cut_num_cr)/sizeof(*cut_num_cr))
         cut_num_cr[move_cr]++;
     if(move.priority == first_killer)
@@ -633,11 +619,8 @@ void k2engine::RootMoveGen()
     for(movcr_t move_cr = 0; move_cr < max_moves; move_cr++)
     {
         cur_move = move_array[move_cr];
-        if(IsLegal(cur_move))
-        {
-            root_moves.push_back(std::pair<node_t, move_c>(0, cur_move));
-            max_root_moves++;
-        }
+        root_moves.push_back(std::pair<node_t, move_c>(0, cur_move));
+        max_root_moves++;
     }
 
     if(root_ply != 1)
