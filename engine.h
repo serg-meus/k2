@@ -89,6 +89,7 @@ protected:
     {
         coord_t to_coord;  // coordinate of last move destination
         priority_t priority;  // move priority assigned by move genererator
+        bool in_check;
     };
     state_s eng_state[prev_states + max_ply]; // engine state for each ply
     state_s *state;  // pointer to engine state

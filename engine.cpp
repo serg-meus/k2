@@ -64,6 +64,7 @@ k2chess::eval_t k2engine::Search(depth_t depth, eval_t alpha, eval_t beta,
         return 0;
     }
     bool in_check = attacks[!wtm][*king_coord[wtm]];
+    state[ply].in_check = in_check;
 
     if(depth < 0)
         depth = 0;
@@ -113,7 +114,10 @@ k2chess::eval_t k2engine::Search(depth_t depth, eval_t alpha, eval_t beta,
                         entry, all_moves, cur_move);
         if(max_moves <= 0)
             break;
+        if(max_moves == 1 && depth > 1)
+            depth++;
         if(depth <= 2 && !cur_move.flag && !in_check
+                && !state[ply - 1].in_check
                 && node_type == all_node && move_cr > 4)
             break;
         MakeMove(cur_move);
