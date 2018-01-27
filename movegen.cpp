@@ -312,7 +312,7 @@ void k2movegen::ProcessSeeBatteries(coord_t to_coord, coord_t attacker_coord)
         if(mask >> i == 0)
             break;
         const auto second_coord = *coords[wtm].at(i);
-        if(!IsOnRay(second_coord, to_coord, attacker_coord))
+        if(!IsOnRay(attacker_coord, second_coord, to_coord))
             continue;
         if(!IsSliderAttack(attacker_coord, second_coord))
             continue;

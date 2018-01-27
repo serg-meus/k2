@@ -1368,25 +1368,25 @@ bool k2chess::IsLegalCastle(const move_c move) const
 
 
 //--------------------------------
-bool k2chess::IsOnRay(const coord_t k_coord, const coord_t attacker_coord,
-                      const coord_t to_coord) const
+bool k2chess::IsOnRay(const coord_t given, const coord_t ray_coord1,
+                      const coord_t ray_coord2) const
 {
-    if(to_coord == attacker_coord)
+    if(given == ray_coord2)
         return true;
 
-    const auto col = get_col(to_coord);
-    const auto row = get_row(to_coord);
-    const auto min_col = std::min(get_col(k_coord), get_col(attacker_coord));
-    const auto min_row = std::min(get_row(k_coord), get_row(attacker_coord));
-    const auto max_col = std::max(get_col(k_coord), get_col(attacker_coord));
-    const auto max_row = std::max(get_row(k_coord), get_row(attacker_coord));
+    const auto col = get_col(given);
+    const auto row = get_row(given);
+    const auto min_col = std::min(get_col(ray_coord1), get_col(ray_coord2));
+    const auto min_row = std::min(get_row(ray_coord1), get_row(ray_coord2));
+    const auto max_col = std::max(get_col(ray_coord1), get_col(ray_coord2));
+    const auto max_row = std::max(get_row(ray_coord1), get_row(ray_coord2));
     if(col < min_col || col > max_col || row < min_row || row > max_row)
         return false;
 
-    const int delta_x1 = get_col(attacker_coord) - get_col(k_coord);
-    const int delta_y1 = get_row(attacker_coord) - get_row(k_coord);
-    const int delta_x2 = get_col(to_coord) - get_col(k_coord);
-    const int delta_y2 = get_row(to_coord) - get_row(k_coord);
+    const int delta_x1 = get_col(ray_coord2) - get_col(ray_coord1);
+    const int delta_y1 = get_row(ray_coord2) - get_row(ray_coord1);
+    const int delta_x2 = get_col(given) - get_col(ray_coord1);
+    const int delta_y2 = get_row(given) - get_row(ray_coord1);
     if(delta_x1 == 0 || delta_x2 == 0)
     {
         if(board_width*delta_x1/delta_y1 == board_width*delta_x2/delta_y2)
@@ -1452,18 +1452,12 @@ bool k2chess::IsDiscoveredAttack(const coord_t fr_coord,
         const auto attacker_coord = *it[i];
         const auto k_coord = *king_coord[wtm];
         if(fr_coord == to_coord)  // special for en_passant case
-
-
-
-
-
-
         {
             const auto type = get_type(b[attacker_coord]);
             if(b[attacker_coord] == empty_square || !is_slider[type]
                     || get_color(b[attacker_coord]) == wtm)
                 continue;
-            if(!IsOnRay(k_coord, attacker_coord, fr_coord))
+            if(!IsOnRay(fr_coord, k_coord, attacker_coord))
                 continue;
             const auto p_coord = get_coord(state[ply].en_passant_rights - 1,
                                            get_row(fr_coord));
@@ -1485,9 +1479,9 @@ bool k2chess::IsDiscoveredAttack(const coord_t fr_coord,
         }
         else
         {
-            if(!IsOnRay(k_coord, attacker_coord, fr_coord))
+            if(!IsOnRay(fr_coord, k_coord, attacker_coord))
                 continue;
-            if(IsOnRay(k_coord, attacker_coord, to_coord))
+            if(IsOnRay(to_coord, k_coord, attacker_coord))
                 continue;
             if(!IsSliderAttack(fr_coord, k_coord))
                 continue;
@@ -1522,7 +1516,7 @@ bool k2chess::IsLegal(const move_c move)
                     if(!(att_mask >> i))
                         break;
                     const auto attacker_coord = *coords[!wtm].at(i);
-                    if(IsOnRay(move.to_coord, attacker_coord, *it))
+                    if(IsOnRay( *it, move.to_coord, attacker_coord))
                         return false;
                 }
                 return true;
@@ -1567,7 +1561,7 @@ bool k2chess::IsLegal(const move_c move)
             const auto attacker_coord = *it[attacker_id];
             if(is_slider[get_type(b[attacker_coord])])
             {
-                if(IsOnRay(*king_coord[wtm], attacker_coord, move.to_coord))
+                if(IsOnRay(move.to_coord, *king_coord[wtm], attacker_coord))
                     return true;
                 else
                     return false;

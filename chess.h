@@ -293,8 +293,8 @@ protected:
     bool IsLegal(const move_c move);
     bool IsPseudoLegal(const move_c move);
     bool IsLegalCastle(const move_c move) const;
-    bool IsOnRay(const coord_t k_coord, const coord_t attacker_coord,
-                 const coord_t to_coord) const;
+    bool IsOnRay(const coord_t given, const coord_t k_coord,
+                 const coord_t attacker_coord) const;
     bool IsDiscoveredAttack(const coord_t fr_coord, const coord_t to_coord,
                             attack_t mask);
     bool IsSliderAttack(const coord_t from_coord,
