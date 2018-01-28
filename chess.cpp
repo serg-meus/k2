@@ -663,7 +663,8 @@ char *k2chess::ParseCastlingRightsInFen(char *ptr)
                 break;
         if(index >= max_index)
             return nullptr;
-        if(b[get_coord(k_col, k_row[index])] == k_piece[index] &&
+        if(*ptr != '-' &&
+                b[get_coord(k_col, k_row[index])] == k_piece[index] &&
                 b[get_coord(r_col[index], r_row[index])] == r_piece[index])
             castling_rights |= cstl_code[index];
         ptr++;
@@ -1383,24 +1384,16 @@ bool k2chess::IsOnRay(const coord_t given, const coord_t ray_coord1,
     if(col < min_col || col > max_col || row < min_row || row > max_row)
         return false;
 
-    const int delta_x1 = get_col(ray_coord2) - get_col(ray_coord1);
-    const int delta_y1 = get_row(ray_coord2) - get_row(ray_coord1);
-    const int delta_x2 = get_col(given) - get_col(ray_coord1);
-    const int delta_y2 = get_row(given) - get_row(ray_coord1);
-    if(delta_x1 == 0 || delta_x2 == 0)
-    {
-        if(board_width*delta_x1/delta_y1 == board_width*delta_x2/delta_y2)
-            return true;
-        else
-            return false;
-    }
-    else
-    {
-        if(board_width*delta_y1/delta_x1 == board_width*delta_y2/delta_x2)
-            return true;
-        else
-            return false;
-    }
+    const auto dx1 = get_col(ray_coord2) - get_col(ray_coord1);
+    const auto dy1 = get_row(ray_coord2) - get_row(ray_coord1);
+    const auto dx2 = get_col(given) - get_col(ray_coord1);
+    const auto dy2 = get_row(given) - get_row(ray_coord1);
+
+    if(dx1 != 0 && dy1 != 0 && std::abs(dx1) != std::abs(dy1))
+        return false;
+    if(dx2 != 0 && dy2 != 0 && std::abs(dx2) != std::abs(dy2))
+        return false;
+    return sgn(dx1) == sgn(dx2) && sgn(dy1) == sgn(dy2);
 }
 
 
@@ -1423,10 +1416,11 @@ bool k2chess::IsSliderAttack(const coord_t from_coord,
         d_row = -1;
 
     const auto delta_coord = d_col + board_width*d_row;
-    for(auto i = from_coord + delta_coord;
+    for(size_t i = from_coord + delta_coord;
         i != to_coord;
         i += delta_coord)
     {
+        assert(i < sizeof(b)/sizeof(*b));
         if(b[i] != empty_square)
             return false;
     }

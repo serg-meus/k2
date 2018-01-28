@@ -48,6 +48,7 @@ k2engine::k2engine() :
     time_spent = 0;
 
     memset(history, 0, sizeof(history));
+    memset(eng_state, 0, sizeof(eng_state));
 }
 
 
