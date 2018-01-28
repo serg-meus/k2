@@ -219,11 +219,11 @@ void k2chess::InitAttacksNotPawn(const coord_t coord, const bool color,
 
 
 //--------------------------------
-void k2chess::UpdateAttacks(const move_c move, const coord_t from_coord)
+void k2chess::UpdateMasks(const move_c move, const coord_t from_coord,
+                          iterator moving_piece_it, iterator cstl_it,
+                          iterator captured_it, const bool is_enps)
 {
-    auto moving_piece_it = coords[!wtm].at(move.piece_index);
     update_mask[!wtm] |= (1 << moving_piece_it.get_array_index());
-    auto cstl_it = coords[!wtm].at(state[ply].castled_rook_index);
     if(move.flag & is_castle)
     {
         update_mask[!wtm] |= (1 << cstl_it.get_array_index());
@@ -236,11 +236,9 @@ void k2chess::UpdateAttacks(const move_c move, const coord_t from_coord)
             update_mask[stm] |= attacks[stm][*cstl_it];
         }
     }
-    auto captured_it = coords[wtm].at(state[ply].captured_index);
     if(move.flag & is_capture)
         update_mask[wtm] |= (1 << captured_it.get_array_index());
 
-    const bool is_enps = move.flag & is_en_passant;
 
     for(auto stm : {black, white})
     {
@@ -249,7 +247,24 @@ void k2chess::UpdateAttacks(const move_c move, const coord_t from_coord)
         if(is_enps)
             update_mask[stm] |= attacks[stm]
                     [move.to_coord + (wtm ? board_width : -board_width)];
+    }
+}
 
+
+
+
+
+//--------------------------------
+void k2chess::UpdateAttacks(const move_c move, const coord_t from_coord)
+{
+    auto moving_piece_it = coords[!wtm].at(move.piece_index);
+    auto cstl_it = coords[!wtm].at(state[ply].castled_rook_index);
+    auto captured_it = coords[wtm].at(state[ply].captured_index);
+    const bool is_enps = move.flag & is_en_passant;
+    UpdateMasks(move, from_coord, moving_piece_it, cstl_it,
+                captured_it, is_enps);
+    for(auto stm : {black, white})
+    {
         auto it = coords[stm].begin();
         auto msk = update_mask[stm];
         for(size_t i = 0; i < attack_digits && msk; ++i, msk >>= 1)
