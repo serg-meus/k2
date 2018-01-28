@@ -142,8 +142,9 @@ protected:
     bool DrawByRepetition();
     bool HashProbe(depth_t depth, eval_t *alpha, eval_t beta,
                             hash_entry_s **entry);
-    move_c NextMove(move_c *move_array, movcr_t cur, movcr_t *top,
-                hash_entry_s *entry, bool captures_only, move_c prev_move);
+    move_c NextMove(move_c *move_array, movcr_t cur_move_cr,
+                    movcr_t *max_moves, hash_entry_s *entry,
+                    bool captures_only, move_c prev_move);
     void StoreInHash(depth_t depth, eval_t score, move_c best_move,
                            hbound_t bound);
     void ShowCurrentUciInfo();

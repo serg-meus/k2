@@ -1510,6 +1510,7 @@ bool k2engine::GetSecondMove(move_c *move_array, movcr_t *max_moves,
     {
         *max_moves = 0;
         *ans = move_array[0];
+        assert(IsPseudoLegal(*ans));
         return true;
     }
     auto i = 0;
@@ -1550,24 +1551,25 @@ size_t k2engine::FindMaxMoveIndex(move_c *move_array, movcr_t max_moves,
 
 
 //--------------------------------
-k2chess::move_c k2engine::NextMove(move_c *move_array, movcr_t cur_move,
+k2chess::move_c k2engine::NextMove(move_c *move_array, movcr_t cur_move_cr,
                                movcr_t *max_moves, hash_entry_s *entry,
                                bool only_captures, move_c prev_move)
 {
     move_c ans;
-    if(cur_move == 0)
+    if(cur_move_cr == 0)
     {
         if(GetFirstMove(move_array, max_moves, entry, only_captures, &ans))
             return ans;
     }
-    else if(cur_move == 1 && entry != nullptr)
+    else if(cur_move_cr == 1 && entry != nullptr)
     {
         if(GetSecondMove(move_array, max_moves, prev_move, &ans))
             return ans;
     }
-    auto max_index = FindMaxMoveIndex(move_array, *max_moves, cur_move);
-    std::swap(move_array[max_index], move_array[cur_move]);
-    return move_array[cur_move];
+    auto max_index = FindMaxMoveIndex(move_array, *max_moves, cur_move_cr);
+    std::swap(move_array[max_index], move_array[cur_move_cr]);
+    assert(*max_moves == 0 || IsPseudoLegal(move_array[cur_move_cr]));
+    return move_array[cur_move_cr];
 }
 
 
