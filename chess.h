@@ -108,8 +108,6 @@ protected:
     };
     typedef k2list::iterator iterator;
 
-    typedef void(k2chess::*change_bit_ptr)(bool, coord_t, coord_t, u8);
-
     const static piece_t
     empty_square = 0,
     black_king = 2,
@@ -405,11 +403,10 @@ private:
     bool MakeCastleOrUpdateFlags(const move_c m, const coord_t from_coord);
     void TakebackCastle(const move_c m);
     bool MakeEnPassantOrUpdateFlags(const move_c m, const coord_t from_coord);
-    void InitAttacksOnePiece(const coord_t coord,
-                             const change_bit_ptr change_bit);
+    void InitAttacksOnePiece(const coord_t coord, const bool setbit);
     void UpdateAttacks(move_c move, const coord_t from_coord);
     void UpdateAttacksOnePiece(const attack_params_s &p,
-                               const change_bit_ptr change_bit);
+                               const bool setbit);
     char* ParseMainPartOfFen(char *ptr);
     char* ParseSideToMoveInFen(char *ptr);
     char* ParseCastlingRightsInFen(char *ptr);
@@ -418,10 +415,10 @@ private:
     size_t test_count_all_attacks(const bool stm);
     void test_attack_tables(const size_t att_w, const size_t att_b);
     void InitAttacksPawn(const coord_t coord, const bool color, const u8 index,
-                         const change_bit_ptr change_bit);
+                         const bool setbit);
     void InitAttacksNotPawn(const coord_t coord, const bool color,
                             const u8 index, const coord_t type,
-                            const change_bit_ptr change_bit,
+                            const bool change_bit,
                             ray_mask_t ray_mask);
     void set_bit(const bool color, const coord_t col, const coord_t row,
                  const u8 index);
@@ -431,8 +428,7 @@ private:
     bool IsPseudoLegalKing(const move_c move, const coord_t from_coord) const;
     bool IsPseudoLegalKnight(const move_c move, const coord_t from_coord) const;
     void InitSliderMask(bool stm);
-    ray_mask_t GetRayMask(const attack_params_s &p,
-                          const change_bit_ptr change_bit) const;
+    ray_mask_t GetRayMask(const attack_params_s &p, const bool setbit) const;
     size_t GetRayIndex(const coord_t from_coord, const coord_t to_coord,
                    coord_t *type) const;
     ray_mask_t GetRayMaskNotForMove(const coord_t target_coord,
