@@ -219,32 +219,30 @@ void k2chess::InitAttacksNotPawn(const coord_t coord, const bool color,
 
 
 //--------------------------------
-void k2chess::UpdateMasks(const move_c move, const coord_t from_coord,
-                          size_t cstl_index, size_t captured_index,
-                          const bool is_enps)
+void k2chess::UpdateMasks(const move_c move, const attack_params_s &p)
 {
     update_mask[!wtm] |= (1 << move.piece_index);
     if(move.flag & is_castle)
     {
-        update_mask[!wtm] |= (1 << cstl_index);
+        update_mask[!wtm] |= (1 << p.cstl_index);
         const auto from_col = move.flag == is_right_castle ? max_col : 0;
         const auto from_row = wtm ? max_row : 0;
         const auto rook_from_coord = get_coord(from_col, from_row);
         for(auto stm : {black, white})
         {
             update_mask[stm] |= attacks[stm][rook_from_coord];
-            update_mask[stm] |= attacks[stm][*coords[!wtm].at(cstl_index)];
+            update_mask[stm] |= attacks[stm][*coords[!wtm].at(p.cstl_index)];
         }
     }
     if(move.flag & is_capture)
-        update_mask[wtm] |= (1 << captured_index);
+        update_mask[wtm] |= (1 << p.captured_index);
 
 
     for(auto stm : {black, white})
     {
-        update_mask[stm] |= attacks[stm][from_coord];
+        update_mask[stm] |= attacks[stm][p.from_coord];
         update_mask[stm] |= attacks[stm][move.to_coord];
-        if(is_enps)
+        if(p.is_enps)
             update_mask[stm] |= attacks[stm]
                     [move.to_coord + (wtm ? board_width : -board_width)];
     }
@@ -255,56 +253,63 @@ void k2chess::UpdateMasks(const move_c move, const coord_t from_coord,
 
 
 //--------------------------------
+void k2chess::GetAttackParams(const size_t index, const move_c move,
+                              const bool stm, attack_params_s &p)
+{
+    p.piece_coord = *coords[stm].at(index);
+    p.type = get_type(b[p.piece_coord]);
+    p.is_captured = (move.flag & is_capture) && stm == wtm
+            && p.piece_coord == *coords[wtm].at(p.captured_index);
+    p.index = index;
+    if(p.is_captured)
+    {
+        p.color = stm;
+        p.type = p.is_enps ? pawn : get_type(state[ply].captured_piece);
+        p.index = p.captured_index;
+    }
+    p.is_move = stm != wtm && index == move.piece_index;
+    if(p.is_move && (move.flag & is_promotion))
+        p.type = pawn;
+    p.is_cstl = (move.flag & is_castle) && stm != wtm
+            && index == p.cstl_index;
+    if(p.is_cstl)
+        p.piece_coord = get_coord((move.flag & is_left_castle) ?
+                                    0 : max_col, wtm ? max_row : 0);
+    p.is_special_move = p.is_captured || p.is_enps || (move.flag & is_castle);
+}
+
+
+
+
+
+//--------------------------------
 void k2chess::UpdateAttacks(const move_c move, const coord_t from_coord)
 {
-    auto cstl_index = state[ply].castled_rook_index;
-    auto captured_index = state[ply].captured_index;
-    const bool is_enps = move.flag & is_en_passant;
-    UpdateMasks(move, from_coord, cstl_index, captured_index, is_enps);
+    attack_params_s p;
+    p.from_coord = from_coord;
+    p.to_coord = move.to_coord;
+    p.cstl_index = state[ply].castled_rook_index;
+    p.captured_index = state[ply].captured_index;
+    p.is_enps = move.flag & is_en_passant;
+    UpdateMasks(move, p);
     for(auto stm : {black, white})
     {
+        p.color = stm;
         auto msk = update_mask[stm];
+        if(!msk)
+            continue;
         for(size_t i = 0; i < attack_digits && msk; ++i, msk >>= 1)
         {
             if(!(msk & 1))
                 continue;
-            auto piece_coord = *coords[stm].at(i);
-            auto color = get_color(b[piece_coord]);
-            auto type = get_type(b[piece_coord]);
-            auto index = i;
-            const bool is_captured = (move.flag & is_capture) && stm == wtm
-                    && piece_coord == *coords[wtm].at(captured_index);
-            const auto to_coord = move.to_coord;
-            if(is_captured)
-            {
-                color = stm;
-                type = is_enps ? pawn : get_type(state[ply].captured_piece);
-                index = captured_index;
-            }
-            const bool is_move = stm != wtm && index == move.piece_index;
-            if(is_move && (move.flag & is_promotion))
-                type = pawn;
-            const bool is_cstl = (move.flag & is_castle) && stm != wtm
-                    && index == cstl_index;
-            if(is_cstl)
-                piece_coord = get_coord((move.flag & is_left_castle) ?
-                                            0 : max_col, wtm ? max_row : 0);
-
-            UpdateAttacksOnePiece(from_coord, to_coord, piece_coord,
-                                  color, type, is_move,
-                                  is_captured || is_enps ||
-                                  (move.flag & is_castle),
-                                  index, &k2chess::clear_bit);
-            if(is_cstl)
-                piece_coord = *coords[!wtm].at(index);
-            else if(is_move && (move.flag & is_promotion))
-                type = get_type(b[*coords[!wtm].at(index)]);
-            if(!is_captured)
-                UpdateAttacksOnePiece(from_coord, to_coord, piece_coord,
-                                      color, type, is_move,
-                                      is_captured || is_enps ||
-                                      (move.flag & is_castle),
-                                      index, &k2chess::set_bit);
+            GetAttackParams(i, move, stm, p);
+            UpdateAttacksOnePiece(p, &k2chess::clear_bit);
+            if(p.is_cstl)
+                p.piece_coord = *coords[!wtm].at(i);
+            else if(p.is_move && (move.flag & is_promotion))
+                p.type = get_type(b[*coords[!wtm].at(p.index)]);
+            if(!p.is_captured)
+                UpdateAttacksOnePiece(p, &k2chess::set_bit);
         }
         update_mask[stm] = 0;
     }
@@ -349,66 +354,59 @@ bool k2chess::CheckBoardConsistency()
 
 
 //--------------------------------
-void k2chess::UpdateAttacksOnePiece(const coord_t from_coord,
-                                    const coord_t to_coord,
-                                    const coord_t piece_coord,
-                                    const bool color,
-                                    const coord_t type, const bool is_move,
-                                    const bool is_special_move,
-                                    const u8 index,
+void k2chess::UpdateAttacksOnePiece(const attack_params_s &p,
                                     const change_bit_ptr change_bit)
 {
-    assert(type <= pawn);
-    assert(index <= attack_digits);
-    auto coord = piece_coord;
-    if(is_move && change_bit == &k2chess::clear_bit)
-        coord = from_coord;
-    if(type == pawn)
-        InitAttacksPawn(coord, color, index, change_bit);
-    else if(is_slider[type])
+    assert(p.type <= pawn);
+    assert(p.index <= attack_digits);
+    auto coord = p.piece_coord;
+    if(p.is_move && change_bit == &k2chess::clear_bit)
+        coord = p.from_coord;
+    if(p.type == pawn)
+        InitAttacksPawn(coord, p.color, p.index, change_bit);
+    else if(is_slider[p.type])
     {
-        auto ray_mask = GetRayMask(is_move, from_coord, to_coord,
-                                         piece_coord, change_bit);
-        if(is_special_move)
+        auto ray_mask = GetRayMask(p, change_bit);
+        if(p.is_special_move)
             ray_mask = all_rays;
-        InitAttacksNotPawn(coord, color, index, type, change_bit, ray_mask);
-        if(is_move)
+        InitAttacksNotPawn(coord, p.color, p.index, p.type, change_bit, ray_mask);
+        if(p.is_move)
         {
-            coord = change_bit == &k2chess::clear_bit ? piece_coord :
-                                                        from_coord;
-            (this->*change_bit)(color, get_col(coord), get_row(coord), index);
+            coord = change_bit == &k2chess::clear_bit ? p.piece_coord :
+                                                        p.from_coord;
+            (this->*change_bit)(p.color, get_col(coord), get_row(coord), p.index);
             if(change_bit == &k2chess::set_bit)
             {
                 enum {ray_N, ray_E, ray_W, ray_S};
                 enum {ray_NE, ray_NW, ray_SW, ray_SE};
-                const auto d_col = get_col(to_coord) - get_col(from_coord);
-                const auto d_row = get_row(to_coord) - get_row(from_coord);
-                auto is_q = 4*(get_type(b[to_coord]) == queen);
+                const auto d_col = get_col(p.to_coord) - get_col(p.from_coord);
+                const auto d_row = get_row(p.to_coord) - get_row(p.from_coord);
+                auto is_q = 4*(get_type(b[p.to_coord]) == queen);
                 if(d_col == 0)
                 {
-                    mobility[color][index][ray_N + is_q] -= d_row;
-                    mobility[color][index][ray_S + is_q] += d_row;
+                    mobility[p.color][p.index][ray_N + is_q] -= d_row;
+                    mobility[p.color][p.index][ray_S + is_q] += d_row;
                 }
                 else if(d_row == 0)
                 {
-                    mobility[color][index][ray_E + is_q] -= d_col;
-                    mobility[color][index][ray_W + is_q] += d_col;
+                    mobility[p.color][p.index][ray_E + is_q] -= d_col;
+                    mobility[p.color][p.index][ray_W + is_q] += d_col;
                 }
                 else if(sgn(d_col) == sgn(d_row))
                 {
-                    mobility[color][index][ray_NE] -= d_col;
-                    mobility[color][index][ray_SW] += d_col;
+                    mobility[p.color][p.index][ray_NE] -= d_col;
+                    mobility[p.color][p.index][ray_SW] += d_col;
                 }
                 else
                 {
-                    mobility[color][index][ray_SE] -= d_col;
-                    mobility[color][index][ray_NW] += d_col;
+                    mobility[p.color][p.index][ray_SE] -= d_col;
+                    mobility[p.color][p.index][ray_NW] += d_col;
                 }
             }
         }
     }
     else
-        InitAttacksNotPawn(coord, color, index, type, change_bit, all_rays);
+        InitAttacksNotPawn(coord, p.color, p.index, p.type, change_bit, all_rays);
 }
 
 
@@ -416,22 +414,18 @@ void k2chess::UpdateAttacksOnePiece(const coord_t from_coord,
 
 
 //--------------------------------
-k2chess::ray_mask_t k2chess::GetRayMask(const bool is_move,
-                                        const coord_t from_coord,
-                                        const coord_t to_coord,
-                                        const coord_t piece_coord,
+k2chess::ray_mask_t k2chess::GetRayMask(const attack_params_s &p,
                                         const change_bit_ptr change_bit) const
 {
     ray_mask_t ans;
-    if(!is_move)
+    if(!p.is_move)
     {
-        ans = GetRayMaskNotForMove(to_coord, piece_coord);
-//        if(change_bit == &k2chess::set_bit)
-            ans |= GetRayMaskNotForMove(from_coord, piece_coord);
+        ans = GetRayMaskNotForMove(p.to_coord, p.piece_coord);
+        ans |= GetRayMaskNotForMove(p.from_coord, p.piece_coord);
         return ans;
     }
     coord_t move_type;
-    auto index = GetRayIndex(from_coord, to_coord, &move_type);
+    auto index = GetRayIndex(p.from_coord, p.to_coord, &move_type);
 
     const ray_mask_t RB_masks[] = {rays_NW_or_SE, rays_E_or_W, rays_NE_or_SW,
                                    rays_N_or_S, 0, rays_N_or_S,
@@ -443,7 +437,7 @@ k2chess::ray_mask_t k2chess::GetRayMask(const bool is_move,
                                   rays_bishop, 0, rays_bishop,
                                   rays_rook_q, rays_bishop, rays_rook_q};
     bool queen_as_rook = false;
-    if(get_type(b[to_coord]) == queen)
+    if(get_type(b[p.to_coord]) == queen)
     {
         if(move_type == rook)
         {

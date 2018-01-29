@@ -226,6 +226,23 @@ protected:
         attack_t slider_mask;  // see slider_mask below
     };
 
+    struct attack_params_s
+    {
+        coord_t from_coord;
+        coord_t to_coord;
+        coord_t piece_coord;
+        bool color;
+        coord_t type;
+        bool is_move;
+        bool is_captured;
+        bool is_special_move;
+        bool is_cstl;
+        bool is_enps;
+        u8 index;
+        u8 cstl_index;
+        u8 captured_index;
+    };
+
     // side to move or white to move, k2chess::white (true) or k2chess::black
     bool wtm;
 
@@ -299,6 +316,7 @@ protected:
                             attack_t mask);
     bool IsSliderAttack(const coord_t from_coord,
                         const coord_t to_coord) const;
+    bool CheckBoardConsistency();
 
     coord_t get_coord(const coord_t col, const coord_t row) const
     {
@@ -390,12 +408,7 @@ private:
     void InitAttacksOnePiece(const coord_t coord,
                              const change_bit_ptr change_bit);
     void UpdateAttacks(move_c move, const coord_t from_coord);
-    void UpdateAttacksOnePiece(const coord_t from_coord,
-                               const coord_t to_coord,
-                               const coord_t piece_coord,
-                               const bool color, const coord_t type,
-                               const bool is_move, const bool is_special_move,
-                               const u8 index,
+    void UpdateAttacksOnePiece(const attack_params_s &p,
                                const change_bit_ptr change_bit);
     char* ParseMainPartOfFen(char *ptr);
     char* ParseSideToMoveInFen(char *ptr);
@@ -418,8 +431,7 @@ private:
     bool IsPseudoLegalKing(const move_c move, const coord_t from_coord) const;
     bool IsPseudoLegalKnight(const move_c move, const coord_t from_coord) const;
     void InitSliderMask(bool stm);
-    ray_mask_t GetRayMask(const bool is_move, const coord_t from_coord,
-                          const coord_t to_coord, const coord_t piece_coord,
+    ray_mask_t GetRayMask(const attack_params_s &p,
                           const change_bit_ptr change_bit) const;
     size_t GetRayIndex(const coord_t from_coord, const coord_t to_coord,
                    coord_t *type) const;
@@ -427,8 +439,7 @@ private:
                                     const coord_t piece_coord) const;
     void InitMobility(const bool color);
     size_t test_mobility(const bool color);
-    void UpdateMasks(const move_c move, const coord_t from_coord,
-                     size_t cstl_index, size_t captured_index,
-                     const bool is_enps);
-    bool CheckBoardConsistency();
+    void UpdateMasks(const move_c move, const attack_params_s &p);
+    void GetAttackParams(const size_t index, const move_c move,
+                         const bool stm, attack_params_s &p);
 };
