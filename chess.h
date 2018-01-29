@@ -428,6 +428,7 @@ private:
     void InitMobility(const bool color);
     size_t test_mobility(const bool color);
     void UpdateMasks(const move_c move, const coord_t from_coord,
-                     iterator moving_piece_it, iterator cstl_it,
-                     iterator captured_it, const bool is_enps);
+                     size_t cstl_index, size_t captured_index,
+                     const bool is_enps);
+    bool CheckBoardConsistency();
 };

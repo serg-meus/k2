@@ -220,24 +220,24 @@ void k2chess::InitAttacksNotPawn(const coord_t coord, const bool color,
 
 //--------------------------------
 void k2chess::UpdateMasks(const move_c move, const coord_t from_coord,
-                          iterator moving_piece_it, iterator cstl_it,
-                          iterator captured_it, const bool is_enps)
+                          size_t cstl_index, size_t captured_index,
+                          const bool is_enps)
 {
-    update_mask[!wtm] |= (1 << moving_piece_it.get_array_index());
+    update_mask[!wtm] |= (1 << move.piece_index);
     if(move.flag & is_castle)
     {
-        update_mask[!wtm] |= (1 << cstl_it.get_array_index());
+        update_mask[!wtm] |= (1 << cstl_index);
         const auto from_col = move.flag == is_right_castle ? max_col : 0;
         const auto from_row = wtm ? max_row : 0;
         const auto rook_from_coord = get_coord(from_col, from_row);
         for(auto stm : {black, white})
         {
             update_mask[stm] |= attacks[stm][rook_from_coord];
-            update_mask[stm] |= attacks[stm][*cstl_it];
+            update_mask[stm] |= attacks[stm][*coords[!wtm].at(cstl_index)];
         }
     }
     if(move.flag & is_capture)
-        update_mask[wtm] |= (1 << captured_it.get_array_index());
+        update_mask[wtm] |= (1 << captured_index);
 
 
     for(auto stm : {black, white})
@@ -257,38 +257,35 @@ void k2chess::UpdateMasks(const move_c move, const coord_t from_coord,
 //--------------------------------
 void k2chess::UpdateAttacks(const move_c move, const coord_t from_coord)
 {
-    auto moving_piece_it = coords[!wtm].at(move.piece_index);
-    auto cstl_it = coords[!wtm].at(state[ply].castled_rook_index);
-    auto captured_it = coords[wtm].at(state[ply].captured_index);
+    auto cstl_index = state[ply].castled_rook_index;
+    auto captured_index = state[ply].captured_index;
     const bool is_enps = move.flag & is_en_passant;
-    UpdateMasks(move, from_coord, moving_piece_it, cstl_it,
-                captured_it, is_enps);
+    UpdateMasks(move, from_coord, cstl_index, captured_index, is_enps);
     for(auto stm : {black, white})
     {
-        auto it = coords[stm].begin();
         auto msk = update_mask[stm];
         for(size_t i = 0; i < attack_digits && msk; ++i, msk >>= 1)
         {
             if(!(msk & 1))
                 continue;
-            auto piece_coord = *it[i];
-            auto color = get_color(b[*it]);
-            auto type = get_type(b[*it]);
-            auto index = it.get_array_index();
+            auto piece_coord = *coords[stm].at(i);
+            auto color = get_color(b[piece_coord]);
+            auto type = get_type(b[piece_coord]);
+            auto index = i;
             const bool is_captured = (move.flag & is_capture) && stm == wtm
-                    && piece_coord == *captured_it;
+                    && piece_coord == *coords[wtm].at(captured_index);
             const auto to_coord = move.to_coord;
             if(is_captured)
             {
                 color = stm;
                 type = is_enps ? pawn : get_type(state[ply].captured_piece);
-                index = captured_it.get_array_index();
+                index = captured_index;
             }
-            const bool is_move = stm != wtm && it == moving_piece_it;
+            const bool is_move = stm != wtm && index == move.piece_index;
             if(is_move && (move.flag & is_promotion))
                 type = pawn;
             const bool is_cstl = (move.flag & is_castle) && stm != wtm
-                    && it == cstl_it;
+                    && index == cstl_index;
             if(is_cstl)
                 piece_coord = get_coord((move.flag & is_left_castle) ?
                                             0 : max_col, wtm ? max_row : 0);
@@ -299,9 +296,9 @@ void k2chess::UpdateAttacks(const move_c move, const coord_t from_coord)
                                   (move.flag & is_castle),
                                   index, &k2chess::clear_bit);
             if(is_cstl)
-                piece_coord = *it;
+                piece_coord = *coords[!wtm].at(index);
             else if(is_move && (move.flag & is_promotion))
-                type = get_type(b[*it]);
+                type = get_type(b[*coords[!wtm].at(index)]);
             if(!is_captured)
                 UpdateAttacksOnePiece(from_coord, to_coord, piece_coord,
                                       color, type, is_move,
@@ -312,6 +309,18 @@ void k2chess::UpdateAttacks(const move_c move, const coord_t from_coord)
         update_mask[stm] = 0;
     }
 #ifndef NDEBUG
+//    assert(CheckBoardConsistency());
+#endif
+}
+
+
+
+
+
+//--------------------------------
+bool k2chess::CheckBoardConsistency()
+{
+    bool ans = true;
     attack_t tmp_a[sides][board_height*board_width];
     const auto sz_a = sizeof(attacks);
     memcpy(tmp_a, attacks, sz_a);
@@ -324,14 +333,17 @@ void k2chess::UpdateAttacks(const move_c move, const coord_t from_coord)
     InitSliderMask(black);
     InitAttacks(white);
     InitAttacks(black);
-    assert(memcmp(tmp_a, attacks, sz_a) == 0);
-    assert(memcmp(tmp_m, mobility, sz_m) == 0);
-    assert((slider_mask[black] & ~tmp_s[black]) == 0);
-    assert((slider_mask[white] & ~tmp_s[white]) == 0);
+    if(memcmp(tmp_a, attacks, sz_a) != 0)
+        ans = false;
+    if(memcmp(tmp_m, mobility, sz_m) != 0)
+        ans = false;
+    if((slider_mask[black] & ~tmp_s[black]) != 0)
+        ans = false;
+    if((slider_mask[white] & ~tmp_s[white]) != 0)
+        ans = false;
     memcpy(slider_mask, tmp_s, sizeof(slider_mask));
-#endif
+    return ans;
 }
-
 
 
 
@@ -1452,13 +1464,12 @@ bool k2chess::IsDiscoveredAttack(const coord_t fr_coord,
                                  const coord_t to_coord,
                                  attack_t mask)
 {
-    auto it = coords[!wtm].begin();
     size_t i = 0;
     for(; i < attack_digits && mask; ++i, mask >>= 1)
     {
         if(!(mask & 1))
             continue;
-        const auto attacker_coord = *it[i];
+        const auto attacker_coord = *coords[!wtm].at(i);
         const auto k_coord = *king_coord[wtm];
         if(fr_coord == to_coord)  // special for en_passant case
         {
@@ -1566,8 +1577,7 @@ bool k2chess::IsLegal(const move_c move)
                     attacker_id++;
                 else
                     break;
-            auto it = coords[!wtm].begin();
-            const auto attacker_coord = *it[attacker_id];
+            const auto attacker_coord = *coords[!wtm].at(attacker_id);
             if(is_slider[get_type(b[attacker_coord])])
             {
                 if(IsOnRay(move.to_coord, *king_coord[wtm], attacker_coord))

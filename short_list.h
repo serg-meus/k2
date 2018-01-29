@@ -122,13 +122,6 @@ public:
             assert(this->num <= n);
             return this->num - 1;
         }
-
-        iterator operator [](unsigned index)
-        {
-            num = index + 1;
-            assert(num <= n);
-            return *this;
-        }
     };
 
     class reverse_iterator
@@ -201,13 +194,6 @@ public:
         {
             assert(this->num <= n);
             return this->num - 1;
-        }
-
-        iterator operator [](unsigned index)
-        {
-            num = index + 1;
-            assert(num <= n);
-            return *this;
         }
     };
 
