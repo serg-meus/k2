@@ -782,7 +782,7 @@ k2chess::eval_t k2eval::KingShelter(const coord_t k_col, coord_t k_row,
         return 0;
     if(!Sheltered(k_col, k_row, stm))
         return king_no_shelter;
-    if(!Sheltered(k_col - 1, k_row, stm) || !Sheltered(k_col - 1, k_row, stm))
+    if(!Sheltered(k_col - 1, k_row, stm) && !Sheltered(k_col - 1, k_row, stm))
         return king_no_shelter;
     return 0;
 }
