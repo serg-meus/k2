@@ -354,6 +354,7 @@ protected:
 
     bool get_color(const piece_t piece) const
     {
+        assert(piece != empty_square);
         return piece & white;
     }
 

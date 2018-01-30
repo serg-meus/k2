@@ -1452,8 +1452,7 @@ bool k2chess::IsSliderAttack(const coord_t from_coord,
         i != to_coord;
         i += delta_coord)
     {
-        assert(i < sizeof(b)/sizeof(*b));
-        if(b[i] != empty_square)
+        if(i >= sizeof(b)/sizeof(*b) || b[i] != empty_square)
             return false;
     }
 
