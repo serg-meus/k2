@@ -40,7 +40,7 @@ k2movegen::movcr_t k2movegen::GenMoves(move_c * const move_array,
                 bool empty = b[to_coord] == empty_square;
                 bool capture = !empty && get_color(b[to_coord]) != wtm;
                 if(capt_or_promo && !capture)
-                    continue;
+                    break;
                 if(!capt_or_promo && capture)
                     continue;
                 if(col_within(col) && row_within(row) && (empty || capture))
