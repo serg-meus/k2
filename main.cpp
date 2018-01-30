@@ -540,6 +540,97 @@ void k2main::EvalCommand(std::string in)
 void k2main::TestCommand(std::string in)
 {
     UNUSED(in);
+    if(busy)
+        return;
+    Timer timer;
+    double tick1, tick2, deltaTick;
+    timer.start();
+    tick1 = timer.getElapsedTimeInMicroSec();
+
+    while(true)
+    {
+        nodes = 0;
+        SetupPosition("rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 0 8");
+        Perft(4);
+        if(nodes != 2103487)
+            break;
+        total_nodes += nodes;
+
+        nodes = 0;
+        SetupPosition("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - -");
+        Perft(4);
+        if(nodes != 43238)
+            break;
+        total_nodes += nodes;
+
+        nodes = 0;
+        SetupPosition(
+            "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq -");
+        Perft(3);
+        if(nodes != 97862)
+            break;
+        total_nodes += nodes;
+
+        tick2 = timer.getElapsedTimeInMicroSec();
+        deltaTick = tick2 - tick1;
+        std::cout << "Perft: total nodes = " << total_nodes
+                  << ", dt = " << deltaTick / 1000000.
+                  << ", Mnps = " << total_nodes / (deltaTick + 1)
+                  << std::endl;
+        total_nodes = 0;
+
+        enable_output = false;
+        uci = true;
+        char move_str[6];
+        timer.start();
+        tick1 = timer.getElapsedTimeInMicroSec();
+
+        SetupPosition("8/p2B1pk1/7p/P3p1p1/3p4/4nPP1/1Pr1PK1P/1R6 b - -"
+                      "5 1 am Rxb2");
+        max_search_depth = 11;
+        MainSearch();
+        MoveToStr(pv[0][1], wtm, move_str);
+        if(!CheckBoardConsistency())
+            break;
+        if(strcmp(move_str, "c2b2") == 0)
+            break;
+
+        SetupPosition("r4rk1/1b3p1p/pq2pQp1/n5N1/P7/2RBP3/5PPP/3R2K1 w - -"
+                      "0 1 bm Nxh7");
+        max_search_depth = 9;
+        MainSearch();
+        MoveToStr(pv[0][1], wtm, move_str);
+        if(!CheckBoardConsistency())
+            break;
+        if(strcmp(move_str, "g5h7") != 0 && strcmp(move_str, "d3f1") != 0)
+            break;
+
+        SetupPosition("8/1b1pk1P1/3p1p1P/3P1K2/P1P5/8/4B3/8 w - -"
+                      "3 54 bm g8R");
+        max_search_depth = 12;
+        MainSearch();
+        MoveToStr(pv[0][1], wtm, move_str);
+        if(!CheckBoardConsistency())
+            break;
+        if(strcmp(move_str, "g7g8r") != 0)
+            break;
+
+        tick2 = timer.getElapsedTimeInMicroSec();
+        deltaTick = tick2 - tick1;
+        std::cout << "Search: total nodes = " << total_nodes
+                  << ", dt = " << deltaTick / 1000000.
+                  << ", Mnps = " << total_nodes / (deltaTick + 1)
+                  << std::endl;
+        total_nodes = 0;
+
+        std::cout << "All integration tests passed\n";
+        max_search_depth = k2chess::max_ply;
+        enable_output = true;
+        uci = false;
+        SetupPosition(start_position);
+        return;
+    }
+    std::cout << "Integration testing FAILED\n";
 }
 
 

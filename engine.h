@@ -52,7 +52,7 @@ public:
     depth_t moves_per_session, max_search_depth;
     bool time_command_sent;
     bool stop, infinite_analyze, busy;
-    bool uci, xboard;
+    bool uci, xboard, enable_output;
     bool pondering_in_process;
     node_t nodes, max_nodes_to_search, total_nodes;
     const char *engine_version;

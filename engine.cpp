@@ -14,6 +14,7 @@ k2engine::k2engine() :
     xboard = false;
     pondering_in_process = false;
     stop = false;
+    enable_output = true;
     resign_cr = 0;
     state = &eng_state[prev_states];
 
@@ -435,7 +436,7 @@ void k2engine::MainSearch()
     else
         resign_cr = 0;
 
-    if(!infinite_analyze
+    if(enable_output && !infinite_analyze
             && (x < -mate_score || resign_cr > moves_to_resign))
         std::cout << "resign" << std::endl;
 
@@ -680,7 +681,7 @@ void k2engine::InitSearch()
 
     stop = false;
 
-    if(!uci && !xboard)
+    if(enable_output && !uci && !xboard)
     {
         std::cout << "( time total = " << time_remains/1e6
                   << "s, assigned to move = " << time_to_think/1e6
@@ -721,6 +722,8 @@ void k2engine::MoveToStr(move_c move, bool stm, char *out)
 //--------------------------------
 void k2engine::PrintFinalSearchResult()
 {
+    if(!enable_output)
+        return;
     char move_str[6];
     MoveToStr(pv[0][1], wtm, move_str);
 
@@ -827,6 +830,9 @@ void k2engine::PrintCurrentSearchResult(eval_t max_value, char type_of_bound)
 {
     using namespace std;
 
+    if(!enable_output)
+        return;
+
     double time1 = timer.getElapsedTimeInMicroSec();
     i32 spent_time = ((time1 - time0)/1000.);
 
@@ -921,6 +927,8 @@ void k2engine::InitTime()
 //-----------------------------
 bool k2engine::ShowPV(depth_t cur_ply)
 {
+    if(!enable_output)
+        return true;
     char pc2chr[] = "??KKQQRRBBNNPP";
     bool ans = true;
     depth_t ply_cr = 0;
@@ -1088,7 +1096,8 @@ bool k2engine::MakeMove(const char *move_str)
                 (prev_states + 2)*sizeof(k2engine::state_s));
         ply--;
         InitEvalOfMaterialAndPst();
-        if(val_opn != store_val_opn || val_end != store_val_end)
+        if(enable_output && (val_opn != store_val_opn ||
+                             val_end != store_val_end))
         {
             std::cout << "telluser err02: wrong score. Fast: "
                       << store_val_opn << '/' << store_val_end
@@ -1096,6 +1105,8 @@ bool k2engine::MakeMove(const char *move_str)
                       << std::endl << "resign"
                       << std::endl;
         }
+        if(!CheckBoardConsistency())
+            std::cout << "telluser err03: board inconsistency\n";
         for(auto j = 0; j < FIFTY_MOVES; ++j)
             doneHashKeys[j] = doneHashKeys[j + 1];
 
@@ -1596,6 +1607,8 @@ void k2engine::StoreInHash(depth_t depth, eval_t score,
 //-----------------------------
 void k2engine::ShowCurrentUciInfo()
 {
+    if(!enable_output)
+        return;
     double t = timer.getElapsedTimeInMicroSec();
 
     std::cout << "info nodes " << nodes
