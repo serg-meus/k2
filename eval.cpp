@@ -781,11 +781,74 @@ k2chess::eval_t k2eval::KingShelter(const coord_t k_col, coord_t k_row,
             k2chess::state[ply].castling_rights & cstl[stm])
         return 0;
     if(!Sheltered(k_col, k_row, stm))
-        return king_no_shelter;
-    if(!Sheltered(k_col - 1, k_row, stm) && !Sheltered(k_col - 1, k_row, stm))
+    {
+        if(k_col > 0 && k_col < max_col &&
+                (stm ? k_row < max_row : k_row > 0) &&
+                b[get_coord(k_col, k_row + (stm ? 1 : -1))] != empty_square &&
+                Sheltered(k_col - 1, k_row, stm) &&
+                Sheltered(k_col + 1, k_row, stm))
+            return 0;
+        else
+            return king_no_shelter;
+    }
+    if(!Sheltered(k_col - 1, k_row, stm) && !Sheltered(k_col + 1, k_row, stm))
         return king_no_shelter;
     return 0;
 }
+
+
+
+
+
+//-----------------------------
+k2chess::attack_t k2eval::KingSafetyBatteries(const coord_t targ_coord,
+                                              const attack_t att, const bool stm)
+{
+    auto msk = att & slider_mask[!stm];
+    if(!msk)
+        return att;
+    auto ans = att;
+    for(size_t i = 0; i < attack_digits && msk; ++i, msk >>= 1)
+    {
+        if(!(msk & 1))
+            continue;
+        const auto coord1 = *coords[!stm].at(i);
+        auto maybe = attacks[!stm][coord1] & slider_mask[!stm];
+        if(!maybe)
+            continue;
+        for(size_t j = 0; j < attack_digits && maybe; ++j, maybe >>= 1)
+        {
+            if(!(maybe & 1))
+                continue;
+            const auto coord2 = *coords[!stm].at(j);
+            const auto type1 = get_type(b[coord1]);
+            const auto type2 = get_type(b[coord2]);
+            bool is_ok = type1 == type2 || type2 == queen;
+            if(!is_ok && type1 == queen)
+            {
+                const auto col1 = get_col(coord1);
+                const auto col2 = get_col(coord2);
+                const auto col_t = get_col(targ_coord);
+                const auto row1 = get_row(coord1);
+                const auto row2 = get_row(coord2);
+                const auto row_t = get_row(targ_coord);
+                bool like_rook = (col1 == col2 && col1 == col_t) ||
+                        (row1 == row2 && row1 == row_t);
+                bool like_bishop = sgn(col1 - col_t) == sgn(col2 - col1) &&
+                        sgn(row1 - row_t) == sgn(row2 - row_t);
+                if(type2 == rook && like_rook)
+                    is_ok = true;
+                else if(type2 == bishop && like_bishop)
+                    is_ok = true;
+            }
+            if(is_ok && IsOnRay(coord1, targ_coord, coord2) &&
+                    IsSliderAttack(coord1, coord2))
+                ans |= (1 << j);
+        }
+    }
+    return ans;
+}
+
 
 
 
@@ -795,7 +858,7 @@ void k2eval::KingSafety(const bool stm)
 {
     auto ans = 0;
     const auto k_coord = *king_coord[stm];
-    const auto k_col = get_col(k_coord);
+    auto k_col = get_col(k_coord);
     const auto k_row = get_row(k_coord);
 
     for(auto delta_col = -1; delta_col <= 1; ++delta_col)
@@ -805,11 +868,21 @@ void k2eval::KingSafety(const bool stm)
             const auto row = k_row + delta_row;
             if(!row_within(row) || !col_within(col))
                 continue;
-            const auto target = get_coord(col, row);
-            ans += __builtin_popcount(attacks[!stm][target]);
+            const auto targ_coord = get_coord(col, row);
+            const auto att = attacks[!stm][targ_coord];
+            if(!att)
+                continue;
+            const auto all_att = KingSafetyBatteries(targ_coord, att, stm);
+            ans += king_saf_1*__builtin_popcount(all_att);
         }
-    ans = 8*ans + ans*ans;
-    ans -= KingShelter(k_col, k_row, stm);
+    if(k_col == 0)
+        k_col++;
+    else if(k_col == max_col)
+        k_col--;
+    const auto ks = KingShelter(k_col, k_row, stm);
+    const auto f_ks = ks == 0 ? 1 : king_saf_2;
+    const auto f_q = quantity[!stm][queen] == 0 ? king_saf_3 : 1;
+    ans = ks + king_saf_4*f_ks*ans*ans/f_q;
     val_opn += stm ? -ans : ans;
 }
 

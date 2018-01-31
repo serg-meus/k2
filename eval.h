@@ -64,7 +64,11 @@ protected:
     pawn_pass_connected = 28,
     pawn_unstoppable_1 = 120,
     pawn_unstoppable_2 = 350,
-    king_no_shelter = -47;
+    king_no_shelter = 47,
+    king_saf_1 = 2,
+    king_saf_2 = 2,
+    king_saf_3 = 2,
+    king_saf_4 = 3;
 
     eval_t val_opn, val_end;
     eval_t initial_score;
@@ -153,4 +157,6 @@ private:
                        const bool stm);
     bool Sheltered(const coord_t k_col, coord_t k_row,
                            const bool stm);
+    attack_t KingSafetyBatteries(const coord_t targ_coord, const attack_t att,
+                                 const bool stm);
 };
