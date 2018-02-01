@@ -320,6 +320,7 @@ bool k2eval::IsUnstoppablePawn(const coord_t col, const bool side_of_pawn,
 //-----------------------------
 void k2eval::MobilityEval(bool stm)
 {
+    eval_t f_type[] = {0,  2,  2,  18,  8,  0};
     eval_t ans = 0;
     for(auto rit = coords[wtm].rbegin(); rit != coords[wtm].rend(); ++rit)
     {
@@ -327,12 +328,17 @@ void k2eval::MobilityEval(bool stm)
         if(type == pawn)
             break;
         const auto index = rit.get_array_index();
-        const bool tp = type == queen || type == king;
+        auto cr = 0;
         for(auto ray = 0; ray < rays[type]; ++ray)
-            ans += (tp ? 1 : 3)*mobility[stm][index][ray];
+            cr += mobility[stm][index][ray];
+        const auto limit = 6*rays[type];
+        if(is_slider[type] && cr > limit)
+            cr = limit;
+        if(cr <= 2)
+            cr = cr - 4;
+        ans += f_type[type]*cr;
     }
-    ans -= pieces[stm];
-//    ans *= (ans > 0 ? 1 : 2);
+    ans /= 8;
 
     val_opn += stm ? ans : -ans;
     val_end += stm ? ans : -ans;
@@ -457,13 +463,13 @@ void k2eval::MaterialImbalances()
     // two bishops
     if(quantity[white][bishop] == 2)
     {
-        val_opn += 30;
-        val_end += 30;
+        val_opn += bishop_pair;
+        val_end += bishop_pair;
     }
     if(quantity[black][bishop] == 2)
     {
-        val_opn -= 30;
-        val_end -= 30;
+        val_opn -= bishop_pair;
+        val_end -= bishop_pair;
     }
 
     // pawn absence for both sides

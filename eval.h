@@ -68,7 +68,8 @@ protected:
     king_saf_1 = 2,
     king_saf_2 = 2,
     king_saf_3 = 2,
-    king_saf_4 = 3;
+    king_saf_4 = 3,
+    bishop_pair = 30;
 
     eval_t val_opn, val_end;
     eval_t initial_score;
