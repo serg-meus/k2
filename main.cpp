@@ -585,9 +585,9 @@ void k2main::TestCommand(std::string in)
         timer.start();
         tick1 = timer.getElapsedTimeInMicroSec();
 
-        SetupPosition("8/p2B1pk1/7p/P3p1p1/3p4/4nPP1/1Pr1PK1P/1R6 b - -"
-                      "5 1 am Rxb2");
-        max_search_depth = 11;
+        SetupPosition("1r1q1rk1/1b1n1ppp/p1pQp3/3p4/4P3/2N2B2/PPP2PPP/R3R1K1 w - -"
+                      "3 8 am e5");
+        max_search_depth = 8;
         MainSearch();
         MoveToStr(pv[0][1], wtm, move_str);
         if(!CheckBoardConsistency())
@@ -630,6 +630,10 @@ void k2main::TestCommand(std::string in)
         SetupPosition(start_position);
         return;
     }
+    max_search_depth = k2chess::max_ply;
+    enable_output = true;
+    uci = false;
+    SetupPosition(start_position);
     std::cout << "Integration testing FAILED\n";
 }
 
