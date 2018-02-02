@@ -315,7 +315,7 @@ protected:
     bool IsSliderAttack(const coord_t from_coord,
                         const coord_t to_coord) const;
     bool CheckBoardConsistency();
-    void MoveToStr(move_c m, bool stm, char *out);
+    void MoveToStr(const move_c m, const bool stm, char * const out);
 
     coord_t get_coord(const coord_t col, const coord_t row) const
     {

@@ -57,16 +57,16 @@ protected:
 
 
         hash_table_c();
-        hash_table_c(size_t size_mb);
+        hash_table_c(const size_t size_mb);
         ~hash_table_c();
 
         bool set_size(size_t size_mb);
-        hash_entry_s* count(hash_key_t key);
-        void add(hash_key_t key, eval_t value, move_c best, depth_t depth,
+        hash_entry_s* count(hash_key_t key) const;
+        void add(hash_key_t key, eval_t value, move_c best_move, depth_t depth,
                  hbound_t bound_type, depth_t half_mov_cr, bool one_reply,
                  node_t nodes);
         void clear();
-        hash_entry_s& operator [](hash_key_t key);
+        hash_entry_s& operator [](const hash_key_t key) const;
         bool resize(size_t size_mb);
         size_t size()
         {
@@ -121,7 +121,7 @@ protected:
 private:
 
 
-    void MoveHashKey(move_c m, bool special);
+    void MoveHashKey(const move_c m, const bool special);
 
     piece_t piece_hash_index(piece_t piece)
     {

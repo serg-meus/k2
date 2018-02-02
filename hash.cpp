@@ -4,7 +4,7 @@
 
 
 
-//------f--------------------------
+//---------------------------------
 k2hash::k2hash()
 {
 
@@ -51,7 +51,7 @@ k2hash::hash_key_t k2hash::InitHashKey()
 
     if(!wtm)
         ans ^= key_for_side_to_move;
-    auto &f = k2chess::state[ply];
+    const auto &f = k2chess::state[ply];
     ans ^= zorb_en_passant[f.en_passant_rights] ^
             zorb_castling[f.castling_rights];
 
@@ -63,30 +63,30 @@ k2hash::hash_key_t k2hash::InitHashKey()
 
 
 //--------------------------------
-void k2hash::MoveHashKey(move_c m, bool special)
+void k2hash::MoveHashKey(const move_c m, const bool special)
 {
     doneHashKeys[FIFTY_MOVES + ply - 1] = hash_key;
-    auto from_coord = k2chess::state[ply].from_coord;
+    const auto from_coord = k2chess::state[ply].from_coord;
 
-    auto pt = b[m.to_coord];
-    auto &f = k2chess::state[ply];
-    auto &_f = k2chess::state[ply - 1];
+    const auto piece = b[m.to_coord];
+    const auto &st = k2chess::state[ply];
+    auto &prev_st = k2chess::state[ply - 1];
 
-    hash_key ^= zorb[piece_hash_index(pt)]
+    hash_key ^= zorb[piece_hash_index(piece)]
                 [get_col(from_coord)][get_row(from_coord)]
-                ^ zorb[piece_hash_index(pt)]
+                ^ zorb[piece_hash_index(piece)]
                 [get_col(m.to_coord)][get_row(m.to_coord)];
 
-    if(f.captured_piece)
-        hash_key ^= zorb[piece_hash_index(f.captured_piece)]
+    if(st.captured_piece)
+        hash_key ^= zorb[piece_hash_index(st.captured_piece)]
                     [get_col(m.to_coord)][get_row(m.to_coord)];
-    if(_f.en_passant_rights)
-        hash_key ^= zorb_en_passant[_f.en_passant_rights];
+    if(prev_st.en_passant_rights)
+        hash_key ^= zorb_en_passant[prev_st.en_passant_rights];
 
     if(m.flag & is_promotion)
         hash_key ^= zorb[piece_hash_index(white_pawn ^ wtm)]
                     [get_col(from_coord)][get_row(from_coord)]
-                    ^ zorb[piece_hash_index(pt)]
+                    ^ zorb[piece_hash_index(piece)]
                     [get_col(from_coord)][get_row(from_coord)];
     else if(m.flag & is_en_passant)
         hash_key ^= zorb[piece_hash_index(black_pawn ^ wtm)]
@@ -112,17 +112,17 @@ void k2hash::MoveHashKey(move_c m, bool special)
                 hash_key ^= zorb[piece_hash_index(black_rook)][0][7]
                             ^ zorb[piece_hash_index(black_rook)][3][7];
         }
-        hash_key ^= zorb_castling[_f.castling_rights]
-                    ^ zorb_castling[f.castling_rights];
+        hash_key ^= zorb_castling[prev_st.castling_rights]
+                    ^ zorb_castling[st.castling_rights];
     }
     hash_key ^= key_for_side_to_move;
     if(special)
     {
-        if(get_type(pt) == pawn && !f.captured_piece)
-            hash_key ^= zorb_en_passant[f.en_passant_rights];
+        if(get_type(piece) == pawn && !st.captured_piece)
+            hash_key ^= zorb_en_passant[st.en_passant_rights];
         else
-            hash_key ^= zorb_castling[_f.castling_rights] ^
-                    zorb_castling[f.castling_rights];
+            hash_key ^= zorb_castling[prev_st.castling_rights] ^
+                    zorb_castling[st.castling_rights];
     }
 
 #ifndef NDEBUG
@@ -148,7 +148,8 @@ k2hash::hash_table_c::hash_table_c() : entries_in_a_bucket(4)
 
 
 //--------------------------------
-k2hash::hash_table_c::hash_table_c(size_t size_mb) : entries_in_a_bucket(4)
+k2hash::hash_table_c::hash_table_c(const size_t size_mb) :
+    entries_in_a_bucket(4)
 {
     set_size(size_mb);
 }
@@ -175,7 +176,7 @@ bool k2hash::hash_table_c::set_size(size_t size_mb)
     mask = 0;
     size_t sz = size_mb * 1000 / sizeof(hash_entry_s)
                 * 1000 / entries_in_a_bucket;
-    unsigned MSB_count = 0;
+    size_t MSB_count = 0;
     while(sz >>= 1)
         MSB_count++;
     sz = (1 << MSB_count);
@@ -223,13 +224,14 @@ void k2hash::hash_table_c::clear()
 
 
 //--------------------------------
-void k2hash::hash_table_c::add(hash_key_t key, eval_t value, move_c best,
-                               depth_t depth, hbound_t bound_type,
-                               depth_t age, bool one_reply, node_t nodes)
+void k2hash::hash_table_c::add(const hash_key_t key, const eval_t value,
+                               const move_c best_move, const depth_t depth,
+                               const hbound_t bound_type, const depth_t age,
+                               const bool one_reply, const node_t nodes)
 {
     size_t i;
     // looking for already existed entries for the same position
-    auto *bucket = &data[entries_in_a_bucket*(key & mask)];
+    auto * const bucket = &data[entries_in_a_bucket*(key & mask)];
     for(i = 0; i < entries_in_a_bucket; ++i)
         if(bucket[i].key == (key >> 32))
             break;
@@ -262,7 +264,7 @@ void k2hash::hash_table_c::add(hash_key_t key, eval_t value, move_c best,
         }
     }
     bucket[i].key = key >> 32;
-    bucket[i].best_move = best;
+    bucket[i].best_move = best_move;
     bucket[i].depth = depth;
     bucket[i].bound_type = bound_type;
     bucket[i].value = value;
@@ -275,9 +277,9 @@ void k2hash::hash_table_c::add(hash_key_t key, eval_t value, move_c best,
 
 
 //--------------------------------
-k2hash::hash_entry_s* k2hash::hash_table_c::count(hash_key_t key)
+k2hash::hash_entry_s* k2hash::hash_table_c::count(const hash_key_t key) const
 {
-    hash_entry_s *bucket = &data[entries_in_a_bucket*(key & mask)];
+    auto *bucket = &data[entries_in_a_bucket*(key & mask)];
     hash_entry_s *ans = nullptr;
     for(size_t i = 0; i < entries_in_a_bucket; ++i, ++bucket)
         if(bucket->key == key >> 32)
@@ -293,10 +295,11 @@ k2hash::hash_entry_s* k2hash::hash_table_c::count(hash_key_t key)
 
 
 //--------------------------------
-k2hash::hash_entry_s& k2hash::hash_table_c::operator [](hash_key_t key)
+k2hash::hash_entry_s&
+k2hash::hash_table_c::operator [](const hash_key_t key) const
 {
     size_t i, ans = 0;
-    hash_entry_s *bucket = &data[entries_in_a_bucket*(key & mask)];
+    auto *bucket = &data[entries_in_a_bucket*(key & mask)];
     for(i = 0; i < entries_in_a_bucket; ++i)
         if(bucket[i].key == key >> 32)
             ans++;

@@ -300,7 +300,8 @@ void k2movegen::AppriceMoves(move_c * const move_array, const movcr_t moveCr,
 
 
 //-----------------------------
-void k2movegen::ProcessSeeBatteries(coord_t to_coord, coord_t attacker_coord)
+void k2movegen::ProcessSeeBatteries(const coord_t to_coord,
+                                    const coord_t attacker_coord)
 {
     const auto mask = attacks[wtm][attacker_coord] & slider_mask[wtm];
     if(!mask)
@@ -352,7 +353,7 @@ k2chess::eval_t k2movegen::SEE(const coord_t to_coord, const eval_t fr_value,
 
 
 //-----------------------------
-size_t k2movegen::SeeMinAttacker(const coord_t to_coord)
+size_t k2movegen::SeeMinAttacker(const coord_t to_coord) const
 {
     const auto att = attacks[wtm][to_coord];
     if(!att)

@@ -99,10 +99,10 @@ public:
 
 
     void MainSearch();
-    void Perft(depth_t depth);
+    void Perft(const depth_t depth);
     bool MakeMove(const char *mov);
     bool SetupPosition(const char *fen);
-    void ShowFen();
+    void ShowFen() const;
     void ReHash(size_t size_mb);
     void ClearHash();
     void EvalDebug()
@@ -120,40 +120,43 @@ protected:
 
 
     eval_t Search(depth_t depth, eval_t alpha, eval_t beta,
-                   node_type_t node_type);
-    eval_t QSearch(eval_t alpha, eval_t beta);
-    void StorePV(move_c m);
+                  const node_type_t node_type);
+    eval_t QSearch(eval_t alpha, const eval_t beta);
+    void StorePV(const move_c m);
     void UpdateStatistics(move_c m, depth_t dpt, movcr_t move_cr,
-                          hash_entry_s *entry);
-    eval_t RootSearch(depth_t depth, eval_t alpha, eval_t beta);
+                          const hash_entry_s *entry);
+    eval_t RootSearch(const depth_t depth, eval_t alpha, const eval_t beta);
     void RootMoveGen();
     void InitSearch();
     void PrintFinalSearchResult();
-    void PrintCurrentSearchResult(eval_t sc, char exclimation);
+    void PrintCurrentSearchResult(eval_t sc, const u8 exclimation);
     void InitTime();
-    bool ShowPV(depth_t _ply);
+    bool ShowPV(const depth_t _ply);
     void FindAndPrintForAmbiguousMoves(move_c m);
-    bool DrawDetect();
+    bool DrawDetect() const;
     void CheckForInterrupt();
     void MakeNullMove();
     void UnMakeNullMove();
     bool NullMovePruning(depth_t depth, eval_t beta, bool ic);
-    bool DrawByRepetition();
-    bool HashProbe(depth_t depth, eval_t *alpha, eval_t beta,
-                            hash_entry_s **entry);
-    move_c NextMove(move_c *move_array, movcr_t cur_move_cr,
-                    movcr_t *max_moves, hash_entry_s *entry,
-                    bool captures_only, move_c prev_move);
-    void StoreInHash(depth_t depth, eval_t score, move_c best_move,
-                           hbound_t bound);
+    bool DrawByRepetition() const;
+    bool HashProbe(const depth_t depth, eval_t * const alpha,
+                   const eval_t beta, hash_entry_s **entry);
+    move_c NextMove(move_c * const move_array, const movcr_t cur_move_cr,
+                    movcr_t * const max_moves, hash_entry_s *entry,
+                    const bool captures_only, const move_c prev_move);
+    void StoreInHash(const depth_t depth, eval_t score,
+                     const move_c best_move, const hbound_t bound);
     void ShowCurrentUciInfo();
-    void ShowPVfailHighOrLow(move_c m, eval_t x, char exclimation);
-    bool GetFirstMove(move_c *move_array, movcr_t *max_moves,
-                       hash_entry_s *entry, bool only_captures, move_c *ans);
-    bool GetSecondMove(move_c *move_array, movcr_t *max_moves,
+    void ShowPVfailHighOrLow(move_c m, eval_t x, const u8 exclimation);
+    bool GetFirstMove(move_c * const move_array,
+                      movcr_t * const max_moves,
+                      hash_entry_s *entry,
+                      const bool only_captures,
+                      move_c * const ans);
+    bool GetSecondMove(move_c * const move_array, movcr_t * const max_moves,
                        move_c prev_move, move_c *ans);
-    size_t FindMaxMoveIndex(move_c *move_array, movcr_t max_moves,
-                            movcr_t cur_move);
+    size_t FindMaxMoveIndex(move_c * const move_array, const movcr_t max_moves,
+                            const movcr_t cur_move);
 
     void CorrectHashScore(eval_t *x, depth_t depth)
     {

@@ -81,7 +81,7 @@ private:
     void GenCastles(move_c * const move_array, movcr_t * const movCr);
     eval_t SEE(const coord_t to_coord, const eval_t frStreng,
                eval_t val, const bool stm);
-    size_t SeeMinAttacker(const coord_t to_coord);
+    size_t SeeMinAttacker(const coord_t to_coord) const;
 
     void PushMove(move_c * const move_array, movcr_t * const movCr,
                   const coord_t it, const coord_t to_coord,
@@ -96,7 +96,8 @@ private:
             move_array[(*movCr)++] = move;
     }
 
-    void ProcessSeeBatteries(coord_t to_coord, coord_t attacker_coord);
+    void ProcessSeeBatteries(const coord_t to_coord,
+                             const coord_t attacker_coord);
 
     size_t test_gen_pawn(const char* coord, bool captures_and_promotions);
     size_t test_gen_castles();

@@ -764,7 +764,8 @@ void k2chess::StoreCurrentBoardState(const move_c move,
 
 
 //--------------------------------
-void k2chess::MoveToStr(move_c move, bool stm, char *out)
+void k2chess::MoveToStr(const move_c move, const bool stm,
+                        char * const out)
 {
     char proms[] = {'?', 'q', 'n', 'r', 'b'};
 
