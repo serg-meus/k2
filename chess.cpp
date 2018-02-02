@@ -764,6 +764,26 @@ void k2chess::StoreCurrentBoardState(const move_c move,
 
 
 //--------------------------------
+void k2chess::MoveToStr(move_c move, bool stm, char *out)
+{
+    char proms[] = {'?', 'q', 'n', 'r', 'b'};
+
+    const auto it = coords[stm].at(move.piece_index);
+    auto f = *it;
+    out[0] = get_col(f) + 'a';
+    out[1] = get_row(f) + '1';
+    out[2] = get_col(move.to_coord) + 'a';
+    out[3] = get_row(move.to_coord) + '1';
+    out[4] = (move.flag & is_promotion) ?
+              proms[move.flag & is_promotion] : '\0';
+    out[5] = '\0';
+}
+
+
+
+
+
+//--------------------------------
 bool k2chess::MakeCastleOrUpdateFlags(const move_c move,
                                       const coord_t from_coord)
 {
@@ -825,12 +845,7 @@ bool k2chess::MakeCastleOrUpdateFlags(const move_c move,
         reversible_moves = 0;
 
     if(!(move.flag & is_castle))
-    {
-        if(castling_rights_changed)
-            return true;
-        else
-            return false;
-    }
+        return castling_rights_changed;
 
     coord_t rook_from_coord, rook_to_coord;
     const auto row = wtm ? 0 : max_row;
@@ -1055,10 +1070,7 @@ bool k2chess::MakeMove(const move_c move)
     else
         UpdateAttacks(move, from_coord);
 
-    if(is_special_move)
-        return true;
-    else
-        return false;
+    return is_special_move;
 }
 
 
@@ -1119,14 +1131,9 @@ bool k2chess::MakeMove(const char* str)
     auto move = MoveFromStr(str);
     if(move.flag == is_bad_move_flag)
         return false;
-
-    if(!IsPseudoLegal(move))
+    if(!IsPseudoLegal(move) || !IsLegal(move))
         return false;
-    if(!IsLegal(move))
-        return false;
-
     MakeMove(move);
-
     return true;
 }
 
@@ -1307,9 +1314,7 @@ bool k2chess::IsPseudoLegalKnight(const move_c move,
 {
     const auto d_col = std::abs(get_col(from_coord) - get_col(move.to_coord));
     const auto d_row = std::abs(get_row(from_coord) - get_row(move.to_coord));
-    if(d_col + d_row == 3 && (d_col == 1 || d_row == 1))
-        return true;
-    return false;
+    return d_col + d_row == 3 && (d_col == 1 || d_row == 1);
 }
 
 
@@ -1436,18 +1441,10 @@ bool k2chess::IsOnRay(const coord_t given, const coord_t ray_coord1,
 bool k2chess::IsSliderAttack(const coord_t from_coord,
                              const coord_t to_coord) const
 {
-    auto d_col = get_col(to_coord) - get_col(from_coord);
-    auto d_row = get_row(to_coord) - get_row(from_coord);
-    if(d_col > 1)
-        d_col = 1;
-    else if(d_col < -1)
-        d_col = -1;
-    if(d_row > 1)
-        d_row = 1;
-    else if(d_row < -1)
-        d_row = -1;
+    const auto d_col = get_col(to_coord) - get_col(from_coord);
+    const auto d_row = get_row(to_coord) - get_row(from_coord);
 
-    const auto delta_coord = d_col + board_width*d_row;
+    const auto delta_coord = sgn(d_col) + board_width*sgn(d_row);
     for(size_t i = from_coord + delta_coord;
         i != to_coord;
         i += delta_coord)
@@ -1549,12 +1546,7 @@ bool k2chess::IsLegal(const move_c move)
                 return false;
         }
         else
-        {
-            if(IsLegalCastle(move))
-                return true;
-            else
-                return false;
-        }
+            return IsLegalCastle(move);
     }
     else
     {
@@ -1583,22 +1575,15 @@ bool k2chess::IsLegal(const move_c move)
                     break;
             const auto attacker_coord = *coords[!wtm].at(attacker_id);
             if(is_slider[get_type(b[attacker_coord])])
-            {
-                if(IsOnRay(move.to_coord, *king_coord[wtm], attacker_coord))
-                    return true;
-                else
-                    return false;
-            }
+                return IsOnRay(move.to_coord, *king_coord[wtm],
+                               attacker_coord);
             else
             {
                 if(move.to_coord == attacker_coord)
                     return true;
-                else if((move.flag & is_en_passant) &&
-                        move.to_coord == attacker_coord +
-                        (wtm ? board_width : -board_width))
-                    return true;
-                else
-                    return false;
+                else return ((move.flag & is_en_passant) &&
+                             move.to_coord == attacker_coord +
+                             (wtm ? board_width : -board_width));
             }
         }
     }

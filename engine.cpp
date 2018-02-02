@@ -72,27 +72,12 @@ k2chess::eval_t k2engine::Search(depth_t depth, eval_t alpha, eval_t beta,
         depth = 0;
     if(in_check)
         depth++;
-
-    if(!in_check
-            && k2chess::state[ply - 1].captured_piece
-            && k2chess::state[ply].captured_piece
-            && state[ply].to_coord == state[ply - 1].to_coord
-            && state[ply - 1].priority > bad_captures
-            && state[ply].priority > bad_captures
-      )
+    if(IsRecapture(in_check))
         depth++;
 
-    auto mate_sc = king_value - ply;
-    if(alpha >= mate_sc)
-        return alpha;
-    if(beta <= -mate_sc)
-        return beta;
-
-    if(depth <= 2 && !in_check && beta < mate_score
-            && Futility(depth, beta))
-        return beta;
-
-    if(NullMove(depth, beta, in_check))
+    if(MateDistancePruning(alpha, &beta) ||
+            FutilityPruning(depth, beta, in_check) ||
+            NullMovePruning(depth, beta, in_check))
         return beta;
 
     eval_t x, initial_alpha = alpha;
@@ -116,11 +101,11 @@ k2chess::eval_t k2engine::Search(depth_t depth, eval_t alpha, eval_t beta,
                         entry, all_moves, cur_move);
         if(max_moves <= 0)
             break;
-        if(max_moves == 1 && depth > 1)
+        if(max_moves == 1 && depth > 1)  // one reply extension
             depth++;
-        if(depth <= 2 && !cur_move.flag && !in_check
-                && !state[ply - 1].in_check
-                && node_type == all_node && move_cr > 4)
+        if(depth <= 2 && !cur_move.flag &&  // late move pruning
+                !in_check && !state[ply - 1].in_check &&
+                node_type == all_node && move_cr > 4)
             break;
         MakeMove(cur_move);
 #ifndef NDEBUG
@@ -131,17 +116,7 @@ k2chess::eval_t k2engine::Search(depth_t depth, eval_t alpha, eval_t beta,
 
         FastEval(cur_move);
 
-        auto lmr = 1;
-        if(depth < 3 || cur_move.flag || in_check)
-            lmr = 0;
-        else if(move_cr < 4)
-            lmr = 0;
-        else if(get_type(b[cur_move.to_coord]) == pawn
-                && IsPasser(get_col(cur_move.to_coord), !wtm))
-            lmr = 0;
-        else if(depth <= 4 && move_cr > 8)
-            lmr = 2;
-
+        const auto lmr = LateMoveReduction(depth, cur_move, in_check, move_cr);
         if(move_cr == 0)
             x = -Search(depth - 1, -beta, -alpha, -node_type);
         else if(beta > alpha + 1)
@@ -173,15 +148,13 @@ k2chess::eval_t k2engine::Search(depth_t depth, eval_t alpha, eval_t beta,
         if(stop)
             break;
     }
-
     if(move_cr == 0)
     {
         pv[ply][0].flag = 0;
         return in_check ? -king_value + ply : 0;
     }
     else if(alpha == initial_alpha)
-        StoreInHash(depth, initial_alpha,
-                    move_array[0], upper_bound);
+        StoreInHash(depth, initial_alpha, move_array[0], upper_bound);
 
     return alpha;
 }
@@ -198,12 +171,10 @@ k2chess::eval_t k2engine::QSearch(eval_t alpha, eval_t beta)
 
     pv[ply][0].flag = 0;
 
-    if(material[0] + material[1] > 2400
-            && ReturnEval(wtm) > beta + 250)
+    if(material[0] + material[1] > 2400 && ReturnEval(wtm) > beta + 250)
         return beta;
 
     auto x = -Eval();
-
     if(x >= beta)
         return beta;
     else if(x > alpha)
@@ -216,48 +187,27 @@ k2chess::eval_t k2engine::QSearch(eval_t alpha, eval_t beta)
 
     move_c move_array[move_array_size];
     movcr_t move_cr = 0, max_moves = init_max_moves;
-
     for(; move_cr < max_moves; move_cr++)
     {
         move_c cur_move = NextMove(move_array, move_cr, &max_moves,
-                               nullptr, captures_only, cur_move);
-        if(max_moves <= 0)
+                                   nullptr, captures_only, cur_move);
+        if(max_moves <= 0 || cur_move.priority <= bad_captures ||
+                DeltaPruning(alpha, cur_move))
             break;
-
-        if(cur_move.priority <= bad_captures)
-            break;
-
-        if(material[white]/100 + material[black]/100
-                - pieces[white] - pieces[black] > 24
-                && get_type(b[cur_move.to_coord]) != king
-                && !(cur_move.flag & is_promotion))
-        {
-            auto cur_eval = ReturnEval(wtm);
-            auto capture = values[get_type(b[cur_move.to_coord])];
-            auto margin = 100;
-            if(cur_eval + capture + margin < alpha)
-                break;
-        }
         MakeMove(cur_move);
+
 #ifndef NDEBUG
         if((!debug_ply || root_ply == debug_ply) &&
                 strcmp(debug_variation, cv) == 0)
             std::cout << "( breakpoint )" << std::endl;
 #endif // NDEBUG
-        if(get_type(k2chess::state[ply].captured_piece) == king)
-        {
-            TakebackMove(cur_move);
-            return king_value;
-        }
+
         FastEval(cur_move);
-
         x = -QSearch(-beta, -alpha);
-
         TakebackMove(cur_move);
 
         if(stop)
             break;
-
         if(x >= beta)
         {
             q_cut_cr++;
@@ -408,8 +358,7 @@ void k2engine::MainSearch()
 
         if(!infinite_analyze && !pondering_in_process)
         {
-            if(time_spent > time_to_think
-                    && !max_nodes_to_search
+            if(time_spent > time_to_think && !max_nodes_to_search
                     && root_ply >= 2)
                 break;
             if(std::abs(x) > mate_score && std::abs(prev_x) > mate_score
@@ -418,9 +367,7 @@ void k2engine::MainSearch()
             if(max_root_moves == 1 && root_ply >= 8)
                 break;
         }
-        if(root_ply >= max_search_depth)
-            break;
-        if(stop)
+        if(stop || root_ply >= max_search_depth)
             break;
     }
 
@@ -693,26 +640,6 @@ void k2engine::InitSearch()
     }
 
     memset(history, 0, sizeof(history));
-}
-
-
-
-
-
-//--------------------------------
-void k2engine::MoveToStr(move_c move, bool stm, char *out)
-{
-    char proms[] = {'?', 'q', 'n', 'r', 'b'};
-
-    const auto it = coords[stm].at(move.piece_index);
-    auto f = *it;
-    out[0] = get_col(f) + 'a';
-    out[1] = get_row(f) + '1';
-    out[2] = get_col(move.to_coord) + 'a';
-    out[3] = get_row(move.to_coord) + '1';
-    out[4] = (move.flag & is_promotion) ?
-              proms[move.flag & is_promotion] : '\0';
-    out[5] = '\0';
 }
 
 
@@ -1242,7 +1169,7 @@ void k2engine::UnMakeNullMove()
 
 
 //-----------------------------
-bool k2engine::NullMove(depth_t depth, eval_t beta, bool in_check)
+bool k2engine::NullMovePruning(depth_t depth, eval_t beta, bool in_check)
 {
     if(in_check || depth < 2
             || material[wtm]/100 - pieces[wtm] < 3)
@@ -1279,30 +1206,6 @@ bool k2engine::NullMove(depth_t depth, eval_t beta, bool in_check)
         null_cut_cr++;
 
     return (x >= beta);
-}
-
-
-
-
-
-//-----------------------------
-bool k2engine::Futility(depth_t depth, eval_t beta)
-{
-    if(k2chess::state[ply].captured_piece == 0
-            && state[ply - 1].to_coord != is_null_move
-      )
-    {
-        futility_probes++;
-
-        auto margin = depth < 2 ? 185 : 255;
-        auto score = ReturnEval(wtm);
-        if(score > margin + beta)
-        {
-            futility_hits++;
-            return true;
-        }
-    }
-    return false;
 }
 
 

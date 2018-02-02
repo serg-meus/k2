@@ -137,8 +137,7 @@ protected:
     void CheckForInterrupt();
     void MakeNullMove();
     void UnMakeNullMove();
-    bool NullMove(depth_t depth, eval_t beta, bool ic);
-    bool Futility(depth_t depth, eval_t beta);
+    bool NullMovePruning(depth_t depth, eval_t beta, bool ic);
     bool DrawByRepetition();
     bool HashProbe(depth_t depth, eval_t *alpha, eval_t beta,
                             hash_entry_s **entry);
@@ -148,7 +147,6 @@ protected:
     void StoreInHash(depth_t depth, eval_t score, move_c best_move,
                            hbound_t bound);
     void ShowCurrentUciInfo();
-    void MoveToStr(move_c m, bool stm, char *out);
     void ShowPVfailHighOrLow(move_c m, eval_t x, char exclimation);
     bool GetFirstMove(move_c *move_array, movcr_t *max_moves,
                        hash_entry_s *entry, bool only_captures, move_c *ans);
@@ -175,5 +173,77 @@ protected:
     void TakebackMove(const move_c move)
     {
         k2hash::TakebackMove(move);
+    }
+
+    bool IsRecapture(const bool in_check)
+    {
+        return(!in_check && k2chess::state[ply - 1].captured_piece
+                && k2chess::state[ply].captured_piece
+                && state[ply].to_coord == state[ply - 1].to_coord
+                && state[ply - 1].priority > bad_captures
+                && state[ply].priority > bad_captures);
+    }
+
+    depth_t LateMoveReduction(const depth_t depth, move_c cur_move,
+                              bool in_check,  movcr_t move_cr)
+    {
+        auto ans = 1;
+        if(depth < 3 || cur_move.flag || in_check)
+            ans = 0;
+        else if(move_cr < 4)
+            ans = 0;
+        else if(get_type(b[cur_move.to_coord]) == pawn &&
+                IsPasser(get_col(cur_move.to_coord), !wtm))
+            ans = 0;
+        else if(depth <= 4 && move_cr > 8)
+            ans = 2;
+        return ans;
+    }
+
+    bool DeltaPruning(eval_t alpha, move_c cur_move)
+    {
+        if(material[white]/100 + material[black]/100
+                - pieces[white] - pieces[black] > 24 &&
+                get_type(b[cur_move.to_coord]) != king &&
+                !(cur_move.flag & is_promotion))
+        {
+            auto cur_eval = ReturnEval(wtm);
+            auto capture = values[get_type(b[cur_move.to_coord])];
+            auto margin = 100;
+            return cur_eval + capture + margin < alpha;
+        }
+        else
+            return false;
+    }
+
+    bool FutilityPruning(depth_t depth, eval_t beta, bool in_check)
+    {
+        if(depth > 2 || in_check || beta >= mate_score)
+            return false;
+        if(k2chess::state[ply].captured_piece != empty_square ||
+                state[ply - 1].to_coord == is_null_move)
+            return false;
+
+        futility_probes++;
+        auto margin = depth < 2 ? 185 : 255;
+        auto score = ReturnEval(wtm);
+        if(score <= margin + beta)
+            return false;
+
+        futility_hits++;
+        return true;
+    }
+
+    bool MateDistancePruning(eval_t alpha, eval_t *beta)
+    {
+        auto mate_sc = king_value - ply;
+        if(alpha >= mate_sc)
+        {
+            *beta = alpha;
+            return true;
+        }
+        if(*beta <= -mate_sc)
+            return true;
+        return false;
     }
 };
