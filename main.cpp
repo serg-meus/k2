@@ -94,7 +94,7 @@ void k2main::start()
 
 
 //--------------------------------
-bool k2main::ExecuteCommand(std::string in)
+bool k2main::ExecuteCommand(const std::string in)
 {
     command_s commands[] =
     {
@@ -152,13 +152,13 @@ bool k2main::ExecuteCommand(std::string in)
 
     for(size_t i = 0; i < sizeof(commands) / sizeof(command_s); ++i)
     {
-        if(command_str == commands[i].command)
-        {
-            auto command = commands[i];
-            method_ptr method = command.mptr;
-            ((*this).*method)(args);
-            return true;
-        }
+        if(command_str != commands[i].command)
+            continue;
+
+        auto command = commands[i];
+        method_ptr method = command.mptr;
+        ((*this).*method)(args);
+        return true;
     }
     return false;
 }
@@ -168,12 +168,12 @@ bool k2main::ExecuteCommand(std::string in)
 
 
 //--------------------------------
-void k2main::GetFirstArg(std::string in, std::string (*first_word),
-                         std::string (*all_the_rest))
+void k2main::GetFirstArg(const std::string in,  std::string * const first_word,
+                         std::string * const all_the_rest) const
 {
     if(in.empty())
         return;
-    std::string delimiters = " ;,\t\r\n=";
+    const std::string delimiters = " ;,\t\r\n=";
     *first_word = in;
     int first_symbol = first_word->find_first_not_of(delimiters);
     if(first_symbol == -1)
@@ -193,7 +193,7 @@ void k2main::GetFirstArg(std::string in, std::string (*first_word),
 
 
 //--------------------------------
-bool k2main::LooksLikeMove(std::string in)
+bool k2main::LooksLikeMove(const std::string in) const
 {
     if(in.size() < 4 || in.size() > 5)
         return false;
@@ -228,7 +228,7 @@ void k2main::StopEngine()
 
 
 //--------------------------------
-void k2main::NewCommand(std::string in)
+void k2main::NewCommand(const std::string in)
 {
     UNUSED(in);
     if(busy)
@@ -256,13 +256,13 @@ void k2main::NewCommand(std::string in)
 
 
 //-------------------------------
-void k2main::SetboardCommand(std::string in)
+void k2main::SetboardCommand(const std::string in)
 {
     if(busy)
         return;
 
-    auto firstSymbol = in.find_first_not_of(" \t");
-    in.erase(0, firstSymbol);
+//    const auto firstSymbol = in.find_first_not_of(" \t");
+//    in.erase(0, firstSymbol);
 
     if(!SetupPosition((char *)in.c_str()))
         std::cout << "Illegal position" << std::endl;
@@ -275,7 +275,7 @@ void k2main::SetboardCommand(std::string in)
 
 
 //--------------------------------
-void k2main::QuitCommand(std::string in)
+void k2main::QuitCommand(const std::string in)
 {
     UNUSED(in);
 #ifndef DONT_USE_THREAD_FOR_INPUT
@@ -291,21 +291,21 @@ void k2main::QuitCommand(std::string in)
 
 
 //--------------------------------
-void k2main::PerftCommand(std::string in)
+void k2main::PerftCommand(const std::string in)
 {
     if(busy)
         return;
+
     Timer timer;
-    double tick1, tick2, deltaTick;
     timer.start();
-    tick1 = timer.getElapsedTimeInMicroSec();
+    const auto tick1 = timer.getElapsedTimeInMicroSec();
 
     nodes = 0;
     max_search_depth = atoi(in.c_str());
     Perft(max_search_depth);
     max_search_depth = k2chess::max_ply;
-    tick2 = timer.getElapsedTimeInMicroSec();
-    deltaTick = tick2 - tick1;
+    const auto tick2 = timer.getElapsedTimeInMicroSec();
+    const auto deltaTick = tick2 - tick1;
 
     std::cout << std::endl << "nodes = " << nodes << std::endl
               << "dt = " << deltaTick / 1000000. << std::endl
@@ -318,7 +318,7 @@ void k2main::PerftCommand(std::string in)
 
 
 //--------------------------------
-void k2main::GoCommand(std::string in)
+void k2main::GoCommand(const std::string in)
 {
     UNUSED(in);
     if(busy)
@@ -344,7 +344,7 @@ void k2main::GoCommand(std::string in)
 
 
 //--------------------------------
-void k2main::LevelCommand(std::string in)
+void k2main::LevelCommand(const std::string in)
 {
     if(busy)
         return;
@@ -385,7 +385,7 @@ void k2main::LevelCommand(std::string in)
 
 
 //--------------------------------
-void k2main::ForceCommand(std::string in)
+void k2main::ForceCommand(const std::string in)
 {
     UNUSED(in);
     if(busy)
@@ -398,7 +398,7 @@ void k2main::ForceCommand(std::string in)
 
 
 //--------------------------------
-void k2main::SetNodesCommand(std::string in)
+void k2main::SetNodesCommand(const std::string in)
 {
     if(busy)
         return;
@@ -414,7 +414,7 @@ void k2main::SetNodesCommand(std::string in)
 
 
 //--------------------------------
-void k2main::SetTimeCommand(std::string in)
+void k2main::SetTimeCommand(const std::string in)
 {
     if(busy)
         return;
@@ -431,7 +431,7 @@ void k2main::SetTimeCommand(std::string in)
 
 
 //--------------------------------
-void k2main::SetDepthCommand(std::string in)
+void k2main::SetDepthCommand(const std::string in)
 {
     if(busy)
         return;
@@ -443,7 +443,7 @@ void k2main::SetDepthCommand(std::string in)
 
 
 //--------------------------------
-void k2main::ProtoverCommand(std::string in)
+void k2main::ProtoverCommand(const std::string in)
 {
     using namespace std;
 
@@ -453,7 +453,7 @@ void k2main::ProtoverCommand(std::string in)
     xboard = true;
     uci = false;
 
-    string feat = "feature ";
+    const string feat = "feature ";
 
     cout << feat << "myname=\"K2 v." << engine_version << "\"" << endl;
     cout << feat << "setboard=1" << endl;
@@ -476,7 +476,7 @@ void k2main::ProtoverCommand(std::string in)
 
 
 //--------------------------------
-void k2main::StopCommand(std::string in)
+void k2main::StopCommand(const std::string in)
 {
     UNUSED(in);
 #ifndef DONT_USE_THREAD_FOR_INPUT
@@ -493,7 +493,7 @@ void k2main::StopCommand(std::string in)
 
 
 //--------------------------------
-void k2main::ResultCommand(std::string in)
+void k2main::ResultCommand(const std::string in)
 {
     UNUSED(in);
     if(busy)
@@ -505,7 +505,7 @@ void k2main::ResultCommand(std::string in)
 
 
 //--------------------------------
-void k2main::TimeCommand(std::string in)
+void k2main::TimeCommand(const std::string in)
 {
     if(busy)
     {
@@ -513,7 +513,7 @@ void k2main::TimeCommand(std::string in)
                   << std::endl;
         return;
     }
-    double tb = atof(in.c_str()) * 10000;
+    const auto tb = atof(in.c_str()) * 10000;
     time_remains = tb;
     time_command_sent = true;
 }
@@ -523,7 +523,7 @@ void k2main::TimeCommand(std::string in)
 
 
 //--------------------------------
-void k2main::EvalCommand(std::string in)
+void k2main::EvalCommand(const std::string in)
 {
     UNUSED(in);
     if(busy)
@@ -537,15 +537,14 @@ void k2main::EvalCommand(std::string in)
 
 
 //--------------------------------
-void k2main::TestCommand(std::string in)
+void k2main::TestCommand(const std::string in)
 {
     UNUSED(in);
     if(busy)
         return;
     Timer timer;
-    double tick1, tick2, deltaTick;
     timer.start();
-    tick1 = timer.getElapsedTimeInMicroSec();
+    auto tick1 = timer.getElapsedTimeInMicroSec();
 
     while(true)
     {
@@ -571,11 +570,11 @@ void k2main::TestCommand(std::string in)
             break;
         total_nodes += nodes;
 
-        tick2 = timer.getElapsedTimeInMicroSec();
-        deltaTick = tick2 - tick1;
+        auto tick2 = timer.getElapsedTimeInMicroSec();
+        auto delta_tick = tick2 - tick1;
         std::cout << "Perft: total nodes = " << total_nodes
-                  << ", dt = " << deltaTick / 1000000.
-                  << ", Mnps = " << total_nodes / (deltaTick + 1)
+                  << ", dt = " << delta_tick / 1000000.
+                  << ", Mnps = " << total_nodes / (delta_tick + 1)
                   << std::endl;
         total_nodes = 0;
 
@@ -616,10 +615,10 @@ void k2main::TestCommand(std::string in)
             break;
 
         tick2 = timer.getElapsedTimeInMicroSec();
-        deltaTick = tick2 - tick1;
+        delta_tick = tick2 - tick1;
         std::cout << "Search: total nodes = " << total_nodes
-                  << ", dt = " << deltaTick / 1000000.
-                  << ", Mnps = " << total_nodes / (deltaTick + 1)
+                  << ", dt = " << delta_tick / 1000000.
+                  << ", Mnps = " << total_nodes / (delta_tick + 1)
                   << std::endl;
         total_nodes = 0;
 
@@ -642,7 +641,7 @@ void k2main::TestCommand(std::string in)
 
 
 //--------------------------------
-void k2main::FenCommand(std::string in)
+void k2main::FenCommand(const std::string in)
 {
     UNUSED(in);
     ShowFen();
@@ -653,7 +652,7 @@ void k2main::FenCommand(std::string in)
 
 
 //--------------------------------
-void k2main::XboardCommand(std::string in)
+void k2main::XboardCommand(const std::string in)
 {
     UNUSED(in);
     xboard = true;
@@ -668,7 +667,7 @@ void k2main::XboardCommand(std::string in)
 
 
 //--------------------------------
-void k2main::Unsupported(std::string in)
+void k2main::Unsupported(const std::string in)
 {
     UNUSED(in);
 }
@@ -678,7 +677,7 @@ void k2main::Unsupported(std::string in)
 
 
 //--------------------------------
-void k2main::UciCommand(std::string in)
+void k2main::UciCommand(const std::string in)
 {
     UNUSED(in);
     uci = true;
@@ -696,7 +695,7 @@ void k2main::UciCommand(std::string in)
 
 
 //--------------------------------
-void k2main::SetOptionCommand(std::string in)
+void k2main::SetOptionCommand(const std::string in)
 {
     std::string arg1, arg2;
     GetFirstArg(in, &arg1, &arg2);
@@ -731,7 +730,7 @@ void k2main::SetOptionCommand(std::string in)
 
 
 //--------------------------------
-void k2main::IsReadyCommand(std::string in)
+void k2main::IsReadyCommand(const std::string in)
 {
     UNUSED(in);
     std::cout << "\nreadyok\n";  // '\n' to avoid multithreading problems
@@ -742,7 +741,7 @@ void k2main::IsReadyCommand(std::string in)
 
 
 //--------------------------------
-void k2main::PositionCommand(std::string in)
+void k2main::PositionCommand(const std::string in)
 {
 
     std::string arg1, arg2;
@@ -762,12 +761,12 @@ void k2main::PositionCommand(std::string in)
     else
         SetupPosition(start_position);
 
-    int moves = arg2.find("moves");
+    const int moves = arg2.find("moves");
     if(moves == -1)
         return;
 
     auto mov_seq = arg2.substr(moves + 5, in.size());
-    auto beg = mov_seq.find_first_not_of(" \t");
+    const auto beg = mov_seq.find_first_not_of(" \t");
     mov_seq = mov_seq.substr(beg, mov_seq.size());
 
     ProcessMoveSequence(mov_seq);
@@ -778,7 +777,7 @@ void k2main::PositionCommand(std::string in)
 
 
 //--------------------------------
-void k2main::ProcessMoveSequence(std::string in)
+void k2main::ProcessMoveSequence(const std::string in)
 {
     std::string arg1, arg2;
     arg1 = in;
@@ -798,7 +797,7 @@ void k2main::ProcessMoveSequence(std::string in)
 
 
 //--------------------------------
-void k2main::UciGoCommand(std::string in)
+void k2main::UciGoCommand(const std::string in)
 {
     pondering_in_process = false;
     bool no_movestogo_arg = true;
@@ -898,7 +897,7 @@ void k2main::UciGoCommand(std::string in)
 
 
 //--------------------------------
-void k2main::EasyCommand(std::string in)
+void k2main::EasyCommand(const std::string in)
 {
     UNUSED(in);
     pondering_enabled = false;
@@ -909,7 +908,7 @@ void k2main::EasyCommand(std::string in)
 
 
 //--------------------------------
-void k2main::HardCommand(std::string in)
+void k2main::HardCommand(const std::string in)
 {
     UNUSED(in);
     pondering_enabled = true;
@@ -920,7 +919,7 @@ void k2main::HardCommand(std::string in)
 
 
 //--------------------------------
-void k2main::PonderhitCommand(std::string in)
+void k2main::PonderhitCommand(const std::string in)
 {
     UNUSED(in);
     PonderHit();
@@ -931,7 +930,7 @@ void k2main::PonderhitCommand(std::string in)
 
 
 //--------------------------------
-void k2main::MemoryCommand(std::string in)
+void k2main::MemoryCommand(const std::string in)
 {
     std::string arg1, arg2;
     arg1 = in;
@@ -945,7 +944,7 @@ void k2main::MemoryCommand(std::string in)
 
 
 //--------------------------------
-void k2main::AnalyzeCommand(std::string in)
+void k2main::AnalyzeCommand(const std::string in)
 {
     UNUSED(in);
     force = false;
@@ -965,7 +964,7 @@ void k2main::AnalyzeCommand(std::string in)
 
 
 //--------------------------------
-void k2main::ExitCommand(std::string in)
+void k2main::ExitCommand(const std::string in)
 {
     StopCommand(in);
     infinite_analyze = false;
@@ -976,7 +975,7 @@ void k2main::ExitCommand(std::string in)
 
 
 //--------------------------------
-void k2main::SetvalueCommand(std::string in)
+void k2main::SetvalueCommand(const std::string in)
 {
     std::string arg1, arg2;
     GetFirstArg(in, &arg1, &arg2);
@@ -1006,7 +1005,7 @@ void k2main::SetvalueCommand(std::string in)
 
 
 //--------------------------------
-void k2main::OptionCommand(std::string in)
+void k2main::OptionCommand(const std::string in)
 {
     std::string arg1, arg2;
     GetFirstArg(in, &arg1, &arg2);

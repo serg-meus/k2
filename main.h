@@ -21,8 +21,8 @@ public:
     k2main();
     void start();
 
-    void LevelCommand(std::string in);
-    void MemoryCommand(std::string in);
+    void LevelCommand(const std::string in);
+    void MemoryCommand(const std::string in);
 
     void RunUnitTests()
     {
@@ -45,7 +45,7 @@ protected:
 #endif // USE_THREAD_FOR_INPUT
 
 
-    typedef void(k2main::*method_ptr)(std::string);
+    typedef void(k2main::*method_ptr)(const std::string);
 
     struct command_s
     {
@@ -53,41 +53,40 @@ protected:
         method_ptr mptr;
     };
 
-
-    bool ExecuteCommand(std::string in);
-    bool LooksLikeMove(std::string in);
-    void NewCommand(std::string in);
-    void SetboardCommand(std::string in);
-    void QuitCommand(std::string in);
-    void PerftCommand(std::string in);
-    void GoCommand(std::string in);
-    void ForceCommand(std::string in);
-    void SetNodesCommand(std::string in);
-    void SetTimeCommand(std::string in);
-    void SetDepthCommand(std::string in);
-    void Unsupported(std::string in);
-    void GetFirstArg(std::string in, std::string *first_word,
-                     std::string *all_the_rest);
-    void ProtoverCommand(std::string in);
+    bool ExecuteCommand(const std::string in);
+    bool LooksLikeMove(const std::string in) const;
+    void NewCommand(const std::string in);
+    void SetboardCommand(const std::string in);
+    void QuitCommand(const std::string in);
+    void PerftCommand(const std::string in);
+    void GoCommand(const std::string in);
+    void ForceCommand(const std::string in);
+    void SetNodesCommand(const std::string in);
+    void SetTimeCommand(const std::string in);
+    void SetDepthCommand(const std::string in);
+    void Unsupported(const std::string in);
+    void GetFirstArg(const std::string in, std::string * const first_word,
+                     std::string * const all_the_rest) const;
+    void ProtoverCommand(const std::string in);
     void StopEngine();
-    void StopCommand(std::string in);
-    void ResultCommand(std::string in);
-    void XboardCommand(std::string in);
-    void TimeCommand(std::string in);
-    void EvalCommand(std::string in);
-    void TestCommand(std::string in);
-    void FenCommand(std::string in);
-    void UciCommand(std::string in);
-    void SetOptionCommand(std::string in);
-    void IsReadyCommand(std::string in);
-    void PositionCommand(std::string in);
-    void ProcessMoveSequence(std::string in);
-    void UciGoCommand(std::string in);
-    void EasyCommand(std::string in);
-    void HardCommand(std::string in);
-    void PonderhitCommand(std::string in);
-    void AnalyzeCommand(std::string in);
-    void ExitCommand(std::string in);
-    void SetvalueCommand(std::string in);
-    void OptionCommand(std::string in);
+    void StopCommand(const std::string in);
+    void ResultCommand(const std::string in);
+    void XboardCommand(const std::string in);
+    void TimeCommand(const std::string in);
+    void EvalCommand(const std::string in);
+    void TestCommand(const std::string in);
+    void FenCommand(const std::string in);
+    void UciCommand(const std::string in);
+    void SetOptionCommand(const std::string in);
+    void IsReadyCommand(const std::string in);
+    void PositionCommand(const std::string in);
+    void ProcessMoveSequence(const std::string in);
+    void UciGoCommand(const std::string in);
+    void EasyCommand(const std::string in);
+    void HardCommand(const std::string in);
+    void PonderhitCommand(const std::string in);
+    void AnalyzeCommand(const std::string in);
+    void ExitCommand(const std::string in);
+    void SetvalueCommand(const std::string in);
+    void OptionCommand(const std::string in);
 };
