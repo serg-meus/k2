@@ -1399,7 +1399,7 @@ bool k2engine::GetFirstMove(move_c * const move_array,
         }
         assert(tt_move_found == pseudo_legal);
 #endif
-        if(pseudo_legal)
+        if(pseudo_legal && IsLegal(*ans))
         {
             ans->priority = move_from_hash;
             return true;
