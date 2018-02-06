@@ -474,8 +474,8 @@ void k2movegen::RunUnitTests()
     assert(test_gen_pawn("e5", all_moves) == 2);
     assert(test_gen_pawn("e5", only_captures) == 1);
 
-    assert(TakebackMove());
-    assert(TakebackMove());
+    TakebackMove();
+    TakebackMove();
 
     assert(MakeMove("g2g4"));
 

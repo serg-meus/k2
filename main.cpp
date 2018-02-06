@@ -261,10 +261,10 @@ void k2main::SetboardCommand(const std::string in)
     if(busy)
         return;
 
-//    const auto firstSymbol = in.find_first_not_of(" \t");
-//    in.erase(0, firstSymbol);
+    const auto firstSymbol = in.find_first_not_of(" \t");
+    const auto in1 = in.substr(firstSymbol, in.size() - firstSymbol);
 
-    if(!SetupPosition((char *)in.c_str()))
+    if(!SetupPosition((char *)in1.c_str()))
         std::cout << "Illegal position" << std::endl;
     else if(infinite_analyze && xboard)
         AnalyzeCommand(in);

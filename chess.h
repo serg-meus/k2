@@ -18,7 +18,7 @@ public:
     k2chess();
     bool SetupPosition(const char *fen);
     bool MakeMove(const char* str);
-    bool TakebackMove();
+    void TakebackMove();
     void RunUnitTests();
 
 
@@ -213,6 +213,7 @@ protected:
 // Structure for storing current state of engine
     struct state_s
     {
+        move_c move;  // last move
         piece_t captured_piece;  // captured piece
         coord_t captured_index;  // iterator to captured piece
         coord_t from_coord;  // square coordinate from which move was made
@@ -293,8 +294,6 @@ protected:
 
     iterator king_coord[sides];  // king coord iterators for black and white
 
-    std::vector<move_c> done_moves;
-
     attack_t done_attacks[max_ply][sides][board_height*board_width];
 
     std::vector<k2list> store_coords;
@@ -302,7 +301,6 @@ protected:
     coord_t done_mobility[max_ply][sides][max_pieces_one_side][max_rays];
 
     bool MakeMove(const move_c m);
-    void TakebackMove(const move_c m);
     size_t find_piece(const bool stm, const coord_t coord);
     move_flag_t InitMoveFlag(const move_c move, const char promo_to);
     bool IsLegal(const move_c move);

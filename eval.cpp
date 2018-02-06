@@ -739,7 +739,7 @@ void k2eval::TakebackMove(const move_c m)
 {
     auto from_coord = k2chess::state[ply].from_coord;
 
-    k2chess::TakebackMove(m);
+    k2chess::TakebackMove();
 
     ply++;
     wtm ^= white;

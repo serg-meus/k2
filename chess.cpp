@@ -306,22 +306,22 @@ void k2chess::UpdateAttacks(const move_c move, const coord_t from_coord)
     {
         p.color = stm;
         auto msk = update_mask[stm];
-        if(!msk)
+    if(!msk)
             continue;
-        for(size_t i = 0; i < attack_digits && msk; ++i, msk >>= 1)
-        {
-            if(!(msk & 1))
-                continue;
-            GetAttackParams(i, move, stm, p);
-            UpdateAttacksOnePiece(p, false);
-            if(p.is_cstl)
-                p.piece_coord = *coords[!wtm].at(i);
-            else if(p.is_move && (move.flag & is_promotion))
-                p.type = get_type(b[*coords[!wtm].at(p.index)]);
-            if(!p.is_captured)
-                UpdateAttacksOnePiece(p, true);
-        }
-        update_mask[stm] = 0;
+    for(size_t i = 0; i < attack_digits && msk; ++i, msk >>= 1)
+    {
+        if(!(msk & 1))
+            continue;
+        GetAttackParams(i, move, stm, p);
+        UpdateAttacksOnePiece(p, false);
+        if(p.is_cstl)
+            p.piece_coord = *coords[!wtm].at(i);
+        else if(p.is_move && (move.flag & is_promotion))
+            p.type = get_type(b[*coords[!wtm].at(p.index)]);
+        if(!p.is_captured)
+            UpdateAttacksOnePiece(p, true);
+    }
+    update_mask[stm] = 0;
     }
 #ifndef NDEBUG
 //    assert(CheckBoardConsistency());
@@ -548,7 +548,6 @@ bool k2chess::SetupPosition(const char *fen)
         InitSliderMask(stm);
         update_mask[stm] = 0;
     }
-    done_moves.clear();
     return true;
 }
 
@@ -757,6 +756,7 @@ void k2chess::StoreCurrentBoardState(const move_c move,
 
     state[ply].from_coord = from_coord;
     state[ply].reversible_moves = reversible_moves;
+    state[ply].move = move;
 }
 
 
@@ -1061,7 +1061,6 @@ bool k2chess::MakeMove(const move_c move)
         MakePromotion(move);
     wtm = !wtm;
 
-    done_moves.push_back(move);
     if(move.flag & is_promotion)
     {
         InitAttacks(!wtm);
@@ -1079,9 +1078,9 @@ bool k2chess::MakeMove(const move_c move)
 
 
 //--------------------------------
-void k2chess::TakebackMove(const move_c move)
+void k2chess::TakebackMove()
 {
-    done_moves.pop_back();
+    const auto move = state[ply].move;
     if(move.flag & is_promotion)
     {
         coords[!wtm] = store_coords.back();
@@ -1135,22 +1134,6 @@ bool k2chess::MakeMove(const char* str)
     if(!IsPseudoLegal(move) || !IsLegal(move))
         return false;
     MakeMove(move);
-    return true;
-}
-
-
-
-
-
-//--------------------------------
-bool k2chess::TakebackMove()
-{
-    if(done_moves.size() == 0)
-        return false;
-
-    auto move = done_moves.back();
-
-    TakebackMove(move);
     return true;
 }
 
@@ -1750,9 +1733,9 @@ void k2chess::RunUnitTests()
     assert(MakeMove("g1f3"));
     assert(MakeMove("d6b4"));
     assert(MakeMove("c2c3"));
-    assert(TakebackMove());
+    TakebackMove();
     assert(MakeMove("b1d2"));
-    assert(TakebackMove());
+    TakebackMove();
     assert(MakeMove("c1d2"));
     assert(MakeMove("h7h5"));
     assert(MakeMove("d2c3"));
@@ -1815,7 +1798,7 @@ void k2chess::RunUnitTests()
     assert(material[black] == values[knight] + values[rook]);
     assert(reversible_moves == 0);
 
-    assert(TakebackMove());
+    TakebackMove();
     assert(b[get_coord("d7")] == white_pawn);
     assert(b[get_coord("d8")] == empty_square);
     assert(material[white] == values[pawn]);
@@ -1823,8 +1806,6 @@ void k2chess::RunUnitTests()
     assert(quantity[white][pawn] == 1);
     assert(quantity[white][queen] == 0);
     assert(reversible_moves == 4);
-
-    assert(!TakebackMove());
 
     assert(MakeMove("d7d8"));
     assert(b[get_coord("d7")] == empty_square);
@@ -1837,7 +1818,7 @@ void k2chess::RunUnitTests()
     assert(material[black] == values[knight] + values[rook]);
     assert(reversible_moves == 0);
 
-    assert(TakebackMove());
+    TakebackMove();
     assert(MakeMove("d7e8b"));
     assert(b[get_coord("d7")] == empty_square);
     assert(b[get_coord("e8")] == white_bishop);
@@ -1861,7 +1842,7 @@ void k2chess::RunUnitTests()
     assert(material[black] == values[rook]);
     assert(reversible_moves == 0);
 
-    assert(TakebackMove());
+    TakebackMove();
     assert(MakeMove("d2c1n"));
     assert(b[get_coord("d2")] == empty_square);
     assert(b[get_coord("c1")] == black_knight);
@@ -1873,7 +1854,7 @@ void k2chess::RunUnitTests()
     assert(material[black] == values[knight]);
     assert(reversible_moves == 0);
 
-    assert(TakebackMove());
+    TakebackMove();
     assert(!MakeMove("d2d1m"));
 
     assert(SetupPosition(start_position));
@@ -1918,8 +1899,8 @@ void k2chess::RunUnitTests()
     assert(SetupPosition("r3k2r/p5pp/7N/4B3/4b3/6P1/7P/RN2K2R w KQkq - 0 1"));
     assert(MakeMove("e1g1"));
     assert(MakeMove("e8c8"));
-    assert(TakebackMove());
-    assert(TakebackMove());
+    TakebackMove();
+    TakebackMove();
     assert(b[get_coord("e1")] == white_king);
     assert(b[get_coord("e8")] == black_king);
     assert(b[get_coord("h1")] == white_rook);
@@ -1931,7 +1912,7 @@ void k2chess::RunUnitTests()
     assert(!MakeMove("e8g8"));
     assert(!MakeMove("e8g1"));
     assert(!MakeMove("e8c1"));
-    assert(TakebackMove());
+    TakebackMove();
     assert(MakeMove("e1e2"));
     assert(MakeMove("e8e7"));
     assert(MakeMove("e2e1"));
@@ -1940,7 +1921,7 @@ void k2chess::RunUnitTests()
     assert(MakeMove("h2h3"));
     assert(!MakeMove("e8c8"));
     for(auto i = 0; i < 5; ++i)
-        assert(TakebackMove());
+        TakebackMove();
     assert(MakeMove("h1g1"));
     assert(MakeMove("a8b8"));
     assert(MakeMove("g1h1"));
@@ -1971,7 +1952,7 @@ void k2chess::RunUnitTests()
 
     assert(SetupPosition("3Q4/8/7B/8/q2N4/2p2Pk1/8/2n1K2R b K - 0 1"));
     assert(MakeMove("g3g2"));
-    assert(TakebackMove());
+    TakebackMove();
     assert(!MakeMove("g3h4"));
     assert(!MakeMove("g3g4"));
     assert(!MakeMove("g3f4"));
@@ -1986,7 +1967,7 @@ void k2chess::RunUnitTests()
     assert(!MakeMove("e1f2"));
     assert(!MakeMove("e1d1"));
     assert(MakeMove("e1f1"));
-    assert(TakebackMove());
+    TakebackMove();
     assert(MakeMove("e1g1"));
 
     assert(SetupPosition("4k3/4r3/8/b7/1N5q/4B3/5P2/4K3 w - - 0 1"));
@@ -1996,17 +1977,17 @@ void k2chess::RunUnitTests()
     assert(MakeMove("e1d1"));
     assert(MakeMove("e8d8"));
     assert(!MakeMove("d2c4"));
-    assert(TakebackMove());
+    TakebackMove();
     assert(!MakeMove("e2d3"));
-    assert(TakebackMove());
+    TakebackMove();
     assert(!MakeMove("f2f3"));
 
     assert(SetupPosition("4k3/3ppp2/4b3/1n5Q/B7/8/4R3/4K3 b - - 0 1"));
     assert(MakeMove("b5a7"));
-    assert(TakebackMove());
+    TakebackMove();
     assert(MakeMove("e6g4"));
     assert(!MakeMove("f7f6"));
-    assert(TakebackMove());
+    TakebackMove();
     assert(MakeMove("e8d8"));
     assert(MakeMove("e2d2"));
 
@@ -2019,7 +2000,7 @@ void k2chess::RunUnitTests()
     assert(SetupPosition("8/8/8/8/k1p4B/8/3P4/2K5 w - - 0 1"));
     assert(MakeMove("d2d4"));
     assert(MakeMove("c4d3"));
-    assert(TakebackMove());
+    TakebackMove();
     assert(MakeMove("c4c3"));
     assert(MakeMove("d4d5"));
     assert(SetupPosition(
@@ -2041,7 +2022,7 @@ void k2chess::RunUnitTests()
     assert(SetupPosition("3k2r1/2p5/8/3P4/8/8/K7/8 b - - 0 1"));
     assert(MakeMove("c7c5"));
     assert(MakeMove("d5c6"));
-    assert(TakebackMove());
+    TakebackMove();
     assert(MakeMove("d5d6"));
     assert(MakeMove("c5c4"));
 
@@ -2057,13 +2038,13 @@ void k2chess::RunUnitTests()
     assert(SetupPosition(("3k4/8/8/8/8/2n5/3P4/3K4 w - - 0 1")));
     assert(!MakeMove("d2d3"));
     assert(MakeMove("d2c3"));
-    assert(TakebackMove());
+    TakebackMove();
     assert(MakeMove("d1c2"));
 
     assert(SetupPosition("3k4/8/8/8/8/1b2N3/8/3K4 w - - 0 1"));
     assert(!MakeMove("e3d5"));
     assert(MakeMove("e3c2"));
-    assert(TakebackMove());
+    TakebackMove();
     assert(MakeMove("d1c1"));
 
     assert(SetupPosition("1n2k3/1pp5/8/8/8/1P6/2PPB3/4K3 w - - 0 1"));
@@ -2106,14 +2087,14 @@ void k2chess::RunUnitTests()
 
     assert(SetupPosition("4K3/2P5/2B5/8/b7/1p6/7P/3k4 w - - 0 1"));
     assert(MakeMove("c6a4"));
-    assert(TakebackMove());
+    TakebackMove();
     assert(!MakeMove("c6h1"));
     assert(MakeMove("c7c8"));
     assert(MakeMove("d1c1"));
     assert(MakeMove("c6a4"));
     assert(!MakeMove("b3a4"));
     for(auto i = 0; i < 3; ++i)
-        assert(TakebackMove());
+        TakebackMove();
     assert(MakeMove("c7c8r"));
 
     assert(SetupPosition("4k3/8/8/b7/1r6/8/1P1K1N2/8 b - - 0 1"));
@@ -2125,11 +2106,11 @@ void k2chess::RunUnitTests()
     assert(!MakeMove("b2b4"));
     assert(!MakeMove("f2d3"));
     assert(MakeMove("d2c1"));
-    assert(TakebackMove());
+    TakebackMove();
     assert(MakeMove("d2c2"));
-    assert(TakebackMove());
+    TakebackMove();
     assert(MakeMove("d2e3"));
-    assert(TakebackMove());
+    TakebackMove();
     assert(MakeMove("d2e2"));
 
     assert(SetupPosition(

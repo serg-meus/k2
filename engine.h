@@ -87,8 +87,6 @@ protected:
     // Structure for storing current state of engine
     struct state_s
     {
-        coord_t to_coord;  // coordinate of last move destination
-        priority_t priority;  // move priority assigned by move genererator
         bool in_check;
     };
     state_s eng_state[prev_states + max_ply]; // engine state for each ply
@@ -168,8 +166,6 @@ protected:
 
     void MakeMove(const move_c move)
     {
-        state[ply].to_coord = move.to_coord;
-        state[ply].priority = move.priority;
         k2hash::MakeMove(move);
     }
 
@@ -182,9 +178,10 @@ protected:
     {
         return(!in_check && k2chess::state[ply - 1].captured_piece
                 && k2chess::state[ply].captured_piece
-                && state[ply].to_coord == state[ply - 1].to_coord
-                && state[ply - 1].priority > bad_captures
-                && state[ply].priority > bad_captures);
+                && k2chess::state[ply].move.to_coord ==
+                k2chess::state[ply - 1].move.to_coord
+                && k2chess::state[ply - 1].move.priority > bad_captures
+                && k2chess::state[ply].move.priority > bad_captures);
     }
 
     depth_t LateMoveReduction(const depth_t depth, move_c cur_move,
@@ -224,7 +221,7 @@ protected:
         if(depth > 2 || in_check || beta >= mate_score)
             return false;
         if(k2chess::state[ply].captured_piece != empty_square ||
-                state[ply - 1].to_coord == is_null_move)
+                k2chess::state[ply - 1].move.to_coord == is_null_move)
             return false;
 
         futility_probes++;

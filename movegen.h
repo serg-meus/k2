@@ -19,15 +19,10 @@ public:
 		return k2chess::MakeMove(in);
 	}
 
-    bool TakebackMove()
+    void TakebackMove()
 	{
-        return k2chess::TakebackMove();
+        k2chess::TakebackMove();
 	}
-
-    void TakebackMove(const move_c move)
-    {
-        k2chess::TakebackMove(move);
-    }
 
 
 protected:

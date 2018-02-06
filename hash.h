@@ -89,10 +89,6 @@ protected:
         size_t _size;
     };
 
-
-
-
-
     hash_key_t hash_key;
     hash_key_t zorb[12][8][8];
     hash_key_t zorb_en_passant[9];

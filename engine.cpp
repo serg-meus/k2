@@ -254,7 +254,7 @@ void k2engine::Perft(const depth_t depth)
         if(depth == max_search_depth)
             std::cout << cv << nodes - tmpCr << std::endl;
 #endif
-        k2chess::TakebackMove(cur_move);
+        k2chess::TakebackMove();
     }
 }
 
@@ -922,7 +922,7 @@ bool k2engine::ShowPV(const depth_t cur_ply)
     }
 
     for(; ply_cr > 0; ply_cr--)
-        k2chess::TakebackMove(*(move_c *) &pv[cur_ply][ply_cr]);
+        k2chess::TakebackMove();
     return ans;
 }
 
@@ -1139,7 +1139,7 @@ void k2engine::MakeNullMove()
     k2chess::state[ply + 1] = k2chess::state[ply];
     k2eval::state[ply + 1] = k2eval::state[ply];
     k2engine::state[ply + 1] = k2engine::state[ply];
-    state[ply].to_coord = is_null_move;
+    k2chess::state[ply].move.to_coord = is_null_move;
     k2chess::state[ply + 1].en_passant_rights = 0;
 
     ply++;
@@ -1177,25 +1177,25 @@ bool k2engine::NullMovePruning(const depth_t depth, const eval_t beta,
 
     null_probe_cr++;
 
-    if(state[ply - 1].to_coord == is_null_move
-            && state[ply - 2].to_coord == is_null_move)
+    if(k2chess::state[ply - 1].move.to_coord == is_null_move
+            && k2chess::state[ply - 2].move.to_coord == is_null_move)
         return false;
 
-    auto store_ep = k2chess::state[ply].en_passant_rights;
-    auto store_to = state[ply].to_coord;
-    auto store_rv = reversible_moves;
+    const auto store_ep = k2chess::state[ply].en_passant_rights;
+    const auto store_move = k2chess::state[ply].move;
+    const auto store_rv = reversible_moves;
     reversible_moves = 0;
 
     MakeNullMove();
     if(store_ep)
         hash_key = InitHashKey();
 
-    auto r = depth > 6 ? 3 : 2;
+    const auto r = depth > 6 ? 3 : 2;
 
-    auto x = -Search(depth - r - 1, -beta, -beta + 1, all_node);
+    const auto x = -Search(depth - r - 1, -beta, -beta + 1, all_node);
 
     UnMakeNullMove();
-    state[ply].to_coord = store_to;
+    k2chess::state[ply].move = store_move;
     k2chess::state[ply].en_passant_rights = store_ep;
     reversible_moves = store_rv;
 
