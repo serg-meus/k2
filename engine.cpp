@@ -1384,7 +1384,7 @@ bool k2engine::GetFirstMove(move_c * const move_array,
     {
         *ans = entry->best_move;
 
-        const bool pseudo_legal = IsPseudoLegal(*ans);
+        const bool legal = IsPseudoLegal(*ans) && IsLegal(*ans);
 #ifndef NDEBUG
         const auto mx_ = GenAllMoves(move_array);
         auto i = 0;
@@ -1392,14 +1392,15 @@ bool k2engine::GetFirstMove(move_c * const move_array,
             if(move_array[i] == *ans)
                 break;
         const bool tt_move_found = i < mx_;
-        if(tt_move_found != pseudo_legal)
+        if(tt_move_found != legal)
         {
             IsPseudoLegal(*ans);
+            IsLegal(*ans);
             GenAllMoves(move_array);
         }
-        assert(tt_move_found == pseudo_legal);
+        assert(tt_move_found == legal);
 #endif
-        if(pseudo_legal && IsLegal(*ans))
+        if(legal)
         {
             ans->priority = move_from_hash;
             return true;
