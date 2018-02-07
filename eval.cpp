@@ -322,7 +322,7 @@ void k2eval::MobilityEval(bool stm)
 {
     eval_t f_type[] = {0,  2,  2,  18,  8,  0};
     eval_t ans = 0;
-    for(auto rit = coords[wtm].rbegin(); rit != coords[wtm].rend(); ++rit)
+    for(auto rit = coords[stm].rbegin(); rit != coords[stm].rend(); ++rit)
     {
         const auto type = get_type(b[*rit]);
         if(type == pawn)
