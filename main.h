@@ -89,4 +89,28 @@ protected:
     void ExitCommand(const std::string in);
     void SetvalueCommand(const std::string in);
     void OptionCommand(const std::string in);
+
+    bool test_perft(const char *pos, depth_t depth, node_t node_cr)
+    {
+        nodes = 0;
+        SetupPosition(pos);
+        Perft(depth);
+        total_nodes += nodes;
+        return nodes == node_cr;
+    }
+
+    bool test_search(const char *pos, depth_t depth, const char *best_move,
+                     bool avoid_move)
+    {
+        SetupPosition(pos);
+        max_search_depth = depth;
+        MainSearch();
+        char move_str[6];
+        MoveToStr(pv[0][1], wtm, move_str);
+        if(!CheckBoardConsistency())
+            return false;
+        if(strcmp(move_str, best_move) == 0)
+            return !avoid_move;
+        return avoid_move;
+    }
 };

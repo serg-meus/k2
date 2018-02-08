@@ -540,78 +540,58 @@ void k2main::EvalCommand(const std::string in)
 void k2main::TestCommand(const std::string in)
 {
     UNUSED(in);
+
     if(busy)
         return;
+
+    bool ans = false;
+    bool store_uci = uci;
+    bool store_enable_output = enable_output;
+    double store_time_base = time_base;
+    depth_t store_max_depth = max_search_depth;
     Timer timer;
     timer.start();
     auto tick1 = timer.getElapsedTimeInMicroSec();
 
     while(true)
     {
-        nodes = 0;
-        SetupPosition("rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 0 8");
-        Perft(4);
-        if(nodes != 2103487)
+        if(!test_perft("rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ -",
+                   4, 2103487))
             break;
-        total_nodes += nodes;
-
-        nodes = 0;
-        SetupPosition("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - -");
-        Perft(4);
-        if(nodes != 43238)
+        if(!test_perft("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - -", 4, 43238))
             break;
-        total_nodes += nodes;
-
-        nodes = 0;
-        SetupPosition(
-            "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq -");
-        Perft(3);
-        if(nodes != 97862)
+        if(!test_perft("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/"
+                       "PPPBBPPP/R3K2R w KQkq -", 3, 97862))
             break;
-        total_nodes += nodes;
 
+        time_base = 3000000000;
         auto tick2 = timer.getElapsedTimeInMicroSec();
         auto delta_tick = tick2 - tick1;
         std::cout << "Perft: total nodes = " << total_nodes
                   << ", dt = " << delta_tick / 1000000.
                   << ", Mnps = " << total_nodes / (delta_tick + 1)
                   << std::endl;
-        total_nodes = 0;
 
+        total_nodes = 0;
         enable_output = false;
         uci = true;
-        char move_str[6];
         timer.start();
         tick1 = timer.getElapsedTimeInMicroSec();
 
-        SetupPosition("1r1q1rk1/1b1n1ppp/p1pQp3/3p4/4P3/2N2B2/PPP2PPP/R3R1K1 w - -"
-                      "3 8 am e5");
-        max_search_depth = 8;
-        MainSearch();
-        MoveToStr(pv[0][1], wtm, move_str);
-        if(!CheckBoardConsistency())
+        if(!test_search("1rq2b1r/2N1k1pp/1pQp4/4n3/2P5/8/PP4PP/4RRK1 w - - 0 1"
+                        " bm Rxe5", 7, "e1e5", false))
             break;
-        if(strcmp(move_str, "c2b2") == 0)
+        if(!test_search("1k1r2nr/ppp1q1p1/3pbp1p/4n3/Q3P2B/2P2N2/P3BPPP/"
+                        "1R3RK1 w - - 0 1 bm Rxb7", 10, "b1b7", false))
             break;
-
-        SetupPosition("r4rk1/1b3p1p/pq2pQp1/n5N1/P7/2RBP3/5PPP/3R2K1 w - -"
-                      "0 1 bm Nxh7");
-        max_search_depth = 9;
-        MainSearch();
-        MoveToStr(pv[0][1], wtm, move_str);
-        if(!CheckBoardConsistency())
+        if(!test_search("8/k7/3p4/p2P1p2/P2P1P2/8/8/K7 w - - 0 1 bm Kb1",
+                        22, "a1b1", false))
             break;
-        if(strcmp(move_str, "g5h7") != 0 && strcmp(move_str, "d3f1") != 0)
+        if(!test_search("3q2k1/3r1ppp/4nP2/1Q1pp1P1/4P2P/1P3R2/P1r1N3/"
+                        "1R4K1 w - - 0 28 am fxg7", 9, "f6g7", true))
             break;
-
-        SetupPosition("8/1b1pk1P1/3p1p1P/3P1K2/P1P5/8/4B3/8 w - -"
-                      "3 54 bm g8R");
-        max_search_depth = 12;
-        MainSearch();
-        MoveToStr(pv[0][1], wtm, move_str);
-        if(!CheckBoardConsistency())
-            break;
-        if(strcmp(move_str, "g7g8r") != 0)
+        if(!test_search("2b1r1k1/r1p1nppp/1p6/p3P3/Nn3P2/P4B2/1P3BPP/2RR2K1 b"
+                        " - - 0 1 am Na2", 11, "b4a2", true))
             break;
 
         tick2 = timer.getElapsedTimeInMicroSec();
@@ -623,17 +603,16 @@ void k2main::TestCommand(const std::string in)
         total_nodes = 0;
 
         std::cout << "All integration tests passed\n";
-        max_search_depth = k2chess::max_ply;
-        enable_output = true;
-        uci = false;
-        SetupPosition(start_position);
-        return;
+        ans = true;
+        break;
     }
-    max_search_depth = k2chess::max_ply;
-    enable_output = true;
-    uci = false;
+    max_search_depth = store_max_depth;
+    enable_output = store_enable_output;
+    uci = store_uci;
+    time_base = store_time_base;
     SetupPosition(start_position);
-    std::cout << "Integration testing FAILED\n";
+    if(!ans)
+        std::cout << "Integration testing FAILED\n";
 }
 
 
