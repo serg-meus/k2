@@ -320,7 +320,7 @@ bool k2eval::IsUnstoppablePawn(const coord_t col, const bool side_of_pawn,
 //-----------------------------
 void k2eval::MobilityEval(bool stm)
 {
-    eval_t f_type[] = {0,  2,  2,  18,  8,  0};
+    eval_t f_type[] = {0,  2,  5,  18,  22,  0};
     eval_t ans = 0;
     for(auto rit = coords[stm].rbegin(); rit != coords[stm].rend(); ++rit)
     {
