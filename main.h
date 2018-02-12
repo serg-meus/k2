@@ -96,21 +96,30 @@ protected:
         SetupPosition(pos);
         Perft(depth);
         total_nodes += nodes;
+        if(nodes != node_cr)
+            std::cout << "failed at " << pos << std::endl;
         return nodes == node_cr;
     }
 
     bool test_search(const char *pos, depth_t depth, const char *best_move,
                      bool avoid_move)
     {
+        bool ans = true;
         SetupPosition(pos);
+        ClearHash();
         max_search_depth = depth;
         MainSearch();
         char move_str[6];
         MoveToStr(pv[0][1], wtm, move_str);
         if(!CheckBoardConsistency())
-            return false;
-        if(strcmp(move_str, best_move) == 0)
-            return !avoid_move;
-        return avoid_move;
+            ans = false;
+        else if(strcmp(move_str, best_move) == 0)
+            ans = !avoid_move;
+        else
+            ans = avoid_move;
+
+        if(!ans)
+            std::cout << "failed at " << pos << std::endl;
+        return ans;
     }
 };

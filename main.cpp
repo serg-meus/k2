@@ -547,6 +547,7 @@ void k2main::TestCommand(const std::string in)
     bool ans = false;
     bool store_uci = uci;
     bool store_enable_output = enable_output;
+    bool store_randomness = randomness;
     double store_time_base = time_base;
     depth_t store_max_depth = max_search_depth;
     Timer timer;
@@ -575,6 +576,7 @@ void k2main::TestCommand(const std::string in)
         total_nodes = 0;
         enable_output = false;
         uci = true;
+        randomness = false;
         timer.start();
         tick1 = timer.getElapsedTimeInMicroSec();
 
@@ -588,10 +590,10 @@ void k2main::TestCommand(const std::string in)
                         22, "a1b1", false))
             break;
         if(!test_search("3q2k1/3r1ppp/4nP2/1Q1pp1P1/4P2P/1P3R2/P1r1N3/"
-                        "1R4K1 w - - 0 28 am fxg7", 9, "f6g7", true))
+                        "1R4K1 w - - 0 28 am fxg7", 11, "f6g7", true))
             break;
-        if(!test_search("2b1r1k1/r1p1nppp/1p6/p3P3/Nn3P2/P4B2/1P3BPP/2RR2K1 b"
-                        " - - 0 1 am Na2", 11, "b4a2", true))
+        if(!test_search("3r2k1/1p3ppp/2pq4/p1n5/P6P/1P6/1PB2QP1/1K2R3 "
+                        "w - - am Rd1", 8, "e1d1", true))
             break;
 
         tick2 = timer.getElapsedTimeInMicroSec();
@@ -609,6 +611,7 @@ void k2main::TestCommand(const std::string in)
     max_search_depth = store_max_depth;
     enable_output = store_enable_output;
     uci = store_uci;
+    randomness = store_randomness;
     time_base = store_time_base;
     SetupPosition(start_position);
     if(!ans)
