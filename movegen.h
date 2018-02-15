@@ -86,6 +86,7 @@ private:
         move.piece_index = it;
         move.to_coord = to_coord;
         move.flag = flag;
+        move.priority = 0;
 
         if(IsLegal(move))
             move_array[(*movCr)++] = move;

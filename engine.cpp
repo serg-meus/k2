@@ -1409,6 +1409,7 @@ bool k2engine::GetFirstMove(move_c * const move_array,
         {
             entry = nullptr;
             *max_moves = GenAllMoves(move_array);
+            AppriceMoves(move_array, *max_moves, nullptr);
         }
     }
     return false;
