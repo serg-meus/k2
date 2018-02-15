@@ -62,7 +62,7 @@ k2chess::eval_t k2engine::Search(depth_t depth, eval_t alpha, eval_t beta,
 {
     if(ply >= max_ply - 1 || DrawDetect())
     {
-        pv[ply][0].flag = 0;
+        pv[ply].length = 0;
         return 0;
     }
     const bool in_check = attacks[!wtm][*king_coord[wtm]];
@@ -150,7 +150,7 @@ k2chess::eval_t k2engine::Search(depth_t depth, eval_t alpha, eval_t beta,
     }
     if(move_cr == 0)
     {
-        pv[ply][0].flag = 0;
+        pv[ply].length = 0;
         return in_check ? -king_value + ply : 0;
     }
     else if(alpha == initial_alpha)
@@ -168,8 +168,7 @@ k2chess::eval_t k2engine::QSearch(eval_t alpha, const eval_t beta)
 {
     if(ply >= max_ply - 1)
         return 0;
-
-    pv[ply][0].flag = 0;
+    pv[ply].length = 0;
 
     if(material[0] + material[1] > 2400 && ReturnEval(wtm) > beta + 250)
         return beta;
@@ -265,10 +264,10 @@ void k2engine::Perft(const depth_t depth)
 //-----------------------------
 void k2engine::StorePV(const move_c move)
 {
-    const auto next_len = pv[ply + 1][0].flag;
-    pv[ply][0].flag = next_len + 1;
-    pv[ply][1] = move;
-    memcpy(&pv[ply][2], &pv[ply + 1][1], sizeof(move_c)*next_len);
+    const auto next_len = pv[ply + 1].length;
+    pv[ply].length = next_len + 1;
+    pv[ply].moves[0] = move;
+    memcpy(&pv[ply].moves[1], &pv[ply + 1].moves[0], sizeof(move_c)*next_len);
 }
 
 
@@ -327,7 +326,7 @@ void k2engine::MainSearch()
 
     root_ply = 1;
     x = QSearch(-infinite_score, infinite_score);
-    pv[0][0].flag = 0;
+    pv[ply].length = 0;
     if(initial_score == infinite_score)
         initial_score = x;
 
@@ -413,7 +412,7 @@ k2chess::eval_t k2engine::RootSearch(const depth_t depth, eval_t alpha,
     if(max_root_moves == 0)
         RootMoveGen();
     if(max_root_moves > 0)
-        pv[0][1] = root_moves.at(0).second;
+        pv[0].moves[0] = root_moves.at(0).second;
 
     root_move_cr = 0;
 
@@ -462,8 +461,8 @@ k2chess::eval_t k2engine::RootSearch(const depth_t depth, eval_t alpha,
                     x = x_;
                 if(x > alpha)
                 {
-                    pv[0][0].flag = 1;
-                    pv[0][1] = cur_move;
+                    pv[1].length = 1;
+                    pv[0].moves[0] = cur_move;
                 }
                 else
                     root_moves.at(root_move_cr).first = unconfirmed_fail_high;
@@ -509,7 +508,7 @@ k2chess::eval_t k2engine::RootSearch(const depth_t depth, eval_t alpha,
 
     if(max_root_moves == 0)
     {
-        pv[0][0].flag = 0;
+        pv[ply].length = 0;
         return in_check ? -king_value + ply : 0;
     }
     if(beta_cutoff)
@@ -531,14 +530,14 @@ void k2engine::ShowPVfailHighOrLow(const move_c move, const eval_t val, const u8
     char mstr[6];
     MoveToStr(move, wtm, mstr);
 
-    const auto tmp0 = pv[0][0];
-    const auto tmp1 = pv[0][1];
-    pv[0][0].flag = 1;
-    pv[0][1] = move;
+    const auto tmp_length = pv[0].length;
+    const auto tmp_move = pv[0].moves[0];
+    pv[ply].length = 1;
+    pv[0].moves[0] = move;
 
     PrintCurrentSearchResult(val, type_of_bound);
-    pv[0][0].flag = tmp0.flag;
-    pv[0][1] = tmp1;
+    pv[ply].length = tmp_length;
+    pv[0].moves[0] = tmp_move;
 
     MakeMove(move);
     FastEval(move);
@@ -588,7 +587,7 @@ void k2engine::RootMoveGen()
             std::swap(root_moves.at(i), root_moves.at(rand_ix));
         }
     }
-    pv[0][1] = (*root_moves.begin()).second;
+    pv[0].moves[0] = (*root_moves.begin()).second;
 }
 
 
@@ -650,7 +649,7 @@ void k2engine::PrintFinalSearchResult()
     if(!enable_output)
         return;
     char move_str[6];
-    MoveToStr(pv[0][1], wtm, move_str);
+    MoveToStr(pv[0].moves[0], wtm, move_str);
 
     if(!uci && !MakeMove(move_str))
         std::cout << "tellusererror err01"
@@ -660,10 +659,10 @@ void k2engine::PrintFinalSearchResult()
     else
     {
         std::cout << "bestmove " << move_str;
-        if(!infinite_analyze && pv[0][0].flag > 1)
+        if(!infinite_analyze && pv[ply].length > 1)
         {
             char pndr[6];
-            MoveToStr(pv[0][2], !wtm, pndr);
+            MoveToStr(pv[0].moves[1], !wtm, pndr);
             std::cout << " ponder " << pndr;
         }
         std::cout << std::endl;
@@ -856,13 +855,12 @@ bool k2engine::ShowPV(const depth_t cur_ply)
         return true;
     char pc2chr[] = "??KKQQRRBBNNPP";
     bool ans = true;
-    depth_t ply_cr = 0;
-    const auto pv_len = pv[cur_ply][0].flag;
-
+    size_t ply_cr = 0;
+    const auto pv_len = pv[cur_ply].length;
 
     for(; ply_cr < pv_len; ply_cr++)
     {
-        const auto cur_move = pv[cur_ply][ply_cr + 1];
+        const auto cur_move = pv[cur_ply].moves[ply_cr];
         if(!IsPseudoLegal(cur_move) || !IsLegal(cur_move))
         {
             ans = false;
@@ -1320,31 +1318,28 @@ bool k2engine::HashProbe(const depth_t depth, eval_t * const alpha,
 
     hash_probe_cr++;
 
-    const auto hbnd = (*entry)->bound_type;
-    if((*entry)->depth >= depth)
-    {
-        auto hval = (*entry)->value;
-        if(hval > mate_score && hval != infinite_score)
-            hval += (*entry)->depth - ply;
-        else if(hval < -mate_score && hval != -infinite_score)
-            hval -= (*entry)->depth - ply;
-
-        if(hbnd == exact_value
-                //-alpha = beta for parent node
-                || (hbnd == upper_bound && hval >= -*alpha)
-                //-beta = alpha for parent node
-                || (hbnd == lower_bound && hval <= -beta) )
-        {
-            hash_cut_cr++;
-            pv[ply][0].flag = 0;
-            *alpha = hval;
-            return true;
-        }// if(bnd
-    }// if((*entry).depth >= depth
-
-    if((*entry)->best_move.flag != not_a_move)
+    if((*entry)->best_move.flag != is_bad_move_flag)
         hash_hit_cr++;
 
+    const auto hbnd = (*entry)->bound_type;
+    if((*entry)->depth < depth)
+        return false;
+
+    auto hval = (*entry)->value;
+    if(hval > mate_score && hval != infinite_score)
+        hval += (*entry)->depth - ply;
+    else if(hval < -mate_score && hval != -infinite_score)
+        hval -= (*entry)->depth - ply;
+
+    if(hbnd == exact_value
+            || (hbnd == upper_bound && hval >= -*alpha)
+            || (hbnd == lower_bound && hval <= -beta) )
+    {
+        hash_cut_cr++;
+        pv[ply].length = 0;
+        *alpha = hval;
+        return true;
+    }
     return false;
 }
 

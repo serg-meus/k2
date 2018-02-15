@@ -46,11 +46,15 @@ protected:
     apprice_only_captures = 1,
     apprice_all = 2;
 
-    // the 'flag' property of first element in a row is length of PV
-    // at that depth
-    move_c pv[max_ply][max_ply + 1];
-    move_c killers[max_ply][2];
-    history_t history[2][6][128];
+    struct principal_variation_s
+    {
+        size_t length;
+        move_c moves[max_ply + 1];
+    };
+
+    principal_variation_s pv[max_ply];
+    move_c killers[max_ply][sides];
+    history_t history[sides][piece_types][board_height*board_width];
     history_t min_history, max_history;
 
     movcr_t GenMoves(move_c * const move_array, const bool only_captures);

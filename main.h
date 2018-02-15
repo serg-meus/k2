@@ -110,7 +110,7 @@ protected:
         max_search_depth = depth;
         MainSearch();
         char move_str[6];
-        MoveToStr(pv[0][1], wtm, move_str);
+        MoveToStr(pv[0].moves[0], wtm, move_str);
         if(!CheckBoardConsistency())
             ans = false;
         else if(strcmp(move_str, best_move) == 0)
