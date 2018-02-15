@@ -1129,7 +1129,7 @@ bool k2chess::MakeMove(const char* str)
     if(len < 4 || len > 5)  // only notation like 'g1f3', 'e7e8q' supported
         return false;
     auto move = MoveFromStr(str);
-    if(move.flag == is_bad_move_flag)
+    if(move.flag == not_a_move)
         return false;
     if(!IsPseudoLegal(move) || !IsLegal(move))
         return false;
@@ -1182,7 +1182,7 @@ k2chess::move_flag_t k2chess::InitMoveFlag(const move_c move,
         else if(promo_to == 'n')
             ans |= is_promotion_to_knight;
         else
-            return is_bad_move_flag;
+            return not_a_move;
     }
     if(piece == pawn)
     {

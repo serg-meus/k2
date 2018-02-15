@@ -1318,7 +1318,7 @@ bool k2engine::HashProbe(const depth_t depth, eval_t * const alpha,
 
     hash_probe_cr++;
 
-    if((*entry)->best_move.flag != is_bad_move_flag)
+    if((*entry)->best_move.flag != not_a_move)
         hash_hit_cr++;
 
     const auto hbnd = (*entry)->bound_type;

@@ -133,8 +133,8 @@ protected:
     is_promotion_to_knight = 0x02,
     is_promotion_to_rook = 0x03,
     is_promotion_to_bishop = 0x04,
-    is_promotion = 0x07,
-    is_bad_move_flag = 0xff;
+    is_promotion = 0x07;
+    const static move_flag_t not_a_move = 0xff;
 
     const castle_t
     white_can_castle_right = 1,
@@ -284,7 +284,7 @@ protected:
     coord_t quantity[sides][piece_types + 1];
 
     state_s b_state[prev_states + max_ply]; // board state for each ply depth
-    state_s *state;  // pointer to engine state, state[0] = b_state[prev_states];
+    state_s *state;  // pointer to board state, state[0] = b_state[prev_states];
     depth_t ply;  // current ply depth
     depth_t reversible_moves;
 
@@ -379,7 +379,7 @@ protected:
         const auto index = find_piece(wtm, from_coord);
         if(index == -1U)
         {
-            ans.flag = is_bad_move_flag;
+            ans.flag = not_a_move;
             return ans;
         }
         ans.to_coord = get_coord(&str[2]);

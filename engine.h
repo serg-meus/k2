@@ -38,7 +38,6 @@ protected:
     const node_t nodes_to_check_stop = 7;
     const movcr_t init_max_moves = 2;  // any number greater than 1
     const depth_t moves_for_time_exact_mode = 8;
-    const move_flag_t not_a_move = 0xFF;
     const static size_t move_array_size = 256;
     const eval_t eval_to_resign = 700;
     const depth_t moves_to_resign = 3;

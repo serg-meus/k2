@@ -186,7 +186,7 @@ void k2movegen::AppriceMoves(move_c * const move_array, const movcr_t moveCr,
 
     auto bm = *move_array;
     if(bestMove == nullptr)
-        bm.flag = 0xFF;
+        bm.flag = not_a_move;
     else
         bm = *bestMove;
     for(auto i = 0; i < moveCr; ++i)
