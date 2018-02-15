@@ -173,9 +173,9 @@ protected:
         k2hash::TakebackMove(move);
     }
 
-    bool IsRecapture(const bool in_check)
+    bool IsRecapture()
     {
-        return(!in_check && k2chess::state[ply - 1].captured_piece
+        return(k2chess::state[ply - 1].captured_piece
                 && k2chess::state[ply].captured_piece
                 && k2chess::state[ply].move.to_coord ==
                 k2chess::state[ply - 1].move.to_coord

@@ -72,7 +72,7 @@ k2chess::eval_t k2engine::Search(depth_t depth, eval_t alpha, eval_t beta,
         depth = 0;
     if(in_check)
         depth++;
-    if(IsRecapture(in_check))
+    else if(IsRecapture())
         depth++;
 
     if(MateDistancePruning(alpha, &beta) ||
