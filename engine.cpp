@@ -494,7 +494,7 @@ k2chess::eval_t k2engine::RootSearch(const depth_t depth, eval_t alpha,
             TakebackMove(cur_move);
             alpha = x;
             StorePV(cur_move);
-            if(depth > 3 && x != -infinite_score && !stop)
+            if(x != -infinite_score && !stop)
                 PrintCurrentSearchResult(x, ' ');
             std::swap(root_moves.at(root_move_cr),
                       root_moves.at(0));
@@ -505,11 +505,8 @@ k2chess::eval_t k2engine::RootSearch(const depth_t depth, eval_t alpha,
         if(stop)
             break;
     }
-
     std::sort(root_moves.rbegin(), root_moves.rend() - 1);
 
-    if(depth <= 3 && max_root_moves != 0)
-        PrintCurrentSearchResult(alpha, ' ');
     if(max_root_moves == 0)
     {
         pv[0][0].flag = 0;
