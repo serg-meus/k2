@@ -281,7 +281,7 @@ void k2engine::UpdateStatistics(const move_c move, const depth_t depth,
 {
     if(entry != nullptr && entry->best_move.flag != not_a_move)
         hash_best_move_cr++;
-    if(move_cr == 1)
+    if(move_cr == 0)
     {
         if(entry != nullptr && entry->best_move.flag != not_a_move)
             hash_cutoff_by_best_move_cr++;
