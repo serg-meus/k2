@@ -1060,6 +1060,9 @@ pst
     p_max[9][white] = 0;
     p_min[9][black] = 7;
     p_min[9][white] = 7;
+
+    InitPawnStruct();
+    InitEvalOfMaterialAndPst();
 }
 
 
