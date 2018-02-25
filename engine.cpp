@@ -88,7 +88,6 @@ k2chess::eval_t k2engine::Search(depth_t depth, eval_t alpha, eval_t beta,
     if(depth <= 0)
         return QSearch(alpha, beta);
 
-    nodes++;
     if((nodes & nodes_to_check_stop) == nodes_to_check_stop)
         CheckForInterrupt();
 
@@ -108,6 +107,7 @@ k2chess::eval_t k2engine::Search(depth_t depth, eval_t alpha, eval_t beta,
                 node_type == all_node && move_cr > 4)
             break;
         MakeMove(cur_move);
+        nodes++;
 #ifndef NDEBUG
         if((!debug_ply || root_ply == debug_ply) &&
                 strcmp(debug_variation, cv) == 0)
@@ -179,8 +179,6 @@ k2chess::eval_t k2engine::QSearch(eval_t alpha, const eval_t beta)
     else if(x > alpha)
         alpha = x;
 
-    nodes++;
-    q_nodes++;
     if((nodes & nodes_to_check_stop) == nodes_to_check_stop)
         CheckForInterrupt();
 
@@ -194,7 +192,8 @@ k2chess::eval_t k2engine::QSearch(eval_t alpha, const eval_t beta)
                 DeltaPruning(alpha, cur_move))
             break;
         MakeMove(cur_move);
-
+        nodes++;
+        q_nodes++;
 #ifndef NDEBUG
         if((!debug_ply || root_ply == debug_ply) &&
                 strcmp(debug_variation, cv) == 0)
