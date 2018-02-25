@@ -766,6 +766,8 @@ bool k2eval::Sheltered(const coord_t k_col, coord_t k_row,
     const auto shft = stm ? board_width : -board_width;
     const auto coord = get_coord(k_col, k_row);
     const auto p = black_pawn ^ stm;
+    if(coord + 2*shft < 0 || coord + 2*shft >= board_height*board_width)
+        return false;
     if(b[coord + shft] == p ||
             (get_color_and_not_empty(b[coord + shft]) == stm &&
              get_color_and_not_empty(b[coord + 2*shft]) == stm))
