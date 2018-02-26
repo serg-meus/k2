@@ -179,16 +179,11 @@ void k2movegen::GenCastles(move_c * const move_array, movcr_t * const moveCr)
 
 //--------------------------------
 void k2movegen::AppriceMoves(move_c * const move_array, const movcr_t moveCr,
-                             move_c * const bestMove)
+                             const move_c best_move)
 {
     min_history = std::numeric_limits<history_t>::max();
     max_history = 0;
 
-    auto bm = *move_array;
-    if(bestMove == nullptr)
-        bm.flag = not_a_move;
-    else
-        bm = *bestMove;
     for(auto i = 0; i < moveCr; ++i)
     {
         auto m = move_array[i];
@@ -197,7 +192,7 @@ void k2movegen::AppriceMoves(move_c * const move_array, const movcr_t moveCr,
         const auto fr_sq = b[*it];
         const auto to_sq = b[m.to_coord];
 
-        if(m == bm)
+        if(m == best_move)
             move_array[i].priority = move_from_hash;
         else if(to_sq == empty_square && !(m.flag & is_promotion))
         {

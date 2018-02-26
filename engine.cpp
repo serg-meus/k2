@@ -84,6 +84,11 @@ k2chess::eval_t k2engine::Search(depth_t depth, eval_t alpha, eval_t beta,
     hash_entry_s *entry = nullptr;
     if(HashProbe(depth, &alpha, beta, &entry))
         return -alpha;
+    move_c hash_best_move;
+    if(entry == nullptr)
+        hash_best_move.flag = not_a_move;
+    else
+        hash_best_move = entry->best_move;
 
     if(depth <= 0)
         return QSearch(alpha, beta);
@@ -97,7 +102,7 @@ k2chess::eval_t k2engine::Search(depth_t depth, eval_t alpha, eval_t beta,
     for(; move_cr < max_moves; move_cr++)
     {
         cur_move = NextMove(move_array, move_cr, &max_moves,
-                        entry, all_moves, cur_move);
+                        hash_best_move, all_moves, cur_move);
         if(max_moves <= 0)
             break;
         if(max_moves == 1 && depth > 1)  // one reply extension
@@ -182,12 +187,13 @@ k2chess::eval_t k2engine::QSearch(eval_t alpha, const eval_t beta)
     if((nodes & nodes_to_check_stop) == nodes_to_check_stop)
         CheckForInterrupt();
 
-    move_c move_array[move_array_size];
+    move_c move_array[move_array_size], no_move;
+    no_move.flag = not_a_move;
     movcr_t move_cr = 0, max_moves = init_max_moves;
     for(; move_cr < max_moves; move_cr++)
     {
         move_c cur_move = NextMove(move_array, move_cr, &max_moves,
-                                   nullptr, captures_only, cur_move);
+                                   no_move, captures_only, cur_move);
         if(max_moves <= 0 || cur_move.priority <= bad_captures ||
                 DeltaPruning(alpha, cur_move))
             break;
@@ -549,7 +555,8 @@ void k2engine::ShowPVfailHighOrLow(const move_c move, const eval_t val, const u8
 //--------------------------------
 void k2engine::RootMoveGen()
 {
-    move_c move_array[move_array_size], cur_move;
+    move_c move_array[move_array_size], cur_move, no_move;
+    no_move.flag = not_a_move;
     auto max_moves = init_max_moves;
 
     eval_t alpha = -infinite_score, beta = infinite_score;
@@ -561,7 +568,7 @@ void k2engine::RootMoveGen()
     for(movcr_t move_cr = 0; move_cr < max_moves; move_cr++)
     {
         cur_move = NextMove(move_array, move_cr, &max_moves,
-                        nullptr, all_moves, cur_move);
+                        no_move, all_moves, cur_move);
     }
 
     root_moves.clear();
@@ -1349,18 +1356,18 @@ bool k2engine::HashProbe(const depth_t depth, eval_t * const alpha,
 //--------------------------------
 bool k2engine::GetFirstMove(move_c * const move_array,
                             movcr_t * const max_moves,
-                            hash_entry_s *entry,
+                            move_c hash_best_move,
                             const bool only_captures,
                             move_c * const ans)
 {
-    if(entry == nullptr)
+    if(hash_best_move.flag == not_a_move)
     {
         if(!only_captures)
             *max_moves = GenAllMoves(move_array);
         else
             *max_moves = GenMoves(move_array, true);
 
-        AppriceMoves(move_array, *max_moves, nullptr);
+        AppriceMoves(move_array, *max_moves, hash_best_move);
 
         if(*max_moves > 1
                 && move_array[0].priority > bad_captures
@@ -1373,8 +1380,7 @@ bool k2engine::GetFirstMove(move_c * const move_array,
     }
     else
     {
-        *ans = entry->best_move;
-
+        *ans = hash_best_move;
         const bool legal = IsPseudoLegal(*ans) && IsLegal(*ans);
 #ifndef NDEBUG
         const auto mx_ = GenAllMoves(move_array);
@@ -1398,9 +1404,8 @@ bool k2engine::GetFirstMove(move_c * const move_array,
         }
         else
         {
-            entry = nullptr;
             *max_moves = GenAllMoves(move_array);
-            AppriceMoves(move_array, *max_moves, nullptr);
+            AppriceMoves(move_array, *max_moves, hash_best_move);
         }
     }
     return false;
@@ -1415,7 +1420,7 @@ bool k2engine::GetSecondMove(move_c * const move_array,
                              move_c prev_move, move_c *ans)
 {
     *max_moves = GenAllMoves(move_array);
-    AppriceMoves(move_array, *max_moves, &prev_move);
+    AppriceMoves(move_array, *max_moves, prev_move);
 
     if(*max_moves <= 1)
     {
@@ -1466,17 +1471,18 @@ size_t k2engine::FindMaxMoveIndex(move_c * const move_array,
 k2chess::move_c k2engine::NextMove(move_c * const move_array,
                                    const movcr_t cur_move_cr,
                                    movcr_t * const max_moves,
-                                   hash_entry_s *entry,
+                                   move_c hash_best_move,
                                    const bool only_captures,
                                    const move_c prev_move)
 {
     move_c ans;
     if(cur_move_cr == 0)
     {
-        if(GetFirstMove(move_array, max_moves, entry, only_captures, &ans))
+        if(GetFirstMove(move_array, max_moves, hash_best_move,
+                        only_captures, &ans))
             return ans;
     }
-    else if(cur_move_cr == 1 && entry != nullptr)
+    else if(cur_move_cr == 1 && hash_best_move.flag != not_a_move)
     {
         if(GetSecondMove(move_array, max_moves, prev_move, &ans))
             return ans;

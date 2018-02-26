@@ -60,7 +60,7 @@ protected:
     movcr_t GenMoves(move_c * const move_array, const bool only_captures);
     eval_t StaticExchangeEval(const move_c m);
     void AppriceMoves(move_c * const move_array, const movcr_t moveCr,
-                      move_c * const best_move);
+                      const move_c best_move);
 
     movcr_t GenAllMoves(move_c * const move_array)
     {
