@@ -109,7 +109,7 @@ k2chess::eval_t k2engine::Search(depth_t depth, eval_t alpha, eval_t beta,
             depth++;
         if(depth <= 2 && !cur_move.flag &&  // late move pruning
                 !in_check && !state[ply - 1].in_check &&
-                node_type == all_node && move_cr > 4)
+                node_type != pv_node && move_cr > 4)
             break;
         MakeMove(cur_move);
         nodes++;
