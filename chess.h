@@ -134,7 +134,7 @@ protected:
     is_promotion_to_rook = 0x03,
     is_promotion_to_bishop = 0x04,
     is_promotion = 0x07;
-    const static move_flag_t not_a_move = 0xff;
+    const static move_flag_t not_a_move = 0x08;
 
     const castle_t
     white_can_castle_right = 1,

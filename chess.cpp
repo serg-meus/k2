@@ -1221,11 +1221,17 @@ bool k2chess::IsPseudoLegal(const move_c move)
     if(it == coords[wtm].end())
         return false;
 
+    if(move.flag & not_a_move)
+        return false;
+    if(move.to_coord >= board_height*board_width)
+        return false;
     const auto to_piece = b[move.to_coord];
     if(to_piece != empty_square && get_color(to_piece) == wtm)
         return false;
     if((move.flag & is_capture) && !(move.flag & is_en_passant) &&
             to_piece == empty_square)
+        return false;
+    if(!(move.flag & is_capture) && to_piece != empty_square)
         return false;
 
     const auto from_coord = *it;
@@ -1310,25 +1316,35 @@ bool k2chess::IsPseudoLegalPawn(const move_c move,
                                 const coord_t from_coord) const
 {
     const auto delta = wtm ? board_width : -board_width;
+    const auto is_special = is_en_passant | is_capture | is_castle;
+    const auto from_row = get_row(from_coord);
+    const auto last_row = wtm ? max_row - 1 : 1;
+    if((move.flag & is_promotion) && from_row != last_row)
+        return false;
+    if(!(move.flag & is_promotion) && from_row == last_row)
+        return false;
     if(move.to_coord == from_coord + delta
-            && b[move.to_coord] == empty_square)
+            && b[move.to_coord] == empty_square
+            && !(move.flag & is_special))
         return true;
     const auto init_row = (wtm ? pawn_default_row :
                                  max_row - pawn_default_row);
     if(move.to_coord == from_coord + 2*delta
             && get_row(from_coord) == init_row
             && b[move.to_coord] == empty_square
-            && b[move.to_coord - delta] == empty_square)
+            && b[move.to_coord - delta] == empty_square
+            && !(move.flag & is_special) && !(move.flag & is_promotion))
         return true;
     else if((move.to_coord == from_coord + delta + 1
         || move.to_coord == from_coord + delta - 1))
     {
-        if(b[move.to_coord] != empty_square)
+        if(b[move.to_coord] != empty_square && move.flag & is_capture
+                && !(move.flag & is_en_passant))
         {
             if(get_color(b[move.to_coord]) != wtm)
                 return true;
         }
-        else //en passant
+        else if(move.flag & is_en_passant)
         {
             const auto col = get_col(from_coord);
             auto row = pawn_default_row + pawn_long_move_length;
