@@ -184,6 +184,10 @@ k2chess::eval_t k2engine::QSearch(eval_t alpha, const eval_t beta)
     else if(x > alpha)
         alpha = x;
 
+    hash_entry_s *entry = nullptr;
+    if(HashProbe(0, &alpha, beta, &entry))
+        return -alpha;
+
     if((nodes & nodes_to_check_stop) == nodes_to_check_stop)
         CheckForInterrupt();
 
@@ -214,6 +218,7 @@ k2chess::eval_t k2engine::QSearch(eval_t alpha, const eval_t beta)
             break;
         if(x >= beta)
         {
+            StoreInHash(0, beta, cur_move, lower_bound);
             q_cut_cr++;
             if(move_cr < (sizeof(q_cut_num_cr)/sizeof(*q_cut_num_cr)))
                 q_cut_num_cr[move_cr]++;
@@ -221,6 +226,7 @@ k2chess::eval_t k2engine::QSearch(eval_t alpha, const eval_t beta)
         }
         else if(x > alpha)
         {
+            StoreInHash(0, alpha, cur_move, exact_value);
             alpha = x;
             StorePV(cur_move);
         }
