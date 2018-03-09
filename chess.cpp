@@ -1281,16 +1281,25 @@ bool k2chess::IsPseudoLegalKing(const move_c move,
     const auto to_col = get_col(move.to_coord);
     const auto to_row = get_row(move.to_coord);
 
-    if(std::abs(fr_col - to_col) <= 1 && std::abs(fr_row - to_row) <= 1)
+    if(std::abs(fr_col - to_col) <= 1 && std::abs(fr_row - to_row) <= 1
+       && !(move.flag & is_castle))
         return true;
 
-    if(fr_col == default_king_col && get_type(b[from_coord]) == king
-            && get_color(b[from_coord]) == wtm
-            && (to_col == default_king_col - cstl_move_length ||
-                to_col == default_king_col + cstl_move_length)
-            && ((wtm && fr_row == 0 && to_row == 0) ||
-                (!wtm && fr_row == max_row && to_row == max_row)))
-                return true;
+    if(fr_col == default_king_col && get_color(b[from_coord]) == wtm &&
+       ((wtm && fr_row == 0 && to_row == 0) ||
+       (!wtm && fr_row == max_row && to_row == max_row)))
+    {
+        if(state[ply].castling_rights &
+           (wtm ? white_can_castle_left : black_can_castle_left) &&
+                to_col == default_king_col - cstl_move_length &&
+                move.flag == is_left_castle)
+            return true;
+        if(state[ply].castling_rights &
+           (wtm ? white_can_castle_right : black_can_castle_right) &&
+                to_col == default_king_col + cstl_move_length &&
+                move.flag == is_right_castle)
+            return true;
+    }
     return false;
 }
 
@@ -1323,20 +1332,25 @@ bool k2chess::IsPseudoLegalPawn(const move_c move,
         return false;
     if(!(move.flag & is_promotion) && from_row == last_row)
         return false;
+    if((move.flag & is_promotion) > is_promotion_to_bishop)
+        return false;
+    if(move.flag & is_promotion && move.flag & (is_castle | is_en_passant))
+        return false;
     if(move.to_coord == from_coord + delta
             && b[move.to_coord] == empty_square
             && !(move.flag & is_special))
         return true;
     const auto init_row = (wtm ? pawn_default_row :
                                  max_row - pawn_default_row);
+    const auto from_col = get_col(from_coord);
     if(move.to_coord == from_coord + 2*delta
             && get_row(from_coord) == init_row
             && b[move.to_coord] == empty_square
             && b[move.to_coord - delta] == empty_square
             && !(move.flag & is_special) && !(move.flag & is_promotion))
         return true;
-    else if((move.to_coord == from_coord + delta + 1
-        || move.to_coord == from_coord + delta - 1))
+    else if((move.to_coord == from_coord + delta + 1 && from_col < max_col)
+        || (move.to_coord == from_coord + delta - 1 && from_col > 0))
     {
         if(b[move.to_coord] != empty_square && move.flag & is_capture
                 && !(move.flag & is_en_passant))
@@ -1344,7 +1358,7 @@ bool k2chess::IsPseudoLegalPawn(const move_c move,
             if(get_color(b[move.to_coord]) != wtm)
                 return true;
         }
-        else if(move.flag & is_en_passant)
+        else if(move.flag == (is_en_passant | is_capture))
         {
             const auto col = get_col(from_coord);
             auto row = pawn_default_row + pawn_long_move_length;
