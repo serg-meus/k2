@@ -293,7 +293,8 @@ void k2chess::UpdateAttacks(const move_c move, const coord_t from_coord)
     p.from_coord = from_coord;
     p.to_coord = move.to_coord;
     p.cstl_index = state[ply].castled_rook_index;
-    p.captured_index = state[ply].captured_index;
+    p.captured_index = (move.flag & is_capture) ? state[ply].captured_index :
+                                                  not_a_capture;
     p.is_enps = move.flag & is_en_passant;
     UpdateMasks(move, p);
     for(auto stm : {black, white})
@@ -307,13 +308,15 @@ void k2chess::UpdateAttacks(const move_c move, const coord_t from_coord)
             const auto index = __builtin_ctz(msk);
             msk ^= (1 << index);
             GetAttackParams(index, move, stm, p);
-            UpdateAttacksOnePiece(p, false);
+            p.set_attack_bit = false;
+            UpdateAttacksOnePiece(p);
             if(p.is_cstl)
                 p.piece_coord = *coords[!wtm].at(index);
             else if(p.is_move && (move.flag & is_promotion))
                 p.type = get_type(b[*coords[!wtm].at(p.index)]);
+            p.set_attack_bit = true;
             if(!p.is_captured)
-                UpdateAttacksOnePiece(p, true);
+                UpdateAttacksOnePiece(p);
         }
         update_mask[stm] = 0;
     }
@@ -358,30 +361,28 @@ bool k2chess::CheckBoardConsistency()
 
 
 //--------------------------------
-void k2chess::UpdateAttacksOnePiece(const attack_params_s &p,
-                                    const bool setbit)
+void k2chess::UpdateAttacksOnePiece(attack_params_s &p)
 {
     assert(p.type <= pawn);
     assert(p.index <= attack_digits);
     auto coord = p.piece_coord;
-    if(p.is_move && !setbit)
+    if(p.is_move && !p.set_attack_bit)
         coord = p.from_coord;
     if(p.type == pawn)
-        InitAttacksPawn(coord, p.color, p.index, setbit);
+        InitAttacksPawn(coord, p.color, p.index, p.set_attack_bit);
     else if(is_slider[p.type])
     {
-        auto ray_mask = GetRayMask(p, setbit);
-        if(p.is_special_move)
-            ray_mask = all_rays[p.type];
-        InitAttacksNotPawn(coord, p.color, p.index, p.type, setbit, ray_mask);
+        auto ray_mask = GetRayMask(p);
+        InitAttacksNotPawn(coord, p.color, p.index, p.type,
+                           p.set_attack_bit, ray_mask);
         if(p.is_move)
         {
-            coord = setbit ? p.from_coord : p.piece_coord;
-            if(setbit)
+            coord = p.set_attack_bit ? p.from_coord : p.piece_coord;
+            if(p.set_attack_bit)
                 set_bit(p.color, get_col(coord), get_row(coord), p.index);
             else
                 clear_bit(p.color, get_col(coord), get_row(coord), p.index);
-            if(setbit)
+            if(p.set_attack_bit)
             {
                 enum {ray_n, ray_e, ray_s, ray_w,
                       ray_ne, ray_se, ray_sw, ray_nw};
@@ -411,8 +412,8 @@ void k2chess::UpdateAttacksOnePiece(const attack_params_s &p,
         }
     }
     else
-        InitAttacksNotPawn(coord, p.color, p.index, p.type, setbit,
-                           all_rays[p.type]);
+        InitAttacksNotPawn(coord, p.color, p.index, p.type,
+                           p.set_attack_bit, all_rays[p.type]);
 }
 
 
@@ -420,14 +421,27 @@ void k2chess::UpdateAttacksOnePiece(const attack_params_s &p,
 
 
 //--------------------------------
-k2chess::ray_mask_t k2chess::GetRayMask(const attack_params_s &p,
-                                        const bool setbit) const
+k2chess::ray_mask_t k2chess::GetRayMask(attack_params_s &p) const
 {
     ray_mask_t ans;
+    if(p.is_special_move)
+        return all_rays[p.type];
+    if(p.set_attack_bit)
+    {
+        ans = p.ray_mask;
+        const ray_mask_t capture_mask[] = {rays_SW, rays_South, rays_SE,
+                                           rays_West, 0, rays_East,
+                                           rays_NW, rays_North, rays_NE};
+        if(p.is_move && p.captured_index != not_a_capture && !p.is_enps)
+            ans |= capture_mask[p.ray_index];
+        return ans;
+    }
+
     if(!p.is_move)
     {
         ans = GetRayMaskNotForMove(p.to_coord, p.piece_coord);
         ans |= GetRayMaskNotForMove(p.from_coord, p.piece_coord);
+        p.ray_mask = ans;
         return ans;
     }
     coord_t move_type;
@@ -445,12 +459,8 @@ k2chess::ray_mask_t k2chess::GetRayMask(const attack_params_s &p,
     if(get_type(b[p.to_coord]) == queen)
         ans |= Q_masks[index];
 
-    const ray_mask_t capture_mask[] = {rays_SW, rays_South, rays_SE,
-                                       rays_West, 0, rays_East,
-                                       rays_NW, rays_North, rays_NE};
-    if(setbit && state[ply].captured_piece != empty_square)
-        ans |= capture_mask[index];
-
+    p.ray_mask = ans;
+    p.ray_index = index;
     return ans;
 }
 

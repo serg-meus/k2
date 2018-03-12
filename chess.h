@@ -182,6 +182,8 @@ protected:
     rays_rook = rays_N_or_S | rays_E_or_W,
     rays_bishop = rays_NE_or_SW | rays_NW_or_SE;
 
+    coord_t not_a_capture = -1;
+
     const char *start_position =
             "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
@@ -244,6 +246,9 @@ protected:
         u8 index;
         u8 cstl_index;
         u8 captured_index;
+        bool set_attack_bit;
+        ray_mask_t ray_mask;
+        u8 ray_index;
     };
 
     // side to move or white to move, k2chess::white (true) or k2chess::black
@@ -414,8 +419,7 @@ private:
     bool MakeEnPassantOrUpdateFlags(const move_c m, const coord_t from_coord);
     void InitAttacksOnePiece(const coord_t coord, const bool setbit);
     void UpdateAttacks(move_c move, const coord_t from_coord);
-    void UpdateAttacksOnePiece(const attack_params_s &p,
-                               const bool setbit);
+    void UpdateAttacksOnePiece(attack_params_s &p);
     char* ParseMainPartOfFen(char *ptr);
     char* ParseSideToMoveInFen(char *ptr);
     char* ParseCastlingRightsInFen(char *ptr);
@@ -437,7 +441,7 @@ private:
     bool IsPseudoLegalKing(const move_c move, const coord_t from_coord) const;
     bool IsPseudoLegalKnight(const move_c move, const coord_t from_coord) const;
     void InitSliderMask(bool stm);
-    ray_mask_t GetRayMask(const attack_params_s &p, const bool setbit) const;
+    ray_mask_t GetRayMask(attack_params_s &p) const;
     size_t GetRayIndex(const coord_t from_coord, const coord_t to_coord,
                    coord_t *type) const;
     ray_mask_t GetRayMaskNotForMove(const coord_t target_coord,
