@@ -329,9 +329,9 @@ void k2eval::MobilityEval(bool stm)
             break;
         const auto index = rit.get_array_index();
         auto cr = 0;
-        for(auto ray = 0; ray < rays[type]; ++ray)
+        for(auto ray = ray_min[type]; ray < ray_max[type]; ++ray)
             cr += mobility[stm][index][ray];
-        const auto limit = 6*rays[type];
+        const auto limit = 6*(ray_max[type] - ray_min[type]);
         if(is_slider[type] && cr > limit)
             cr = limit;
         if(cr <= 2)
@@ -810,24 +810,23 @@ k2chess::eval_t k2eval::KingShelter(const coord_t k_col, coord_t k_row,
 
 //-----------------------------
 k2chess::attack_t k2eval::KingSafetyBatteries(const coord_t targ_coord,
-                                              const attack_t att, const bool stm)
+                                              const attack_t att,
+                                              const bool stm)
 {
     auto msk = att & slider_mask[!stm];
-    if(!msk)
-        return att;
     auto ans = att;
-    for(size_t i = 0; i < attack_digits && msk; ++i, msk >>= 1)
+    while(msk)
     {
-        if(!(msk & 1))
-            continue;
-        const auto coord1 = *coords[!stm].at(i);
+        const auto index = __builtin_ctz(msk);
+        msk ^= (1 << index);
+        const auto coord1 = *coords[!stm].at(index);
         auto maybe = attacks[!stm][coord1] & slider_mask[!stm];
         if(!maybe)
             continue;
-        for(size_t j = 0; j < attack_digits && maybe; ++j, maybe >>= 1)
+        while(maybe)
         {
-            if(!(maybe & 1))
-                continue;
+            const auto j = __builtin_ctz(maybe);
+            maybe ^= (1 << j);
             const auto coord2 = *coords[!stm].at(j);
             const auto type1 = get_type(b[coord1]);
             const auto type2 = get_type(b[coord2]);

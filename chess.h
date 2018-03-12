@@ -158,25 +158,29 @@ protected:
     queen = get_type(black_queen),
     king = get_type(black_king);
 
-    const ray_mask_t all_rays = 0xff;
-
-    // depends on delta_col, delta_row arrays content
     const ray_mask_t
     rays_North = 1,
-    rays_South = 8,
     rays_East = 2,
-    rays_West = 4,
-    rays_NE = 1,
-    rays_NW = 2,
-    rays_SW = 4,
-    rays_SE = 8,
+    rays_South = 4,
+    rays_West = 8,
+    rays_NE = 0x10,
+    rays_SE = 0x20,
+    rays_SW = 0x40,
+    rays_NW = 0x80,
+    rays_NNE = 1,
+    rays_NEE = 2,
+    rays_SEE = 4,
+    rays_SSE = 8,
+    rays_SSW = 0x10,
+    rays_SWW = 0x20,
+    rays_NWW = 0x40,
+    rays_NNW = 0x80,
     rays_N_or_S = rays_North | rays_South,
     rays_E_or_W = rays_East | rays_West,
     rays_NE_or_SW = rays_NE | rays_SW,
     rays_NW_or_SE = rays_NW | rays_SE,
     rays_rook = rays_N_or_S | rays_E_or_W,
-    rays_bishop = rays_NE_or_SW | rays_NW_or_SE,
-    rays_rook_q = rays_rook << 4;  // special case if queen moves as rook
+    rays_bishop = rays_NE_or_SW | rays_NW_or_SE;
 
     const char *start_position =
             "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
@@ -266,11 +270,16 @@ protected:
     coord_t mobility[sides][max_pieces_one_side][max_rays];
 
     // number of directions to move for each kind of piece
-    coord_t rays[piece_types + 1];
+    coord_t ray_min[piece_types + 1], ray_max[piece_types + 1];
+
+    // ray masks for all types of pieces
+    ray_mask_t all_rays[piece_types + 1];
 
     // biases defining directions for 'rays'
-    shifts_t delta_col[piece_types][max_rays];
-    shifts_t delta_row[piece_types][max_rays];
+    shifts_t delta_col_kqrb[max_rays];
+    shifts_t delta_row_kqrb[max_rays];
+    shifts_t delta_col_knight[max_rays];
+    shifts_t delta_row_knight[max_rays];
 
     // for quick detection if piece is a slider
     bool is_slider[piece_types + 1];

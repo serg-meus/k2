@@ -27,15 +27,19 @@ k2movegen::movcr_t k2movegen::GenMoves(move_c * const move_array,
             continue;
         }
 
-        for(auto ray = 0; ray < rays[type]; ray++)
+        for(auto ray = ray_min[type]; ray < ray_max[type]; ray++)
         {
             const auto col0 = get_col(from_coord);
             const auto row0 = get_row(from_coord);
             const auto ray_len = mobility[wtm][it.get_array_index()][ray];
             for(int i = ray_len; i >= (capt_or_promo ? ray_len : 1); --i)
             {
-                const auto col = col0 + i*delta_col[type][ray];
-                const auto row = row0 + i*delta_row[type][ray];
+                const auto delta_col = type == knight ? delta_col_knight[ray] :
+                                                        delta_col_kqrb[ray];
+                const auto delta_row = type == knight ? delta_row_knight[ray] :
+                                                        delta_row_kqrb[ray];
+                const auto col = col0 + i*delta_col;
+                const auto row = row0 + i*delta_row;
                 const auto to_coord = get_coord(col, row);
                 bool empty = b[to_coord] == empty_square;
                 bool capture = !empty && get_color(b[to_coord]) != wtm;
@@ -298,21 +302,17 @@ void k2movegen::AppriceMoves(move_c * const move_array, const movcr_t moveCr,
 void k2movegen::ProcessSeeBatteries(const coord_t to_coord,
                                     const coord_t attacker_coord)
 {
-    const auto mask = attacks[wtm][attacker_coord] & slider_mask[wtm];
-    if(!mask)
-        return;
-    for(size_t i = 0; i < attack_digits; ++i)
+    auto mask = attacks[wtm][attacker_coord] & slider_mask[wtm];
+    while(mask)
     {
-        if(!((mask >> i) & 1))
-            continue;
-        if(mask >> i == 0)
-            break;
-        const auto second_coord = *coords[wtm].at(i);
+        const auto index = __builtin_ctz(mask);
+        mask ^= (1 << index);
+        const auto second_coord = *coords[wtm].at(index);
         if(!IsOnRay(attacker_coord, second_coord, to_coord))
             continue;
         if(!IsSliderAttack(attacker_coord, second_coord))
             continue;
-        attacks[wtm][to_coord] |= 1 << i;
+        attacks[wtm][to_coord] |= 1 << index;
         return;
     }
 }
