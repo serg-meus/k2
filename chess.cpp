@@ -352,7 +352,7 @@ void k2chess::UpdateAttacksOnePiece(attack_params_s &p)
         InitAttacksSlider(coord, p);
     else
         InitAttacksNotPawn(coord, p.color, p.index, p.type,
-                           p.set_attack_bit, all_rays[p.type]);
+                           p.set_attack_bit, GetNonSliderMask(p));
 }
 
 
@@ -494,6 +494,68 @@ size_t k2chess::GetRayIndex(const coord_t from_coord, const coord_t to_coord,
     else if(delta_col == delta_row || delta_col == -delta_row)
         *move_type = bishop;
     return 3*(1 + sgn(delta_row)) + 1 + sgn(delta_col);
+}
+
+
+
+
+
+//--------------------------------
+k2chess::ray_mask_t k2chess::GetNonSliderMask(const attack_params_s &p) const
+{
+    if(p.is_move || p.is_captured || p.is_special_move)
+        return all_rays[p.type];
+    if(p.type == knight)
+        return GetKnightMask(p.piece_coord, p.from_coord) |
+                GetKnightMask(p.piece_coord, p.to_coord);
+
+    return GetKingMask(p.piece_coord, p.from_coord) |
+            GetKingMask(p.piece_coord, p.to_coord);
+}
+
+
+
+
+
+
+//--------------------------------
+k2chess::ray_mask_t k2chess::GetKingMask(const coord_t piece_coord,
+                                            const coord_t to_coord) const
+{
+    const auto delta_col = get_col(to_coord) - get_col(piece_coord);
+    const auto delta_row = get_row(to_coord) - get_row(piece_coord);
+    if(std::abs(delta_col) > 1 || std::abs(delta_row) > 1)
+        return 0;
+    const ray_mask_t masks[] = {rays_NE, rays_North, rays_NW,
+                                rays_East, 0, rays_West,
+                                rays_SE, rays_South, rays_SW};
+    coord_t move_type;
+    auto index = GetRayIndex(to_coord, piece_coord, &move_type);
+    return masks[index];
+}
+
+
+
+//--------------------------------
+k2chess::ray_mask_t k2chess::GetKnightMask(const coord_t piece_coord,
+                                            const coord_t to_coord) const
+{
+    const auto delta_col = get_col(to_coord) - get_col(piece_coord);
+    const auto delta_row = get_row(to_coord) - get_row(piece_coord);
+    const auto abs_dcol = std::abs(delta_col);
+    const auto abs_drow = std::abs(delta_row);
+    if(abs_dcol + abs_drow != 3 || (abs_dcol != 1 && abs_drow != 1))
+        return 0;
+    if(delta_col == 2)
+        return delta_row == 1 ? rays_NEE : rays_SEE;
+    else if(delta_col == 1)
+        return delta_row == 2 ? rays_NNE : rays_SSE;
+    else if(delta_col == -1)
+        return delta_row == 2 ? rays_NNW : rays_SSW;
+    else if(delta_col == -2)
+        return delta_row == 1 ? rays_NWW : rays_SWW;
+    else
+        return 0;
 }
 
 

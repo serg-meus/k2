@@ -453,4 +453,9 @@ private:
                          const bool stm, attack_params_s &p);
     void InitAttacksSlider(coord_t coord, attack_params_s &p);
     void InitMobilitySlider(attack_params_s &p);
+    ray_mask_t GetNonSliderMask(const attack_params_s &p) const;
+    ray_mask_t GetKnightMask(const coord_t piece_coord,
+                              const coord_t to_coord) const;
+    ray_mask_t GetKingMask(const coord_t piece_coord,
+                              const coord_t to_coord) const;
 };
