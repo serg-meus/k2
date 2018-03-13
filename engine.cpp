@@ -242,7 +242,7 @@ k2chess::eval_t k2engine::QSearch(eval_t alpha, const eval_t beta)
 void k2engine::Perft(const depth_t depth)
 {
     move_c move_array[move_array_size];
-    auto max_moves = GenAllMoves(move_array);
+    auto max_moves = GenMoves(move_array, false);
     for(auto move_cr = 0; move_cr < max_moves; move_cr++)
     {
 #ifndef NDEBUG
@@ -1369,7 +1369,7 @@ bool k2engine::GetFirstMove(move_c * const move_array,
     if(hash_best_move.flag == not_a_move)
     {
         if(!only_captures)
-            *max_moves = GenAllMoves(move_array);
+            *max_moves = GenMoves(move_array, false);
         else
             *max_moves = GenMoves(move_array, true);
 
@@ -1389,7 +1389,7 @@ bool k2engine::GetFirstMove(move_c * const move_array,
         *ans = hash_best_move;
         const bool legal = IsPseudoLegal(*ans) && IsLegal(*ans);
 #ifndef NDEBUG
-        const auto mx_ = GenAllMoves(move_array);
+        const auto mx_ = GenMoves(move_array, false);
         auto i = 0;
         for(; i < mx_; ++i)
             if(move_array[i] == *ans)
@@ -1399,7 +1399,7 @@ bool k2engine::GetFirstMove(move_c * const move_array,
         {
             IsPseudoLegal(*ans);
             IsLegal(*ans);
-            GenAllMoves(move_array);
+            GenMoves(move_array, false);
         }
         assert(tt_move_found == legal);
 #endif
@@ -1410,7 +1410,7 @@ bool k2engine::GetFirstMove(move_c * const move_array,
         }
         else
         {
-            *max_moves = GenAllMoves(move_array);
+            *max_moves = GenMoves(move_array, false);
             AppriceMoves(move_array, *max_moves, hash_best_move);
         }
     }
@@ -1425,7 +1425,7 @@ bool k2engine::GetSecondMove(move_c * const move_array,
                              movcr_t * const max_moves,
                              move_c prev_move, move_c *ans)
 {
-    *max_moves = GenAllMoves(move_array);
+    *max_moves = GenMoves(move_array, false);
     AppriceMoves(move_array, *max_moves, prev_move);
 
     if(*max_moves <= 1)

@@ -62,12 +62,6 @@ protected:
     void AppriceMoves(move_c * const move_array, const movcr_t moveCr,
                       const move_c best_move);
 
-    movcr_t GenAllMoves(move_c * const move_array)
-    {
-        movcr_t move_cr = GenMoves(move_array, true);
-        move_cr += GenMoves(&move_array[move_cr], false);
-        return move_cr;
-    }
 
 private:
 

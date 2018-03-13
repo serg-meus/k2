@@ -20,9 +20,9 @@ k2movegen::movcr_t k2movegen::GenMoves(move_c * const move_array,
         const auto type = get_type(b[from_coord]);
         if(type == pawn)
         {
-            if(capt_or_promo)
-                GenPawnCapturesPromotions(move_array, &move_cr, it);
-            else
+
+            GenPawnCapturesPromotions(move_array, &move_cr, it);
+            if(!capt_or_promo)
                 GenPawnSilent(move_array, &move_cr, it);
             continue;
         }
@@ -45,12 +45,12 @@ k2movegen::movcr_t k2movegen::GenMoves(move_c * const move_array,
                 bool capture = !empty && get_color(b[to_coord]) != wtm;
                 if(capt_or_promo && !capture)
                     break;
-                if(!capt_or_promo && capture)
-                    continue;
+//                if(!capt_or_promo && capture)
+//                    continue;
                 if(col_within(col) && row_within(row) && (empty || capture))
                     PushMove(move_array, &move_cr, it.get_array_index(),
                              to_coord,  empty ? 0 : is_capture);
-                if(!is_slider[type] || !empty)
+                if(!is_slider[type])
                     break;
             }
         }
@@ -432,7 +432,7 @@ size_t k2movegen::test_gen_castles()
 size_t k2movegen::test_gen_moves()
 {
     move_c move_array[move_array_size];
-    movcr_t move_cr = GenAllMoves(move_array);
+    movcr_t move_cr = GenMoves(move_array, false);
     for(auto i = 0; i < move_cr; ++i)
         if(!IsPseudoLegal(move_array[i]))
             return -1U;
