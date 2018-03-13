@@ -451,4 +451,6 @@ private:
     void UpdateMasks(const move_c move, const attack_params_s &p);
     void GetAttackParams(const size_t index, const move_c move,
                          const bool stm, attack_params_s &p);
+    void InitAttacksSlider(coord_t coord, attack_params_s &p);
+    void InitMobilitySlider(attack_params_s &p);
 };

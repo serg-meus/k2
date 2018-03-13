@@ -160,60 +160,38 @@ void k2chess::InitAttacksNotPawn(const coord_t coord, const bool color,
                                  const bool setbit,
                                  ray_mask_t ray_mask)
 {
-    if(setbit)
+    while(ray_mask)
     {
-        while(ray_mask)
+        const auto ray = __builtin_ctz(ray_mask);
+        ray_mask ^= (1 << ray);
+        if(!setbit)
+            mobility[color][index][ray] = 0;
+        auto col = get_col(coord);
+        auto row = get_row(coord);
+        const auto d_col = type == knight ? delta_col_knight[ray] :
+                                            delta_col_kqrb[ray];
+        const auto d_row = type == knight ? delta_row_knight[ray] :
+                                            delta_row_kqrb[ray];
+        size_t i = 0;
+        for(; i < max_ray_length; ++i)
         {
-            const auto ray = __builtin_ctz(ray_mask);
-            ray_mask ^= (1 << ray);
-            auto col = get_col(coord);
-            auto row = get_row(coord);
-            const auto d_col = type == knight ? delta_col_knight[ray] :
-                                                delta_col_kqrb[ray];
-            const auto d_row = type == knight ? delta_row_knight[ray] :
-                                                delta_row_kqrb[ray];
-            size_t i = 0;
-            for(; i < max_ray_length; ++i)
+            col += d_col;
+            row += d_row;
+            if(!col_within(col) || !row_within(row))
+                break;
+            if(setbit)
             {
-                col += d_col;
-                row += d_row;
-                if(!col_within(col) || !row_within(row))
-                    break;
                 set_bit(color, col, row, index);
                 auto sq = b[get_coord(col, row)];
                 if(sq == empty_square || get_color(sq) != color)
                     mobility[color][index][ray]++;
-                if(!is_slider[type])
-                    break;
                 if(b[get_coord(col, row)] != empty_square)
                     break;
             }
-        }
-    }
-    else
-    {
-        while(ray_mask)
-        {
-            const auto ray = __builtin_ctz(ray_mask);
-            ray_mask ^= (1 << ray);
-            mobility[color][index][ray] = 0;
-            auto col = get_col(coord);
-            auto row = get_row(coord);
-            const auto d_col = type == knight ? delta_col_knight[ray] :
-                                                delta_col_kqrb[ray];
-            const auto d_row = type == knight ? delta_row_knight[ray] :
-                                                delta_row_kqrb[ray];
-            size_t i = 0;
-            for(; i < max_ray_length; ++i)
-            {
-                col += d_col;
-                row += d_row;
-                if(!col_within(col) || !row_within(row))
-                    break;
+            else
                 clear_bit(color, col, row, index);
-                if(!is_slider[type])
-                    break;
-            }
+            if(!is_slider[type])
+                break;
         }
     }
 }
@@ -371,52 +349,67 @@ void k2chess::UpdateAttacksOnePiece(attack_params_s &p)
     if(p.type == pawn)
         InitAttacksPawn(coord, p.color, p.index, p.set_attack_bit);
     else if(is_slider[p.type])
-    {
-        auto ray_mask = GetRayMask(p);
-        InitAttacksNotPawn(coord, p.color, p.index, p.type,
-                           p.set_attack_bit, ray_mask);
-        if(p.is_move)
-        {
-            coord = p.set_attack_bit ? p.from_coord : p.piece_coord;
-            if(p.set_attack_bit)
-                set_bit(p.color, get_col(coord), get_row(coord), p.index);
-            else
-                clear_bit(p.color, get_col(coord), get_row(coord), p.index);
-            if(p.set_attack_bit)
-            {
-                enum {ray_n, ray_e, ray_s, ray_w,
-                      ray_ne, ray_se, ray_sw, ray_nw};
-                const auto d_col = get_col(p.to_coord) - get_col(p.from_coord);
-                const auto d_row = get_row(p.to_coord) - get_row(p.from_coord);
-                if(d_col == 0)
-                {
-                    mobility[p.color][p.index][ray_n] -= d_row;
-                    mobility[p.color][p.index][ray_s] += d_row;
-                }
-                else if(d_row == 0)
-                {
-                    mobility[p.color][p.index][ray_e] -= d_col;
-                    mobility[p.color][p.index][ray_w] += d_col;
-                }
-                else if(sgn(d_col) == sgn(d_row))
-                {
-                    mobility[p.color][p.index][ray_ne] -= d_col;
-                    mobility[p.color][p.index][ray_sw] += d_col;
-                }
-                else
-                {
-                    mobility[p.color][p.index][ray_se] -= d_col;
-                    mobility[p.color][p.index][ray_nw] += d_col;
-                }
-            }
-        }
-    }
+        InitAttacksSlider(coord, p);
     else
         InitAttacksNotPawn(coord, p.color, p.index, p.type,
                            p.set_attack_bit, all_rays[p.type]);
 }
 
 
+
+
+
+//--------------------------------
+void k2chess::InitAttacksSlider(coord_t coord, attack_params_s &p)
+{
+    auto ray_mask = GetRayMask(p);
+    InitAttacksNotPawn(coord, p.color, p.index, p.type,
+                       p.set_attack_bit, ray_mask);
+    if(!p.is_move)
+        return;
+
+    coord = p.set_attack_bit ? p.from_coord : p.piece_coord;
+    if(p.set_attack_bit)
+        set_bit(p.color, get_col(coord), get_row(coord), p.index);
+    else
+        clear_bit(p.color, get_col(coord), get_row(coord), p.index);
+
+    if(p.set_attack_bit)
+        InitMobilitySlider(p);
+}
+
+
+
+
+
+//--------------------------------
+void k2chess::InitMobilitySlider(attack_params_s &p)
+{
+    enum {ray_n, ray_e, ray_s, ray_w,
+          ray_ne, ray_se, ray_sw, ray_nw};
+    const auto d_col = get_col(p.to_coord) - get_col(p.from_coord);
+    const auto d_row = get_row(p.to_coord) - get_row(p.from_coord);
+    if(d_col == 0)
+    {
+        mobility[p.color][p.index][ray_n] -= d_row;
+        mobility[p.color][p.index][ray_s] += d_row;
+    }
+    else if(d_row == 0)
+    {
+        mobility[p.color][p.index][ray_e] -= d_col;
+        mobility[p.color][p.index][ray_w] += d_col;
+    }
+    else if(sgn(d_col) == sgn(d_row))
+    {
+        mobility[p.color][p.index][ray_ne] -= d_col;
+        mobility[p.color][p.index][ray_sw] += d_col;
+    }
+    else
+    {
+        mobility[p.color][p.index][ray_se] -= d_col;
+        mobility[p.color][p.index][ray_nw] += d_col;
+    }
+}
 
 
 
