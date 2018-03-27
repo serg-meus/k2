@@ -171,6 +171,8 @@ protected:
     void TakebackMove(const move_c move)
     {
         k2hash::TakebackMove(move);
+        if(k2chess::state[ply + 1].attacks_updated)
+            TakebackAttacks();
     }
 
     bool IsRecapture()
@@ -222,7 +224,6 @@ protected:
         if(k2chess::state[ply].captured_piece != empty_square ||
                 k2chess::state[ply - 1].move.to_coord == is_null_move)
             return false;
-
         futility_probes++;
         auto margin = depth < 2 ? 185 : 255;
         auto score = ReturnEval(wtm);
@@ -231,6 +232,62 @@ protected:
 
         futility_hits++;
         return true;
+    }
+
+    bool IsInCheck()
+    {
+        if(k2chess::state[ply - 1].move.to_coord == is_null_move)
+            return false;
+        bool ans = false;
+        const auto k_coord = *king_coord[wtm];
+        const auto to_coord = k2chess::state[ply].move.to_coord;
+        const auto d_col = get_col(k_coord) - get_col(to_coord);
+        const auto d_row = get_row(k_coord) - get_row(to_coord);
+        const auto type = get_type(b[to_coord]);
+        switch(type)
+        {
+            case pawn :
+                ans = ((wtm && d_row == -1) || (!wtm && d_row == 1)) &&
+                        std::abs(d_col) == 1;
+                break;
+
+            case knight :
+                ans = (std::abs(d_col) == 2 && std::abs(d_row) == 1) ||
+                        (std::abs(d_col) == 1 && std::abs(d_row) == 2);
+                break;
+
+            case bishop :
+                ans = std::abs(d_col) == std::abs(d_row) &&
+                        IsSliderAttack(k_coord, to_coord);
+                break;
+
+            case rook :
+                ans = (d_col == 0 || d_row == 0) &&
+                        IsSliderAttack(k_coord, to_coord);
+                break;
+
+            case queen :
+                ans = (std::abs(d_col) == std::abs(d_row) ||
+                        d_col == 0 || d_row == 0) &&
+                        IsSliderAttack(k_coord, to_coord);
+                break;
+
+            default :
+                break;
+        }
+        if(ans)
+            return true;
+        const auto fr_coord = k2chess::state[ply].from_coord;
+        const auto d_col2 = get_col(k_coord) - get_col(fr_coord);
+        const auto d_row2 = get_row(k_coord) - get_row(fr_coord);
+        if(std::abs(d_col2) == std::abs(d_row2) || d_col2 == 0 || d_row2 == 0)
+        {
+
+            const auto att_mask = attacks[!wtm][fr_coord] & slider_mask[!wtm];
+            if(att_mask && IsDiscoveredAttack(fr_coord, to_coord, att_mask))
+                return true;
+        }
+        return false;
     }
 
     bool MateDistancePruning(eval_t alpha, eval_t *beta)
@@ -244,5 +301,26 @@ protected:
         if(*beta <= -mate_sc)
             return true;
         return false;
+    }
+
+    bool MakeAttacksLater()
+    {
+        auto delta = 0;
+        if(k2chess::state[ply - 1].move.to_coord == is_null_move)
+            delta++;
+        if(delta && k2chess::state[ply - 2].move.to_coord == is_null_move)
+            delta++;
+        if(delta == 1)
+            wtm = !wtm;
+        ply -= delta;
+
+        MakeAttacks(k2chess::state[ply + delta].move);
+
+        if(delta == 1)
+            wtm = !wtm;
+        ply += delta;
+        bool in_check = attacks[!wtm][*king_coord[wtm]];
+        state[ply].in_check = in_check;
+        return in_check;
     }
 };

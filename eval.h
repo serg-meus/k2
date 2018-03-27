@@ -115,7 +115,7 @@ protected:
     void SetPawnStruct(const coord_t col);
     bool IsPasser(const coord_t col, const bool stm) const;
     bool MakeMove(const move_c m);
-    void TakebackMove(const move_c m);
+    void TakebackMove(const move_c move);
 
     eval_t ReturnEval(const bool stm) const
     {

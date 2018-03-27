@@ -298,9 +298,7 @@ void k2chess::UpdateAttacks(const move_c move, const coord_t from_coord)
         }
         update_mask[stm] = 0;
     }
-#ifndef NDEBUG
 //    assert(CheckBoardConsistency());
-#endif
 }
 
 
@@ -1075,9 +1073,6 @@ void k2chess::TakebackPromotion(const move_c move)
 //--------------------------------
 bool k2chess::MakeMove(const move_c move)
 {
-    memcpy(done_attacks[ply], attacks, sizeof(attacks));
-    memcpy(done_mobility[ply], mobility, sizeof(mobility));
-
     bool is_special_move = false;
     ply++;
     auto it = coords[wtm].at(move.piece_index);
@@ -1110,16 +1105,34 @@ bool k2chess::MakeMove(const move_c move)
         MakePromotion(move);
     wtm = !wtm;
 
+    state[ply].attacks_updated = false;
+
+    return is_special_move;
+}
+
+
+
+
+
+//--------------------------------
+void k2chess::MakeAttacks(const move_c move)
+{
+    if(state[ply].attacks_updated)
+        return;
+    memcpy(done_attacks[ply - 1], attacks, sizeof(attacks));
+    memcpy(done_mobility[ply - 1], mobility, sizeof(mobility));
+
     if(move.flag & is_promotion)
     {
         InitAttacks(!wtm);
         InitAttacks(wtm);
-
     }
     else
+    {
+        const auto from_coord = state[ply].from_coord;
         UpdateAttacks(move, from_coord);
-
-    return is_special_move;
+    }
+    state[ply].attacks_updated = true;
 }
 
 
@@ -1130,6 +1143,17 @@ bool k2chess::MakeMove(const move_c move)
 void k2chess::TakebackMove()
 {
     const auto move = state[ply].move;
+    TakebackMove(move);
+    TakebackAttacks();
+}
+
+
+
+
+
+//--------------------------------
+void k2chess::TakebackMove(move_c move)
+{
     if(move.flag & is_promotion)
     {
         coords[!wtm] = store_coords.back();
@@ -1157,15 +1181,10 @@ void k2chess::TakebackMove()
         TakebackCastle(move);
 
     ply--;
-
-    memcpy(attacks, done_attacks[ply], sizeof(attacks));
-    memcpy(mobility, done_mobility[ply], sizeof(mobility));
-
 #ifndef NDEBUG
     cur_moves[move_max_display_length*ply] = '\0';
 #endif // NDEBUG
 }
-
 
 
 
@@ -1183,6 +1202,7 @@ bool k2chess::MakeMove(const char* str)
     if(!IsPseudoLegal(move) || !IsLegal(move))
         return false;
     MakeMove(move);
+    MakeAttacks(move);
     return true;
 }
 

@@ -735,15 +735,15 @@ bool k2eval::MakeMove(const move_c m)
 
 
 //-----------------------------
-void k2eval::TakebackMove(const move_c m)
+void k2eval::TakebackMove(const move_c move)
 {
     auto from_coord = k2chess::state[ply].from_coord;
 
-    k2chess::TakebackMove();
+    k2chess::TakebackMove(move);
 
     ply++;
     wtm ^= white;
-    MovePawnStruct(b[from_coord], from_coord, m);
+    MovePawnStruct(b[from_coord], from_coord, move);
     wtm ^= white;
     ply--;
 

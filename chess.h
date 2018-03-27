@@ -150,13 +150,13 @@ protected:
     static const size_t move_max_display_length = 5;
     static const attack_t attack_digits = sizeof(attack_t)*CHAR_BIT;
 
-    const piece_t
-    pawn = get_type(black_pawn),
-    bishop = get_type(black_bishop),
-    knight = get_type(black_knight),
-    rook = get_type(black_rook),
-    queen = get_type(black_queen),
-    king = get_type(black_king);
+    static const piece_t
+    pawn = black_pawn/sides,
+    bishop = black_bishop/sides,
+    knight = black_knight/sides,
+    rook = black_rook/sides,
+    queen = black_queen/sides,
+    king = black_king/sides;
 
     const ray_mask_t
     rays_North = 1,
@@ -229,6 +229,7 @@ protected:
         // pawn col + 1, not null only if opponent pawn is near
         depth_t reversible_moves;  // reversible halfmove counter
         attack_t slider_mask;  // see slider_mask below
+        bool attacks_updated;
     };
 
     struct attack_params_s
@@ -328,6 +329,8 @@ protected:
                         const coord_t to_coord) const;
     bool CheckBoardConsistency();
     void MoveToStr(const move_c m, const bool stm, char * const out);
+    void MakeAttacks(const move_c move);
+    void TakebackMove(move_c move);
 
     coord_t get_coord(const coord_t col, const coord_t row) const
     {
@@ -400,6 +403,12 @@ protected:
         ans.piece_index = index;
         ans.flag = InitMoveFlag(ans, str[4]);
         return ans;
+    }
+
+    void TakebackAttacks()
+    {
+        memcpy(attacks, done_attacks[ply], sizeof(attacks));
+        memcpy(mobility, done_mobility[ply], sizeof(mobility));
     }
 
 

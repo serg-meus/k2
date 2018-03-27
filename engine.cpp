@@ -65,7 +65,7 @@ k2chess::eval_t k2engine::Search(depth_t depth, eval_t alpha, eval_t beta,
         pv[ply].length = 0;
         return 0;
     }
-    const bool in_check = attacks[!wtm][*king_coord[wtm]];
+    bool in_check = IsInCheck();
     state[ply].in_check = in_check;
 
     if(depth < 0)
@@ -84,6 +84,9 @@ k2chess::eval_t k2engine::Search(depth_t depth, eval_t alpha, eval_t beta,
     hash_entry_s *entry = nullptr;
     if(HashProbe(depth, &alpha, beta, &entry))
         return -alpha;
+
+    in_check = MakeAttacksLater();
+
     move_c hash_best_move;
     if(entry == nullptr)
         hash_best_move.flag = not_a_move;
@@ -178,15 +181,17 @@ k2chess::eval_t k2engine::QSearch(eval_t alpha, const eval_t beta)
     if(material[0] + material[1] > 2400 && ReturnEval(wtm) > beta + 250)
         return beta;
 
+    hash_entry_s *entry = nullptr;
+    if(HashProbe(0, &alpha, beta, &entry))
+        return -alpha;
+
+    MakeAttacksLater();
+
     auto x = -Eval();
     if(x >= beta)
         return beta;
     else if(x > alpha)
         alpha = x;
-
-    hash_entry_s *entry = nullptr;
-    if(HashProbe(0, &alpha, beta, &entry))
-        return -alpha;
 
     if((nodes & nodes_to_check_stop) == nodes_to_check_stop)
         CheckForInterrupt();
@@ -257,14 +262,19 @@ void k2engine::Perft(const depth_t depth)
             std::cout << "( breakpoint )" << std::endl;
 #endif // NDEBUG
         if(depth > 1)
+        {
+            MakeAttacks(cur_move);
             Perft(depth - 1);
+        }
         else if(depth == 1)
             nodes++;
 #ifndef NDEBUG
         if(depth == max_search_depth)
             std::cout << cv << nodes - tmpCr << std::endl;
 #endif
-        k2chess::TakebackMove();
+        k2chess::TakebackMove(cur_move);
+        if(depth > 1)
+            TakebackAttacks();
     }
 }
 
@@ -441,7 +451,8 @@ k2chess::eval_t k2engine::RootSearch(const depth_t depth, eval_t alpha,
         nodes++;
 
 #ifndef NDEBUG
-        if(strcmp(debug_variation, cv) == 0 && (!debug_ply || root_ply == debug_ply))
+        if(strcmp(debug_variation, cv) == 0 &&
+                (!debug_ply || root_ply == debug_ply))
             std::cout << "( breakpoint )" << std::endl;
 #endif // NDEBUG
 
@@ -535,7 +546,8 @@ k2chess::eval_t k2engine::RootSearch(const depth_t depth, eval_t alpha,
 
 
 //--------------------------------
-void k2engine::ShowPVfailHighOrLow(const move_c move, const eval_t val, const u8 type_of_bound)
+void k2engine::ShowPVfailHighOrLow(const move_c move, const eval_t val,
+                                   const u8 type_of_bound)
 {
     TakebackMove(move);
     char mstr[6];
@@ -551,6 +563,7 @@ void k2engine::ShowPVfailHighOrLow(const move_c move, const eval_t val, const u8
     pv[0].moves[0] = tmp_move;
 
     MakeMove(move);
+    MakeAttacks(move);
     FastEval(move);
 }
 
@@ -649,6 +662,7 @@ void k2engine::InitSearch()
     }
 
     memset(history, 0, sizeof(history));
+    k2chess::state[ply].attacks_updated = true;
 }
 
 
@@ -925,11 +939,12 @@ bool k2engine::ShowPV(const depth_t cur_ply)
                 std::cout << proms[cur_move.flag & is_promotion];
             std::cout << ' ';
         }
-        k2chess::MakeMove(cur_move);
+        MakeMove(cur_move);
+        MakeAttacks(cur_move);
     }
 
     for(; ply_cr > 0; ply_cr--)
-        k2chess::TakebackMove();
+        TakebackMove(k2chess::state[ply].move);
     return ans;
 }
 
@@ -1016,6 +1031,7 @@ bool k2engine::MakeMove(const char *move_str)
         it = coords[wtm].at(cur_move.piece_index);
 
         MakeMove(cur_move);
+        MakeAttacks(cur_move);
         FastEval(cur_move);
 
         const auto store_val_opn = val_opn;
@@ -1202,6 +1218,8 @@ bool k2engine::NullMovePruning(const depth_t depth, const eval_t beta,
     const auto x = -Search(depth - r - 1, -beta, -beta + 1, all_node);
 
     UnMakeNullMove();
+    if(k2chess::state[ply + 1].attacks_updated)
+        k2chess::state[ply].attacks_updated = true;
     k2chess::state[ply].move = store_move;
     k2chess::state[ply].en_passant_rights = store_ep;
     reversible_moves = store_rv;
