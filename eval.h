@@ -67,8 +67,8 @@ protected:
     king_no_shelter = 47,
     king_saf_1 = 2,
     king_saf_2 = 2,
-    king_saf_3 = 2,
-    king_saf_4 = 3,
+    king_saf_3 = 20,
+    king_saf_4 = 22,
     bishop_pair = 30;
 
     eval_t val_opn, val_end;

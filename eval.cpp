@@ -892,7 +892,7 @@ void k2eval::KingSafety(const bool stm)
         k_col--;
     const auto ks = KingShelter(k_col, k_row, stm);
     const auto f_ks = ks == 0 ? 1 : king_saf_2;
-    const auto f_q = quantity[!stm][queen] == 0 ? king_saf_3 : 1;
+    const auto f_q = quantity[!stm][queen] == 0 ? king_saf_3 : 10;
     ans = ks + king_saf_4*f_ks*ans*ans/f_q;
     val_opn += stm ? -ans : ans;
 }
