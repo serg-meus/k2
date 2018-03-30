@@ -320,9 +320,14 @@ bool k2eval::IsUnstoppablePawn(const coord_t col, const bool side_of_pawn,
 //-----------------------------
 void k2eval::MobilityEval(bool stm)
 {
-    eval_t f_type[] = {0,  2,  5,  18,  22,  0};
+    eval_t f_type[] = {0,  0,  6,  13,  8,  4};
+    eval_t f_num[] = {-25, -15, -10, -5, 0, 5, 10, 15, 18, 20,
+                      21, 21, 21, 22, 22};
+
     eval_t ans = 0;
-    for(auto rit = coords[stm].rbegin(); rit != coords[stm].rend(); ++rit)
+    const auto beg = ++(coords[stm].rbegin());
+    const auto end = coords[stm].rend();
+    for(auto rit = beg; rit != end; ++rit)
     {
         const auto type = get_type(b[*rit]);
         if(type == pawn)
@@ -331,12 +336,11 @@ void k2eval::MobilityEval(bool stm)
         auto cr = 0;
         for(auto ray = ray_min[type]; ray < ray_max[type]; ++ray)
             cr += mobility[stm][index][ray];
-        const auto limit = 6*(ray_max[type] - ray_min[type]);
-        if(is_slider[type] && cr > limit)
-            cr = limit;
-        if(cr <= 2)
-            cr = cr - 4;
-        ans += f_type[type]*cr;
+        if(type == queen)
+            cr /= 2;
+        assert(cr < 15);
+
+        ans += f_type[type]*f_num[cr];
     }
     ans /= 8;
 
