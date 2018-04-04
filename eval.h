@@ -69,6 +69,7 @@ protected:
     king_saf_2 = 2,
     king_saf_3 = 20,
     king_saf_4 = 22,
+    king_saf_central_files = 68,
     bishop_pair = 30;
 
     eval_t val_opn, val_end;

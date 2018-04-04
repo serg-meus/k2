@@ -890,10 +890,13 @@ void k2eval::KingSafety(const bool stm)
         k_col++;
     else if(k_col == max_col)
         k_col--;
+
     const auto ks = KingShelter(k_col, k_row, stm);
     const auto f_ks = ks == 0 ? 1 : king_saf_2;
     const auto f_q = quantity[!stm][queen] == 0 ? king_saf_3 : 10;
-    ans = ks + king_saf_4*f_ks*ans*ans/f_q;
+    auto f_cntr = ((k_col == 3 || k_col == 4) &&
+            quantity[!stm][queen] != 0) ? 68 : 0;
+    ans = f_cntr + ks + king_saf_4*f_ks*ans*ans/f_q;
     val_opn += stm ? -ans : ans;
 }
 
