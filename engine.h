@@ -186,7 +186,8 @@ protected:
     }
 
     depth_t LateMoveReduction(const depth_t depth, move_c cur_move,
-                              bool in_check,  movcr_t move_cr)
+                              bool in_check,  movcr_t move_cr,
+                              node_type_t node_type)
     {
         auto ans = 1;
         if(depth < 3 || cur_move.flag || in_check)
@@ -196,7 +197,7 @@ protected:
         else if(get_type(b[cur_move.to_coord]) == pawn &&
                 IsPasser(get_col(cur_move.to_coord), !wtm))
             ans = 0;
-        else if(depth <= 4 && move_cr > 8)
+        else if(depth <= 6 && move_cr > 7 && node_type == all_node)
             ans = 2;
         return ans;
     }

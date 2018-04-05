@@ -124,7 +124,8 @@ k2chess::eval_t k2engine::Search(depth_t depth, eval_t alpha, eval_t beta,
 
         FastEval(cur_move);
 
-        const auto lmr = LateMoveReduction(depth, cur_move, in_check, move_cr);
+        const auto lmr = LateMoveReduction(depth, cur_move, in_check,
+                                           move_cr, node_type);
         if(move_cr == 0)
             x = -Search(depth - 1, -beta, -alpha, -node_type);
         else if(beta > alpha + 1)
