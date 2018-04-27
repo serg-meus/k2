@@ -604,7 +604,7 @@ void k2engine::RootMoveGen()
 
     if(randomness)
     {
-        std::srand(std::time(nullptr));
+        std::srand(seed);
         const movcr_t max_moves_to_shuffle = 4;
         auto moves_to_shuffle = std::min(max_root_moves, max_moves_to_shuffle);
         for(movcr_t i = 0; i < moves_to_shuffle; ++i)

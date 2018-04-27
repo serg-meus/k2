@@ -249,6 +249,7 @@ void k2main::NewCommand(const std::string in)
     }
     SetupPosition(start_position);
     ClearHash();
+    seed = std::time(nullptr) % 16;
 }
 
 

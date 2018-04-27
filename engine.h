@@ -90,6 +90,7 @@ protected:
     };
     state_s eng_state[prev_states + max_ply]; // engine state for each ply
     state_s *state;  // pointer to engine state
+    depth_t seed;
 
 
 public:
