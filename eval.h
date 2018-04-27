@@ -42,7 +42,7 @@ protected:
     pawn_dbl_opn = -5,
     pawn_dbl_end = -15,
     pawn_hole_opn = -30,
-    pawn_hole_end = 0,
+    pawn_hole_end = -15,
     pawn_gap_opn = 0,
     pawn_gap_end = -30,
     pawn_king_tropism1 = 30,
