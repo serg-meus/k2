@@ -143,7 +143,8 @@ bool k2main::ExecuteCommand(const std::string in)
         {"stop",        &k2main::StopCommand},
         {"ponderhit",   &k2main::PonderhitCommand},
         {"setvalue",    &k2main::SetvalueCommand},
-        {"option",      &k2main::OptionCommand}
+        {"option",      &k2main::OptionCommand},
+        {"seed",        &k2main::SeedCommand},
     };
 
     std::string command_str, args;
@@ -1021,4 +1022,17 @@ void k2main::NopostCommand(const std::string in)
 {
     UNUSED(in);
     enable_output = false;
+}
+
+
+
+
+
+//--------------------------------
+void k2main::SeedCommand(const std::string in)
+{
+    std::string arg1, arg2;
+    arg1 = in;
+    GetFirstArg(arg2, &arg1, &arg2);
+    seed = atoi(arg1.c_str());
 }

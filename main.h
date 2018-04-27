@@ -91,6 +91,7 @@ protected:
     void OptionCommand(const std::string in);
     void PostCommand(const std::string in);
     void NopostCommand(const std::string in);
+    void SeedCommand(const std::string in);
 
     bool test_perft(const char *pos, depth_t depth, node_t node_cr)
     {
