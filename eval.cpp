@@ -13,6 +13,9 @@ k2chess::eval_t k2eval::Eval()
     EvalPawns(white);
     EvalPawns(black);
 
+    EvalRooks(white);
+    EvalRooks(black);
+
     KingSafety(white);
     KingSafety(black);
 
@@ -577,6 +580,21 @@ k2chess::eval_t k2eval::EvalDebug()
     store_ve = val_end;
     store_sum = ReturnEval(white);
 
+    EvalRooks(white);
+    std::cout << "Rooks white\t\t";
+    std::cout << val_opn - store_vo << '\t' << val_end - store_ve << '\t'
+              << ReturnEval(white) - store_sum << std::endl;
+    store_vo = val_opn;
+    store_ve = val_end;
+    store_sum = ReturnEval(white);
+    EvalRooks(black);
+    std::cout << "Rooks black\t\t";
+    std::cout << val_opn - store_vo << '\t' << val_end - store_ve << '\t'
+              << ReturnEval(white) - store_sum << std::endl;
+    store_vo = val_opn;
+    store_ve = val_end;
+    store_sum = ReturnEval(white);
+
     MaterialImbalances();
     std::cout << "Imbalances summary\t";
     std::cout << val_opn - store_vo << '\t' << val_end - store_ve << '\t'
@@ -760,6 +778,33 @@ void k2eval::TakebackMove(const move_c move)
 
 
 //-----------------------------
+void k2eval::EvalRooks(const bool stm)
+{
+    auto ans = 0;
+    auto rit = coords[stm].rbegin();
+
+    while(rit != coords[stm].rend() && get_type(b[*rit]) != rook)
+        ++rit;
+    if(rit == coords[stm].rend())
+        return;
+
+    auto rooks_on_last_cr = 0;
+    if((stm && get_row(*rit) >= max_row - 1) || (!stm && get_row(*rit) <= 1))
+        rooks_on_last_cr++;
+    if(quantity[stm][pawn] >= rook_max_pawns_for_open_file &&
+            pawn_max[get_col(*rit)][stm] == 0)
+        ans += (pawn_max[get_col(*rit)][!stm] == 0 ? rook_open_file :
+                                                     rook_semi_open_file);
+
+    ans += rooks_on_last_cr*rook_on_last_rank;
+    val_opn += (stm ? ans : -ans);
+}
+
+
+
+
+
+//-----------------------------
 bool k2eval::Sheltered(const coord_t k_col, coord_t k_row,
                        const bool stm)
 {
@@ -895,7 +940,7 @@ void k2eval::KingSafety(const bool stm)
     const auto f_ks = ks == 0 ? 1 : king_saf_2;
     const auto f_q = quantity[!stm][queen] == 0 ? king_saf_3 : 10;
     auto f_cntr = ((k_col == 3 || k_col == 4) &&
-            quantity[!stm][queen] != 0) ? 68 : 0;
+            quantity[!stm][queen] != 0) ? king_saf_central_files : 0;
     ans = f_cntr + ks + king_saf_4*f_ks*ans*ans/f_q;
     val_opn += stm ? -ans : ans;
 }

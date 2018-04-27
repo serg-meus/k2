@@ -70,6 +70,10 @@ protected:
     king_saf_3 = 20,
     king_saf_4 = 22,
     king_saf_central_files = 68,
+    rook_on_last_rank = 47,
+    rook_semi_open_file = 22,
+    rook_open_file = 54,
+    rook_max_pawns_for_open_file = 4,
     bishop_pair = 30;
 
     eval_t val_opn, val_end;
@@ -161,4 +165,5 @@ private:
                            const bool stm);
     attack_t KingSafetyBatteries(const coord_t targ_coord, const attack_t att,
                                  const bool stm);
+    void EvalRooks(const bool stm);
 };
