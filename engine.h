@@ -205,18 +205,17 @@ protected:
 
     bool DeltaPruning(eval_t alpha, move_c cur_move)
     {
-        if(material[white]/100 + material[black]/100
-                - pieces[white] - pieces[black] > 24 &&
-                get_type(b[cur_move.to_coord]) != king &&
-                !(cur_move.flag & is_promotion))
-        {
-            auto cur_eval = ReturnEval(wtm);
-            auto capture = values[get_type(b[cur_move.to_coord])];
-            auto margin = 100;
-            return cur_eval + capture + margin < alpha;
-        }
-        else
+        if(quantity[black][rook] == 0 && quantity[white][rook] == 0 &&
+                quantity[black][queen] == 0 && quantity[white][queen] == 0)
             return false;
+        if(get_type(b[cur_move.to_coord]) == king ||
+                (cur_move.flag & is_promotion))
+            return false;
+
+        auto cur_eval = ReturnEval(wtm);
+        auto capture = values[get_type(b[cur_move.to_coord])];
+        auto margin = 100;
+        return cur_eval + capture + margin < alpha;
     }
 
     bool FutilityPruning(depth_t depth, eval_t beta, bool in_check)
