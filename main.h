@@ -89,6 +89,8 @@ protected:
     void ExitCommand(const std::string in);
     void SetvalueCommand(const std::string in);
     void OptionCommand(const std::string in);
+    void PostCommand(const std::string in);
+    void NopostCommand(const std::string in);
 
     bool test_perft(const char *pos, depth_t depth, node_t node_cr)
     {
@@ -108,6 +110,7 @@ protected:
         SetupPosition(pos);
         ClearHash();
         max_search_depth = depth;
+        infinite_analyze = true;
         MainSearch();
         char move_str[6];
         MoveToStr(pv[0].moves[0], wtm, move_str);

@@ -413,10 +413,9 @@ void k2engine::MainSearch()
     total_time_spent += time_spent;
     timer.stop();
 
-    if(!infinite_analyze || uci)
+    if(!infinite_analyze)
         PrintFinalSearchResult();
-
-    if(!xboard)
+    if(uci)
         infinite_analyze = false;
 
     busy = false;
@@ -673,8 +672,6 @@ void k2engine::InitSearch()
 //--------------------------------
 void k2engine::PrintFinalSearchResult()
 {
-    if(!enable_output)
-        return;
     char move_str[6];
     MoveToStr(pv[0].moves[0], wtm, move_str);
 
@@ -695,7 +692,7 @@ void k2engine::PrintFinalSearchResult()
         std::cout << std::endl;
     }
 
-    if(xboard || uci)
+    if(xboard || uci || !enable_output)
         return;
 
     std::cout << "( nodes = " << nodes

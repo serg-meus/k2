@@ -123,13 +123,13 @@ bool k2main::ExecuteCommand(const std::string in)
         {"hard",        &k2main::HardCommand},
         {"memory",      &k2main::MemoryCommand},
         {"analyze",     &k2main::AnalyzeCommand},
+        {"post",        &k2main::PostCommand},
+        {"nopost",      &k2main::NopostCommand},
         {"exit",        &k2main::ExitCommand},
         {"undo",        &k2main::Unsupported},
         {"remove",      &k2main::Unsupported},
         {"computer",    &k2main::Unsupported},
         {"random",      &k2main::Unsupported},
-        {"post",        &k2main::Unsupported},
-        {"nopost",      &k2main::Unsupported},
         {"random",      &k2main::Unsupported},
         {"otim",        &k2main::Unsupported},
         {"accepted",    &k2main::Unsupported},
@@ -235,7 +235,7 @@ void k2main::NewCommand(const std::string in)
         StopEngine();
     force = false;
     pondering_in_process = false;
-    if(!xboard && !uci)
+    if(!xboard && !uci && enable_output)
     {
         if(total_time_spent == 0)
             total_time_spent = 1e-5;
@@ -549,7 +549,7 @@ void k2main::TestCommand(const std::string in)
     bool store_uci = uci;
     bool store_enable_output = enable_output;
     bool store_randomness = randomness;
-    double store_time_base = time_base;
+    bool store_inf_analyze = infinite_analyze;
     depth_t store_max_depth = max_search_depth;
     Timer timer;
     timer.start();
@@ -566,7 +566,6 @@ void k2main::TestCommand(const std::string in)
                        "PPPBBPPP/R3K2R w KQkq -", 3, 97862))
             break;
 
-        time_base = 3000000000;
         auto tick2 = timer.getElapsedTimeInMicroSec();
         auto delta_tick = tick2 - tick1;
         std::cout << "Perft: total nodes = " << total_nodes
@@ -613,7 +612,7 @@ void k2main::TestCommand(const std::string in)
     enable_output = store_enable_output;
     uci = store_uci;
     randomness = store_randomness;
-    time_base = store_time_base;
+    infinite_analyze = store_inf_analyze;
     SetupPosition(start_position);
     if(!ans)
         std::cout << "Integration testing FAILED\n";
@@ -1000,4 +999,26 @@ void k2main::OptionCommand(const std::string in)
         else
             randomness = false;
     }
+}
+
+
+
+
+
+//--------------------------------
+void k2main::PostCommand(const std::string in)
+{
+    UNUSED(in);
+    enable_output = true;
+}
+
+
+
+
+
+//--------------------------------
+void k2main::NopostCommand(const std::string in)
+{
+    UNUSED(in);
+    enable_output = false;
 }
