@@ -17,6 +17,7 @@ k2movegen::movcr_t k2movegen::GenMoves(move_c * const move_array,
     for(; it != coords[wtm].end(); ++it)
     {
         const auto from_coord = *it;
+        const auto index = it.get_array_index();
         const auto type = get_type(b[from_coord]);
         if(type == pawn)
         {
@@ -26,32 +27,32 @@ k2movegen::movcr_t k2movegen::GenMoves(move_c * const move_array,
                 GenPawnSilent(move_array, &move_cr, it);
             continue;
         }
-
+        const auto col0 = get_col(from_coord);
+        const auto row0 = get_row(from_coord);
+        const auto *delta_col = type == knight ? delta_col_knight :
+                                                delta_col_kqrb;
+        const auto *delta_row = type == knight ? delta_row_knight :
+                                                delta_row_kqrb;
         for(auto ray = ray_min[type]; ray < ray_max[type]; ray++)
         {
-            const auto col0 = get_col(from_coord);
-            const auto row0 = get_row(from_coord);
-            const auto ray_len = mobility[wtm][it.get_array_index()][ray];
-            for(int i = ray_len; i >= (capt_or_promo ? ray_len : 1); --i)
+            const auto ray_len = mobility[wtm][index][ray];
+            auto col = col0 + ray_len*delta_col[ray];
+            auto row = row0 + ray_len*delta_row[ray];
+            const auto min_i = capt_or_promo ? ray_len : 1;
+            for(int i = ray_len; i >= min_i; --i)
             {
-                const auto delta_col = type == knight ? delta_col_knight[ray] :
-                                                        delta_col_kqrb[ray];
-                const auto delta_row = type == knight ? delta_row_knight[ray] :
-                                                        delta_row_kqrb[ray];
-                const auto col = col0 + i*delta_col;
-                const auto row = row0 + i*delta_row;
                 const auto to_coord = get_coord(col, row);
-                bool empty = b[to_coord] == empty_square;
-                bool capture = !empty && get_color(b[to_coord]) != wtm;
+                const bool empty = b[to_coord] == empty_square;
+                const bool capture = !empty && get_color(b[to_coord]) != wtm;
                 if(capt_or_promo && !capture)
                     break;
-//                if(!capt_or_promo && capture)
-//                    continue;
                 if(col_within(col) && row_within(row) && (empty || capture))
-                    PushMove(move_array, &move_cr, it.get_array_index(),
+                    PushMove(move_array, &move_cr, index,
                              to_coord,  empty ? 0 : is_capture);
                 if(!is_slider[type])
                     break;
+                col -= delta_col[ray];
+                row -= delta_row[ray];
             }
         }
     }

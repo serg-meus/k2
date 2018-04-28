@@ -203,6 +203,8 @@ void k2chess::InitAttacksNotPawn(const coord_t coord, const bool color,
 //--------------------------------
 void k2chess::UpdateMasks(const move_c move, const attack_params_s &p)
 {
+    update_mask[black] = 0;
+    update_mask[white] = 0;
     update_mask[!wtm] |= (1 << move.piece_index);
     if(move.flag & is_castle)
     {
@@ -296,7 +298,6 @@ void k2chess::UpdateAttacks(const move_c move, const coord_t from_coord)
             if(!p.is_captured)
                 UpdateAttacksOnePiece(p);
         }
-        update_mask[stm] = 0;
     }
 //    assert(CheckBoardConsistency());
 }

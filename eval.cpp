@@ -10,17 +10,13 @@ k2chess::eval_t k2eval::Eval()
     state[ply].val_opn = val_opn;
     state[ply].val_end = val_end;
 
-    EvalPawns(white);
-    EvalPawns(black);
-
-    EvalRooks(white);
-    EvalRooks(black);
-
-    KingSafety(white);
-    KingSafety(black);
-
-    MobilityEval(white);
-    MobilityEval(black);
+    for(auto color: {black, white})
+    {
+        EvalPawns(color);
+        EvalRooks(color);
+        KingSafety(color);
+        MobilityEval(color);
+    }
 
     MaterialImbalances();
 

@@ -85,8 +85,6 @@ k2chess::eval_t k2engine::Search(depth_t depth, eval_t alpha, eval_t beta,
     if(HashProbe(depth, &alpha, beta, &entry))
         return -alpha;
 
-    in_check = MakeAttacksLater();
-
     move_c hash_best_move;
     if(entry == nullptr)
         hash_best_move.flag = not_a_move;
@@ -96,23 +94,24 @@ k2chess::eval_t k2engine::Search(depth_t depth, eval_t alpha, eval_t beta,
     if(depth <= 0)
         return QSearch(alpha, beta);
 
+    in_check = MakeAttacksLater();
+
     if((nodes & nodes_to_check_stop) == nodes_to_check_stop)
         CheckForInterrupt();
 
     move_c move_array[move_array_size], cur_move;
     movcr_t move_cr = 0, max_moves = init_max_moves;
-
     for(; move_cr < max_moves; move_cr++)
     {
         cur_move = NextMove(move_array, move_cr, &max_moves,
                         hash_best_move, all_moves, cur_move);
         if(max_moves <= 0)
             break;
-        if(max_moves == 1 && depth > 1)  // one reply extension
+        if(max_moves == 1 && depth >= one_reply_min_depth)  // one reply extension
             depth++;
-        if(depth <= 2 && !cur_move.flag &&  // late move pruning
+        if(depth <= lmp_min_depth && !cur_move.flag &&  // late move pruning
                 !in_check && !state[ply - 1].in_check &&
-                node_type != pv_node && move_cr > 4)
+                node_type != pv_node && move_cr > lmp_max_move)
             break;
         MakeMove(cur_move);
         nodes++;
@@ -179,7 +178,8 @@ k2chess::eval_t k2engine::QSearch(eval_t alpha, const eval_t beta)
         return 0;
     pv[ply].length = 0;
 
-    if(material[0] + material[1] > 2400 && ReturnEval(wtm) > beta + 250)
+    if(material[0] + material[1] > qs_min_material_to_drop &&
+            ReturnEval(wtm) > beta + qs_beta_exceed_to_drop)
         return beta;
 
     hash_entry_s *entry = nullptr;
@@ -356,22 +356,19 @@ void k2engine::MainSearch()
     for(; root_ply <= max_ply; ++root_ply)
     {
         prev_x = x;
-        const eval_t asp_margin = 47;
-
-        x = RootSearch(root_ply, x - asp_margin, x + asp_margin);
-        if(!stop && x <= prev_x - asp_margin)
+        x = RootSearch(root_ply, x - aspirat_marg, x + aspirat_marg);
+        if(!stop && x <= prev_x - aspirat_marg)
         {
-            x = RootSearch(root_ply, -infinite_score, prev_x - asp_margin);
-            if (!stop && x >= prev_x - asp_margin)
+            x = RootSearch(root_ply, -infinite_score, prev_x - aspirat_marg);
+            if (!stop && x >= prev_x - aspirat_marg)
                 x = RootSearch(root_ply, -infinite_score, infinite_score);
         }
-        else if(!stop && x >= prev_x + asp_margin)
+        else if(!stop && x >= prev_x + aspirat_marg)
         {
-            x = RootSearch(root_ply, prev_x + asp_margin, infinite_score);
-            if(!stop && x <= prev_x + asp_margin)
+            x = RootSearch(root_ply, prev_x + aspirat_marg, infinite_score);
+            if(!stop && x <= prev_x + aspirat_marg)
                 x = RootSearch(root_ply, -infinite_score, infinite_score);
         }
-
         if(stop && x == -infinite_score)
             x = prev_x;
 
@@ -386,7 +383,7 @@ void k2engine::MainSearch()
             if(std::abs(x) > mate_score && std::abs(prev_x) > mate_score
                     && !stop && root_ply >= 2)
                 break;
-            if(max_root_moves == 1 && root_ply >= 8)
+            if(max_root_moves == 1 && root_ply >= max_depth_for_single_move)
                 break;
         }
         if(stop || root_ply >= max_search_depth)
@@ -459,7 +456,7 @@ k2chess::eval_t k2engine::RootSearch(const depth_t depth, eval_t alpha,
         FastEval(cur_move);
         auto prev_nodes = nodes;
 
-        if(uci && root_ply > 6)
+        if(uci && root_ply > min_depth_to_show_uci_info)
             ShowCurrentUciInfo();
 
         bool fail_high = false;
@@ -604,7 +601,6 @@ void k2engine::RootMoveGen()
     if(randomness)
     {
         std::srand(seed);
-        const movcr_t max_moves_to_shuffle = 4;
         auto moves_to_shuffle = std::min(max_root_moves, max_moves_to_shuffle);
         for(movcr_t i = 0; i < moves_to_shuffle; ++i)
         {
@@ -838,32 +834,31 @@ void k2engine::InitTime()
     if(moves_per_session != 0)
         moves_remains = moves_per_session - (uci ? 0 : moves_after_control);
     else
-        moves_remains = 32;
+        moves_remains = moves_remains_default;
     if(time_base == 0)
         moves_remains = 1;
 
-    if(!spent_exact_time && (moves_remains <= moves_for_time_exact_mode
-                             || (time_inc == 0 && moves_per_session == 0
-                                 && time_remains < time_base / 4)))
-    {
+    if(!spent_exact_time &&
+            (moves_remains <= moves_for_time_exact_mode ||
+             (time_inc == 0 && moves_per_session == 0 &&
+              time_remains < time_base/exact_time_base_divider)))
         spent_exact_time = true;
-    }
 
     if(moves_after_control == 0 && finaly_made_moves/2 != 0)
     {
         if(!time_command_sent)
             time_remains += time_base;
 
-        if(moves_remains > 5)
+        if(moves_remains > min_moves_for_exact_time)
             spent_exact_time = false;
     }
     if(!time_command_sent)
         time_remains += time_inc;
-    time_to_think = time_remains / moves_remains;
+    time_to_think = time_remains/moves_remains;
     if(time_inc == 0 && moves_remains != 1 && !spent_exact_time)
-        time_to_think /= 2;
+        time_to_think /= time_to_think_devider;
     else if(time_inc != 0 && time_base != 0)
-        time_to_think += time_inc/4;
+        time_to_think += time_inc/increment_time_divider;
 
     time_command_sent = false;
 }
@@ -1123,11 +1118,11 @@ void k2engine::CheckForInterrupt()
         return;
 
     const node_t nodes_to_check_stop2 = (16*(nodes_to_check_stop + 1) - 1);
-    double margin = 20000; //0.02s
     if(spent_exact_time)
     {
         const double time1 = timer.getElapsedTimeInMicroSec();
         time_spent = time1 - time0;
+        auto margin = search_stop_time_margin;
         if(moves_remains == 1)
             margin *= 3;
         if(time_spent >= time_to_think - margin && root_ply >= 3)
@@ -1192,8 +1187,8 @@ void k2engine::UnMakeNullMove()
 bool k2engine::NullMovePruning(const depth_t depth, const eval_t beta,
                                const bool in_check)
 {
-    if(in_check || depth < 2
-            || material[wtm]/100 - pieces[wtm] < 3)
+    if(in_check || depth < null_move_min_depth
+            || material[wtm]/100 - pieces[wtm] < null_move_min_strength)
         return false;
 
     null_probe_cr++;
@@ -1211,7 +1206,8 @@ bool k2engine::NullMovePruning(const depth_t depth, const eval_t beta,
     if(store_ep)
         hash_key = InitHashKey();
 
-    const auto r = depth > 6 ? 3 : 2;
+    const auto r = depth > null_move_switch_r_depth ? null_move_max_r :
+                                                      null_move_min_r;
 
     const auto x = -Search(depth - r - 1, -beta, -beta + 1, all_node);
 
@@ -1224,10 +1220,8 @@ bool k2engine::NullMovePruning(const depth_t depth, const eval_t beta,
 
     if(store_ep)
         hash_key = InitHashKey();
-
     if(x >= beta)
         null_cut_cr++;
-
     return (x >= beta);
 }
 
@@ -1572,7 +1566,7 @@ void k2engine::PonderHit()
 {
     const double time1 = timer.getElapsedTimeInMicroSec();
     time_spent = time1 - time0;
-    if(time_spent >= 5*time_to_think)
+    if(time_spent >= ponder_time_factor*time_to_think)
         spent_exact_time = true;
     else
         pondering_in_process = false;

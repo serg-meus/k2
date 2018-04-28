@@ -37,11 +37,45 @@ protected:
     const bool captures_only = true;
     const node_t nodes_to_check_stop = 7;
     const movcr_t init_max_moves = 2;  // any number greater than 1
-    const depth_t moves_for_time_exact_mode = 8;
     const static size_t move_array_size = 256;
+    const coord_t is_null_move = 0xFF;
+
+    const depth_t null_move_min_depth = 2;
+    const eval_t null_move_min_strength = 3;
+    const depth_t null_move_switch_r_depth = 6;
+    const depth_t null_move_max_r = 3;
+    const depth_t null_move_min_r = 2;
+    const depth_t lmr_min_depth = 3;
+    const movcr_t lmr_max_move = 4;
+    const depth_t lmr_big_depth = 6;
+    const movcr_t lmr_big_max_move = 7;
+    const depth_t lmp_min_depth = 2;
+    const movcr_t lmp_max_move = 4;
+    const eval_t delta_pruning_margin = 100;
+    const depth_t futility_max_depth = 2;
+    const eval_t futility_marg1 = 185;
+    const eval_t futility_marg2 = 255;
+    const depth_t one_reply_min_depth = 2;
+    const eval_t qs_min_material_to_drop = 2400;
+    const depth_t qs_beta_exceed_to_drop = 250;
+    const eval_t aspirat_marg = 47;
+    const depth_t max_depth_for_single_move = 8;
+
+    const movcr_t max_moves_to_shuffle = 4;
     const eval_t eval_to_resign = 700;
     const depth_t moves_to_resign = 3;
-    const coord_t is_null_move = 0xFF;
+
+    const depth_t moves_for_time_exact_mode = 8;
+    const depth_t moves_remains_default = 32;
+    const depth_t exact_time_base_divider = 4;
+    const movcr_t min_moves_for_exact_time = 5;
+    const depth_t time_to_think_devider = 2;
+    const depth_t increment_time_divider = 4;
+
+    const depth_t min_depth_to_show_uci_info = 6;
+    const double search_stop_time_margin = 20000; //0.02s
+    const depth_t ponder_time_factor = 5;
+
 
 
 public:
@@ -191,14 +225,15 @@ protected:
                               node_type_t node_type)
     {
         auto ans = 1;
-        if(depth < 3 || cur_move.flag || in_check)
+        if(depth < lmr_min_depth || cur_move.flag || in_check)
             ans = 0;
-        else if(move_cr < 4)
+        else if(move_cr < lmr_max_move)
             ans = 0;
         else if(get_type(b[cur_move.to_coord]) == pawn &&
                 IsPasser(get_col(cur_move.to_coord), !wtm))
             ans = 0;
-        else if(depth <= 6 && move_cr > 7 && node_type == all_node)
+        else if(depth <= lmr_big_depth && move_cr > lmr_big_max_move &&
+                node_type == all_node)
             ans = 2;
         return ans;
     }
@@ -214,19 +249,20 @@ protected:
 
         auto cur_eval = ReturnEval(wtm);
         auto capture = values[get_type(b[cur_move.to_coord])];
-        auto margin = 100;
+        auto margin = delta_pruning_margin;
         return cur_eval + capture + margin < alpha;
     }
 
     bool FutilityPruning(depth_t depth, eval_t beta, bool in_check)
     {
-        if(depth > 2 || in_check || beta >= mate_score)
+        if(depth > futility_max_depth || in_check || beta >= mate_score)
             return false;
         if(k2chess::state[ply].captured_piece != empty_square ||
                 k2chess::state[ply - 1].move.to_coord == is_null_move)
             return false;
         futility_probes++;
-        auto margin = depth < 2 ? 185 : 255;
+        auto margin = depth < futility_max_depth ? futility_marg1 :
+                                               futility_marg2;
         auto score = ReturnEval(wtm);
         if(score <= margin + beta)
             return false;
