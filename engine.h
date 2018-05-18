@@ -175,14 +175,16 @@ protected:
                    const eval_t beta, hash_entry_s **entry);
     move_c NextMove(move_c * const move_array, const movcr_t cur_move_cr,
                     movcr_t * const max_moves, move_c hash_best_move,
-                    const bool captures_only, const move_c prev_move);
+                    bool hash_one_reply, const bool captures_only,
+                    const move_c prev_move);
     void StoreInHash(const depth_t depth, eval_t score,
-                     const move_c best_move, const hbound_t bound);
+                     const move_c best_move, const hbound_t bound,
+                     const bool one_reply);
     void ShowCurrentUciInfo();
     void ShowPVfailHighOrLow(move_c m, eval_t x, const u8 exclimation);
     bool GetFirstMove(move_c * const move_array,
                       movcr_t * const max_moves,
-                      move_c hash_best_move,
+                      move_c hash_best_move, bool hash_one_reply,
                       const bool only_captures,
                       move_c * const ans);
     bool GetSecondMove(move_c * const move_array, movcr_t * const max_moves,
