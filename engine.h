@@ -41,7 +41,7 @@ protected:
     const coord_t is_null_move = 0xFF;
 
     const depth_t null_move_min_depth = 2;
-    const eval_t null_move_min_strength = 3;
+    const eval_t null_move_min_strength = 0;
     const depth_t null_move_switch_r_depth = 6;
     const depth_t null_move_max_r = 3;
     const depth_t null_move_min_r = 2;
