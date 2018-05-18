@@ -962,14 +962,15 @@ void k2engine::FindAndPrintForAmbiguousMoves(const move_c move)
 
     for(it = coords[wtm].begin(); it != coords[wtm].end(); ++it)
     {
-        if(it.get_array_index() == move.piece_index)
+        const auto index = it.get_array_index();
+        if(index == move.piece_index)
             continue;
         auto from_coord = *it;
 
         auto piece_type = get_type(b[from_coord]);
         if(piece_type != init_piece_type)
             continue;
-        if(!(attacks[wtm][from_coord] & (1 << piece_type)))
+        if(!(attacks[wtm][move.to_coord] & (1 << index)))
             continue;
 
         auto tmp = move;
