@@ -33,7 +33,7 @@ protected:
     kinght_val_end = 369,
     bishop_val_end = 405,
     rook_val_end = 640,
-    queen_val_end = 1200,
+    queen_val_end = 1300,
 
     pawn_dbl_iso_opn = -15,
     pawn_dbl_iso_end = -55,
