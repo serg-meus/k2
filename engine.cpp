@@ -359,13 +359,13 @@ void k2engine::MainSearch()
         x = RootSearch(root_ply, x - aspirat_marg, x + aspirat_marg);
         if(!stop && x <= prev_x - aspirat_marg)
         {
-            x = RootSearch(root_ply, -infinite_score, prev_x - aspirat_marg);
+            x = RootSearch(root_ply, -infinite_score, prev_x + aspirat_marg);
             if (!stop && x >= prev_x - aspirat_marg)
                 x = RootSearch(root_ply, -infinite_score, infinite_score);
         }
         else if(!stop && x >= prev_x + aspirat_marg)
         {
-            x = RootSearch(root_ply, prev_x + aspirat_marg, infinite_score);
+            x = RootSearch(root_ply, prev_x - aspirat_marg, infinite_score);
             if(!stop && x <= prev_x + aspirat_marg)
                 x = RootSearch(root_ply, -infinite_score, infinite_score);
         }
