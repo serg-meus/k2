@@ -374,11 +374,6 @@ protected:
         return piece & white;
     }
 
-    bool get_color_and_not_empty(const piece_t piece) const
-    {
-        return (piece != empty_square) && (piece & white);
-    }
-
     piece_t set_color(const piece_t piece, const bool stm) const
     {
         return (piece & ~white) | stm;
