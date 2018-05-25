@@ -51,4 +51,5 @@ CONFIG(release, debug|release) {
     DEFINES += NDEBUG
     LIBS += -pthread
     win32:QMAKE_LFLAGS += -static
+    win32:DEFINES += WIN32
 }
