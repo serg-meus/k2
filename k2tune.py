@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-  K2tune v0.1,
+  K2tune v0.2,
 
 the script for automated execution series of matches between base version of
 chess engine and modified versions. Base version is represented by chess
@@ -14,7 +14,7 @@ must be configured to run base and patched engine versions.
   For Windows 'patch.exe' tool is required.
   Book file with starting positions in EPD or PGN format is recommended.
   After each match the result puts to standard output (patch XXXXX is
-good / bad / within bounds).
+  good / bad / within bounds).
 
   Typical usage:
 1. Open this script in text editor and configure paths, parameters, etc.
@@ -40,10 +40,11 @@ time_control = '40/4+0.01'
 concurrency = '4'  # how many cpu cores must be used
 elo_lower_bound = '0'
 elo_upper_bound = '8'
-book = 'hyatt.pgn order=random'
-rounds = '15000'  # each round consists of two games
+book = 'hyatt.pgn format=epd order=random'
+rounds = '40000'  # each round consists of two games
 base_engine_name = 'k2'  # the name in 'engines.json'
 patched_engine_name = 'k2_exp'
+stop_if_match_aborted = False  # do not proceed next patch on error
 
 if system() == 'Windows':
     src_path = 'd:/chess/engine_name/source'
@@ -93,7 +94,7 @@ cutechess_args = cutechess_path + ' && ' + del_cmd + \
     '-openings file=' + book + ' ' \
     '-pgnout ' + pgn_out_filename + ' ' \
     '-resign movecount=5 score=620 ' \
-    '-draw movenumber=90 movecount=20 score=60 ' \
+    '-draw movenumber=90 movecount=10 score=250 ' \
     '-ratinginterval 4 ' \
     '-concurrency ' + concurrency + ' ' \
     '-each tc=' + time_control + ' -games 2 -rounds ' + rounds + ' -repeat ' \
@@ -109,6 +110,11 @@ def main(argv=None):
 
     def ParseCurrentMatchResult():
 
+        losses_on_time = 0
+        for st in strings:
+            if 'on time' in st:
+                losses_on_time += 1
+
         games = 'unknown'
         for st in reversed(strings):
             if st.startswith('Score of'):
@@ -117,15 +123,16 @@ def main(argv=None):
 
         elo = 'unknown'
         for st in reversed(strings):
-            if st.startswith('ELO diff'):
-                elo = st.split()[-1]
+            if st.lower().startswith('elo diff'):
+                elo = st.split(sep=':')[-1].strip()
                 break
 
         time_elapsed = time() - t0
         for st in reversed(strings):
             if st.startswith('SPRT'):
                 add_info = ' (' + games + ' games, ' + \
-                    elo + ' elo, ' + str(int(time_elapsed)) + 's)'
+                    elo + ' elo, ' + str(int(time_elapsed)) + 's, ' + \
+                    str(losses_on_time) + ' losses on time)'
                 if 'H0' in st:
                     print(cur_patch + ' is bad' + add_info)
                 elif 'H1' in st:
@@ -134,7 +141,7 @@ def main(argv=None):
                     print(cur_patch + ' is within bounds' + add_info)
                 else:
                     print(cur_patch + ': match aborted' + add_info)
-                    return 1
+                    return 1 if stop_if_match_aborted else 0
                 break
         return 0
 
