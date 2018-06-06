@@ -858,7 +858,8 @@ void k2engine::InitTime()
 
         if(moves_remains > min_moves_for_exact_time)
             spent_exact_time = false;
-        ClearHash();
+        if(moves_remains > 1)
+            ClearHash();
     }
     if(!time_command_sent)
         time_remains += time_inc;
