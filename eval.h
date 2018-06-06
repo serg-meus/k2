@@ -83,7 +83,6 @@ protected:
     mob_knight = 4,
     mobility_divider = 8,
     imbalance_king_in_corner = 200,
-    imbalance_kbpk = 750,
     imbalance_multicolor1 = 2,
     imbalance_multicolor2 = 4,
     imbalance_multicolor3 = 5,

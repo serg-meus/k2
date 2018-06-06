@@ -17,7 +17,6 @@ k2chess::eval_t k2eval::Eval()
         KingSafety(color);
         MobilityEval(color);
     }
-
     MaterialImbalances();
 
     auto ans = -ReturnEval(wtm);
@@ -375,9 +374,10 @@ void k2eval::MaterialImbalances()
             val_end -= bishop_val_end + pawn_val_end/4;
     }
     // KNNk, KBNk, KBBk, etc
-    else if(X == 6 && (material[0]/centipawn == 0 ||
-                       material[1]/centipawn == 0))
+    else if(X == 6 && (material[0] == 0 || material[1] == 0))
     {
+        if(quantity[white][pawn] != 0 || quantity[black][pawn] != 0)
+            return;
         if(quantity[white][knight] == 2
                 || quantity[black][knight] == 2)
         {
@@ -418,50 +418,47 @@ void k2eval::MaterialImbalances()
     }
     else if(X == 3)
     {
-        // KBPk or KNPk with pawn at a(h) file
-        if(material[white] == 0)
+        if(quantity[black][pawn] + quantity[white][pawn] != 1)
+            return;
+        // KBPk or KNPk with pawn at first(last) file
+        const bool stm = material[white] == 0;
+        const auto pawn_col_min = pawn_max[0][!stm];
+        const auto pawn_col_max = pawn_max[max_col][!stm];
+        if(pawn_col_max == 0 && pawn_col_min == 0)
+            return;
+        const auto sq = get_coord(pawn_col_max == 0 ? 0 : max_col,
+                                  stm ? 0 : max_row);
+        if(king_dist(*king_coord[stm], sq) <= 1)
         {
-            auto k = *king_coord[white];
-            if((pawn_max[0][black] != 0 && king_dist(k, 0) <= 1)
-                    || (pawn_max[max_col][black] != 0
-                        && king_dist(k, max_col) <= 1))
-                val_end += imbalance_kbpk;
-        }
-        else if(material[black] == 0)
-        {
-            auto k = *king_coord[black];
-            const auto row_max = get_coord(0, max_row);
-            const auto max_all = get_coord(max_col, max_row);
-            if((pawn_max[0][white] != 0 && king_dist(k, row_max) <= 1)
-                    || (pawn_max[max_col][white] != 0
-                        && king_dist(k, max_all) <= 1))
-                val_end -= imbalance_kbpk;
+            val_opn = 0;
+            val_end = 0;
+            return;
         }
     }
-    else if(X == 0)
+    else if(X == 0 && (material[white] + material[black])/centipawn == 1)
     {
         // KPk
-        if(material[white]/centipawn + material[black]/centipawn == 1)
-        {
-            const bool stm = material[white]/centipawn == 1;
-            auto it = coords[stm].rbegin();
-            ++it;
-            const auto colp = get_col(*it);
-            const bool unstop = IsUnstoppablePawn(colp, stm, wtm);
-            const auto dist_k = king_dist(*king_coord[stm], *it);
-            const auto dist_opp_k = king_dist(*king_coord[!stm], *it);
+        const bool stm = material[white]/centipawn == 1;
+        const auto it = ++(coords[stm].rbegin());
+        const auto colp = get_col(*it);
+        const bool unstop = IsUnstoppablePawn(colp, stm, wtm);
+        const auto dist_k = king_dist(*king_coord[stm], *it);
+        const auto dist_opp_k = king_dist(*king_coord[!stm], *it);
 
-            if(!unstop && dist_k > dist_opp_k + (wtm == stm))
+        if(!unstop && dist_k > dist_opp_k + (wtm == stm))
+        {
+            val_opn = 0;
+            val_end = 0;
+            return;
+        }
+        else if((colp == 0 || colp == max_col))
+        {
+            const auto sq = get_coord(colp, stm ? max_row : 0);
+            if(king_dist(*king_coord[!stm], sq) <= 1)
             {
                 val_opn = 0;
                 val_end = 0;
-            }
-            else if((colp == 0 || colp == 7)
-                    && king_dist(*king_coord[!stm],
-                                 (colp + (stm ? 0x70 : 0))) <= 1)
-            {
-                val_opn = 0;
-                val_end = 0;
+                return;
             }
         }
     }
