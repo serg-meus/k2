@@ -167,8 +167,9 @@ k2chess::eval_t k2engine::Search(depth_t depth, eval_t alpha, eval_t beta,
         return in_check ? -king_value + ply : 0;
     }
     else if(alpha == initial_alpha)
-        StoreInHash(depth, initial_alpha, move_array[0], upper_bound,
-                max_moves == 1);
+        StoreInHash(depth, initial_alpha,
+                    max_moves == 1 ? cur_move : move_array[0],
+                    upper_bound, max_moves == 1);
 
     return alpha;
 }
