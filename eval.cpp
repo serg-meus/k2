@@ -21,7 +21,7 @@ k2chess::eval_t k2eval::Eval()
     MaterialImbalances();
 
     auto ans = -ReturnEval(wtm);
-    ans -= 8;  // bonus for side to move
+    ans -= side_to_move_bonus;
 
     val_opn = state[ply].val_opn;
     val_end = state[ply].val_end;
@@ -45,8 +45,8 @@ void k2eval::FastEval(const move_c m)
     auto to_type = get_type(b[m.to_coord]);
     if(!wtm)
     {
-        y = 7 - y;
-        y0 = 7 - y0;
+        y = max_row - y;
+        y0 = max_row - y0;
     }
 
     coord_t type;
@@ -74,17 +74,17 @@ void k2eval::FastEval(const move_c m)
         {
             type = pawn;
             ansO += material_values_opn[type] +
-                    pst[type - 1][opening][7 - y0][x];
+                    pst[type - 1][opening][max_row - y0][x];
             ansE += material_values_end[type] +
-                    pst[type - 1][endgame][7 - y0][x];
+                    pst[type - 1][endgame][max_row - y0][x];
         }
         else
         {
             type = get_type(captured_piece);
             ansO += material_values_opn[type] +
-                    pst[type - 1][opening][7 - y][x];
+                    pst[type - 1][opening][max_row - y][x];
             ansE += material_values_end[type] +
-                    pst[type - 1][endgame][7 - y][x];
+                    pst[type - 1][endgame][max_row - y][x];
         }
     }
     else if(m.flag & is_right_castle)
@@ -132,7 +132,7 @@ void k2eval::InitEvalOfMaterialAndPst()
                 continue;
             auto row_ = row;
             if(piece & white)
-                row_ = 7 - row;
+                row_ = max_row - row;
 
             auto type = get_type(piece);
             auto delta_o = material_values_opn[type] +
@@ -181,7 +181,7 @@ void k2eval::EvalPawns(const bool stm)
 {
     eval_t ansO = 0, ansE = 0;
     bool passer, prev_passer = false;
-    bool opp_only_pawns = material[!stm]/100 == pieces[!stm] - 1;
+    bool opp_only_pawns = material[!stm]/centipawn == pieces[!stm] - 1;
 
     for(auto col = 0; col <= max_col; col++)
     {
@@ -319,7 +319,7 @@ bool k2eval::IsUnstoppablePawn(const coord_t col, const bool side_of_pawn,
 //-----------------------------
 void k2eval::MobilityEval(bool stm)
 {
-    eval_t f_type[] = {0,  0,  6,  13,  8,  4};
+    eval_t f_type[] = {0, 0, mob_queen, mob_rook, mob_bishop, mob_knight};
     eval_t f_num[] = {-25, -15, -10, -5, 0, 5, 10, 15, 18, 20,
                       21, 21, 21, 22, 22};
 
@@ -341,7 +341,7 @@ void k2eval::MobilityEval(bool stm)
 
         ans += f_type[type]*f_num[cr];
     }
-    ans /= 8;
+    ans /= mobility_divider;
 
     val_opn += stm ? ans : -ans;
     val_end += stm ? ans : -ans;
@@ -350,13 +350,15 @@ void k2eval::MobilityEval(bool stm)
 
 
 
+
 //-----------------------------
 void k2eval::MaterialImbalances()
 {
-    auto X = material[black]/100 + 1 + material[white]/100 + 1
-             - pieces[black] - pieces[white];
+    const auto X = material[black]/centipawn + 1 + material[white]/centipawn
+            + 1 - pieces[black] - pieces[white];
 
-    if(X == 3 && (material[black]/100 == 4 || material[white]/100 == 4))
+    if(X == 3 && (material[black]/centipawn == 4 ||
+                  material[white]/centipawn == 4))
     {
         // KNk, KBk, Kkn, Kkb
         if(pieces[black] + pieces[white] == 3)
@@ -366,14 +368,15 @@ void k2eval::MaterialImbalances()
             return;
         }
         // KPkn, KPkb
-        if(material[white]/100 == 1 && material[black]/100 == 4)
+        if(material[white]/centipawn == 1 && material[black]/centipawn == 4)
             val_end += bishop_val_end + pawn_val_end/4;
         // KNkp, KBkp
-        if(material[black]/100 == 1 && material[white]/100 == 4)
+        if(material[black]/centipawn == 1 && material[white]/centipawn == 4)
             val_end -= bishop_val_end + pawn_val_end/4;
     }
     // KNNk, KBNk, KBBk, etc
-    else if(X == 6 && (material[0]/100 == 0 || material[1]/100 == 0))
+    else if(X == 6 && (material[0]/centipawn == 0 ||
+                       material[1]/centipawn == 0))
     {
         if(quantity[white][knight] == 2
                 || quantity[black][knight] == 2)
@@ -383,12 +386,12 @@ void k2eval::MaterialImbalances()
             return;
         }
         // many code for mating with only bishop and knight
-        else if((quantity[white][knight] == 1
-                 && quantity[white][bishop] == 1)
-                || (quantity[black][knight] == 1
-                    && quantity[black][bishop] == 1))
+        else if((quantity[white][knight] == 1 &&
+                 quantity[white][bishop] == 1) ||
+                (quantity[black][knight] == 1 &&
+                 quantity[black][bishop] == 1))
         {
-            auto stm = quantity[white][knight] == 1
+            const auto stm = quantity[white][knight] == 1
                        ? white : black;
             auto rit = coords[stm].begin();
             for(; rit != coords[stm].end(); ++rit)
@@ -397,16 +400,16 @@ void k2eval::MaterialImbalances()
             assert(get_type(b[*rit]) == bishop);
 
             eval_t ans = 0;
-            auto ok = *king_coord[!stm];
-            if(ok == 0x06 || ok == 0x07 || ok == 0x17
-                    || ok == 0x70 || ok == 0x71 || ok == 0x60)
-                ans = 200;
-            if(ok == 0x00 || ok == 0x01 || ok == 0x10
-                    || ok == 0x77 || ok == 0x76 || ok == 0x67)
-                ans = -200;
-
-            bool bishop_on_light_square = ((get_col(*rit)) + get_row(*rit)) & 1;
-            if(!bishop_on_light_square)
+            const auto o_col = get_col(*king_coord[!stm]);
+            const auto o_row = get_row(*king_coord[!stm]);
+            if((o_col == max_col - 1 && (o_row <= 1 || o_row >= max_row - 1)) ||
+                    (o_col == max_col && (o_row == 0 || o_row == max_row)))
+                ans = imbalance_king_in_corner;
+            if((o_col == 0 && (o_row <= 1 || o_row >= max_row - 1)) ||
+                    (o_col == 1 && (o_row == 0 || o_row == max_row)))
+                ans = -imbalance_king_in_corner;
+            bool bishop_on_light_sq = ((get_col(*rit)) + get_row(*rit)) & 1;
+            if(!bishop_on_light_sq)
                 ans = -ans;
             if(!stm)
                 ans = -ans;
@@ -422,7 +425,7 @@ void k2eval::MaterialImbalances()
             if((pawn_max[0][black] != 0 && king_dist(k, 0) <= 1)
                     || (pawn_max[max_col][black] != 0
                         && king_dist(k, max_col) <= 1))
-                val_end += 750;
+                val_end += imbalance_kbpk;
         }
         else if(material[black] == 0)
         {
@@ -432,21 +435,21 @@ void k2eval::MaterialImbalances()
             if((pawn_max[0][white] != 0 && king_dist(k, row_max) <= 1)
                     || (pawn_max[max_col][white] != 0
                         && king_dist(k, max_all) <= 1))
-                val_end -= 750;
+                val_end -= imbalance_kbpk;
         }
     }
     else if(X == 0)
     {
         // KPk
-        if(material[white]/100 + material[black]/100 == 1)
+        if(material[white]/centipawn + material[black]/centipawn == 1)
         {
-            bool stm = material[white]/100 == 1;
+            const bool stm = material[white]/centipawn == 1;
             auto it = coords[stm].rbegin();
             ++it;
-            auto colp = get_col(*it);
-            bool unstop = IsUnstoppablePawn(colp, stm, wtm);
-            auto dist_k = king_dist(*king_coord[stm], *it);
-            auto dist_opp_k = king_dist(*king_coord[!stm], *it);
+            const auto colp = get_col(*it);
+            const bool unstop = IsUnstoppablePawn(colp, stm, wtm);
+            const auto dist_k = king_dist(*king_coord[stm], *it);
+            const auto dist_opp_k = king_dist(*king_coord[!stm], *it);
 
             if(!unstop && dist_k > dist_opp_k + (wtm == stm))
             {
@@ -479,7 +482,7 @@ void k2eval::MaterialImbalances()
     if(quantity[white][pawn] == 0
             && quantity[black][pawn] == 0
             && material[white] != 0 && material[black] != 0)
-        val_end /= 3;
+        val_end /= imbalance_no_pawns;
 
     // multicolored bishops
     if(quantity[white][bishop] == 1
@@ -497,16 +500,16 @@ void k2eval::MaterialImbalances()
             ++b_it;
         assert(b_it != coords[white].rend());
 
-        auto sum_coord_w = get_col(*w_it) + get_row(*w_it);
-        auto sum_coord_b = get_col(*b_it) + get_row(*b_it);
+        const auto sum_coord_w = get_col(*w_it) + get_row(*w_it);
+        const auto sum_coord_b = get_col(*b_it) + get_row(*b_it);
 
         if((sum_coord_w & 1) != (sum_coord_b & 1))
         {
-            if(material[white]/100 - pieces[white] == 4 - 2
-                    && material[black]/100 - pieces[black] == 4 - 2)
-                val_end /= 2;
+            if(material[white]/centipawn - pieces[white] == 4 - 2
+                    && material[black]/centipawn - pieces[black] == 4 - 2)
+                val_end /= imbalance_multicolor1;
             else
-                val_end = val_end*4/5;
+                val_end = val_end*imbalance_multicolor2/imbalance_multicolor3;
 
         }
     }
@@ -600,7 +603,7 @@ k2chess::eval_t k2eval::EvalDebug()
     store_sum = ReturnEval(white);
 
     auto ans = -ReturnEval(wtm);
-    ans -= 8;  // bonus for side to move
+    ans -= side_to_move_bonus;
     std::cout << "Bonus for side to move\t\t\t";
     std::cout << (wtm ? 8 : -8) << std::endl << std::endl;
 
@@ -785,7 +788,8 @@ void k2eval::EvalRooks(const bool stm)
         return;
 
     auto rooks_on_last_cr = 0;
-    if((stm && get_row(*rit) >= max_row - 1) || (!stm && get_row(*rit) <= 1))
+    if((stm && get_row(*rit) >= max_row - 1) ||
+            (!stm && get_row(*rit) <= 1))
         rooks_on_last_cr++;
     if(quantity[stm][pawn] >= rook_max_pawns_for_open_file &&
             pawn_max[get_col(*rit)][stm] == 0)
@@ -850,14 +854,15 @@ k2chess::eval_t k2eval::KingShelter(const coord_t k_col, coord_t k_row,
     {
         if(k_col > 0 && k_col < max_col &&
                 (stm ? k_row < max_row : k_row > 0) &&
-                b[get_coord(k_col, k_row + (stm ? 1 : -1))] != empty_square &&
+                b[get_coord(k_col, k_row+(stm ? 1 : -1))] != empty_square &&
                 Sheltered(k_col - 1, k_row, stm) &&
                 Sheltered(k_col + 1, k_row, stm))
             return 0;
         else
             return king_no_shelter;
     }
-    if(!Sheltered(k_col - 1, k_row, stm) && !Sheltered(k_col + 1, k_row, stm))
+    if(!Sheltered(k_col - 1, k_row, stm) &&
+            !Sheltered(k_col + 1, k_row, stm))
         return king_no_shelter;
     return 0;
 }
@@ -946,11 +951,11 @@ void k2eval::KingSafety(const bool stm)
         k_col--;
 
     const auto ks = KingShelter(k_col, k_row, stm);
-    const auto f_ks = ks == 0 ? 1 : king_saf_2;
+    const auto f_ks = ks == 0 ? 10 : king_saf_2;
     const auto f_q = quantity[!stm][queen] == 0 ? king_saf_3 : 10;
     auto f_cntr = ((k_col == 3 || k_col == 4) &&
             quantity[!stm][queen] != 0) ? king_saf_central_files : 0;
-    ans = f_cntr + ks + king_saf_4*f_ks*ans*ans/f_q;
+    ans = f_cntr + ks + king_saf_4*f_ks*ans*ans/10/f_q;
     val_opn += stm ? -ans : ans;
 }
 
@@ -1201,7 +1206,8 @@ void k2eval::RunUnitTests()
            pawn_pass_4/pawn_pass_opn_divider +
            pawn_pass_5/pawn_pass_opn_divider + pawn_iso_opn);
     assert(val_end == pawn_pass_3 + pawn_pass_4 + pawn_pass_5 +
-           2*pawn_king_tropism3 - pawn_king_tropism1 - 3*pawn_king_tropism2 +
+           2*pawn_king_tropism3 - pawn_king_tropism1 -
+           3*pawn_king_tropism2 +
            5*pawn_pass_connected + pawn_iso_end);
     val_opn = 0;
     val_end = 0;

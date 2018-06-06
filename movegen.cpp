@@ -221,8 +221,8 @@ void k2movegen::AppriceMoves(move_c * const move_array, const movcr_t moveCr,
                 const auto x0 = get_col(*it);
                 if(wtm)
                 {
-                    y = 7 - y;
-                    y0 = 7 - y0;
+                    y = max_row - y;
+                    y0 = max_row - y0;
                 }
                 const auto pstVal = pst[get_type(fr_sq) - 1][0][y][x]
                               - pst[get_type(fr_sq) - 1][0][y0][x0];

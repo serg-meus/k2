@@ -19,7 +19,7 @@ k2engine::k2engine() :
     state = &eng_state[prev_states];
 
     max_search_depth = k2chess::max_ply;
-    time_remains = 300000000;
+    time_remains = 300000000;  // 5 min
     time_base = 300000000;
     time_inc = 0;
     moves_per_session = 0;
@@ -443,8 +443,8 @@ k2chess::eval_t k2engine::RootSearch(const depth_t depth, eval_t alpha,
     eval_t x;
     move_c cur_move;
     bool beta_cutoff = false;
-    const node_t unconfirmed_fail_high = -1,
-                 max_root_move_priority = std::numeric_limits<node_t>::max();
+    const node_t unconfirmed_fail_high = -1;
+    const node_t max_root_move_priority = std::numeric_limits<node_t>::max();
 
     for(; root_move_cr < max_root_moves; root_move_cr++)
     {
@@ -1098,10 +1098,10 @@ bool k2engine::DrawDetect() const
     if(material[0] + material[1] == 0)
         return true;
     if(pieces[0] + pieces[1] == 3
-            && (material[0]/100 == 4 || material[1]/100 == 4))
+            && (material[0]/centipawn == 4 || material[1]/centipawn == 4))
         return true;
     if(pieces[0] == 2 && pieces[1] == 2
-            && material[0]/100 == 4 && material[1]/100 == 4)
+            && material[0]/centipawn == 4 && material[1]/centipawn == 4)
         return true;
 
     if(reversible_moves == FIFTY_MOVES)

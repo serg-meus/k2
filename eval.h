@@ -21,8 +21,10 @@ protected:
     typedef u8 dist_t;
 
     const eval_t
+    centipawn = 100,
     king_value = 32000,
     infinite_score = 32760,
+    material_total = 80,
 
     pawn_val_opn = 100,
     kinght_val_opn = 395,
@@ -66,7 +68,7 @@ protected:
     pawn_unstoppable_2 = 350,
     king_no_shelter = 47,
     king_saf_1 = 2,
-    king_saf_2 = 2,
+    king_saf_2 = 20,
     king_saf_3 = 20,
     king_saf_4 = 22,
     king_saf_central_files = 68,
@@ -74,7 +76,19 @@ protected:
     rook_semi_open_file = 22,
     rook_open_file = 54,
     rook_max_pawns_for_open_file = 4,
-    bishop_pair = 30;
+    bishop_pair = 30,
+    mob_queen = 6,
+    mob_rook = 13,
+    mob_bishop = 8,
+    mob_knight = 4,
+    mobility_divider = 8,
+    imbalance_king_in_corner = 200,
+    imbalance_kbpk = 750,
+    imbalance_multicolor1 = 2,
+    imbalance_multicolor2 = 4,
+    imbalance_multicolor3 = 5,
+    imbalance_no_pawns = 3,
+    side_to_move_bonus = 8;
 
     eval_t val_opn, val_end;
     eval_t initial_score;
@@ -125,8 +139,9 @@ protected:
     eval_t ReturnEval(const bool stm) const
     {
         i32 X, Y;
-        X = material[0]/100 + 1 + material[1]/100 + 1 - pieces[0] - pieces[1];
-        Y = ((val_opn - val_end)*X + 80*val_end)/80;
+        X = material[0]/centipawn + 1 + material[1]/centipawn +
+                1 - pieces[0] - pieces[1];
+        Y = ((val_opn - val_end)*X + material_total*val_end)/material_total;
         return stm ? (eval_t)(Y) : (eval_t)(-Y);
     }
 
