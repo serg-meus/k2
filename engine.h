@@ -262,6 +262,12 @@ protected:
         if(k2chess::state[ply].captured_piece != empty_square ||
                 k2chess::state[ply - 1].move.to_coord == is_null_move)
             return false;
+        if((material[black] == 0 || material[white] == 0))
+        {
+            if(material[black] + material[white] != 1 ||
+                    quantity[black][pawn] + quantity[white][pawn] == 0)
+            return false;
+        }
         futility_probes++;
         auto margin = depth < futility_max_depth ? futility_marg1 :
                                                futility_marg2;
