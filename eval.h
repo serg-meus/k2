@@ -66,7 +66,7 @@ protected:
     pawn_pass_connected = 28,
     pawn_unstoppable_1 = 120,
     pawn_unstoppable_2 = 350,
-    king_no_shelter = 47,
+    king_no_shelter = 22,
     king_saf_1 = 2,
     king_saf_2 = 20,
     king_saf_3 = 20,
