@@ -417,7 +417,7 @@ void k2engine::MainSearch()
     total_time_spent += time_spent;
     timer.stop();
 
-    if(!infinite_analyze)
+    if(!infinite_analyze && max_root_moves > 0)
         PrintFinalSearchResult();
     if(uci)
         infinite_analyze = false;
@@ -530,13 +530,14 @@ k2chess::eval_t k2engine::RootSearch(const depth_t depth, eval_t alpha,
         if(stop)
             break;
     }
-    std::stable_sort(root_moves.rbegin(), root_moves.rend() - 1);
-
     if(max_root_moves == 0)
     {
         pv[ply].length = 0;
         return in_check ? -king_value + ply : 0;
     }
+    else
+        std::stable_sort(root_moves.rbegin(), root_moves.rend() - 1);
+
     if(beta_cutoff)
     {
         UpdateStatistics(cur_move, depth, root_move_cr + 1, nullptr);
@@ -686,10 +687,26 @@ void k2engine::PrintFinalSearchResult()
     else
     {
         std::cout << "bestmove " << move_str;
-        if(!infinite_analyze && pv[ply].length > 1)
+        if(!infinite_analyze)
         {
-            char pndr[6];
-            MoveToStr(pv[0].moves[1], !wtm, pndr);
+            char pndr[6] = "a1a1";
+            if(pv[0].length > 1)
+                MoveToStr(pv[0].moves[1], !wtm, pndr);
+            else
+            {
+                MakeMove(pv[0].moves[0]);
+                hash_entry_s *entry = hash_table.count(hash_key);
+                if(entry != nullptr)
+                    MoveToStr(entry->best_move, wtm, pndr);
+                else
+                {
+                    move_c move_array[move_array_size];
+                    auto max_moves = GenMoves(move_array, true);
+                    if(max_moves)
+                        MoveToStr(move_array[0], wtm, pndr);
+                }
+                TakebackMove(pv[0].moves[0]);
+            }
             std::cout << " ponder " << pndr;
         }
         std::cout << std::endl;
@@ -1124,7 +1141,7 @@ void k2engine::CheckForInterrupt()
         if(nodes >= max_nodes_to_search - nodes_to_check_stop)
             stop = true;
     }
-    if(infinite_analyze || pondering_in_process)
+    if(infinite_analyze || (pondering_in_process && !spent_exact_time))
         return;
 
     const node_t nodes_to_check_stop2 = (16*(nodes_to_check_stop + 1) - 1);
@@ -1583,9 +1600,15 @@ void k2engine::PonderHit()
     const double time1 = timer.getElapsedTimeInMicroSec();
     time_spent = time1 - time0;
     if(time_spent >= ponder_time_factor*time_to_think)
+    {
         spent_exact_time = true;
+        std::cout << "( ponderhit: need to exit immidiately)\n";
+    }
     else
+    {
         pondering_in_process = false;
+        std::cout << "( ponderhit: " << (int)time_to_think << ")\n";
+    }
 }
 
 
