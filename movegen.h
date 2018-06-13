@@ -57,7 +57,8 @@ protected:
     history_t history[sides][piece_types][board_height*board_width];
     history_t min_history, max_history;
 
-    movcr_t GenMoves(move_c * const move_array, const bool only_captures);
+    movcr_t GenMoves(move_c * const move_array,
+                     const bool need_capture_or_promotion);
     eval_t StaticExchangeEval(const move_c m);
     void AppriceMoves(move_c * const move_array, const movcr_t moveCr,
                       const move_c best_move);
@@ -68,7 +69,7 @@ private:
 
     void GenPawnSilent(move_c * const move_array, movcr_t * const movCr,
                  const iterator it);
-    void GenPawnCapturesPromotions(move_c * const move_array,
+    void GenPawnCapturesAndPromotions(move_c * const move_array,
                                    movcr_t * const movCr,
                  const iterator it);
     void GenCastles(move_c * const move_array, movcr_t * const movCr);
@@ -86,6 +87,7 @@ private:
         move.flag = flag;
         move.priority = 0;
 
+        assert(IsPseudoLegal(move));
         if(IsLegal(move))
             move_array[(*movCr)++] = move;
     }
@@ -95,5 +97,5 @@ private:
 
     size_t test_gen_pawn(const char* coord, bool captures_and_promotions);
     size_t test_gen_castles();
-    size_t test_gen_moves();
+    size_t test_gen_moves(bool need_captures_or_promotions);
 };

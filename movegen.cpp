@@ -6,11 +6,11 @@
 
 //--------------------------------
 k2movegen::movcr_t k2movegen::GenMoves(move_c * const move_array,
-                                       const bool capt_or_promo)
+                                       const bool need_capture_or_promotion)
 {
     movcr_t move_cr = 0;
 
-    if(!capt_or_promo)
+    if(!need_capture_or_promotion)
         GenCastles(move_array, &move_cr);
 
     auto it = coords[wtm].begin();
@@ -21,9 +21,8 @@ k2movegen::movcr_t k2movegen::GenMoves(move_c * const move_array,
         const auto type = get_type(b[from_coord]);
         if(type == pawn)
         {
-
-            GenPawnCapturesPromotions(move_array, &move_cr, it);
-            if(!capt_or_promo)
+            GenPawnCapturesAndPromotions(move_array, &move_cr, it);
+            if(!need_capture_or_promotion)
                 GenPawnSilent(move_array, &move_cr, it);
             continue;
         }
@@ -38,24 +37,24 @@ k2movegen::movcr_t k2movegen::GenMoves(move_c * const move_array,
             const auto ray_len = mobility[wtm][index][ray];
             auto col = col0 + ray_len*delta_col[ray];
             auto row = row0 + ray_len*delta_row[ray];
-            const auto min_i = capt_or_promo ? ray_len : 1;
+            const auto min_i = need_capture_or_promotion ? ray_len : 1;
             for(int i = ray_len; i >= min_i; --i)
             {
                 const auto to_coord = get_coord(col, row);
                 const bool empty = b[to_coord] == empty_square;
                 const bool capture = !empty && get_color(b[to_coord]) != wtm;
-                if(capt_or_promo && !capture)
+                if(need_capture_or_promotion && !capture)
                     break;
                 if(col_within(col) && row_within(row) && (empty || capture))
                     PushMove(move_array, &move_cr, index,
                              to_coord,  empty ? 0 : is_capture);
                 if(!is_slider[type])
-                    break;
+                        break;
                 col -= delta_col[ray];
                 row -= delta_row[ray];
+                }
             }
         }
-    }
     return move_cr;
 }
 
@@ -92,7 +91,7 @@ void k2movegen::GenPawnSilent(move_c * const move_array,
 
 
 //--------------------------------
-void k2movegen::GenPawnCapturesPromotions(move_c * const move_array,
+void k2movegen::GenPawnCapturesAndPromotions(move_c * const move_array,
                                           movcr_t * const moveCr,
                                           const iterator it)
 {
@@ -399,7 +398,7 @@ size_t k2movegen::test_gen_pawn(const char* coord,
     movcr_t move_cr = 0;
 
     size_t index = find_piece(wtm, get_coord(coord));
-    GenPawnCapturesPromotions(move_array, &move_cr, coords[wtm].at(index));
+    GenPawnCapturesAndPromotions(move_array, &move_cr, coords[wtm].at(index));
     if(!captures_and_promotions)
         GenPawnSilent(move_array, &move_cr, coords[wtm].at(index));
     for(auto i = 0; i < move_cr; ++i)
@@ -430,10 +429,10 @@ size_t k2movegen::test_gen_castles()
 
 
 //--------------------------------
-size_t k2movegen::test_gen_moves()
+size_t k2movegen::test_gen_moves(bool need_captures_or_promotions)
 {
     move_c move_array[move_array_size];
-    movcr_t move_cr = GenMoves(move_array, false);
+    movcr_t move_cr = GenMoves(move_array, need_captures_or_promotions);
     for(auto i = 0; i < move_cr; ++i)
         if(!IsPseudoLegal(move_array[i]))
             return -1U;
@@ -510,9 +509,15 @@ void k2movegen::RunUnitTests()
 
 	SetupPosition(
         "r3k1r1/ppp1bpp1/5n1p/2Ppp3/4P2q/Q1NP4/PP3PPP/R1B1K2R w KQq d6");
-    assert(test_gen_moves() == 34);
+    assert(test_gen_moves(false) == 34);
 	assert(MakeMove("a1b1"));
-	assert(test_gen_moves() == 37);
+    assert(test_gen_moves(false) == 37);
+    assert(MakeMove("d5d4"));
+    assert(MakeMove("c5c6"));
+    assert(MakeMove("d4c3"));
+    assert(MakeMove("c6b7"));
+    assert(MakeMove("c3b2"));
+    assert(test_gen_moves(true) == 14);
 
     SetupPosition("3k4/3b4/8/1Q5p/6B1/1r4N1/4p1nR/4K3 w - - 0 1");
     auto index = SeeMinAttacker(get_coord("e2"));
