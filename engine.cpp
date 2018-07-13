@@ -606,14 +606,19 @@ void k2engine::RootMoveGen()
     if(root_ply != 1)
         return;
 
-    if(randomness)
+    if(randomness && max_root_moves >= max_moves_to_shuffle)
     {
-        std::srand(seed);
-        auto moves_to_shuffle = std::min(max_root_moves, max_moves_to_shuffle);
-        for(movcr_t i = 0; i < moves_to_shuffle; ++i)
+        const auto phase1 = seed & 3;
+        std::swap(root_moves[0], root_moves[phase1]);
+        const auto phase2 = seed >> 2;
+        for(auto i = 0; i < phase2; ++i)
         {
-            movcr_t rand_ix = std::rand() % moves_to_shuffle;
-            std::swap(root_moves.at(i), root_moves.at(rand_ix));
+            const auto tmp = root_moves[0];
+            for(auto j = 0; j < max_moves_to_shuffle - 1; ++j)
+            {
+                root_moves[j] = root_moves[j + 1];
+            }
+            root_moves[max_moves_to_shuffle - 1] = tmp;
         }
     }
     pv[0].moves[0] = (*root_moves.begin()).second;

@@ -249,7 +249,7 @@ void k2main::NewCommand(const std::string in)
     }
     SetupPosition(start_position);
     ClearHash();
-    seed = std::time(nullptr) % 16;
+    seed = std::time(nullptr) % (1 << max_moves_to_shuffle);
 }
 
 
