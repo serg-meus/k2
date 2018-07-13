@@ -5,15 +5,6 @@
 #include "Timer.h"
 
 
-
-
-
-#define UNUSED(x) (void)(x)
-
-
-
-
-
 class k2engine : public k2hash
 {
 
@@ -167,7 +158,7 @@ protected:
     bool ShowPV(const depth_t _ply);
     void FindAndPrintForAmbiguousMoves(move_c m);
     bool DrawDetect() const;
-    void CheckForInterrupt();
+    bool CheckForInterrupt();
     void MakeNullMove();
     void UnMakeNullMove();
     bool NullMovePruning(depth_t depth, eval_t beta, bool ic);

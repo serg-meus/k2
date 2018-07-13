@@ -17,6 +17,7 @@ k2engine::k2engine() :
     enable_output = true;
     resign_cr = 0;
     state = &eng_state[prev_states];
+    seed = 0;
 
     max_search_depth = k2chess::max_ply;
     time_remains = 300000000;  // 5 min
@@ -27,6 +28,7 @@ k2engine::k2engine() :
     time_command_sent = false;
     infinite_analyze = false;
     spent_exact_time = false;
+    moves_remains = moves_remains_default;
 #ifndef NDEBUG
     randomness = false;
 #else
@@ -42,8 +44,6 @@ k2engine::k2engine() :
     stop = false;
     total_nodes = 0;
     total_time_spent = 0;
-
-    spent_exact_time = false;
     finaly_made_moves = 0;
     resign_cr = 0;
     time_spent = 0;
@@ -100,8 +100,9 @@ k2chess::eval_t k2engine::Search(depth_t depth, eval_t alpha, eval_t beta,
 
     in_check = MakeAttacksLater();
 
-    if((nodes & nodes_to_check_stop) == nodes_to_check_stop)
-        CheckForInterrupt();
+    if((nodes & nodes_to_check_stop) == nodes_to_check_stop &&
+            CheckForInterrupt())
+        return alpha;
 
     move_c move_array[move_array_size], cur_move;
     movcr_t move_cr = 0, max_moves = init_max_moves;
@@ -135,16 +136,18 @@ k2chess::eval_t k2engine::Search(depth_t depth, eval_t alpha, eval_t beta,
         else if(beta > alpha + 1)
         {
             x = -Search(depth - 1 - lmr, -alpha - 1, -alpha, cut_node);
-            if(x > alpha)
+            if(x > alpha && !stop)
                 x = -Search(depth - 1, -beta, -alpha, pv_node);
         }
         else
         {
             x = -Search(depth - 1 - lmr, -beta, -alpha, -node_type);
-            if(lmr && x > alpha)
+            if(lmr && x > alpha && !stop)
                 x = -Search(depth - 1, -beta, -alpha, pv_node);
         }
         TakebackMove(cur_move);
+        if(stop)
+            return alpha;
 
         if(x >= beta)
         {
@@ -158,8 +161,6 @@ k2chess::eval_t k2engine::Search(depth_t depth, eval_t alpha, eval_t beta,
             StorePV(cur_move);
             StoreInHash(depth, alpha, cur_move, exact_value, max_moves == 1);
         }
-        if(stop)
-            break;
     }
     if(move_cr == 0)
     {
@@ -201,8 +202,9 @@ k2chess::eval_t k2engine::QSearch(eval_t alpha, const eval_t beta)
     else if(x > alpha)
         alpha = x;
 
-    if((nodes & nodes_to_check_stop) == nodes_to_check_stop)
-        CheckForInterrupt();
+    if((nodes & nodes_to_check_stop) == nodes_to_check_stop &&
+            CheckForInterrupt())
+        return alpha;
 
     move_c move_array[move_array_size], no_move;
     no_move.flag = not_a_move;
@@ -226,9 +228,9 @@ k2chess::eval_t k2engine::QSearch(eval_t alpha, const eval_t beta)
         FastEval(cur_move);
         x = -QSearch(-beta, -alpha);
         TakebackMove(cur_move);
-
         if(stop)
-            break;
+            return alpha;
+
         if(x >= beta)
         {
             StoreInHash(0, beta, cur_move, lower_bound, false);
@@ -467,7 +469,6 @@ k2chess::eval_t k2engine::RootSearch(const depth_t depth, eval_t alpha,
             ShowCurrentUciInfo();
 
         bool fail_high = false;
-
         if(root_move_cr == 0)
         {
             x = -Search(depth - 1, -beta, -alpha, pv_node);
@@ -494,7 +495,6 @@ k2chess::eval_t k2engine::RootSearch(const depth_t depth, eval_t alpha,
                     root_moves.at(root_move_cr).first = unconfirmed_fail_high;
             }
         }
-
         if(stop && !fail_high)
             x = -infinite_score;
 
@@ -876,7 +876,11 @@ void k2engine::InitTime()
         if(moves_remains > min_moves_for_exact_time)
             spent_exact_time = false;
         if(moves_remains > 1)
+        {
             ClearHash();
+            memset(killers, 0, sizeof(killers));
+            memset(history, 0, sizeof(history));
+        }
     }
     if(!time_command_sent)
         time_remains += time_inc;
@@ -944,8 +948,8 @@ bool k2engine::ShowPV(const depth_t cur_ply)
             }
             else if(cur_move.flag & is_capture)
             {
-                const auto it = coords[wtm].at(cur_move.piece_index);
-                std::cout << (char)(get_col(*it) + 'a')
+                const auto tmp = coords[wtm].at(cur_move.piece_index);
+                std::cout << (char)(get_col(*tmp) + 'a')
                           << "x"
                           << (char)(get_col(cur_move.to_coord) + 'a')
                           << (char)(get_row(cur_move.to_coord) + '1');
@@ -1134,15 +1138,16 @@ bool k2engine::DrawDetect() const
 
 
 //--------------------------------
-void k2engine::CheckForInterrupt()
+bool k2engine::CheckForInterrupt()
 {
     if(max_nodes_to_search != 0)
     {
         if(nodes >= max_nodes_to_search - nodes_to_check_stop)
             stop = true;
+            return true;
     }
     if(infinite_analyze || (pondering_in_process && !spent_exact_time))
-        return;
+        return false;
 
     const node_t nodes_to_check_stop2 = (16*(nodes_to_check_stop + 1) - 1);
     if(spent_exact_time)
@@ -1153,7 +1158,10 @@ void k2engine::CheckForInterrupt()
         if(moves_remains == 1)
             margin *= 3;
         if(time_spent >= time_to_think - margin && root_ply >= 3)
+        {
             stop = true;
+            return true;
+        }
     }
     else if((nodes & nodes_to_check_stop2) == nodes_to_check_stop2)
     {
@@ -1161,9 +1169,12 @@ void k2engine::CheckForInterrupt()
         time_spent = time1 - time0;
         if(time_spent >= moves_for_time_exact_mode*time_to_think
                 && root_ply > 2)
+        {
             stop = true;
+            return true;
+        }
     }
-
+    return false;
 }
 
 

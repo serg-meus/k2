@@ -4,7 +4,7 @@
 // K2, the chess engine
 // Author: Sergey Meus (serg_meus@mail.ru)
 // Krasnoyarsk Krai, Russia
-// 2012-2017
+// 2012-2018
 //--------------------------------
 
 
@@ -14,8 +14,8 @@
 //--------------------------------
 int main(int argc, char* argv[])
 {
-    UNUSED(argc);
-    UNUSED(argv);
+    (void)(argc);
+    (void)(argv);
 
     k2main *engine = new k2main();
 
@@ -34,12 +34,8 @@ int main(int argc, char* argv[])
 
 
 //--------------------------------
-k2main::k2main()
+k2main::k2main() : force(false), quit(false), pondering_enabled(false)
 {
-    force = false;
-    quit = false;
-    pondering_enabled = false;
-
     ClearHash();
 
 //    tuning_factors.assign(2, 1); // two params with value 1
@@ -231,7 +227,8 @@ void k2main::StopEngine()
 //--------------------------------
 void k2main::NewCommand(const std::string in)
 {
-    UNUSED(in);
+    (void)(in);
+
     if(busy)
         StopEngine();
     force = false;
@@ -266,7 +263,7 @@ void k2main::SetboardCommand(const std::string in)
     const auto firstSymbol = in.find_first_not_of(" \t");
     const auto in1 = in.substr(firstSymbol, in.size() - firstSymbol);
 
-    if(!SetupPosition((char *)in1.c_str()))
+    if(!SetupPosition(const_cast<char *>(in1.c_str())))
         std::cout << "Illegal position" << std::endl;
     else if(infinite_analyze && xboard)
         AnalyzeCommand(in);
@@ -279,7 +276,8 @@ void k2main::SetboardCommand(const std::string in)
 //--------------------------------
 void k2main::QuitCommand(const std::string in)
 {
-    UNUSED(in);
+    (void)(in);
+
 #ifndef DONT_USE_THREAD_FOR_INPUT
     if(busy || thr.joinable())
         StopEngine();
@@ -298,15 +296,15 @@ void k2main::PerftCommand(const std::string in)
     if(busy)
         return;
 
-    Timer timer;
-    timer.start();
-    const auto tick1 = timer.getElapsedTimeInMicroSec();
+    Timer clock;
+    clock.start();
+    const auto tick1 = clock.getElapsedTimeInMicroSec();
 
     nodes = 0;
     max_search_depth = atoi(in.c_str());
     Perft(max_search_depth);
     max_search_depth = k2chess::max_ply;
-    const auto tick2 = timer.getElapsedTimeInMicroSec();
+    const auto tick2 = clock.getElapsedTimeInMicroSec();
     const auto deltaTick = tick2 - tick1;
 
     std::cout << std::endl << "nodes = " << nodes << std::endl
@@ -322,7 +320,8 @@ void k2main::PerftCommand(const std::string in)
 //--------------------------------
 void k2main::GoCommand(const std::string in)
 {
-    UNUSED(in);
+    (void)(in);
+
     if(busy)
         return;
 
@@ -389,9 +388,11 @@ void k2main::LevelCommand(const std::string in)
 //--------------------------------
 void k2main::ForceCommand(const std::string in)
 {
-    UNUSED(in);
+    (void)(in);
+
     if(busy)
         StopEngine();
+
     force = true;
 }
 
@@ -449,7 +450,8 @@ void k2main::ProtoverCommand(const std::string in)
 {
     using namespace std;
 
-    UNUSED(in);
+    (void)(in);
+
     if(busy)
         return;
     xboard = true;
@@ -480,7 +482,8 @@ void k2main::ProtoverCommand(const std::string in)
 //--------------------------------
 void k2main::StopCommand(const std::string in)
 {
-    UNUSED(in);
+    (void)(in);
+
 #ifndef DONT_USE_THREAD_FOR_INPUT
     if(busy)
     {
@@ -497,7 +500,8 @@ void k2main::StopCommand(const std::string in)
 //--------------------------------
 void k2main::ResultCommand(const std::string in)
 {
-    UNUSED(in);
+    (void)(in);
+
     if(busy)
         StopEngine();
 }
@@ -527,7 +531,8 @@ void k2main::TimeCommand(const std::string in)
 //--------------------------------
 void k2main::EvalCommand(const std::string in)
 {
-    UNUSED(in);
+    (void)(in);
+
     if(busy)
         return;
 
@@ -541,7 +546,7 @@ void k2main::EvalCommand(const std::string in)
 //--------------------------------
 void k2main::TestCommand(const std::string in)
 {
-    UNUSED(in);
+    (void)(in);
 
     if(busy)
         return;
@@ -552,9 +557,9 @@ void k2main::TestCommand(const std::string in)
     bool store_randomness = randomness;
     bool store_inf_analyze = infinite_analyze;
     depth_t store_max_depth = max_search_depth;
-    Timer timer;
-    timer.start();
-    auto tick1 = timer.getElapsedTimeInMicroSec();
+    Timer clock;
+    clock.start();
+    auto tick1 = clock.getElapsedTimeInMicroSec();
 
     while(true)
     {
@@ -567,7 +572,7 @@ void k2main::TestCommand(const std::string in)
                        "PPPBBPPP/R3K2R w KQkq -", 3, 97862))
             break;
 
-        auto tick2 = timer.getElapsedTimeInMicroSec();
+        auto tick2 = clock.getElapsedTimeInMicroSec();
         auto delta_tick = tick2 - tick1;
         std::cout << "Perft: total nodes = " << total_nodes
                   << ", dt = " << delta_tick / 1000000.
@@ -578,8 +583,8 @@ void k2main::TestCommand(const std::string in)
         enable_output = false;
         uci = true;
         randomness = false;
-        timer.start();
-        tick1 = timer.getElapsedTimeInMicroSec();
+        clock.start();
+        tick1 = clock.getElapsedTimeInMicroSec();
 
         if(!test_search("1rq2b1r/2N1k1pp/1pQp4/4n3/2P5/8/PP4PP/4RRK1 w - - 0 1"
                         " bm Rxe5", 7, "e1e5", false))
@@ -597,7 +602,7 @@ void k2main::TestCommand(const std::string in)
                         "w - - am Rd1", 8, "e1d1", true))
             break;
 
-        tick2 = timer.getElapsedTimeInMicroSec();
+        tick2 = clock.getElapsedTimeInMicroSec();
         delta_tick = tick2 - tick1;
         std::cout << "Search: total nodes = " << total_nodes
                   << ", dt = " << delta_tick / 1000000.
@@ -626,7 +631,8 @@ void k2main::TestCommand(const std::string in)
 //--------------------------------
 void k2main::FenCommand(const std::string in)
 {
-    UNUSED(in);
+    (void)(in);
+
     ShowFen();
 }
 
@@ -637,7 +643,8 @@ void k2main::FenCommand(const std::string in)
 //--------------------------------
 void k2main::XboardCommand(const std::string in)
 {
-    UNUSED(in);
+    (void)(in);
+
     xboard = true;
     uci = false;
     std::cout << "( build time: "
@@ -652,7 +659,7 @@ void k2main::XboardCommand(const std::string in)
 //--------------------------------
 void k2main::Unsupported(const std::string in)
 {
-    UNUSED(in);
+    (void)(in);
 }
 
 
@@ -662,7 +669,8 @@ void k2main::Unsupported(const std::string in)
 //--------------------------------
 void k2main::UciCommand(const std::string in)
 {
-    UNUSED(in);
+    (void)(in);
+
     uci = true;
     std::cout << "id name K2 v." << engine_version << std::endl;
     std::cout << "id author Sergey Meus" << std::endl;
@@ -715,7 +723,8 @@ void k2main::SetOptionCommand(const std::string in)
 //--------------------------------
 void k2main::IsReadyCommand(const std::string in)
 {
-    UNUSED(in);
+    (void)(in);
+
     std::cout << "\nreadyok\n";  // '\n' to avoid multithreading problems
 }
 
@@ -735,7 +744,7 @@ void k2main::PositionCommand(const std::string in)
         std::string fenstring;
         auto beg = arg2.find_first_not_of(" \t");
         fenstring = arg2.substr(beg, arg2.size());
-        if(!SetupPosition((char *)fenstring.c_str()))
+        if(!SetupPosition(const_cast<char *>(fenstring.c_str())))
         {
             std::cout << "Illegal position" << std::endl;
             return;
@@ -769,7 +778,7 @@ void k2main::ProcessMoveSequence(const std::string in)
         GetFirstArg(arg1, &arg1, &arg2);
         if(arg1.empty())
             break;
-        if(!MakeMove((char *)arg1.c_str()))
+        if(!MakeMove(const_cast<char *>(arg1.c_str())))
             break;
         arg1 = arg2;
     }
@@ -882,7 +891,8 @@ void k2main::UciGoCommand(const std::string in)
 //--------------------------------
 void k2main::EasyCommand(const std::string in)
 {
-    UNUSED(in);
+    (void)(in);
+
     pondering_enabled = false;
 }
 
@@ -893,7 +903,8 @@ void k2main::EasyCommand(const std::string in)
 //--------------------------------
 void k2main::HardCommand(const std::string in)
 {
-    UNUSED(in);
+    (void)(in);
+
     pondering_enabled = true;
 }
 
@@ -904,7 +915,8 @@ void k2main::HardCommand(const std::string in)
 //--------------------------------
 void k2main::PonderhitCommand(const std::string in)
 {
-    UNUSED(in);
+    (void)(in);
+
     PonderHit();
 }
 
@@ -929,7 +941,8 @@ void k2main::MemoryCommand(const std::string in)
 //--------------------------------
 void k2main::AnalyzeCommand(const std::string in)
 {
-    UNUSED(in);
+    (void)(in);
+
     force = false;
     infinite_analyze = true;
 
@@ -1009,7 +1022,8 @@ void k2main::OptionCommand(const std::string in)
 //--------------------------------
 void k2main::PostCommand(const std::string in)
 {
-    UNUSED(in);
+    (void)(in);
+
     enable_output = true;
 }
 
@@ -1020,7 +1034,8 @@ void k2main::PostCommand(const std::string in)
 //--------------------------------
 void k2main::NopostCommand(const std::string in)
 {
-    UNUSED(in);
+    (void)(in);
+
     enable_output = false;
 }
 

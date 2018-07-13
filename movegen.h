@@ -11,7 +11,7 @@ class k2movegen : public k2eval
 
 public:
 
-
+    virtual ~k2movegen() = default;
 	void RunUnitTests();
 
 	bool MakeMove(const char *in)

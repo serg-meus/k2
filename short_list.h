@@ -63,6 +63,7 @@ public:
     ///////
     public:
         iterator() {}
+        virtual ~iterator() = default;
 
         bool operator ==(iterator it) const
         {
@@ -74,16 +75,18 @@ public:
             return num != it.num || linked_class != it.linked_class;
         }
 
-        void operator =(iterator it)
+        iterator& operator =(iterator it)
         {
             num = it.num;
             linked_class = it.linked_class;
+            return *this;
         }
 
-        void operator =(reverse_iterator it)
+        reverse_iterator& operator =(reverse_iterator it)
         {
             num = it.num;
             linked_class = it.linked_class;
+            return *this;
         }
 
         T& operator *() const
@@ -136,6 +139,7 @@ public:
     ///////
     public:
         reverse_iterator() {}
+        virtual ~reverse_iterator() = default;
 
         bool operator ==(reverse_iterator it) const
         {
@@ -147,16 +151,18 @@ public:
             return num != it.num || linked_class != it.linked_class;
         }
 
-        void operator =(reverse_iterator it)
+        reverse_iterator& operator =(reverse_iterator it)
         {
             num = it.num;
             linked_class = it.linked_class;
+            return *this;
         }
 
-        void operator =(iterator it)
+        iterator& operator =(iterator it)
         {
             num = it.num;
             linked_class = it.linked_class;
+            return *this;
         }
 
         T& operator *() const
@@ -215,6 +221,8 @@ public:
         {
             this->clear();
         }
+
+        virtual ~short_list() = default;
 
         iterator begin();
         iterator end();
