@@ -34,7 +34,8 @@ int main(int argc, char* argv[])
 
 
 //--------------------------------
-k2main::k2main() : force(false), quit(false), pondering_enabled(false)
+k2main::k2main() : force(false), quit(false), pondering_enabled(false),
+    use_thread(true)
 {
     ClearHash();
 
@@ -69,13 +70,14 @@ void k2main::start()
                 std::cout << "Illegal move" << std::endl;
             else if(!force)
             {
-#ifndef DONT_USE_THREAD_FOR_INPUT
-                if(thr.joinable())
-                    thr.join();
-                thr = std::thread(&k2engine::MainSearch, this);
-#else
-                MainSearch();
-#endif // USE_THREAD_FOR_INPUT
+                if(use_thread)
+                {
+                    if(thr.joinable())
+                        thr.join();
+                    thr = std::thread(&k2engine::MainSearch, this);
+                }
+                else
+                    MainSearch();
             }
         }
         else
@@ -214,10 +216,10 @@ bool k2main::LooksLikeMove(const std::string in) const
 //--------------------------------
 void k2main::StopEngine()
 {
-#ifndef DONT_USE_THREAD_FOR_INPUT
+    if(!use_thread)
+        return;
     stop = true;
     thr.join();
-#endif // USE_THREAD_FOR_INPUT
 }
 
 
@@ -278,11 +280,8 @@ void k2main::QuitCommand(const std::string in)
 {
     (void)(in);
 
-#ifndef DONT_USE_THREAD_FOR_INPUT
-    if(busy || thr.joinable())
+    if(use_thread && (busy || thr.joinable()))
         StopEngine();
-#endif // USE_THREAD_FOR_INPUT
-
     quit = true;
 }
 
@@ -330,14 +329,14 @@ void k2main::GoCommand(const std::string in)
     else
         force = false;
 
-#ifndef DONT_USE_THREAD_FOR_INPUT
-    if(thr.joinable())
-        thr.join();
-    thr = std::thread(&k2engine::MainSearch, this);
-#else
-    MainSearch();
-#endif // USE_THREAD_FOR_INPUT
-
+    if(use_thread)
+    {
+        if(thr.joinable())
+            thr.join();
+        thr = std::thread(&k2engine::MainSearch, this);
+    }
+    else
+        MainSearch();
 }
 
 
@@ -472,6 +471,7 @@ void k2main::ProtoverCommand(const std::string in)
     cout << feat << "sigint=0" << endl;
     cout << feat << "memory=1" << endl;
     cout << feat << "option=\"Randomness -check 1\"" << endl;
+    cout << feat << "option=\"Separate_thread_for_input -check 1\"" << endl;
     cout << feat << "done=1" << endl;
 }
 
@@ -484,13 +484,11 @@ void k2main::StopCommand(const std::string in)
 {
     (void)(in);
 
-#ifndef DONT_USE_THREAD_FOR_INPUT
-    if(busy)
+    if(use_thread && busy)
     {
         stop = true;
         thr.join();
     }
-#endif // USE_THREAD_FOR_INPUT
 }
 
 
@@ -669,16 +667,19 @@ void k2main::Unsupported(const std::string in)
 //--------------------------------
 void k2main::UciCommand(const std::string in)
 {
+    using namespace std;
+
     (void)(in);
 
     uci = true;
-    std::cout << "id name K2 v." << engine_version << std::endl;
-    std::cout << "id author Sergey Meus" << std::endl;
-    std::cout << "option name Hash type spin default 64 min 0 max 2048"
-              << std::endl;
-    std::cout << "option name Randomness type check default true"
-              << std::endl;
-    std::cout << "uciok" << std::endl;
+    cout << "id name K2 v." << engine_version << endl;
+    cout << "id author Sergey Meus" << endl;
+    cout << "option name Hash type spin default 64 min 0 max 2048" << endl;
+    cout << "option name Randomness type check default true" << endl;
+    cout << "option name Separate_thread_for_input type check default true"
+         << endl;
+
+    cout << "uciok" << endl;
 }
 
 
@@ -691,7 +692,10 @@ void k2main::SetOptionCommand(const std::string in)
     std::string arg1, arg2;
     GetFirstArg(in, &arg1, &arg2);
     if(arg1 != "name")
+    {
+        std::cout << "Error: incorrect command options\n";
         return;
+    }
     GetFirstArg(arg2, &arg1, &arg2);
 
     if(arg1 == "Hash" || arg1 == "hash")
@@ -713,6 +717,17 @@ void k2main::SetOptionCommand(const std::string in)
             randomness = true;
         else
             randomness = false;
+    }
+    else if (arg1 == "Separate_thread_for_input")
+    {
+        GetFirstArg(arg2, &arg1, &arg2);
+        if(arg1 != "value")
+            return;
+        GetFirstArg(arg2, &arg1, &arg2);
+        if(arg1 == "true")
+            use_thread = true;
+        else
+            use_thread = false;
     }
 }
 
@@ -946,13 +961,14 @@ void k2main::AnalyzeCommand(const std::string in)
     force = false;
     infinite_analyze = true;
 
-#ifndef DONT_USE_THREAD_FOR_INPUT
-    if(thr.joinable())
-        thr.join();
-    thr = std::thread(&k2engine::MainSearch, this);
-#else
-    MainSearch();
-#endif // USE_THREAD_FOR_INPUT
+    if(use_thread)
+    {
+        if(thr.joinable())
+            thr.join();
+        thr = std::thread(&k2engine::MainSearch, this);
+    }
+    else
+        MainSearch();
 }
 
 
@@ -1008,10 +1024,17 @@ void k2main::OptionCommand(const std::string in)
 
     if(arg1 == "Randomness")
     {
-        if(arg2 == "1")
+        if(arg2 == "1" || arg2 == "true")
             randomness = true;
         else
             randomness = false;
+    }
+    else if(arg1 == "Separate_thread_for_input")
+    {
+        if(arg2 == "1" || arg2 == "true")
+            use_thread = true;
+        else
+            use_thread = false;
     }
 }
 

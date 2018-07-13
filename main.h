@@ -1,13 +1,6 @@
 #include "engine.h"
 #include <thread>
 
-#ifndef NDEBUG
-    #define DONT_USE_THREAD_FOR_INPUT
-#endif
-
-
-
-
 
 int main(int argc, char* argv[]);
 
@@ -37,13 +30,9 @@ protected:
     bool force;
     bool quit;
     bool pondering_enabled;
+    bool use_thread;
 
-#ifndef DONT_USE_THREAD_FOR_INPUT
     std::thread thr;
-// for compilers with C++11 support under Linux
-// -pthread option must be used for gcc linker
-#endif // USE_THREAD_FOR_INPUT
-
 
     typedef void(k2main::*method_ptr)(const std::string);
 
