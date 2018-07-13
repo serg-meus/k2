@@ -1597,7 +1597,7 @@ void k2engine::ShowCurrentUciInfo()
     std::cout << " currmovenumber " << root_move_cr + 1;
     std::cout << " hashfull ";
 
-    size_t hash_size = 1000*hash_table.size() / hash_table.max_size();
+    size_t hash_size = 1000.*hash_table.size() / hash_table.max_size();
     std::cout << hash_size << std::endl;
 }
 
