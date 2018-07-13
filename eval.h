@@ -1,10 +1,5 @@
 #include "chess.h"
 
-#include <iostream>
-
-
-
-
 
 //--------------------------------
 class k2eval : public k2chess
@@ -12,7 +7,6 @@ class k2eval : public k2chess
 
 public:
     k2eval();
-    virtual ~k2eval() = default;
     void RunUnitTests();
 
 protected:

@@ -11,9 +11,9 @@ k2hash::k2hash()
     std::uniform_int_distribution<hash_key_t> zorb_distr(0, (hash_key_t) - 1);
     std::mt19937 rnd_gen;
 
-    for(auto i = 0; i < 12; ++i)
-        for(auto j = 0; j < 8; ++j)
-            for(auto k = 0; k < 8; ++k)
+    for(auto i = 0; i < 2*piece_types; ++i)
+        for(auto j = 0; j < board_width; ++j)
+            for(auto k = 0; k < board_height; ++k)
                 zorb[i][j][k] = zorb_distr(rnd_gen);
 
     for(size_t i = 1;
@@ -65,7 +65,7 @@ k2hash::hash_key_t k2hash::InitHashKey()
 //--------------------------------
 void k2hash::MoveHashKey(const move_c m, const bool special)
 {
-    doneHashKeys[FIFTY_MOVES + ply - 1] = hash_key;
+    done_hash_keys[FIFTY_MOVES + ply - 1] = hash_key;
     const auto from_coord = k2chess::state[ply].from_coord;
 
     const auto piece = b[m.to_coord];

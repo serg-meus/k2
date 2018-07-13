@@ -535,6 +535,8 @@ void k2main::EvalCommand(const std::string in)
         return;
 
     EvalDebug();
+    xboard = false;
+    uci = false;
 }
 
 
@@ -648,6 +650,7 @@ void k2main::XboardCommand(const std::string in)
     std::cout << "( build time: "
               << __DATE__ << " " << __TIME__
               << " )" << std::endl;
+    total_nodes = 0;
 }
 
 
@@ -678,8 +681,9 @@ void k2main::UciCommand(const std::string in)
     cout << "option name Randomness type check default true" << endl;
     cout << "option name Separate_thread_for_input type check default true"
          << endl;
-
     cout << "uciok" << endl;
+
+    total_nodes = 0;
 }
 
 

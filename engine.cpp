@@ -1086,7 +1086,7 @@ bool k2engine::MakeMove(const char *move_str)
         if(!CheckBoardConsistency())
             std::cout << "telluser err03: board inconsistency\n";
         for(auto j = 0; j < FIFTY_MOVES; ++j)
-            doneHashKeys[j] = doneHashKeys[j + 1];
+            done_hash_keys[j] = done_hash_keys[j + 1];
 
         finaly_made_moves++;
         return true;
@@ -1113,7 +1113,7 @@ bool k2engine::SetupPosition(const char *fen)
 
     initial_score = infinite_score;
     memset(eng_state, 0, sizeof(eng_state));
-    memset(doneHashKeys, 0, sizeof(doneHashKeys));
+    memset(done_hash_keys, 0, sizeof(done_hash_keys));
 
     return true;
 }
@@ -1206,7 +1206,7 @@ void k2engine::MakeNullMove()
     ply++;
 
     hash_key ^= key_for_side_to_move;
-    doneHashKeys[FIFTY_MOVES + ply - 1] = hash_key;
+    done_hash_keys[FIFTY_MOVES + ply - 1] = hash_key;
 
     wtm ^= white;
 }
@@ -1292,7 +1292,7 @@ bool k2engine::DrawByRepetition() const
 
     for(auto i = 4; i <= max_count; i += 2)
     {
-        if(hash_key == doneHashKeys[FIFTY_MOVES + ply - i])
+        if(hash_key == done_hash_keys[FIFTY_MOVES + ply - i])
             return true;
     }
 

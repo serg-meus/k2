@@ -11,7 +11,6 @@ class k2movegen : public k2eval
 
 public:
 
-    virtual ~k2movegen() = default;
 	void RunUnitTests();
 
 	bool MakeMove(const char *in)
@@ -34,14 +33,14 @@ protected:
 
     const static size_t move_array_size = 256;
 
-    const priority_t
+    const static priority_t
     second_killer = 198,
     first_killer = 199,
     move_from_hash = std::numeric_limits<priority_t>::max(),
     king_capture = std::numeric_limits<priority_t>::max(),
     bad_captures = 63;
 
-    const apprice_t
+    const static apprice_t
     not_apprice = 0,
     apprice_only_captures = 1,
     apprice_all = 2;

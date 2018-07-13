@@ -90,10 +90,10 @@ protected:
     };
 
     hash_key_t hash_key;
-    hash_key_t zorb[12][8][8];
-    hash_key_t zorb_en_passant[9];
+    hash_key_t zorb[2*piece_types][board_width][board_height];
+    hash_key_t zorb_en_passant[board_width + 1];
     hash_key_t zorb_castling[16];
-    hash_key_t doneHashKeys[FIFTY_MOVES + max_ply];
+    hash_key_t done_hash_keys[FIFTY_MOVES + max_ply];
 
 
 protected:
@@ -110,7 +110,7 @@ protected:
     void TakebackMove(const move_c m)
     {
         k2eval::TakebackMove(m);
-        hash_key = doneHashKeys[FIFTY_MOVES + ply];
+        hash_key = done_hash_keys[FIFTY_MOVES + ply];
     }
 
 

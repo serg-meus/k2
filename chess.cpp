@@ -767,9 +767,11 @@ char* k2chess::ParseEnPassantInFen(char *ptr)
         int col = *(ptr++) - 'a';
         int row = *(ptr++) - '1';
         int s = wtm ? -1 : 1;
-        piece_t pawn = wtm ? white_pawn : black_pawn;
-        if(b[get_coord(col - 1, row + s)] == pawn
-                || b[get_coord(col + 1, row + s)] == pawn)
+        piece_t pwn = white_pawn;
+        if(!wtm)
+            pwn = black_pawn;
+        if(b[get_coord(col - 1, row + s)] == pwn
+                || b[get_coord(col + 1, row + s)] == pwn)
             state[0].en_passant_rights = col + 1;
     }
     return ptr;

@@ -5,6 +5,7 @@
 #include <bitset>
 #include <vector>
 #include <limits.h>
+#include <cmath>
 #include "short_list.h"
 
 
@@ -15,7 +16,6 @@ public:
 
 
     k2chess();
-    virtual ~k2chess() = default;
     bool SetupPosition(const char *fen);
     bool MakeMove(const char* str);
     void TakebackMove();

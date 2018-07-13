@@ -391,8 +391,9 @@ void k2eval::MaterialImbalances()
                 (quantity[black][knight] == 1 &&
                  quantity[black][bishop] == 1))
         {
-            const auto stm = quantity[white][knight] == 1
-                       ? white : black;
+            auto stm = black;
+            if(quantity[white][knight] == 1)
+                stm = white;
             auto rit = coords[stm].begin();
             for(; rit != coords[stm].end(); ++rit)
                 if(get_type(b[*rit]) == bishop)
