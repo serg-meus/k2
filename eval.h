@@ -111,6 +111,7 @@ public:
         bool ans = k2chess::SetupPosition(p);
         InitPawnStruct();
         InitEvalOfMaterialAndPst();
+        memset(e_state, 0, sizeof(e_state));
         return ans;
     }
 

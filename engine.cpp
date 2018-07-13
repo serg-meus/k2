@@ -1107,6 +1107,8 @@ bool k2engine::SetupPosition(const char *fen)
     hash_key = InitHashKey();
 
     initial_score = infinite_score;
+    memset(eng_state, 0, sizeof(eng_state));
+    memset(doneHashKeys, 0, sizeof(doneHashKeys));
 
     return true;
 }

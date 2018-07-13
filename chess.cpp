@@ -572,6 +572,7 @@ bool k2chess::SetupPosition(const char *fen)
     }
     reversible_moves = 0;
     memset(quantity, 0, sizeof(quantity));
+    memset(b_state, 0, sizeof(b_state));
     ply = 0;
 
     if((ptr = ParseMainPartOfFen(ptr)) == nullptr)
