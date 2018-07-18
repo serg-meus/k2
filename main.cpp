@@ -250,6 +250,8 @@ void k2main::NewCommand(const std::string in)
     SetupPosition(start_position);
     ClearHash();
     seed = std::time(nullptr) % (1 << max_moves_to_shuffle);
+    if(uci)
+        moves_per_session = 0;
 }
 
 
@@ -854,7 +856,8 @@ void k2main::UciGoCommand(const std::string in)
         else if(arg1 == "movestogo")
         {
             GetFirstArg(arg2, &arg1, &arg2);
-            moves_per_session = atoi(arg1.c_str());
+            if(moves_per_session == 0)
+                moves_per_session = atoi(arg1.c_str());
             arg1 = arg2;
             no_movestogo_arg = false;
         }

@@ -861,7 +861,7 @@ void k2engine::InitTime()
         moves_after_control = (finaly_made_moves/2) % moves_per_session;
 
     if(moves_per_session != 0)
-        moves_remains = moves_per_session - (uci ? 0 : moves_after_control);
+        moves_remains = moves_per_session - moves_after_control;
     else
         moves_remains = moves_remains_default;
     if(time_base == 0)
