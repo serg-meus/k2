@@ -1113,7 +1113,6 @@ bool k2engine::SetupPosition(const char *fen)
 
     initial_score = infinite_score;
     memset(eng_state, 0, sizeof(eng_state));
-    memset(done_hash_keys, 0, sizeof(done_hash_keys));
 
     return true;
 }
