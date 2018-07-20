@@ -34,8 +34,7 @@ int main(int argc, char* argv[])
 
 
 //--------------------------------
-k2main::k2main() : force(false), quit(false), pondering_enabled(false),
-    use_thread(true)
+k2main::k2main() : force(false), quit(false), use_thread(true)
 {
     ClearHash();
 
@@ -680,6 +679,7 @@ void k2main::UciCommand(const std::string in)
     cout << "id name K2 v." << engine_version << endl;
     cout << "id author Sergey Meus" << endl;
     cout << "option name Hash type spin default 64 min 0 max 2048" << endl;
+    cout << "option name Ponder type check default false" << endl;
     cout << "option name Randomness type check default true" << endl;
     cout << "option name Separate_thread_for_input type check default true"
          << endl;
@@ -914,8 +914,6 @@ void k2main::UciGoCommand(const std::string in)
 void k2main::EasyCommand(const std::string in)
 {
     (void)(in);
-
-    pondering_enabled = false;
 }
 
 
@@ -926,8 +924,6 @@ void k2main::EasyCommand(const std::string in)
 void k2main::HardCommand(const std::string in)
 {
     (void)(in);
-
-    pondering_enabled = true;
 }
 
 

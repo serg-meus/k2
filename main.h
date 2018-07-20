@@ -29,7 +29,6 @@ protected:
 
     bool force;
     bool quit;
-    bool pondering_enabled;
     bool use_thread;
 
     std::thread thr;
