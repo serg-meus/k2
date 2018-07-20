@@ -826,7 +826,7 @@ bool k2eval::Sheltered(const coord_t k_col, coord_t k_row,
         const auto pc1_l = col_within(k_col - 1) ?
                     b[coord + shft - 1] : empty_square;
         if(pc2 == p && (pc1_r == p || pc1_l == p))
-
+            return true;
         if(pc1 != empty_square && get_color(pc1) == stm &&
                 pc2 != empty_square && get_color(pc2) == stm)
             return true;
