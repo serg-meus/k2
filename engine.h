@@ -41,7 +41,7 @@ protected:
     const depth_t lmr_big_depth = 6;
     const movcr_t lmr_big_max_move = 7;
     const depth_t lmp_min_depth = 2;
-    const movcr_t lmp_max_move = 4;
+    const movcr_t lmp_max_move = 6;
     const eval_t delta_pruning_margin = 100;
     const depth_t futility_max_depth = 2;
     const eval_t futility_marg0 = 185;
