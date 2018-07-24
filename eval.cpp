@@ -1137,24 +1137,24 @@ pst
 //-----------------------------
 void k2eval::RunUnitTests()
 {
-	k2chess::RunUnitTests();
+    k2chess::RunUnitTests();
 
-	assert(king_dist(get_coord("e5"), get_coord("f6")) == 1);
-	assert(king_dist(get_coord("e5"), get_coord("d3")) == 2);
-	assert(king_dist(get_coord("h1"), get_coord("h8")) == 7);
-	assert(king_dist(get_coord("h1"), get_coord("a8")) == 7);
+    assert(king_dist(get_coord("e5"), get_coord("f6")) == 1);
+    assert(king_dist(get_coord("e5"), get_coord("d3")) == 2);
+    assert(king_dist(get_coord("h1"), get_coord("h8")) == 7);
+    assert(king_dist(get_coord("h1"), get_coord("a8")) == 7);
 
-	SetupPosition("5k2/8/2P5/8/8/8/8/K7 w - - 0 1");
-	assert(IsUnstoppablePawn(2, white, white));
-	assert(!IsUnstoppablePawn(2, white, black));
-	SetupPosition("k7/7p/8/8/8/8/8/1K6 b - - 0 1");
-	assert(IsUnstoppablePawn(7, black, black));
-	assert(!IsUnstoppablePawn(7, black, white));
-	SetupPosition("8/7p/8/8/7k/8/8/K7 w - - 0 1");
-	assert(IsUnstoppablePawn(7, black, black));
-	assert(!IsUnstoppablePawn(7, black, white));
+    SetupPosition("5k2/8/2P5/8/8/8/8/K7 w - -");
+    assert(IsUnstoppablePawn(2, white, white));
+    assert(!IsUnstoppablePawn(2, white, black));
+    SetupPosition("k7/7p/8/8/8/8/8/1K6 b - -");
+    assert(IsUnstoppablePawn(7, black, black));
+    assert(!IsUnstoppablePawn(7, black, white));
+    SetupPosition("8/7p/8/8/7k/8/8/K7 w - -");
+    assert(IsUnstoppablePawn(7, black, black));
+    assert(!IsUnstoppablePawn(7, black, white));
 
-    SetupPosition("3k4/p7/B1Pp4/7p/K3P3/7P/2n5/8 w - - 0 1");
+    SetupPosition("3k4/p7/B1Pp4/7p/K3P3/7P/2n5/8 w - -");
     assert(IsPasser(0, black));
     assert(IsPasser(2, white));
     assert(!IsPasser(3, black));
@@ -1163,7 +1163,7 @@ void k2eval::RunUnitTests()
     assert(!IsPasser(7, white));
     assert(!IsPasser(1, black));
 
-    SetupPosition("4k3/1p6/8/8/1P6/8/1P6/4K3 w - - 0 1");
+    SetupPosition("4k3/1p6/8/8/1P6/8/1P6/4K3 w - -");
     val_opn = 0;
     val_end = 0;
     EvalPawns(white);
@@ -1174,7 +1174,7 @@ void k2eval::RunUnitTests()
     EvalPawns(black);
     assert(val_opn == -pawn_iso_opn);
     assert(val_end == -pawn_iso_end);
-    SetupPosition("4k3/1pp5/1p6/8/1P6/1P6/1P6/4K3 w - - 0 1");
+    SetupPosition("4k3/1pp5/1p6/8/1P6/1P6/1P6/4K3 w - -");
     val_opn = 0;
     val_end = 0;
     EvalPawns(white);
@@ -1185,7 +1185,7 @@ void k2eval::RunUnitTests()
     EvalPawns(black);
     assert(val_opn == -pawn_dbl_opn);
     assert(val_end == -pawn_dbl_end);
-    SetupPosition("4k3/2p1p1p1/2Np1pPp/7P/1p6/Pr1PnP2/1P2P3/4K3 b - - 0 1");
+    SetupPosition("4k3/2p1p1p1/2Np1pPp/7P/1p6/Pr1PnP2/1P2P3/4K3 b - -");
     val_opn = 0;
     val_end = 0;
     EvalPawns(white);
@@ -1196,7 +1196,7 @@ void k2eval::RunUnitTests()
     EvalPawns(black);
     assert(val_opn == -pawn_hole_opn - pawn_gap_opn);
     assert(val_end == -pawn_hole_end - pawn_gap_end);
-    SetupPosition("8/8/3K1P2/3p2P1/1Pkn4/8/8/8 w - - 0 1");
+    SetupPosition("8/8/3K1P2/3p2P1/1Pkn4/8/8/8 w - -");
     val_opn = 0;
     val_end = 0;
     EvalPawns(white);
@@ -1213,5 +1213,174 @@ void k2eval::RunUnitTests()
     assert(val_opn == -pawn_blk_pass_3/pawn_pass_opn_divider - pawn_iso_opn);
     assert(val_end == -pawn_blk_pass_3 - pawn_king_tropism1 -
            3*pawn_king_tropism2 + pawn_king_tropism3 - pawn_iso_end);
+
+    // endings
+    SetupPosition("5k2/8/8/N7/8/8/8/4K3 w - -");  // KNk
+    MaterialImbalances();
+    assert(val_opn == 0 && val_end == 0);
+    SetupPosition("5k2/8/8/n7/8/8/8/4K3 w - -");  // Kkn
+    MaterialImbalances();
+    assert(val_opn == 0 && val_end == 0);
+    SetupPosition("5k2/8/8/B7/8/8/8/4K3 w - -");  // KBk
+    MaterialImbalances();
+    assert(val_opn == 0 && val_end == 0);
+    SetupPosition("5k2/8/8/b7/8/8/8/4K3 w - -");  // Kkb
+    MaterialImbalances();
+    assert(val_opn == 0 && val_end == 0);
+    SetupPosition("5k2/p7/8/b7/8/8/P7/4K3 w - -");  // KPkbp
+    MaterialImbalances();
+    assert(val_end < bishop_val_end);
+    SetupPosition("5k2/8/8/n7/8/8/P7/4K3 w - -");  // KPkn
+    MaterialImbalances();
+    assert(val_end > pawn_val_end/4);
+    SetupPosition("5k2/p7/8/B7/8/8/8/4K3 w - -");  // KBkp
+    MaterialImbalances();
+    assert(val_end < -pawn_val_end/4);
+    SetupPosition("5k2/p6p/8/B7/8/8/7P/4K3 w - -");  // KBPkpp
+    MaterialImbalances();
+    assert(val_end > 2*pawn_val_end);
+    SetupPosition("5k2/8/8/NN6/8/8/8/4K3 w - -");  // KNNk
+    MaterialImbalances();
+    assert(val_opn == 0 && val_end == 0);
+    SetupPosition("5k2/8/8/nn6/8/8/8/4K3 w - -");  // Kknn
+    MaterialImbalances();
+    assert(val_opn == 0 && val_end == 0);
+    SetupPosition("5k2/p7/8/nn6/8/8/P7/4K3 w - -");  // KPknnp
+    MaterialImbalances();
+    assert(val_end < -2*kinght_val_end + pawn_val_end);
+    SetupPosition("5k2/8/8/nb6/8/8/8/4K3 w - -");  // Kknb
+    MaterialImbalances();
+    assert(val_end < -kinght_val_end - bishop_val_end + pawn_val_end);
+    SetupPosition("5k2/8/8/1b6/8/7p/8/7K w - -");  // Kkbp drawn
+    MaterialImbalances();
+    assert(val_opn == 0 && val_end == 0);
+    SetupPosition("7k/8/7P/1B6/8/8/8/6K1 w - -");  // KBPk drawn
+    MaterialImbalances();
+    assert(val_opn == 0 && val_end == 0);
+    SetupPosition("5k2/8/8/1b6/7p/8/6K1/8 w - -");  // Kkbp drawn
+    MaterialImbalances();
+    assert(val_opn == 0 && val_end == 0);
+    SetupPosition("7k/8/P7/1B6/8/8/8/6K1 w - -");  // KBPk winning
+    MaterialImbalances();
+    assert(val_end > bishop_val_end + pawn_val_end/2);
+    SetupPosition("2k5/8/P7/1B6/8/8/8/6K1 w - -");  // KBPk winning
+    MaterialImbalances();
+    assert(val_end > bishop_val_end + pawn_val_end/2);
+    SetupPosition("1K6/8/P7/1B6/8/8/8/6k1 w - -");  // KBPk winning
+    MaterialImbalances();
+    assert(val_end > bishop_val_end + pawn_val_end/2);
+    SetupPosition("1k6/8/1P6/1B6/8/8/8/6K1 w - -");  // KBPk winning
+    MaterialImbalances();
+    assert(val_end > bishop_val_end + pawn_val_end/2);
+    SetupPosition("8/8/8/5K2/2k5/8/2P5/8 b - -");  // KPk
+    MaterialImbalances();
+    assert(val_opn == 0 && val_end == 0);
+    SetupPosition("8/8/8/5K2/2k5/8/2P5/8 w - -");  // KPk
+    MaterialImbalances();
+    assert(val_end > pawn_val_end/2);
+    SetupPosition("k7/2K5/8/P7/8/8/8/8 w - -");  // KPk
+    MaterialImbalances();
+    assert(val_opn == 0 && val_end == 0);
+    SetupPosition("8/8/8/p7/8/1k6/8/1K6 w - -");  // Kkp
+    MaterialImbalances();
+    assert(val_opn == 0 && val_end == 0);
+    SetupPosition("8/8/8/p7/8/1k6/8/2K5 w - -");  // Kkp
+    MaterialImbalances();
+    assert(val_end < -pawn_val_end/2);
+    SetupPosition("8/8/8/pk6/8/K7/8/8 w - -");  // Kkp
+    MaterialImbalances();
+    assert(val_end < -pawn_val_end/2);
+    SetupPosition("8/8/8/1k5p/8/8/8/K7 w - -");  // Kkp
+    MaterialImbalances();
+    assert(val_end < -pawn_val_end/2);
+
+    // bishop pairs
+    SetupPosition("rn1qkbnr/pppppppp/8/8/8/8/PPPPPPPP/R1BQKBNR w KQkq -");
+    val_opn = 0;
+    val_end = 0;
+    MaterialImbalances();
+    assert(val_opn == bishop_pair && val_end == bishop_pair);
+    SetupPosition("1nb1kb2/4p3/8/8/8/8/4P3/1NB1K1N1 w - -");
+    val_opn = 0;
+    val_end = 0;
+    MaterialImbalances();
+    assert(val_opn == -bishop_pair && val_end == -bishop_pair);
+    SetupPosition("1nb1k1b1/4p3/8/8/8/8/4P3/1NB1K1N1 w - -");
+    val_opn = 0;
+    val_end = 0;
+    MaterialImbalances();
+    assert(val_opn == -bishop_pair && val_end == -bishop_pair);
+    SetupPosition("1nb1kbb1/4p3/8/8/8/8/4P3/1NB1K1N1 w - -");
+    val_opn = 0;
+    val_end = 0;
+    MaterialImbalances();
+    assert(val_opn == 0 && val_end == 0);  // NB
+
+    SetupPosition("4kr2/8/8/8/8/8/8/1BBNK3 w - -"); // pawn absense
+    MaterialImbalances();
+    assert(val_end < bishop_val_end/2);
+
+    // multicolored bishops
+    SetupPosition("rn1qkbnr/p1pppppp/8/8/8/8/PPPPPPPP/RN1QKBNR w KQkq -");
+    auto tmp = val_end;
+    MaterialImbalances();
+    assert(val_end < pawn_val_end && val_end < tmp);
+    SetupPosition("rnbqk1nr/p1pppppp/8/8/8/8/PPPPPPPP/RNBQK1NR w KQkq -");
+    tmp = val_end;
+    MaterialImbalances();
+    assert(val_end < pawn_val_end && val_end < tmp);
+    SetupPosition("rnbqk1nr/p1pppppp/8/8/8/8/PPPPPPPP/RN1QKBNR w KQkq -");
+    tmp = val_end;
+    MaterialImbalances();
+    assert(val_end == tmp);
+    SetupPosition("rn1qkbnr/p1pppppp/8/8/8/8/PPPPPPPP/RNBQK1NR w KQkq -");
+    tmp = val_end;
+    MaterialImbalances();
+    assert(val_end == tmp);
+    SetupPosition("4kb2/pppp4/8/8/8/8/PPPPPPPP/4KB2 w - -");
+    MaterialImbalances();
+    assert(val_end < 5*pawn_val_end/2);
+
+    //king safety
+    SetupPosition("4k3/4p3/8/8/8/4P3/5P2/4K3 w - -");
+    assert(Sheltered(4, 0, white));
+    assert(Sheltered(4, 7, black));
+    SetupPosition("4k3/4r3/4p3/8/8/4B3/4R3/4K3 w - -");
+    assert(Sheltered(4, 0, white));
+    assert(Sheltered(4, 7, black));
+    SetupPosition("4k3/8/4b3/8/8/4P3/3N4/4K3 w - -");
+    assert(!Sheltered(4, 0, white));
+    assert(!Sheltered(4, 7, black));
+    SetupPosition("4k3/4q3/8/8/8/8/8/4K3 w - -");
+    assert(!Sheltered(4, 0, white));
+    assert(!Sheltered(4, 7, black));
+
+    SetupPosition("q5k1/pp3p1p/6p1/8/8/8/PP3PPP/Q5K1 w - -");
+    assert(KingShelter(6, 0, white) == 0);
+    assert(KingShelter(6, 7, black) == 0);
+    SetupPosition("q5k1/pp4pp/5p2/8/8/7P/PP3PP1/Q5K1 w - -");
+    assert(KingShelter(6, 0, white) == 0);
+    assert(KingShelter(6, 7, black) == 0);
+    SetupPosition("q5k1/pp3pbp/6n1/8/8/6P1/PP3P1P/Q5K1 w - -");
+    assert(KingShelter(6, 0, white) == 0);
+    assert(KingShelter(6, 7, black) == 0);
+    SetupPosition("q5k1/pp3nbr/5nnq/8/8/5P1N/PP4PB/Q5K1 w - -");
+    assert(KingShelter(6, 0, white) == 0);
+    assert(KingShelter(6, 7, black) == 0);
+    SetupPosition("q5k1/pp4bn/6nr/8/8/5P2/PP4P1/Q5K1 w - -");
+    assert(KingShelter(6, 0, white) == 0);
+    assert(KingShelter(6, 7, black) == 0);
+    SetupPosition("4k2r/pp6/8/8/8/8/PP6/Q5K1 w k -");
+    assert(KingShelter(6, 0, white) == 0);
+    assert(KingShelter(4, 7, black) == 0);
+    SetupPosition("q3kr2/pp1p1p2/8/8/5P1P/8/PP4P1/Q5K1 w - -");
+    assert(KingShelter(6, 0, white) == king_no_shelter);
+    assert(KingShelter(4, 7, black) == king_no_shelter);
+    SetupPosition("q5k1/pp3p1p/7p/8/8/5P2/PP3P1P/Q5K1 w - -");
+    assert(KingShelter(6, 0, white) == king_no_shelter);
+    assert(KingShelter(4, 7, black) == king_no_shelter);
+    SetupPosition("q5k1/pp4p1/6p1/8/8/6N1/PP3P1P/Q5K1 w - -");
+    assert(KingShelter(6, 0, white) == king_no_shelter);
+    assert(KingShelter(4, 7, black) == king_no_shelter);
 }
 #endif // NDEBUG
