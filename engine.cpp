@@ -870,31 +870,28 @@ void k2engine::InitTime()
 {
     if(!time_control.time_command_sent)
         time_control.time_remains -= time_control.time_spent;
-    time_control.time_remains = std::abs(time_control.time_remains);  //<< NB: strange
-    depth_t moves_after_control;
-    if(time_control.moves_per_session == 0)
-        moves_after_control = halfmoves_made/2;
-    else
-        moves_after_control =
-                (halfmoves_made/2) % time_control.moves_per_session;
+    if(time_control.time_remains < 0)
+        time_control.time_remains = 0;
 
-    if(time_control.moves_per_session != 0)
-        time_control.moves_to_go =
-                time_control.moves_per_session - moves_after_control;
-    else
+    if(time_control.moves_per_session == 0)
         time_control.moves_to_go = default_moves_to_go;
+    else if(uci)
+        time_control.moves_to_go = time_control.moves_per_session;
+    else
+        time_control.moves_to_go = time_control.moves_per_session -
+                (halfmoves_made/2 % time_control.moves_per_session);
+
     if(time_control.time_base == 0)
         time_control.moves_to_go = 1;
 
-    if(!time_control.spent_exact_time &&
-            (time_control.moves_to_go <= moves_for_time_exact_mode ||
-             (time_control.time_inc == 0 &&
-              time_control.moves_per_session == 0 &&
-              time_control.time_remains <
-              time_control.time_base/exact_time_base_divider)))
+    if(time_control.moves_to_go <= moves_for_time_exact_mode ||
+            (time_control.time_inc == 0 &&
+             time_control.moves_per_session == 0 &&
+             time_control.time_remains <
+             time_control.time_base/exact_time_base_divider))
         time_control.spent_exact_time = true;
 
-    if(moves_after_control == 0 && halfmoves_made/2 != 0)
+    if(time_control.moves_to_go == halfmoves_made/2)
     {
         if(!time_control.time_command_sent)
             time_control.time_remains += time_control.time_base;
@@ -906,16 +903,28 @@ void k2engine::InitTime()
             ClearHash();
             memset(killers, 0, sizeof(killers));
             memset(history, 0, sizeof(history));
+#ifndef NDEBUG
+            std::cout << "( ht cleared )\n";
+#endif
         }
     }
+#ifndef NDEBUG
+    std::cout << "( halfmoves=" << halfmoves_made <<
+                 " movestogo=" << (int)time_control.moves_to_go <<
+                 ", movespersession=" << time_control.moves_per_session <<
+                 ", exacttime=" << (int)time_control.spent_exact_time <<
+                 " )\n";
+#endif
     if(!time_control.time_command_sent)
         time_control.time_remains += time_control.time_inc;
-    time_control.time_to_think = time_control.time_remains/time_control.moves_to_go;
+    time_control.time_to_think =
+            time_control.time_remains/time_control.moves_to_go;
     if(time_control.time_inc == 0 && time_control.moves_to_go != 1 &&
             !time_control.spent_exact_time)
         time_control.time_to_think /= time_to_think_divider;
     else if(time_control.time_inc != 0 && time_control.time_base != 0)
-        time_control.time_to_think += time_control.time_inc/increment_time_divider;
+        time_control.time_to_think +=
+                time_control.time_inc/increment_time_divider;
 
     time_control.time_command_sent = false;
 }
