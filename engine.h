@@ -50,7 +50,7 @@ protected:
     const depth_t one_reply_min_depth = 2;
     const eval_t qs_min_material_to_drop = 2400;
     const depth_t qs_beta_exceed_to_drop = 250;
-    const eval_t aspirat_marg = 47;
+    const eval_t aspiration_margin = 47;
     const depth_t max_depth_for_single_move = 8;
 
     const movcr_t max_moves_to_shuffle = 4;
@@ -58,10 +58,10 @@ protected:
     const depth_t moves_to_resign = 3;
 
     const depth_t moves_for_time_exact_mode = 8;
-    const depth_t moves_remains_default = 32;
+    const depth_t default_moves_to_go = 32;
     const depth_t exact_time_base_divider = 4;
     const movcr_t min_moves_for_exact_time = 5;
-    const depth_t time_to_think_devider = 2;
+    const depth_t time_to_think_divider = 2;
     const depth_t increment_time_divider = 4;
 
     const depth_t min_depth_to_show_uci_info = 6;
@@ -72,51 +72,61 @@ protected:
 
 public:
 
+    struct time_s
+    {
+        Timer timer;
+        double time0;
+        double time_spent, time_to_think;
+        depth_t move_remains;
+        bool spent_exact_time;
+        double time_base, time_inc, time_remains, total_time_spent;
+        depth_t moves_per_session, max_search_depth;
+        node_t max_nodes_to_search;
+        movcr_t moves_to_go;
+        bool time_command_sent, infinite_analyze;
+    };
 
-    double time_base, time_inc, time_remains, total_time_spent;
-    depth_t moves_per_session, max_search_depth;
-    bool time_command_sent;
-    bool stop, infinite_analyze, busy;
+    struct stats_s
+    {
+        node_t nodes, total_nodes;
+        node_t q_nodes;
+        count_t cut_cr, cut_num_cr[5], q_cut_cr, q_cut_num_cr[5];
+        count_t null_probe_cr, null_cut_cr, hash_probe_cr;
+        count_t hash_hit_cr, hash_cut_cr;
+        count_t hash_best_move_cr, hash_cutoff_by_best_move_cr;
+        count_t futility_probes, futility_hits;
+        count_t killer1_probes, killer1_hits, killer2_probes, killer2_hits;
+    };
+
+    time_s time_control;
+    stats_s stats;
+
+    bool stop, busy;
     bool uci, xboard, enable_output;
     bool pondering_in_process;
-    node_t nodes, max_nodes_to_search, total_nodes;
+
     const char *engine_version;
 
 
 protected:
-
-
-    const char *debug_variation;
-    depth_t debug_ply;
-
-    Timer timer;
-    double time0;
-    double time_spent, time_to_think;
-    node_t q_nodes;
-    depth_t root_ply;
-    movcr_t max_root_moves, root_move_cr;
-    count_t cut_cr, cut_num_cr[5], q_cut_cr, q_cut_num_cr[5];
-    count_t null_probe_cr, null_cut_cr, hash_probe_cr;
-    count_t hash_hit_cr, hash_cut_cr;
-    count_t hash_best_move_cr, hash_cutoff_by_best_move_cr;
-    count_t futility_probes, futility_hits;
-    count_t killer1_probes, killer1_hits, killer2_probes, killer2_hits;
-    depth_t finaly_made_moves, moves_remains;
-    bool spent_exact_time;
-    depth_t resign_cr;
-    bool randomness;
-
-    std::vector<std::pair<node_t, move_c> > root_moves;
-    hash_table_c hash_table;
 
     // Structure for storing current state of engine
     struct state_s
     {
         bool in_check;
     };
+
+    const char *debug_variation;
+    depth_t root_ply, debug_ply, halfmoves_made, resign_cr;
+    movcr_t max_root_moves, root_move_cr;
+    bool randomness;
+
+    std::vector<std::pair<node_t, move_c> > root_moves;
+    hash_table_c hash_table;
+
     state_s eng_state[prev_states + max_ply]; // engine state for each ply
     state_s *state;  // pointer to engine state
-    depth_t seed;
+    depth_t seed;  // randomness state (0-15)
 
 
 public:
@@ -181,7 +191,8 @@ protected:
                       move_c * const ans);
     bool GetSecondMove(move_c * const move_array, movcr_t * const max_moves,
                        move_c prev_move, move_c *ans);
-    size_t FindMaxMoveIndex(move_c * const move_array, const movcr_t max_moves,
+    size_t FindMaxMoveIndex(move_c * const move_array,
+                            const movcr_t max_moves,
                             const movcr_t cur_move);
 
     void CorrectHashScore(eval_t *x, depth_t depth)
@@ -249,7 +260,9 @@ protected:
 
     bool FutilityPruning(depth_t depth, eval_t beta, bool in_check)
     {
-        const eval_t margin[3] = {futility_marg0, futility_marg1, futility_marg2};
+        const eval_t margin[3] = {futility_marg0,
+                                  futility_marg1,
+                                  futility_marg2};
         if(depth > futility_max_depth || in_check || beta >= mate_score)
             return false;
         if(k2chess::state[ply].captured_piece != empty_square ||
@@ -261,12 +274,12 @@ protected:
                     quantity[black][pawn] + quantity[white][pawn] == 0)
             return false;
         }
-        futility_probes++;
+        stats.futility_probes++;
         auto score = ReturnEval(wtm);
         if(score <= margin[depth] + beta)
             return false;
 
-        futility_hits++;
+        stats.futility_hits++;
         return true;
     }
 

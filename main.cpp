@@ -116,8 +116,8 @@ bool k2main::ExecuteCommand(const std::string in)
         {"test",        &k2main::TestCommand},
         {"fen",         &k2main::FenCommand},
         {"xboard",      &k2main::XboardCommand},
-        {"easy",        &k2main::EasyCommand},
-        {"hard",        &k2main::HardCommand},
+        {"easy",        &k2main::Unsupported},
+        {"hard",        &k2main::Unsupported},
         {"memory",      &k2main::MemoryCommand},
         {"analyze",     &k2main::AnalyzeCommand},
         {"post",        &k2main::PostCommand},
@@ -166,7 +166,8 @@ bool k2main::ExecuteCommand(const std::string in)
 
 
 //--------------------------------
-void k2main::GetFirstArg(const std::string in,  std::string * const first_word,
+void k2main::GetFirstArg(const std::string in,
+                         std::string * const first_word,
                          std::string * const all_the_rest) const
 {
     if(in.empty())
@@ -236,21 +237,24 @@ void k2main::NewCommand(const std::string in)
     pondering_in_process = false;
     if(!xboard && !uci && enable_output)
     {
-        if(total_time_spent == 0)
-            total_time_spent = 1e-5;
+        if(time_control.total_time_spent == 0)
+            time_control.total_time_spent = 1e-5;
         std::cout
-                << "( Total node count: " << total_nodes
-                << ", total time spent: " << total_time_spent / 1000000.0
+                << "( Total node count: "
+                << stats.total_nodes
+                << ", total time spent: "
+                << time_control.total_time_spent / 1000000.0
                 << " )" << std::endl
                 << std::setprecision(4) << std::fixed
-                << "( MNPS = " << total_nodes / total_time_spent
+                << "( MNPS = " << stats.total_nodes /
+                   time_control.total_time_spent
                 << " )" << std::endl;
     }
     SetupPosition(start_position);
     ClearHash();
     seed = std::time(nullptr) % (1 << max_moves_to_shuffle);
     if(uci)
-        moves_per_session = 0;
+        time_control.moves_per_session = 0;
 }
 
 
@@ -268,7 +272,7 @@ void k2main::SetboardCommand(const std::string in)
 
     if(!SetupPosition(const_cast<char *>(in1.c_str())))
         std::cout << "Illegal position" << std::endl;
-    else if(infinite_analyze && xboard)
+    else if(time_control.infinite_analyze && xboard)
         AnalyzeCommand(in);
 }
 
@@ -300,16 +304,16 @@ void k2main::PerftCommand(const std::string in)
     clock.start();
     const auto tick1 = clock.getElapsedTimeInMicroSec();
 
-    nodes = 0;
-    max_search_depth = atoi(in.c_str());
-    Perft(max_search_depth);
-    max_search_depth = k2chess::max_ply;
+    stats.nodes = 0;
+    time_control.max_search_depth = atoi(in.c_str());
+    Perft(time_control.max_search_depth);
+    time_control.max_search_depth = k2chess::max_ply;
     const auto tick2 = clock.getElapsedTimeInMicroSec();
     const auto deltaTick = tick2 - tick1;
 
-    std::cout << std::endl << "nodes = " << nodes << std::endl
+    std::cout << std::endl << "nodes = " << stats.nodes << std::endl
               << "dt = " << deltaTick / 1000000. << std::endl
-              << "Mnps = " << nodes / (deltaTick + 1)
+              << "Mnps = " << stats.nodes / (deltaTick + 1)
               << std::endl << std::endl;
 }
 
@@ -373,12 +377,12 @@ void k2main::LevelCommand(const std::string in)
 
     inc = atof(arg3.c_str());
 
-    time_base = 60*1000000.*base;
-    time_inc = 1000000*inc;
-    moves_per_session = mps;
-    time_remains = time_base;
-    max_nodes_to_search = 0;
-    max_search_depth = k2chess::max_ply;
+    time_control.time_base = 60*1000000.*base;
+    time_control.time_inc = 1000000*inc;
+    time_control.moves_per_session = mps;
+    time_control.time_remains = time_control.time_base;
+    time_control.max_nodes_to_search = 0;
+    time_control.max_search_depth = k2chess::max_ply;
 }
 
 
@@ -405,11 +409,11 @@ void k2main::SetNodesCommand(const std::string in)
 {
     if(busy)
         return;
-    time_base = 0;
-    moves_per_session = 0;
-    time_inc = 0;
-    max_nodes_to_search = atoi(in.c_str());
-    max_search_depth = k2chess::max_ply;
+    time_control.time_base = 0;
+    time_control.moves_per_session = 0;
+    time_control.time_inc = 0;
+    time_control.max_nodes_to_search = atoi(in.c_str());
+    time_control.max_search_depth = k2chess::max_ply;
 }
 
 
@@ -421,12 +425,12 @@ void k2main::SetTimeCommand(const std::string in)
 {
     if(busy)
         return;
-    time_base = 0;
-    moves_per_session = 1;
-    time_inc = atof(in.c_str())*1000000.;
-    max_nodes_to_search = 0;
-    max_search_depth = k2chess::max_ply;
-    time_remains = 0;
+    time_control.time_base = 0;
+    time_control.moves_per_session = 1;
+    time_control.time_inc = atof(in.c_str())*1000000.;
+    time_control.max_nodes_to_search = 0;
+    time_control.max_search_depth = k2chess::max_ply;
+    time_control.time_remains = 0;
 }
 
 
@@ -438,7 +442,7 @@ void k2main::SetDepthCommand(const std::string in)
 {
     if(busy)
         return;
-    max_search_depth = atoi(in.c_str());
+    time_control.max_search_depth = atoi(in.c_str());
 }
 
 
@@ -459,7 +463,7 @@ void k2main::ProtoverCommand(const std::string in)
 
     const string feat = "feature ";
 
-    cout << feat << "myname=\"K2 v." << engine_version << "\"" << endl;
+    cout << feat << "myname=\"K2 v" << engine_version << "\"" << endl;
     cout << feat << "setboard=1" << endl;
     cout << feat << "analyze=1" << endl;
     cout << feat << "san=0" << endl;
@@ -519,8 +523,8 @@ void k2main::TimeCommand(const std::string in)
         return;
     }
     const auto tb = atof(in.c_str()) * 10000;
-    time_remains = tb;
-    time_command_sent = true;
+    time_control.time_remains = tb;
+    time_control.time_command_sent = true;
 }
 
 
@@ -556,8 +560,8 @@ void k2main::TestCommand(const std::string in)
     bool store_uci = uci;
     bool store_enable_output = enable_output;
     bool store_randomness = randomness;
-    bool store_inf_analyze = infinite_analyze;
-    depth_t store_max_depth = max_search_depth;
+    bool store_inf_analyze = time_control.infinite_analyze;
+    depth_t store_max_depth = time_control.max_search_depth;
     Timer clock;
     clock.start();
     auto tick1 = clock.getElapsedTimeInMicroSec();
@@ -575,12 +579,12 @@ void k2main::TestCommand(const std::string in)
 
         auto tick2 = clock.getElapsedTimeInMicroSec();
         auto delta_tick = tick2 - tick1;
-        std::cout << "Perft: total nodes = " << total_nodes
+        std::cout << "Perft: total nodes = " << stats.total_nodes
                   << ", dt = " << delta_tick / 1000000.
-                  << ", Mnps = " << total_nodes / (delta_tick + 1)
+                  << ", Mnps = " << stats.total_nodes / (delta_tick + 1)
                   << std::endl;
 
-        total_nodes = 0;
+        stats.total_nodes = 0;
         enable_output = false;
         uci = true;
         randomness = false;
@@ -605,21 +609,21 @@ void k2main::TestCommand(const std::string in)
 
         tick2 = clock.getElapsedTimeInMicroSec();
         delta_tick = tick2 - tick1;
-        std::cout << "Search: total nodes = " << total_nodes
+        std::cout << "Search: total nodes = " << stats.total_nodes
                   << ", dt = " << delta_tick / 1000000.
-                  << ", Mnps = " << total_nodes / (delta_tick + 1)
+                  << ", Mnps = " << stats.total_nodes / (delta_tick + 1)
                   << std::endl;
-        total_nodes = 0;
+        stats.total_nodes = 0;
 
         std::cout << "All integration tests passed\n";
         ans = true;
         break;
     }
-    max_search_depth = store_max_depth;
+    time_control.max_search_depth = store_max_depth;
     enable_output = store_enable_output;
     uci = store_uci;
     randomness = store_randomness;
-    infinite_analyze = store_inf_analyze;
+    time_control.infinite_analyze = store_inf_analyze;
     SetupPosition(start_position);
     if(!ans)
         std::cout << "Integration testing FAILED\n";
@@ -651,7 +655,7 @@ void k2main::XboardCommand(const std::string in)
     std::cout << "( build time: "
               << __DATE__ << " " << __TIME__
               << " )" << std::endl;
-    total_nodes = 0;
+    stats.total_nodes = 0;
 }
 
 
@@ -685,7 +689,7 @@ void k2main::UciCommand(const std::string in)
          << endl;
     cout << "uciok" << endl;
 
-    total_nodes = 0;
+    stats.total_nodes = 0;
 }
 
 
@@ -823,7 +827,7 @@ void k2main::UciGoCommand(const std::string in)
             break;
         if(arg1 == "infinite")
         {
-            infinite_analyze = true;
+            time_control.infinite_analyze = true;
             break;
         }
 
@@ -834,13 +838,13 @@ void k2main::UciGoCommand(const std::string in)
             if((clr == 'w' && WhiteIsOnMove())
                     || (clr == 'b' && !WhiteIsOnMove()))
             {
-                time_base = 1000.*atof(arg1.c_str());
-                time_remains = time_base;
-                max_nodes_to_search = 0;
-                max_search_depth = k2chess::max_ply;
+                time_control.time_base = 1000.*atof(arg1.c_str());
+                time_control.time_remains = time_control.time_base;
+                time_control.max_nodes_to_search = 0;
+                time_control.max_search_depth = k2chess::max_ply;
 
                 // crutch: engine must know that time changed by GUI
-                time_command_sent = true;
+                time_control.time_command_sent = true;
             }
             arg1 = arg2;
         }
@@ -850,46 +854,45 @@ void k2main::UciGoCommand(const std::string in)
             GetFirstArg(arg2, &arg1, &arg2);
             if((clr == 'w' && WhiteIsOnMove())
                     || (clr == 'b' && !WhiteIsOnMove()))
-                time_inc         = 1000.*atof(arg1.c_str());
+                time_control.time_inc = 1000.*atof(arg1.c_str());
             arg1 = arg2;
         }
         else if(arg1 == "movestogo")
         {
             GetFirstArg(arg2, &arg1, &arg2);
-            if(moves_per_session == 0)
-                moves_per_session = atoi(arg1.c_str());
+            time_control.moves_per_session = atoi(arg1.c_str());
             arg1 = arg2;
             no_movestogo_arg = false;
         }
         else if(arg1 == "movetime")
         {
             GetFirstArg(arg2, &arg1, &arg2);
-            time_base = 0;
-            moves_per_session = 1;
-            time_inc = 1000.*atof(arg1.c_str());
-            max_nodes_to_search = 0;
-            max_search_depth = k2chess::max_ply;
-            time_remains = 0;
+            time_control.time_base = 0;
+            time_control.moves_per_session = 1;
+            time_control.time_inc = 1000.*atof(arg1.c_str());
+            time_control.max_nodes_to_search = 0;
+            time_control.max_search_depth = k2chess::max_ply;
+            time_control.time_remains = 0;
 
             arg1 = arg2;
         }
         else if(arg1 == "depth")
         {
             GetFirstArg(arg2, &arg1, &arg2);
-            max_search_depth = atoi(arg1.c_str());
-            time_base = INFINITY;
-            time_remains = time_base;
-            max_nodes_to_search = 0;
+            time_control.max_search_depth = atoi(arg1.c_str());
+            time_control.time_base = INFINITY;
+            time_control.time_remains = time_control.time_base;
+            time_control.max_nodes_to_search = 0;
 
             arg1 = arg2;
         }
         else if(arg1 == "nodes")
         {
             GetFirstArg(arg2, &arg1, &arg2);
-            time_base = INFINITY;
-            time_remains = time_base;
-            max_nodes_to_search = atoi(arg1.c_str());
-            max_search_depth = k2chess::max_ply;
+            time_control.time_base = INFINITY;
+            time_control.time_remains = time_control.time_base;
+            time_control.max_nodes_to_search = atoi(arg1.c_str());
+            time_control.max_search_depth = k2chess::max_ply;
 
             arg1 = arg2;
         }
@@ -903,27 +906,7 @@ void k2main::UciGoCommand(const std::string in)
 
     }
     if(no_movestogo_arg)
-        moves_per_session = 0;
-}
-
-
-
-
-
-//--------------------------------
-void k2main::EasyCommand(const std::string in)
-{
-    (void)(in);
-}
-
-
-
-
-
-//--------------------------------
-void k2main::HardCommand(const std::string in)
-{
-    (void)(in);
+        time_control.moves_per_session = 0;
 }
 
 
@@ -962,7 +945,7 @@ void k2main::AnalyzeCommand(const std::string in)
     (void)(in);
 
     force = false;
-    infinite_analyze = true;
+    time_control.infinite_analyze = true;
 
     if(use_thread)
     {
@@ -982,7 +965,7 @@ void k2main::AnalyzeCommand(const std::string in)
 void k2main::ExitCommand(const std::string in)
 {
     StopCommand(in);
-    infinite_analyze = false;
+    time_control.infinite_analyze = false;
 }
 
 

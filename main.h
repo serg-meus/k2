@@ -29,6 +29,7 @@ protected:
 
     bool force;
     bool quit;
+    bool pondering_enabled;
     bool use_thread;
 
     std::thread thr;
@@ -83,13 +84,13 @@ protected:
 
     bool test_perft(const char *pos, depth_t depth, node_t node_cr)
     {
-        nodes = 0;
+        stats.nodes = 0;
         SetupPosition(pos);
         Perft(depth);
-        total_nodes += nodes;
-        if(nodes != node_cr)
+        stats.total_nodes += stats.nodes;
+        if(stats.nodes != node_cr)
             std::cout << "failed at " << pos << std::endl;
-        return nodes == node_cr;
+        return stats.nodes == node_cr;
     }
 
     bool test_search(const char *pos, depth_t depth, const char *best_move,
@@ -98,8 +99,8 @@ protected:
         bool ans = true;
         SetupPosition(pos);
         ClearHash();
-        max_search_depth = depth;
-        infinite_analyze = true;
+        time_control.max_search_depth = depth;
+        time_control.infinite_analyze = true;
         MainSearch();
         char move_str[6];
         MoveToStr(pv[0].moves[0], wtm, move_str);
