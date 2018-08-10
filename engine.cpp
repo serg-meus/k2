@@ -430,7 +430,7 @@ void k2engine::MainSearch()
     time_control.total_time_spent += time_control.time_spent;
     time_control.timer.stop();
 
-    if(!time_control.infinite_analyze && max_root_moves > 0)
+    if(!time_control.infinite_analyze || (uci && enable_output))
         PrintFinalSearchResult();
     if(uci)
         time_control.infinite_analyze = false;
