@@ -324,12 +324,10 @@ void k2main::PerftCommand(const std::string in)
 //--------------------------------
 void k2main::GoCommand(const std::string in)
 {
-    (void)(in);
-
     if(busy)
         return;
 
-    if(uci)
+    if(uci || !in.empty())
         UciGoCommand(in);
     else
         force = false;
@@ -828,7 +826,7 @@ void k2main::UciGoCommand(const std::string in)
         if(arg1 == "infinite")
         {
             time_control.infinite_analyze = true;
-            break;
+            arg1 = arg2;
         }
 
         else if(arg1 == "wtime" || arg1 == "btime")
@@ -899,6 +897,22 @@ void k2main::UciGoCommand(const std::string in)
         else if(arg1 == "ponder")
         {
             pondering_in_process = true;
+            arg1 = arg2;
+        }
+        else if(arg1 == "searchmoves")
+        {
+            while(true)
+            {
+                GetFirstArg(arg2, &arg1, &arg2);
+                if(!LooksLikeMove(arg1))
+                    break;
+                auto move = MoveFromStr(arg1.c_str());
+                arg1 = arg2;
+                if(move.flag == not_a_move || !IsPseudoLegal(move) ||
+                        !IsLegal(move))
+                    continue;
+                root_moves_to_search.push_back(move);
+            }
             arg1 = arg2;
         }
         else

@@ -122,6 +122,7 @@ protected:
     bool randomness;
 
     std::vector<std::pair<node_t, move_c> > root_moves;
+    std::vector<move_c> root_moves_to_search;
     hash_table_c hash_table;
 
     state_s eng_state[prev_states + max_ply]; // engine state for each ply

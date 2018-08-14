@@ -605,15 +605,17 @@ void k2engine::RootMoveGen()
         cur_move = NextMove(move_array, move_cr, &max_moves,
                         no_move, false, all_moves, cur_move);
     }
-
     root_moves.clear();
     for(movcr_t move_cr = 0; move_cr < max_moves; move_cr++)
     {
         cur_move = move_array[move_cr];
+        auto rms = &root_moves_to_search;
+        if(rms->size() != 0 &&
+                std::find(rms->begin(), rms->end(), cur_move) == rms->end())
+            continue;
         root_moves.push_back(std::pair<node_t, move_c>(0, cur_move));
         max_root_moves++;
     }
-
     if(root_ply != 1)
         return;
 
