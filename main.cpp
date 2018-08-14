@@ -818,6 +818,7 @@ void k2main::UciGoCommand(const std::string in)
     bool no_movestogo_arg = true;
     std::string arg1, arg2;
     arg1 = in;
+    root_moves_to_search.clear();
     while(true)
     {
         GetFirstArg(arg1, &arg1, &arg2);
