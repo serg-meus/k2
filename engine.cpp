@@ -891,7 +891,10 @@ void k2engine::InitTime()
              time_control.time_base/exact_time_base_divider))
         time_control.spent_exact_time = true;
 
-    if(time_control.moves_to_go == halfmoves_made/2)
+
+    if((uci && time_control.move_remains == 1) ||
+            (!uci && time_control.moves_per_session != 0 &&
+             (halfmoves_made/2 % time_control.moves_per_session) == 0))
     {
         if(!time_control.time_command_sent)
             time_control.time_remains += time_control.time_base;
@@ -907,6 +910,7 @@ void k2engine::InitTime()
             std::cout << "( ht cleared )\n";
 #endif
         }
+        time_control.move_remains = 0;
     }
 #ifndef NDEBUG
     std::cout << "( halfmoves=" << halfmoves_made <<
@@ -927,6 +931,9 @@ void k2engine::InitTime()
                 time_control.time_inc/increment_time_divider;
 
     time_control.time_command_sent = false;
+    if(uci)
+        time_control.move_remains =
+                time_control.moves_per_session == 1 ? 1 : 0;
 }
 
 
