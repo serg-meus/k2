@@ -156,6 +156,13 @@ protected:
                         std::abs(get_row(from_coord) - get_row(to_coord)));
     }
 
+    bool is_same_color(coord_t coord1, coord_t coord2)
+    {
+        const auto sum_coord1 = get_col(coord1) + get_row(coord1);
+        const auto sum_coord2 = get_col(coord2) + get_row(coord2);
+        return (sum_coord1 & 1) == (sum_coord2 & 1);
+    }
+
 
 private:
 

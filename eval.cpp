@@ -374,7 +374,7 @@ void k2eval::MaterialImbalances()
             val_end -= bishop_val_end + pawn_val_end/4;
     }
     // KNNk, KBNk, KBBk, etc
-    else if(X == 6 && (material[0] == 0 || material[1] == 0))
+    else if(X == 6 && (material[black] == 0 || material[white] == 0))
     {
         if(quantity[white][pawn] != 0 || quantity[black][pawn] != 0)
             return;
@@ -421,14 +421,20 @@ void k2eval::MaterialImbalances()
     {
         if(quantity[black][pawn] + quantity[white][pawn] != 1)
             return;
-        // KBPk or KNPk with pawn at first(last) file
+        // KBPk with pawn at first(last) file and bishop with 'good' color
         const bool stm = material[white] == 0;
         const auto pawn_col_min = pawn_max[0][!stm];
         const auto pawn_col_max = pawn_max[max_col][!stm];
         if(pawn_col_max == 0 && pawn_col_min == 0)
             return;
+        auto it = ++coords[!stm].begin();
+        if(get_type(b[*it]) != bishop)
+            return;
         const auto sq = get_coord(pawn_col_max == 0 ? 0 : max_col,
                                   stm ? 0 : max_row);
+        if(is_same_color(*it, sq))
+            return;
+
         if(king_dist(*king_coord[stm], sq) <= 1)
         {
             val_opn = 0;
@@ -498,10 +504,7 @@ void k2eval::MaterialImbalances()
             ++b_it;
         assert(b_it != coords[white].rend());
 
-        const auto sum_coord_w = get_col(*w_it) + get_row(*w_it);
-        const auto sum_coord_b = get_col(*b_it) + get_row(*b_it);
-
-        if((sum_coord_w & 1) != (sum_coord_b & 1))
+        if(!is_same_color(*w_it, *b_it))
         {
             if(material[white]/centipawn - pieces[white] == 4 - 2
                     && material[black]/centipawn - pieces[black] == 4 - 2)
@@ -1251,27 +1254,30 @@ void k2eval::RunUnitTests()
     SetupPosition("5k2/8/8/nb6/8/8/8/4K3 w - -");  // Kknb
     MaterialImbalances();
     assert(val_end < -kinght_val_end - bishop_val_end + pawn_val_end);
-    SetupPosition("5k2/8/8/1b6/8/7p/8/7K w - -");  // Kkbp drawn
+    SetupPosition("5k2/8/8/1b6/8/7p/8/7K w - -");  // Kkbp not drawn
     MaterialImbalances();
-    assert(val_opn == 0 && val_end == 0);
+    assert(val_end < -bishop_val_end - pawn_val_end/2);
     SetupPosition("7k/8/7P/1B6/8/8/8/6K1 w - -");  // KBPk drawn
     MaterialImbalances();
     assert(val_opn == 0 && val_end == 0);
-    SetupPosition("5k2/8/8/1b6/7p/8/6K1/8 w - -");  // Kkbp drawn
+    SetupPosition("5k2/8/8/3b4/p7/8/K7/8 w - -");  // Kkbp drawn
     MaterialImbalances();
     assert(val_opn == 0 && val_end == 0);
-    SetupPosition("7k/8/P7/1B6/8/8/8/6K1 w - -");  // KBPk winning
+    SetupPosition("7k/8/P7/1B6/8/8/8/6K1 w - -");  // KBPk not drawn
     MaterialImbalances();
     assert(val_end > bishop_val_end + pawn_val_end/2);
-    SetupPosition("2k5/8/P7/1B6/8/8/8/6K1 w - -");  // KBPk winning
+    SetupPosition("2k5/8/P7/1B6/8/8/8/6K1 w - -");  // KBPk not drawn
     MaterialImbalances();
     assert(val_end > bishop_val_end + pawn_val_end/2);
-    SetupPosition("1K6/8/P7/1B6/8/8/8/6k1 w - -");  // KBPk winning
+    SetupPosition("1K6/8/P7/1B6/8/8/8/6k1 w - -");  // KBPk not drawn
     MaterialImbalances();
     assert(val_end > bishop_val_end + pawn_val_end/2);
-    SetupPosition("1k6/8/1P6/1B6/8/8/8/6K1 w - -");  // KBPk winning
+    SetupPosition("1k6/8/1P6/1B6/8/8/8/6K1 w - -");  // KBPk not drawn
     MaterialImbalances();
     assert(val_end > bishop_val_end + pawn_val_end/2);
+    SetupPosition("1k6/8/8/P7/8/4N3/8/6K1 w - -");  // KNPk
+    MaterialImbalances();
+    assert(val_end > kinght_val_end + pawn_val_end/2);
     SetupPosition("8/8/8/5K2/2k5/8/2P5/8 b - -");  // KPk
     MaterialImbalances();
     assert(val_opn == 0 && val_end == 0);
