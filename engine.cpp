@@ -403,7 +403,8 @@ void k2engine::MainSearch()
             if(std::abs(x) > mate_score && std::abs(prev_x) > mate_score
                     && !stop && root_ply >= 2)
                 break;
-            if(max_root_moves == 1 && root_ply >= max_depth_for_single_move)
+            if(max_root_moves == 1 && root_ply >= max_depth_for_single_move
+                    && root_moves_to_search.empty())
                 break;
         }
         if(stop || root_ply >= time_control.max_search_depth)
