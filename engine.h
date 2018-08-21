@@ -239,7 +239,7 @@ protected:
                 IsPasser(get_col(cur_move.to_coord), !wtm))
             ans = 0;
         else if(depth <= lmr_big_depth && move_cr > lmr_big_max_move &&
-                node_type == all_node)
+                node_type != pv_node)
             ans = 2;
         return ans;
     }
