@@ -35,6 +35,8 @@ QMAKE_CXXFLAGS_RELEASE -= -O2
 # add the desired -O3 if not present
 QMAKE_CXXFLAGS_RELEASE *= -O3
 
+LIBS += -pthread
+
 debug_and_release {
     CONFIG -= debug_and_release
     CONFIG += debug_and_release
@@ -49,7 +51,6 @@ CONFIG(release, debug|release) {
     CONFIG -= debug release
     CONFIG += release
     DEFINES += NDEBUG
-    LIBS += -pthread
     win32:QMAKE_LFLAGS += -static
     win32:DEFINES += WIN32
 }
