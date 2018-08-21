@@ -462,4 +462,5 @@ private:
                               const coord_t to_coord) const;
     ray_mask_t GetKingMask(const coord_t piece_coord,
                               const coord_t to_coord) const;
+    bool IsLegalKingMove(const move_c move, coord_t from_coord);
 };

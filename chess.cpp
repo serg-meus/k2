@@ -38,34 +38,34 @@ void k2chess::InitMobility(const bool color)
     memset(mobility[color], 0, sizeof(mobility[0]));
     for(auto it = coords[color].rbegin(); it != coords[color].rend(); ++it)
     {
-		const auto type = get_type(b[*it]);
-		if(type == pawn)
-			continue;
+                const auto type = get_type(b[*it]);
+                if(type == pawn)
+                        continue;
         for(auto ray = ray_min[type]; ray < ray_max[type]; ++ray)
-		{
+                {
             const int d_col = type == knight ? delta_col_knight[ray] :
                                                delta_col_kqrb[ray];
             const int d_row = type == knight ? delta_row_knight[ray] :
                                                delta_row_kqrb[ray];
-			int col = get_col(*it);
-			int row = get_row(*it);
+                        int col = get_col(*it);
+                        int row = get_row(*it);
             for(size_t i = 0; i < max_ray_length; ++i)
-			{
-				col += d_col;
-				row += d_row;
-				if(!col_within(col) || !row_within(row))
-					break;
-				const auto sq = b[get_coord(col, row)];
-				if(sq != empty_square && get_color(sq) == color)
-					break;
+                        {
+                                col += d_col;
+                                row += d_row;
+                                if(!col_within(col) || !row_within(row))
+                                        break;
+                                const auto sq = b[get_coord(col, row)];
+                                if(sq != empty_square && get_color(sq) == color)
+                                        break;
                 auto index = it.get_array_index();
                 mobility[color][index][ray]++;
-				if(!is_slider[type])
-					break;
-				if(sq != empty_square && get_color(sq) != color)
-					break;
-			}
-		}
+                                if(!is_slider[type])
+                                        break;
+                                if(sq != empty_square && get_color(sq) != color)
+                                        break;
+                        }
+                }
     }
 }
 
@@ -1496,16 +1496,9 @@ bool k2chess::IsLegalCastle(const move_c move) const
 bool k2chess::IsOnRay(const coord_t given, const coord_t ray_coord1,
                       const coord_t ray_coord2) const
 {
-    if(given == ray_coord2)
-        return true;
-
-    const auto col = get_col(given);
-    const auto row = get_row(given);
-    const auto min_col = std::min(get_col(ray_coord1), get_col(ray_coord2));
-    const auto min_row = std::min(get_row(ray_coord1), get_row(ray_coord2));
-    const auto max_col = std::max(get_col(ray_coord1), get_col(ray_coord2));
-    const auto max_row = std::max(get_row(ray_coord1), get_row(ray_coord2));
-    if(col < min_col || col > max_col || row < min_row || row > max_row)
+    if(ray_coord1 > ray_coord2 && (given > ray_coord1 || given < ray_coord2))
+        return false;
+    if(ray_coord1 < ray_coord2 && (given < ray_coord1 || given > ray_coord2))
         return false;
 
     const auto dx1 = get_col(ray_coord2) - get_col(ray_coord1);
@@ -1517,7 +1510,10 @@ bool k2chess::IsOnRay(const coord_t given, const coord_t ray_coord1,
         return false;
     if(dx2 != 0 && dy2 != 0 && std::abs(dx2) != std::abs(dy2))
         return false;
-    return sgn(dx1) == sgn(dx2) && sgn(dy1) == sgn(dy2);
+    if(sgn(dx1) != sgn(dx2) || sgn(dy1) != sgn(dy2))
+        return false;
+
+    return true;
 }
 
 
@@ -1603,79 +1599,67 @@ bool k2chess::IsDiscoveredAttack(const coord_t fr_coord,
 
 
 //--------------------------------
-bool k2chess::IsLegal(const move_c move)
+bool k2chess::IsLegalKingMove(const move_c move, coord_t from_coord)
 {
-    auto it = coords[wtm].at(move.piece_index);
-    const auto piece_type = get_type(b[*it]);
-    if(piece_type == king)
+    if(move.flag & is_castle)
+        return IsLegalCastle(move);
+    if(attacks[!wtm][move.to_coord] != 0)
+        return false;
+
+    auto att_mask = attacks[!wtm][from_coord] & slider_mask[!wtm];
+    while(att_mask)
     {
-        if(!(move.flag & is_castle))
-        {
-            if(attacks[!wtm][move.to_coord] == 0)
-            {
-                const auto att_mask = attacks[!wtm][*it] & slider_mask[!wtm];
-                if(!att_mask)
-                    return true;
-                for(size_t i = 0; i < attack_digits; ++i)
-                {
-                    if(!((att_mask >> i) & 1))
-                        continue;
-                    if(!(att_mask >> i))
-                        break;
-                    const auto attacker_coord = *coords[!wtm].at(i);
-                    if(IsOnRay( *it, move.to_coord, attacker_coord))
-                        return false;
-                }
-                return true;
-            }
-            else
-                return false;
-        }
-        else
-            return IsLegalCastle(move);
-    }
-    else
-    {
-        const auto k = *king_coord[wtm];
-        auto attack_sum = attacks[!wtm][k];
-        const auto king_attackers =
-                std::bitset<attack_digits>(attack_sum).count();
-        assert(king_attackers <= 2);
-        if(king_attackers == 2)
+        const auto index = __builtin_ctz(att_mask);
+        att_mask ^= (1 << index);
+        const auto attacker_coord = *coords[!wtm].at(index);
+        if(IsOnRay(from_coord, move.to_coord, attacker_coord))
             return false;
-        if(move.flag & is_en_passant)
-        {
-            if(IsDiscoveredAttack(*it, *it, slider_mask[!wtm]))
-                return false;
-        }
-        const auto att_mask = attacks[!wtm][*it] & slider_mask[!wtm];
-        if(att_mask && IsDiscoveredAttack(*it, move.to_coord, att_mask))
-            return false;
-        if(king_attackers == 1)
-        {
-            auto attacker_id = 0;
-            for(;;)
-                if(attack_sum >>= 1)
-                    attacker_id++;
-                else
-                    break;
-            const auto attacker_coord = *coords[!wtm].at(attacker_id);
-            if(is_slider[get_type(b[attacker_coord])])
-                return IsOnRay(move.to_coord, *king_coord[wtm],
-                               attacker_coord);
-            else
-            {
-                if(move.to_coord == attacker_coord)
-                    return true;
-                else return ((move.flag & is_en_passant) &&
-                             move.to_coord == attacker_coord +
-                             (wtm ? board_width : -board_width));
-            }
-        }
     }
     return true;
-
 }
+
+
+
+
+
+//--------------------------------
+bool k2chess::IsLegal(const move_c move)
+{
+    const auto from_coord = *coords[wtm].at(move.piece_index);
+    const auto piece_type = get_type(b[from_coord]);
+    if(piece_type == king)
+        return IsLegalKingMove(move, from_coord);
+    if(move.flag & is_en_passant &&
+            IsDiscoveredAttack(from_coord, from_coord, slider_mask[!wtm]))
+        return false;
+    const auto k_crd = *king_coord[wtm];
+    auto attack_sum = attacks[!wtm][k_crd];
+    const auto king_attackers =
+            std::bitset<attack_digits>(attack_sum).count();
+    assert(king_attackers <= 2);
+    if(king_attackers == 2)
+        return false;
+    const auto att_mask = attacks[!wtm][from_coord] & slider_mask[!wtm];
+    if(att_mask && IsDiscoveredAttack(from_coord, move.to_coord, att_mask))
+        return false;
+    if(king_attackers == 0)
+        return true;
+
+    const auto attacker_id = __builtin_ctz(attack_sum);
+    const auto attacker_coord = *coords[!wtm].at(attacker_id);
+    if(is_slider[get_type(b[attacker_coord])])
+        return IsOnRay(move.to_coord, k_crd, attacker_coord);
+
+    if(move.to_coord == attacker_coord)
+        return true;
+
+    if((move.flag & is_en_passant) && move.to_coord == attacker_coord +
+            (wtm ? board_width : -board_width))
+        return true;
+
+    return false;
+}
+
 
 
 
@@ -1725,7 +1709,7 @@ void k2chess::test_attack_tables(const size_t att_w, const size_t att_b)
 //--------------------------------
 size_t k2chess::test_mobility(const bool color)
 {
-	size_t ans = 0;
+        size_t ans = 0;
     for(auto index = 0; index < max_pieces_one_side; ++index)
         for(auto ray = 0; ray < max_rays; ++ray)
             ans += mobility[color][index][ray];
@@ -2072,7 +2056,7 @@ void k2chess::RunUnitTests()
     TakebackMove();
     assert(MakeMove("e1g1"));
 
-    assert(SetupPosition("4k3/4r3/8/b7/1N5q/4B3/5P2/4K3 w - - 0 1"));
+    assert(SetupPosition("4k3/4r3/8/b7/1N5q/4B3/5P2/2R1K3 w - - 0 1"));
     assert(!MakeMove("b4a2"));
     assert(!MakeMove("e3g5"));
     assert(!MakeMove("f2f3"));
@@ -2083,6 +2067,9 @@ void k2chess::RunUnitTests()
     assert(!MakeMove("e2d3"));
     TakebackMove();
     assert(!MakeMove("f2f3"));
+    assert(MakeMove("c1a1"));
+    assert(MakeMove("a5b4"));
+    assert(!MakeMove("e3d2"));
 
     assert(SetupPosition("4k3/3ppp2/4b3/1n5Q/B7/8/4R3/4K3 b - - 0 1"));
     assert(MakeMove("b5a7"));
