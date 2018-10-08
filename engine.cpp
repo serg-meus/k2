@@ -498,7 +498,7 @@ k2chess::eval_t k2engine::RootSearch(const depth_t depth, eval_t alpha,
                 auto x_ = -Search(depth - 1, -beta, -alpha, pv_node);
                 if(!stop)
                     x = x_;
-                if(x > alpha)
+                if(x >= beta)
                 {
                     pv[1].length = 1;
                     pv[0].moves[0] = cur_move;
