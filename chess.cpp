@@ -2211,5 +2211,8 @@ void k2chess::RunUnitTests()
         "rnb2k1r/pp1PbBpp/1qp5/8/8/8/PPP1NnPP/RNBQK2R w KQ -"));
     assert(MakeMove("d7d8q"));
     assert(MakeMove("e7d8"));
+    assert(MakeMove("a2a4"));
+    assert(MakeMove("b6b4"));
+    assert(!MakeMove("a4a5"));
 }
 #endif // NDEBUG
