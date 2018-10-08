@@ -507,10 +507,10 @@ void k2movegen::RunUnitTests()
     assert(MakeMove("e1e2"));
     assert(test_gen_castles() == 1);
 
-	SetupPosition(
+    SetupPosition(
         "r3k1r1/ppp1bpp1/5n1p/2Ppp3/4P2q/Q1NP4/PP3PPP/R1B1K2R w KQq d6");
     assert(test_gen_moves(false) == 34);
-	assert(MakeMove("a1b1"));
+    assert(MakeMove("a1b1"));
     assert(test_gen_moves(false) == 37);
     assert(MakeMove("d5d4"));
     assert(MakeMove("c5c6"));

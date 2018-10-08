@@ -11,17 +11,17 @@ class k2movegen : public k2eval
 
 public:
 
-	void RunUnitTests();
+    void RunUnitTests();
 
-	bool MakeMove(const char *in)
-	{
-		return k2chess::MakeMove(in);
-	}
+    bool MakeMove(const char *in)
+    {
+        return k2chess::MakeMove(in);
+    }
 
     void TakebackMove()
-	{
+    {
         k2chess::TakebackMove();
-	}
+    }
 
 
 protected:

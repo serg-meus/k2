@@ -38,34 +38,34 @@ void k2chess::InitMobility(const bool color)
     memset(mobility[color], 0, sizeof(mobility[0]));
     for(auto it = coords[color].rbegin(); it != coords[color].rend(); ++it)
     {
-                const auto type = get_type(b[*it]);
-                if(type == pawn)
-                        continue;
+        const auto type = get_type(b[*it]);
+        if(type == pawn)
+            continue;
         for(auto ray = ray_min[type]; ray < ray_max[type]; ++ray)
-                {
+        {
             const int d_col = type == knight ? delta_col_knight[ray] :
                                                delta_col_kqrb[ray];
             const int d_row = type == knight ? delta_row_knight[ray] :
                                                delta_row_kqrb[ray];
-                        int col = get_col(*it);
-                        int row = get_row(*it);
+            int col = get_col(*it);
+            int row = get_row(*it);
             for(size_t i = 0; i < max_ray_length; ++i)
-                        {
-                                col += d_col;
-                                row += d_row;
-                                if(!col_within(col) || !row_within(row))
-                                        break;
-                                const auto sq = b[get_coord(col, row)];
-                                if(sq != empty_square && get_color(sq) == color)
-                                        break;
+            {
+                col += d_col;
+                row += d_row;
+                if(!col_within(col) || !row_within(row))
+                        break;
+                const auto sq = b[get_coord(col, row)];
+                if(sq != empty_square && get_color(sq) == color)
+                        break;
                 auto index = it.get_array_index();
                 mobility[color][index][ray]++;
-                                if(!is_slider[type])
-                                        break;
-                                if(sq != empty_square && get_color(sq) != color)
-                                        break;
-                        }
-                }
+                if(!is_slider[type])
+                        break;
+                if(sq != empty_square && get_color(sq) != color)
+                        break;
+            }
+        }
     }
 }
 
