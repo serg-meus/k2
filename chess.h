@@ -328,9 +328,14 @@ protected:
     bool IsSliderAttack(const coord_t from_coord,
                         const coord_t to_coord) const;
     bool CheckBoardConsistency();
-    void MoveToStr(const move_c m, const bool stm, char * const out);
+    void MoveToCoordinateNotation(const move_c m, const bool stm, char * const out);
     void MakeAttacks(const move_c move);
     void TakebackMove(move_c move);
+    bool PrintMoveSequence(const move_c * const moves, const size_t length,
+                           const bool coordinate_notation);
+    void MoveToAlgebraicNotation(const move_c move, const bool stm,
+                                         char *out);
+    void ProcessAmbiguousNotation(const move_c move, char *out);
 
     coord_t get_coord(const coord_t col, const coord_t row) const
     {

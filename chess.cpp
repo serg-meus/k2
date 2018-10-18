@@ -815,7 +815,7 @@ void k2chess::StoreCurrentBoardState(const move_c move,
 
 
 //--------------------------------
-void k2chess::MoveToStr(const move_c move, const bool stm,
+void k2chess::MoveToCoordinateNotation(const move_c move, const bool stm,
                         char * const out)
 {
     char proms[] = {'?', 'q', 'n', 'r', 'b'};
@@ -1658,6 +1658,148 @@ bool k2chess::IsLegal(const move_c move)
         return true;
 
     return false;
+}
+
+
+
+
+
+//-----------------------------
+bool k2chess::PrintMoveSequence(const move_c * const moves,
+                                const size_t length,
+                                const bool coordinate_notation)
+{
+    bool success = true;
+    char move_str[6];
+    size_t i = 0;
+    for(; i < length; ++i)
+    {
+        const auto cur_move = moves[i];
+        if(!IsPseudoLegal(cur_move) || !IsLegal(cur_move))
+        {
+            success = false;
+            break;
+        }
+        if(coordinate_notation)
+            MoveToCoordinateNotation(cur_move, wtm, move_str);
+        else
+            MoveToAlgebraicNotation(cur_move, wtm, move_str);
+        std::cout << move_str << " ";
+        MakeMove(cur_move);
+        MakeAttacks(cur_move);
+    }
+    for(; i > 0; --i)
+    {
+        TakebackMove(moves[i - 1]);
+        TakebackAttacks();
+    }
+    return success;
+}
+
+
+
+
+
+//-----------------------------
+void k2chess::MoveToAlgebraicNotation(const move_c move,
+                                              const bool stm,
+                                              char *out)
+{
+    char pc2chr[] = "??KKQQRRBBNNPP";
+    const auto from_coord = *coords[stm].at(move.piece_index);
+    const auto piece_char = pc2chr[b[from_coord]];
+    if(piece_char == 'K' && get_col(from_coord) == 4
+            && get_col(move.to_coord) == 6)
+    {
+        *(out++) = 'O';
+        *(out++) = 'O';
+    }
+    else if(piece_char == 'K' && get_col(from_coord) == 4
+            && get_col(move.to_coord) == 2)
+    {
+        *(out++) = 'O';
+        *(out++) = 'O';
+        *(out++) = 'O';
+    }
+    else if(piece_char != 'P')
+    {
+        *(out++) = piece_char;
+        ProcessAmbiguousNotation(move, out);
+        if(move.flag & is_capture)
+            *(out++) = 'x';
+        *(out++) = get_col(move.to_coord) + 'a';
+        *(out++) = get_row(move.to_coord) + '1';
+    }
+    else if(move.flag & is_capture)
+    {
+        const auto tmp = coords[stm].at(move.piece_index);
+        *(out++) = get_col(*tmp) + 'a';
+        *(out++) = 'x';
+        *(out++) = get_col(move.to_coord) + 'a';
+        *(out++) = get_row(move.to_coord) + '1';
+    }
+    else
+    {
+        *(out++) = get_col(move.to_coord) + 'a';
+        *(out++) = get_row(move.to_coord) + '1';
+    }
+    char proms[] = "?QNRB";
+    if(piece_char == 'P' && (move.flag & is_promotion))
+        *(out++) = proms[move.flag & is_promotion];
+    *(out++) = '\0';
+}
+
+
+
+
+
+//-----------------------------
+void k2chess::ProcessAmbiguousNotation(const move_c move, char *out)
+{
+    move_c move_array[8];
+    auto amb_cr = 0;
+    auto it = coords[wtm].at(move.piece_index);
+    const auto init_from_coord = *it;
+    const auto init_piece_type = get_type(b[init_from_coord]);
+
+    for(it = coords[wtm].begin(); it != coords[wtm].end(); ++it)
+    {
+        const auto index = it.get_array_index();
+        if(index == move.piece_index)
+            continue;
+        auto from_coord = *it;
+
+        auto piece_type = get_type(b[from_coord]);
+        if(piece_type != init_piece_type)
+            continue;
+        if(!(attacks[wtm][move.to_coord] & (1 << index)))
+            continue;
+
+        auto tmp = move;
+        tmp.priority = from_coord;
+        move_array[amb_cr++] = tmp;
+    }
+
+    if(!amb_cr)
+        return;
+
+    bool same_cols = false, same_rows = false;
+    for(auto i = 0; i < amb_cr; i++)
+    {
+        if(get_col(move_array[i].priority) == get_col(init_from_coord))
+            same_cols = true;
+        if(get_row(move_array[i].priority) == get_row(init_from_coord))
+            same_rows = true;
+    }
+    if(same_cols && same_rows)
+    {
+        *(out++) = get_col(init_from_coord) + 'a';
+        *(out++) = get_row(init_from_coord) + '1';
+    }
+    else if(same_cols)
+        *(out++) = get_row(init_from_coord) + '1';
+    else
+        *(out++) = get_col(init_from_coord) + 'a';
 }
 
 

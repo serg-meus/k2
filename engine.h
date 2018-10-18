@@ -118,7 +118,7 @@ protected:
 
     const char *debug_variation;
     depth_t root_ply, debug_ply, halfmoves_made, resign_cr;
-    movcr_t max_root_moves, root_move_cr;
+    movcr_t root_move_cr;
     bool randomness;
 
     std::vector<std::pair<node_t, move_c> > root_moves;
@@ -161,13 +161,11 @@ protected:
     void UpdateStatistics(move_c m, depth_t dpt, movcr_t move_cr,
                           const hash_entry_s *entry);
     eval_t RootSearch(const depth_t depth, eval_t alpha, const eval_t beta);
-    void RootMoveGen();
+    void GenerateRootMoves();
     void InitSearch();
     void PrintFinalSearchResult();
     void PrintCurrentSearchResult(eval_t sc, const u8 exclimation);
     void InitTime();
-    bool ShowPV(const depth_t _ply);
-    void FindAndPrintForAmbiguousMoves(move_c m);
     bool DrawDetect() const;
     bool CheckForInterrupt();
     void MakeNullMove();
@@ -195,6 +193,8 @@ protected:
     size_t FindMaxMoveIndex(move_c * const move_array,
                             const movcr_t max_moves,
                             const movcr_t cur_move);
+    bool CanFinishMainSearch(const eval_t x, const eval_t prev_x);
+    void CheckForResign(const eval_t x);
 
     void CorrectHashScore(eval_t *x, depth_t depth)
     {

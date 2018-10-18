@@ -299,6 +299,184 @@ void k2engine::Perft(const depth_t depth)
 
 
 
+//--------------------------------
+void k2engine::MainSearch()
+{
+    busy = true;
+    InitSearch();
+
+    root_ply = 1;
+    auto x = QSearch(-infinite_score, infinite_score);
+    pv[0].length = 0;
+    if(initial_score == infinite_score)
+        initial_score = x;
+
+    GenerateRootMoves();
+    if(root_moves.size() > 0)
+        pv[0].moves[0] = root_moves.at(0).second;
+    for(; root_ply <= max_ply; ++root_ply)
+    {
+        const auto prev_x = x;
+        x = RootSearch(root_ply, x - aspiration_margin, x + aspiration_margin);
+        if(!stop && x <= prev_x - aspiration_margin)
+        {
+            x = RootSearch(root_ply, -infinite_score,
+                           prev_x + aspiration_margin);
+            if (!stop && x >= prev_x - aspiration_margin)
+                x = RootSearch(root_ply, -infinite_score, infinite_score);
+        }
+        else if(!stop && x >= prev_x + aspiration_margin)
+        {
+            x = RootSearch(root_ply, prev_x - aspiration_margin,
+                           infinite_score);
+            if(!stop && x <= prev_x + aspiration_margin)
+                x = RootSearch(root_ply, -infinite_score, infinite_score);
+        }
+        if(stop && x == -infinite_score)
+            x = prev_x;
+
+        const double time1 = time_control.timer.getElapsedTimeInMicroSec();
+        time_control.time_spent = time1 - time_control.time0;
+
+        if(stop || root_ply >= time_control.max_search_depth)
+            break;
+        if(!time_control.infinite_analyze && !pondering_in_process &&
+                CanFinishMainSearch(x, prev_x))
+            break;
+    }
+
+    if(pondering_in_process && time_control.spent_exact_time)
+    {
+        pondering_in_process = false;
+        time_control.spent_exact_time = false;
+    }
+    CheckForResign(x);
+
+    stats.total_nodes += stats.nodes;
+    time_control.total_time_spent += time_control.time_spent;
+    time_control.timer.stop();
+
+    if(!time_control.infinite_analyze || (uci && enable_output))
+        PrintFinalSearchResult();
+    if(uci)
+        time_control.infinite_analyze = false;
+
+    busy = false;
+}
+
+
+
+
+
+//--------------------------------
+k2chess::eval_t k2engine::RootSearch(const depth_t depth, eval_t alpha,
+                                     const eval_t beta)
+{
+    const bool in_check = attacks[!wtm][*king_coord[wtm]];
+    bool beta_cutoff = false;
+    const node_t unconfirmed_fail_high = -1;
+    const node_t max_root_move_priority = std::numeric_limits<node_t>::max();
+    eval_t x;
+    move_c cur_move;
+    for(root_move_cr = 0; root_move_cr < root_moves.size(); root_move_cr++)
+    {
+        cur_move = root_moves.at(root_move_cr).second;
+        MakeMove(cur_move);
+        stats.nodes++;
+#ifndef NDEBUG
+        if(strcmp(debug_variation, cv) == 0 &&
+                (!debug_ply || root_ply == debug_ply))
+            std::cout << "( breakpoint )" << std::endl;
+#endif // NDEBUG
+
+        FastEval(cur_move);
+
+        auto prev_nodes = stats.nodes;
+        bool fail_high = false;
+        if(root_move_cr == 0)
+        {
+            x = -Search(depth - 1, -beta, -alpha, pv_node);
+            if(uci && root_ply > min_depth_to_show_uci_info)
+                ShowCurrentUciInfo();
+            if(!stop && x <= alpha)
+                ShowPVfailHighOrLow(cur_move, x, '?');
+        }
+        else
+        {
+            x = -Search(depth - 1, -alpha - 1, -alpha, cut_node);
+            if(uci && root_ply > min_depth_to_show_uci_info)
+                ShowCurrentUciInfo();
+            if(!stop && x > alpha)
+            {
+                fail_high = true;
+                ShowPVfailHighOrLow(cur_move, x, '!');
+
+                const auto x_ = -Search(depth - 1, -beta, -alpha, pv_node);
+                if(uci && root_ply > min_depth_to_show_uci_info)
+                    ShowCurrentUciInfo();
+                if(!stop)
+                    x = x_;
+                if(x >= beta)
+                {
+                    pv[0].moves[0] = cur_move;
+                    pv[1].length = 1;
+                }
+                else
+                    root_moves.at(root_move_cr).first = unconfirmed_fail_high;
+            }
+        }
+        if(stop && !fail_high)
+            x = -infinite_score;
+
+        const auto delta_nodes = stats.nodes - prev_nodes;
+        if(root_moves.at(root_move_cr).first != unconfirmed_fail_high)
+            root_moves.at(root_move_cr).first = delta_nodes;
+        else
+            root_moves.at(root_move_cr).first = max_root_move_priority;
+
+        if(x >= beta)
+        {
+            ShowPVfailHighOrLow(cur_move, x, '!');
+            beta_cutoff = true;
+            std::swap(root_moves.at(root_move_cr), root_moves.at(0));
+            TakebackMove(cur_move);
+            break;
+        }
+        else if(x > alpha)
+        {
+            alpha = x;
+            TakebackMove(cur_move);
+            StorePV(cur_move);
+            if(x != -infinite_score && !stop)
+                PrintCurrentSearchResult(x, ' ');
+            std::swap(root_moves.at(root_move_cr), root_moves.at(0));
+        }
+        else
+            TakebackMove(cur_move);
+
+        if(stop)
+            break;
+    }
+    if(root_moves.size() == 0)
+    {
+        pv[ply].length = 0;
+        return in_check ? -king_value + ply : 0;
+    }
+    else
+        std::stable_sort(root_moves.rbegin(), root_moves.rend() - 1);
+
+    if(beta_cutoff)
+    {
+        UpdateStatistics(cur_move, depth, root_move_cr + 1, nullptr);
+        return beta;
+    }
+    return alpha;
+}
+
+
+
+
+
 //-----------------------------
 void k2engine::StorePV(const move_c move)
 {
@@ -355,220 +533,12 @@ void k2engine::UpdateStatistics(const move_c move, const depth_t depth,
 
 
 //--------------------------------
-void k2engine::MainSearch()
-{
-    busy = true;
-    InitSearch();
-
-    eval_t x, prev_x;
-
-    root_ply = 1;
-    x = QSearch(-infinite_score, infinite_score);
-    pv[ply].length = 0;
-    if(initial_score == infinite_score)
-        initial_score = x;
-
-    max_root_moves = 0;
-    for(; root_ply <= max_ply; ++root_ply)
-    {
-        prev_x = x;
-        x = RootSearch(root_ply, x - aspiration_margin,
-                       x + aspiration_margin);
-        if(!stop && x <= prev_x - aspiration_margin)
-        {
-            x = RootSearch(root_ply, -infinite_score,
-                           prev_x + aspiration_margin);
-            if (!stop && x >= prev_x - aspiration_margin)
-                x = RootSearch(root_ply, -infinite_score, infinite_score);
-        }
-        else if(!stop && x >= prev_x + aspiration_margin)
-        {
-            x = RootSearch(root_ply, prev_x - aspiration_margin,
-                           infinite_score);
-            if(!stop && x <= prev_x + aspiration_margin)
-                x = RootSearch(root_ply, -infinite_score, infinite_score);
-        }
-        if(stop && x == -infinite_score)
-            x = prev_x;
-
-        const double time1 = time_control.timer.getElapsedTimeInMicroSec();
-        time_control.time_spent = time1 - time_control.time0;
-
-        if(!time_control.infinite_analyze && !pondering_in_process)
-        {
-            if(time_control.time_spent > time_control.time_to_think &&
-                    time_control.max_nodes_to_search == 0
-                    && root_ply >= 2)
-                break;
-            if(std::abs(x) > mate_score && std::abs(prev_x) > mate_score
-                    && !stop && root_ply >= 2)
-                break;
-            if(max_root_moves == 1 && root_ply >= max_depth_for_single_move
-                    && root_moves_to_search.empty())
-                break;
-        }
-        if(stop || root_ply >= time_control.max_search_depth)
-            break;
-    }
-
-    if(pondering_in_process && time_control.spent_exact_time)
-    {
-        pondering_in_process = false;
-        time_control.spent_exact_time = false;
-    }
-    if(x < initial_score - eval_to_resign || x < -mate_score)
-        resign_cr++;
-    else if(max_root_moves == 1 && resign_cr > 0)
-        resign_cr++;
-    else
-        resign_cr = 0;
-
-    if(enable_output && !time_control.infinite_analyze
-            && (x < -mate_score || resign_cr > moves_to_resign))
-        std::cout << "resign" << std::endl;
-
-    stats.total_nodes += stats.nodes;
-    time_control.total_time_spent += time_control.time_spent;
-    time_control.timer.stop();
-
-    if(!time_control.infinite_analyze || (uci && enable_output))
-        PrintFinalSearchResult();
-    if(uci)
-        time_control.infinite_analyze = false;
-
-    busy = false;
-}
-
-
-
-
-
-//--------------------------------
-k2chess::eval_t k2engine::RootSearch(const depth_t depth, eval_t alpha,
-                                     const eval_t beta)
-{
-    const bool in_check = attacks[!wtm][*king_coord[wtm]];
-    if(max_root_moves == 0)
-        RootMoveGen();
-    if(max_root_moves > 0)
-        pv[0].moves[0] = root_moves.at(0).second;
-
-    root_move_cr = 0;
-
-    eval_t x;
-    move_c cur_move;
-    bool beta_cutoff = false;
-    const node_t unconfirmed_fail_high = -1;
-    const node_t max_root_move_priority = std::numeric_limits<node_t>::max();
-
-    for(; root_move_cr < max_root_moves; root_move_cr++)
-    {
-        cur_move = root_moves.at(root_move_cr).second;
-
-        MakeMove(cur_move);
-        stats.nodes++;
-
-#ifndef NDEBUG
-        if(strcmp(debug_variation, cv) == 0 &&
-                (!debug_ply || root_ply == debug_ply))
-            std::cout << "( breakpoint )" << std::endl;
-#endif // NDEBUG
-
-        FastEval(cur_move);
-        auto prev_nodes = stats.nodes;
-
-        if(uci && root_ply > min_depth_to_show_uci_info)
-            ShowCurrentUciInfo();
-
-        bool fail_high = false;
-        if(root_move_cr == 0)
-        {
-            x = -Search(depth - 1, -beta, -alpha, pv_node);
-            if(!stop && x <= alpha)
-                ShowPVfailHighOrLow(cur_move, x, '?');
-        }
-        else
-        {
-            x = -Search(depth - 1, -alpha - 1, -alpha, cut_node);
-            if(!stop && x > alpha)
-            {
-                fail_high = true;
-                ShowPVfailHighOrLow(cur_move, x, '!');
-
-                auto x_ = -Search(depth - 1, -beta, -alpha, pv_node);
-                if(!stop)
-                    x = x_;
-                if(x >= beta)
-                {
-                    pv[1].length = 1;
-                    pv[0].moves[0] = cur_move;
-                }
-                else
-                    root_moves.at(root_move_cr).first = unconfirmed_fail_high;
-            }
-        }
-        if(stop && !fail_high)
-            x = -infinite_score;
-
-        const auto delta_nodes = stats.nodes - prev_nodes;
-
-        if(root_moves.at(root_move_cr).first != unconfirmed_fail_high)
-            root_moves.at(root_move_cr).first = delta_nodes;
-        else
-            root_moves.at(root_move_cr).first = max_root_move_priority;
-
-        if(x >= beta)
-        {
-            ShowPVfailHighOrLow(cur_move, x, '!');
-            beta_cutoff = true;
-            std::swap(root_moves.at(root_move_cr),
-                      root_moves.at(0));
-            TakebackMove(cur_move);
-            break;
-        }
-        else if(x > alpha)
-        {
-            TakebackMove(cur_move);
-            alpha = x;
-            StorePV(cur_move);
-            if(x != -infinite_score && !stop)
-                PrintCurrentSearchResult(x, ' ');
-            std::swap(root_moves.at(root_move_cr),
-                      root_moves.at(0));
-        }
-        else
-            TakebackMove(cur_move);
-
-        if(stop)
-            break;
-    }
-    if(max_root_moves == 0)
-    {
-        pv[ply].length = 0;
-        return in_check ? -king_value + ply : 0;
-    }
-    else
-        std::stable_sort(root_moves.rbegin(), root_moves.rend() - 1);
-
-    if(beta_cutoff)
-    {
-        UpdateStatistics(cur_move, depth, root_move_cr + 1, nullptr);
-        return beta;
-    }
-    return alpha;
-}
-
-
-
-
-
-//--------------------------------
 void k2engine::ShowPVfailHighOrLow(const move_c move, const eval_t val,
                                    const u8 type_of_bound)
 {
     TakebackMove(move);
     char mstr[6];
-    MoveToStr(move, wtm, mstr);
+    MoveToCoordinateNotation(move, wtm, mstr);
 
     const auto tmp_length = pv[0].length;
     const auto tmp_move = pv[0].moves[0];
@@ -589,7 +559,7 @@ void k2engine::ShowPVfailHighOrLow(const move_c move, const eval_t val,
 
 
 //--------------------------------
-void k2engine::RootMoveGen()
+void k2engine::GenerateRootMoves()
 {
     move_c move_array[move_array_size], cur_move, no_move;
     no_move.flag = not_a_move;
@@ -615,12 +585,11 @@ void k2engine::RootMoveGen()
                 std::find(rms->begin(), rms->end(), cur_move) == rms->end())
             continue;
         root_moves.push_back(std::pair<node_t, move_c>(0, cur_move));
-        max_root_moves++;
     }
     if(root_ply != 1)
         return;
 
-    if(randomness && max_root_moves >= max_moves_to_shuffle)
+    if(randomness && root_moves.size() >= max_moves_to_shuffle)
     {
         const auto phase1 = seed & 3;
         std::swap(root_moves[0], root_moves[phase1]);
@@ -694,10 +663,48 @@ void k2engine::InitSearch()
 
 
 //--------------------------------
+bool k2engine::CanFinishMainSearch(const eval_t x, const eval_t prev_x)
+{
+    if(time_control.time_spent > time_control.time_to_think &&
+            time_control.max_nodes_to_search == 0
+            && root_ply >= 2)
+        return true;
+    if(std::abs(x) > mate_score && std::abs(prev_x) > mate_score
+            && !stop && root_ply >= 2)
+        return true;
+    if(root_moves.size() == 1 && root_ply >= max_depth_for_single_move
+            && root_moves_to_search.empty())
+        return true;
+    return false;
+}
+
+
+
+
+
+//--------------------------------
+void k2engine::CheckForResign(const eval_t x)
+{
+    if(x < initial_score - eval_to_resign || x < -mate_score)
+        resign_cr++;
+    else if(root_moves.size() == 1 && resign_cr > 0)
+        resign_cr++;
+    else
+        resign_cr = 0;
+    if(enable_output && !time_control.infinite_analyze
+            && (x < -mate_score || resign_cr > moves_to_resign))
+        std::cout << "resign" << std::endl;
+}
+
+
+
+
+
+//--------------------------------
 void k2engine::PrintFinalSearchResult()
 {
     char move_str[6];
-    MoveToStr(pv[0].moves[0], wtm, move_str);
+    MoveToCoordinateNotation(pv[0].moves[0], wtm, move_str);
 
     if(!uci && !MakeMove(move_str))
         std::cout << "tellusererror err01"
@@ -711,19 +718,19 @@ void k2engine::PrintFinalSearchResult()
         {
             char pndr[6] = "a1a1";
             if(pv[0].length > 1)
-                MoveToStr(pv[0].moves[1], !wtm, pndr);
+                MoveToCoordinateNotation(pv[0].moves[1], !wtm, pndr);
             else
             {
                 MakeMove(pv[0].moves[0]);
                 hash_entry_s *entry = hash_table.count(hash_key);
                 if(entry != nullptr)
-                    MoveToStr(entry->best_move, wtm, pndr);
+                    MoveToCoordinateNotation(entry->best_move, wtm, pndr);
                 else
                 {
                     move_c move_array[move_array_size];
                     auto max_moves = GenMoves(move_array, true);
                     if(max_moves)
-                        MoveToStr(move_array[0], wtm, pndr);
+                        MoveToCoordinateNotation(move_array[0], wtm, pndr);
                 }
                 TakebackMove(pv[0].moves[0]);
             }
@@ -858,7 +865,8 @@ void k2engine::PrintCurrentSearchResult(const eval_t max_value,
         cout << setfill(' ') << setw(8) << left << spent_time / 10;
         cout << setfill(' ') << setw(12) << left << stats.nodes << ' ';
     }
-    ShowPV(0);
+    if(enable_output)
+        PrintMoveSequence(pv[0].moves, pv[0].length, uci);
     if(!uci && type_of_bound != ' ')
         cout << type_of_bound;
     cout << endl;
@@ -916,11 +924,12 @@ void k2engine::InitTime()
         time_control.move_remains = 0;
     }
 #ifndef NDEBUG
-    std::cout << "( halfmoves=" << halfmoves_made <<
-                 " movestogo=" << (int)time_control.moves_to_go <<
-                 ", movespersession=" << time_control.moves_per_session <<
-                 ", exacttime=" << (int)time_control.spent_exact_time <<
-                 " )\n";
+    if(enable_output)
+        std::cout << "( halfmoves=" << halfmoves_made <<
+                     ", movestogo=" << (int)time_control.moves_to_go <<
+                     ", movespersession=" << time_control.moves_per_session <<
+                     ", exacttime=" << (int)time_control.spent_exact_time <<
+                     " )\n";
 #endif
     if(!time_control.time_command_sent)
         time_control.time_remains += time_control.time_inc;
@@ -942,148 +951,17 @@ void k2engine::InitTime()
 
 
 
-
-//-----------------------------
-bool k2engine::ShowPV(const depth_t cur_ply)
-{
-    if(!enable_output)
-        return true;
-    char pc2chr[] = "??KKQQRRBBNNPP";
-    bool ans = true;
-    size_t ply_cr = 0;
-    const auto pv_len = pv[cur_ply].length;
-
-    for(; ply_cr < pv_len; ply_cr++)
-    {
-        const auto cur_move = pv[cur_ply].moves[ply_cr];
-        if(!IsPseudoLegal(cur_move) || !IsLegal(cur_move))
-        {
-            ans = false;
-            break;
-        }
-        const auto it = coords[wtm].at(cur_move.piece_index);
-        const auto from_coord = *it;
-        if(uci)
-        {
-            std::cout << (char)(get_col(from_coord) + 'a')
-                      << (char)(get_row(from_coord) + '1')
-                      << (char)(get_col(cur_move.to_coord) + 'a')
-                      << (char)(get_row(cur_move.to_coord) + '1');
-            char proms[] = {'?', 'q', 'n', 'r', 'b'};
-            if(cur_move.flag & is_promotion)
-                std::cout << proms[cur_move.flag & is_promotion];
-            std::cout << " ";
-        }
-        else
-        {
-            const auto piece_char = pc2chr[b[from_coord]];
-            if(piece_char == 'K' && get_col(from_coord) == 4
-                    && get_col(cur_move.to_coord) == 6)
-                std::cout << "OO";
-            else if(piece_char == 'K' && get_col(from_coord) == 4
-                    && get_col(cur_move.to_coord) == 2)
-                std::cout << "OOO";
-            else if(piece_char != 'P')
-            {
-                std::cout << piece_char;
-                FindAndPrintForAmbiguousMoves(cur_move);
-                if(cur_move.flag & is_capture)
-                    std::cout << 'x';
-                std::cout << (char)(get_col(cur_move.to_coord) + 'a');
-                std::cout << (char)(get_row(cur_move.to_coord) + '1');
-            }
-            else if(cur_move.flag & is_capture)
-            {
-                const auto tmp = coords[wtm].at(cur_move.piece_index);
-                std::cout << (char)(get_col(*tmp) + 'a')
-                          << "x"
-                          << (char)(get_col(cur_move.to_coord) + 'a')
-                          << (char)(get_row(cur_move.to_coord) + '1');
-            }
-            else
-                std::cout << (char)(get_col(cur_move.to_coord) + 'a')
-                          << (char)(get_row(cur_move.to_coord) + '1');
-            char proms[] = "?QNRB";
-            if(piece_char == 'P' && (cur_move.flag & is_promotion))
-                std::cout << proms[cur_move.flag & is_promotion];
-            std::cout << ' ';
-        }
-        MakeMove(cur_move);
-        MakeAttacks(cur_move);
-    }
-
-    for(; ply_cr > 0; ply_cr--)
-        TakebackMove(k2chess::state[ply].move);
-    return ans;
-}
-
-
-
-
-
-//-----------------------------
-void k2engine::FindAndPrintForAmbiguousMoves(const move_c move)
-{
-    move_c move_array[8];
-    auto amb_cr = 0;
-    auto it = coords[wtm].at(move.piece_index);
-    const auto init_from_coord = *it;
-    const auto init_piece_type = get_type(b[init_from_coord]);
-
-    for(it = coords[wtm].begin(); it != coords[wtm].end(); ++it)
-    {
-        const auto index = it.get_array_index();
-        if(index == move.piece_index)
-            continue;
-        auto from_coord = *it;
-
-        auto piece_type = get_type(b[from_coord]);
-        if(piece_type != init_piece_type)
-            continue;
-        if(!(attacks[wtm][move.to_coord] & (1 << index)))
-            continue;
-
-        auto tmp = move;
-        tmp.priority = from_coord;
-        move_array[amb_cr++] = tmp;
-    }
-
-    if(!amb_cr)
-        return;
-
-    bool same_cols = false, same_rows = false;
-    for(auto i = 0; i < amb_cr; i++)
-    {
-        if(get_col(move_array[i].priority) == get_col(init_from_coord))
-            same_cols = true;
-        if(get_row(move_array[i].priority) == get_row(init_from_coord))
-            same_rows = true;
-    }
-    if(same_cols && same_rows)
-        std::cout << (char)(get_col(init_from_coord) + 'a')
-                  << (char)(get_row(init_from_coord) + '1');
-    else if(same_cols)
-        std::cout << (char)(get_row(init_from_coord) + '1');
-    else
-        std::cout << (char)(get_col(init_from_coord) + 'a');
-}
-
-
-
-
-
 //-----------------------------
 bool k2engine::MakeMove(const char *move_str)
 {
     const auto ln = strlen(move_str);
     if(ln < 4 || ln > 5)
         return false;
-    max_root_moves = 0;
-    RootMoveGen();
+    GenerateRootMoves();
 
     char cur_move_str[6];
     char proms[] = {'?', 'q', 'n', 'r', 'b'};
-    for(movcr_t i = 0; i < max_root_moves; ++i)
+    for(movcr_t i = 0; i < root_moves.size(); ++i)
     {
         const auto cur_move = root_moves.at(i).second;
         auto it = coords[wtm].at(cur_move.piece_index);
