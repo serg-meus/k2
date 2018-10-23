@@ -81,7 +81,7 @@ private:
                   const move_flag_t flag)
     {
         move_c move;
-        move.piece_index = it;
+        move.piece_id = it;
         move.to_coord = to_coord;
         move.flag = flag;
         move.priority = 0;

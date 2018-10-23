@@ -17,7 +17,7 @@ k2movegen::movcr_t k2movegen::GenMoves(move_c * const move_array,
     for(; it != coords[wtm].end(); ++it)
     {
         const auto from_coord = *it;
-        const auto index = it.get_array_index();
+        const auto piece_id = it.get_array_index();
         const auto type = get_type(b[from_coord]);
         if(type == pawn)
         {
@@ -34,7 +34,7 @@ k2movegen::movcr_t k2movegen::GenMoves(move_c * const move_array,
                                                 delta_row_kqrb;
         for(auto ray = ray_min[type]; ray < ray_max[type]; ray++)
         {
-            const auto ray_len = mobility[wtm][index][ray];
+            const auto ray_len = mobility[wtm][piece_id][ray];
             auto col = col0 + ray_len*delta_col[ray];
             auto row = row0 + ray_len*delta_row[ray];
             const auto min_i = need_capture_or_promotion ? ray_len : 1;
@@ -46,7 +46,7 @@ k2movegen::movcr_t k2movegen::GenMoves(move_c * const move_array,
                 if(need_capture_or_promotion && !capture)
                     break;
                 if(col_within(col) && row_within(row) && (empty || capture))
-                    PushMove(move_array, &move_cr, index,
+                    PushMove(move_array, &move_cr, piece_id,
                              to_coord,  empty ? 0 : is_capture);
                 if(!is_slider[type])
                         break;
@@ -68,7 +68,7 @@ void k2movegen::GenPawnSilent(move_c * const move_array,
                               const iterator it)
 {
     const auto from_coord = *it;
-    const auto index = it.get_array_index();
+    const auto piece_id = it.get_array_index();
     const auto col = get_col(from_coord);
     const auto row = get_row(from_coord);
     if(row == (wtm ? max_row - 1 : 1))
@@ -77,13 +77,13 @@ void k2movegen::GenPawnSilent(move_c * const move_array,
 
     const auto to_coord = get_coord(col, row + d_row);
     if(b[to_coord] == empty_square)
-        PushMove(move_array, moveCr, index, to_coord, 0);
+        PushMove(move_array, moveCr, piece_id, to_coord, 0);
 
     const auto ini_row = wtm ? pawn_default_row : max_row - pawn_default_row;
     const auto to_coord2 = get_coord(col, row + 2*d_row);
     if(row == ini_row && b[to_coord2] == empty_square
             && b[to_coord] == empty_square)
-        PushMove(move_array, moveCr, index, to_coord2, 0);
+        PushMove(move_array, moveCr, piece_id, to_coord2, 0);
 }
 
 
@@ -96,19 +96,19 @@ void k2movegen::GenPawnCapturesAndPromotions(move_c * const move_array,
                                           const iterator it)
 {
     const auto from_coord = *it;
-    const auto index = it.get_array_index();
+    const auto piece_id = it.get_array_index();
     const auto col = get_col(from_coord);
     const auto row = get_row(from_coord);
 
-    move_flag_t promo_index_beg = 0, promo_index_end = 0;
+    move_flag_t promo_id_beg = 0, promo_id_end = 0;
     if(row == (wtm ? max_row - pawn_default_row : pawn_default_row))
     {
-        promo_index_beg = is_promotion_to_queen;
-        promo_index_end = is_promotion_to_bishop;
+        promo_id_beg = is_promotion_to_queen;
+        promo_id_end = is_promotion_to_bishop;
     }
     auto d_row = wtm ? 1 : -1;
-    for(auto promo_flag = promo_index_beg;
-        promo_flag <= promo_index_end;
+    for(auto promo_flag = promo_id_beg;
+        promo_flag <= promo_id_end;
         ++promo_flag)
     {
         for(auto d_col: {-1, 1})
@@ -117,13 +117,13 @@ void k2movegen::GenPawnCapturesAndPromotions(move_c * const move_array,
             const move_flag_t flag = is_capture | promo_flag;
             if(col_within(col + d_col) && b[to_coord] != empty_square
                     && get_color(b[to_coord]) != wtm)
-                PushMove(move_array, moveCr, index, to_coord, flag);
+                PushMove(move_array, moveCr, piece_id, to_coord, flag);
         }
         if(row != (wtm ? max_row - 1 : 1))
             continue;
         const auto to_coord = get_coord(col, row + d_row);
         if(b[to_coord] == empty_square)
-            PushMove(move_array, moveCr, index, to_coord, promo_flag);
+            PushMove(move_array, moveCr, piece_id, to_coord, promo_flag);
     }
     const auto ep = k2chess::state[ply].en_passant_rights;
     const auto delta = ep - 1 - col;
@@ -131,7 +131,7 @@ void k2movegen::GenPawnCapturesAndPromotions(move_c * const move_array,
         max_row - pawn_default_row - pawn_long_move_length :
         pawn_default_row + pawn_long_move_length;
     if(ep && std::abs(delta) == 1 && row == ep_row)
-        PushMove(move_array, moveCr, index,
+        PushMove(move_array, moveCr, piece_id,
                  get_coord(col + delta, row + d_row),
                  is_capture | is_en_passant);
 }
@@ -192,7 +192,7 @@ void k2movegen::AppriceMoves(move_c * const move_array, const movcr_t moveCr,
     {
         auto m = move_array[i];
 
-        const auto it = coords[wtm].at(m.piece_index);
+        const auto it = coords[wtm].at(m.piece_id);
         const auto fr_sq = b[*it];
         const auto to_sq = b[m.to_coord];
 
@@ -279,7 +279,7 @@ void k2movegen::AppriceMoves(move_c * const move_array, const movcr_t moveCr,
         auto m = move_array[i];
         if(m.priority >= second_killer || (m.flag & is_capture))
             continue;
-        const auto it = coords[wtm].at(m.piece_index);
+        const auto it = coords[wtm].at(m.piece_id);
         const auto from_coord = *it;
         const auto type = get_type(b[from_coord]);
         auto h = history[wtm][type - 1][m.to_coord];
@@ -305,14 +305,14 @@ void k2movegen::ProcessSeeBatteries(const coord_t to_coord,
     auto mask = attacks[wtm][attacker_coord] & slider_mask[wtm];
     while(mask)
     {
-        const auto index = __builtin_ctz(mask);
-        mask ^= (1 << index);
-        const auto second_coord = *coords[wtm].at(index);
+        const auto piece_id = __builtin_ctz(mask);
+        mask ^= (1 << piece_id);
+        const auto second_coord = *coords[wtm].at(piece_id);
         if(!IsOnRay(attacker_coord, second_coord, to_coord))
             continue;
         if(!IsSliderAttack(attacker_coord, second_coord))
             continue;
-        attacks[wtm][to_coord] |= 1 << index;
+        attacks[wtm][to_coord] |= 1 << piece_id;
         return;
     }
 }
@@ -324,11 +324,11 @@ void k2movegen::ProcessSeeBatteries(const coord_t to_coord,
 k2chess::eval_t k2movegen::SEE(const coord_t to_coord, const eval_t fr_value,
                                eval_t val, const bool stm)
 {
-    const auto index = SeeMinAttacker(to_coord);
-    if(index == -1U)
+    const auto piece_id = SeeMinAttacker(to_coord);
+    if(piece_id == -1U)
         return -val;
-    attacks[wtm][to_coord] ^= 1 << index;
-    const auto it = coords[wtm].at(index);
+    attacks[wtm][to_coord] ^= 1 << piece_id;
+    const auto it = coords[wtm].at(piece_id);
     const auto type = get_type(b[*it]);
     if(type != knight)
         ProcessSeeBatteries(to_coord, *it);
@@ -363,7 +363,7 @@ size_t k2movegen::SeeMinAttacker(const coord_t to_coord) const
 //-----------------------------
 k2chess::eval_t k2movegen::StaticExchangeEval(const move_c move)
 {
-    const auto it = coords[wtm].at(move.piece_index);
+    const auto it = coords[wtm].at(move.piece_id);
     const auto fr_piece = b[*it];
     const auto to_piece = b[move.to_coord];
     const auto fr_type = get_type(fr_piece);
@@ -373,7 +373,7 @@ k2chess::eval_t k2movegen::StaticExchangeEval(const move_c move)
     const auto store_att1 = attacks[wtm][move.to_coord];
     const auto store_att2 = attacks[!wtm][move.to_coord];
 
-    attacks[wtm][move.to_coord] ^= 1 << move.piece_index;
+    attacks[wtm][move.to_coord] ^= 1 << move.piece_id;
     if(fr_type != knight)
         ProcessSeeBatteries(move.to_coord, *it);
     wtm = !wtm;
@@ -397,10 +397,11 @@ size_t k2movegen::test_gen_pawn(const char* coord,
     move_c move_array[move_array_size];
     movcr_t move_cr = 0;
 
-    size_t index = find_piece(wtm, get_coord(coord));
-    GenPawnCapturesAndPromotions(move_array, &move_cr, coords[wtm].at(index));
+    size_t piece_id = find_piece(wtm, get_coord(coord));
+    GenPawnCapturesAndPromotions(move_array, &move_cr,
+                                 coords[wtm].at(piece_id));
     if(!captures_and_promotions)
-        GenPawnSilent(move_array, &move_cr, coords[wtm].at(index));
+        GenPawnSilent(move_array, &move_cr, coords[wtm].at(piece_id));
     for(auto i = 0; i < move_cr; ++i)
         if(!IsLegal(move_array[i]))
             return -1U;
@@ -520,26 +521,26 @@ void k2movegen::RunUnitTests()
     assert(test_gen_moves(true) == 14);
 
     SetupPosition("3k4/3b4/8/1Q5p/6B1/1r4N1/4p1nR/4K3 w - - 0 1");
-    auto index = SeeMinAttacker(get_coord("e2"));
-    assert(*coords[wtm].at(index) == get_coord("g3"));
-    index = SeeMinAttacker(get_coord("h5"));
-    assert(*coords[wtm].at(index) == get_coord("g3"));
-    index = SeeMinAttacker(get_coord("b3"));
-    assert(*coords[wtm].at(index) == get_coord("b5"));
-    index = SeeMinAttacker(get_coord("g2"));
-    assert(*coords[wtm].at(index) == get_coord("h2"));
-    index = SeeMinAttacker(get_coord("d7"));
-    assert(*coords[wtm].at(index) == get_coord("g4"));
+    auto piece_id = SeeMinAttacker(get_coord("e2"));
+    assert(*coords[wtm].at(piece_id) == get_coord("g3"));
+    piece_id = SeeMinAttacker(get_coord("h5"));
+    assert(*coords[wtm].at(piece_id) == get_coord("g3"));
+    piece_id = SeeMinAttacker(get_coord("b3"));
+    assert(*coords[wtm].at(piece_id) == get_coord("b5"));
+    piece_id = SeeMinAttacker(get_coord("g2"));
+    assert(*coords[wtm].at(piece_id) == get_coord("h2"));
+    piece_id = SeeMinAttacker(get_coord("d7"));
+    assert(*coords[wtm].at(piece_id) == get_coord("g4"));
     wtm = !wtm;
-    index = SeeMinAttacker(get_coord("b5"));
-    assert(*coords[wtm].at(index) == get_coord("d7"));
-    index = SeeMinAttacker(get_coord("e1"));
-    assert(*coords[wtm].at(index) == get_coord("g2"));
+    piece_id = SeeMinAttacker(get_coord("b5"));
+    assert(*coords[wtm].at(piece_id) == get_coord("d7"));
+    piece_id = SeeMinAttacker(get_coord("e1"));
+    assert(*coords[wtm].at(piece_id) == get_coord("g2"));
     wtm = !wtm;
-    index = SeeMinAttacker(get_coord("e2"));
-    attacks[wtm][get_coord("e2")] ^= 1 << index;
-    index = SeeMinAttacker(get_coord("e2"));
-    assert(*coords[wtm].at(index) == get_coord("g4"));
+    piece_id = SeeMinAttacker(get_coord("e2"));
+    attacks[wtm][get_coord("e2")] ^= 1 << piece_id;
+    piece_id = SeeMinAttacker(get_coord("e2"));
+    assert(*coords[wtm].at(piece_id) == get_coord("g4"));
 
     SetupPosition("1b3rk1/4n2p/6p1/5p2/6P1/3B2N1/6PP/5RK1 w - - 0 1");
     auto move = MoveFromStr("g4f5");

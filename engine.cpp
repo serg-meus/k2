@@ -522,7 +522,7 @@ void k2engine::UpdateStatistics(const move_c move, const depth_t depth,
         killers[ply][0] = move;
     }
 
-    const auto it = coords[wtm].at(move.piece_index);
+    const auto it = coords[wtm].at(move.piece_id);
     const auto from_coord = *it;
     auto &h = history[wtm][get_type(b[from_coord]) - 1][move.to_coord];
     h += depth*depth + 1;
@@ -964,7 +964,7 @@ bool k2engine::MakeMove(const char *move_str)
     for(movcr_t i = 0; i < root_moves.size(); ++i)
     {
         const auto cur_move = root_moves.at(i).second;
-        auto it = coords[wtm].at(cur_move.piece_index);
+        auto it = coords[wtm].at(cur_move.piece_id);
         cur_move_str[0] = get_col(*it) + 'a';
         cur_move_str[1] = get_row(*it) + '1';
         cur_move_str[2] = get_col(cur_move.to_coord) + 'a';
@@ -976,7 +976,7 @@ bool k2engine::MakeMove(const char *move_str)
         if(strcmp(move_str, cur_move_str) != 0)
             continue;
 
-        it = coords[wtm].at(cur_move.piece_index);
+        it = coords[wtm].at(cur_move.piece_id);
 
         MakeMove(cur_move);
         MakeAttacks(cur_move);
@@ -1515,16 +1515,9 @@ void k2engine::ShowCurrentUciInfo()
                  (i32)(1000000 * stats.nodes / (t - time_control.time0 + 1));
 
     const auto move = root_moves.at(root_move_cr).second;
-    const auto from_coord = k2chess::state[1].from_coord;
-    std::cout << " currmove "
-              << (char)(get_col(from_coord) + 'a')
-              << (char)(get_row(from_coord) + '1')
-              << (char)(get_col(move.to_coord) + 'a')
-              << (char)(get_row(move.to_coord) + '1');
-    char proms[] = {'?', 'q', 'n', 'r', 'b'};
-    if(move.flag & is_promotion)
-        std::cout << proms[move.flag & is_promotion];
-
+    char move_str[6];
+    MoveToCoordinateNotation(move, wtm, move_str);
+    std::cout << " currmove " << move_str;
     std::cout << " currmovenumber " << root_move_cr + 1;
     std::cout << " hashfull ";
 
@@ -1545,13 +1538,15 @@ void k2engine::PonderHit()
             ponder_time_factor*time_control.time_to_think)
     {
         time_control.spent_exact_time = true;
-        std::cout << "( ponderhit: need to exit immidiately)\n";
+        if(enable_output)
+            std::cout << "( ponderhit: need to exit immidiately)\n";
     }
     else
     {
         pondering_in_process = false;
-        std::cout << "( ponderhit: " <<
-                     (int)time_control.time_to_think << ")\n";
+        if(enable_output)
+            std::cout << "( ponderhit: " << std::setprecision(1) <<
+                         std::fixed << time_control.time_to_think << ")\n";
     }
 }
 

@@ -330,10 +330,10 @@ void k2eval::MobilityEval(bool stm)
         const auto type = get_type(b[*rit]);
         if(type == pawn)
             break;
-        const auto index = rit.get_array_index();
+        const auto piece_id = rit.get_array_index();
         auto cr = 0;
         for(auto ray = ray_min[type]; ray < ray_max[type]; ++ray)
-            cr += mobility[stm][index][ray];
+            cr += mobility[stm][piece_id][ray];
         if(type == queen)
             cr /= 2;
         assert(cr < 15);
@@ -881,9 +881,9 @@ k2chess::attack_t k2eval::KingSafetyBatteries(const coord_t targ_coord,
     auto ans = att;
     while(msk)
     {
-        const auto index = __builtin_ctz(msk);
-        msk ^= (1 << index);
-        const auto coord1 = *coords[!stm].at(index);
+        const auto piece_id = __builtin_ctz(msk);
+        msk ^= (1 << piece_id);
+        const auto coord1 = *coords[!stm].at(piece_id);
         auto maybe = attacks[!stm][coord1] & slider_mask[!stm];
         if(!maybe)
             continue;
