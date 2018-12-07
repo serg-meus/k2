@@ -67,21 +67,21 @@ private:
 
 
     void GenPawnSilent(move_c * const move_array, movcr_t * const movCr,
-                 const iterator it);
+                       const piece_id_t piece_id);
     void GenPawnCapturesAndPromotions(move_c * const move_array,
-                                   movcr_t * const movCr,
-                 const iterator it);
+                                      movcr_t * const movCr,
+                                      const piece_id_t piece_id);
     void GenCastles(move_c * const move_array, movcr_t * const movCr);
     eval_t SEE(const coord_t to_coord, const eval_t frStreng,
                eval_t val, const bool stm);
     size_t SeeMinAttacker(const coord_t to_coord) const;
 
     void PushMove(move_c * const move_array, movcr_t * const movCr,
-                  const coord_t it, const coord_t to_coord,
+                  const coord_t from_coord, const coord_t to_coord,
                   const move_flag_t flag)
     {
         move_c move;
-        move.piece_id = it;
+        move.from_coord = from_coord;
         move.to_coord = to_coord;
         move.flag = flag;
         move.priority = 0;
@@ -94,7 +94,7 @@ private:
     void ProcessSeeBatteries(const coord_t to_coord,
                              const coord_t attacker_coord);
 
-    size_t test_gen_pawn(const char* coord, bool captures_and_promotions);
+    size_t test_gen_pawn(const char* str_coord, bool captures_and_promotions);
     size_t test_gen_castles();
     size_t test_gen_moves(bool need_captures_or_promotions);
 };

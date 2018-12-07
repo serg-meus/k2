@@ -372,7 +372,7 @@ void k2engine::MainSearch()
 k2chess::eval_t k2engine::RootSearch(const depth_t depth, eval_t alpha,
                                      const eval_t beta)
 {
-    const bool in_check = attacks[!wtm][*king_coord[wtm]];
+    const bool in_check = attacks[!wtm][king_coord(wtm)];
     bool beta_cutoff = false;
     const node_t unconfirmed_fail_high = -1;
     const node_t max_root_move_priority = std::numeric_limits<node_t>::max();
@@ -522,9 +522,7 @@ void k2engine::UpdateStatistics(const move_c move, const depth_t depth,
         killers[ply][0] = move;
     }
 
-    const auto it = coords[wtm].at(move.piece_id);
-    const auto from_coord = *it;
-    auto &h = history[wtm][get_type(b[from_coord]) - 1][move.to_coord];
+    auto &h = history[wtm][get_type(b[move.from_coord]) - 1][move.to_coord];
     h += depth*depth + 1;
 }
 
@@ -538,7 +536,7 @@ void k2engine::ShowPVfailHighOrLow(const move_c move, const eval_t val,
 {
     TakebackMove(move);
     char mstr[6];
-    MoveToCoordinateNotation(move, wtm, mstr);
+    MoveToCoordinateNotation(move, mstr);
 
     const auto tmp_length = pv[0].length;
     const auto tmp_move = pv[0].moves[0];
@@ -704,7 +702,7 @@ void k2engine::CheckForResign(const eval_t x)
 void k2engine::PrintFinalSearchResult()
 {
     char move_str[6];
-    MoveToCoordinateNotation(pv[0].moves[0], wtm, move_str);
+    MoveToCoordinateNotation(pv[0].moves[0], move_str);
 
     if(!uci && !MakeMove(move_str))
         std::cout << "tellusererror err01"
@@ -718,19 +716,19 @@ void k2engine::PrintFinalSearchResult()
         {
             char pndr[6] = "a1a1";
             if(pv[0].length > 1)
-                MoveToCoordinateNotation(pv[0].moves[1], !wtm, pndr);
+                MoveToCoordinateNotation(pv[0].moves[1], pndr);
             else
             {
                 MakeMove(pv[0].moves[0]);
                 hash_entry_s *entry = hash_table.count(hash_key);
                 if(entry != nullptr)
-                    MoveToCoordinateNotation(entry->best_move, wtm, pndr);
+                    MoveToCoordinateNotation(entry->best_move, pndr);
                 else
                 {
                     move_c move_array[move_array_size];
                     auto max_moves = GenMoves(move_array, true);
                     if(max_moves)
-                        MoveToCoordinateNotation(move_array[0], wtm, pndr);
+                        MoveToCoordinateNotation(move_array[0], pndr);
                 }
                 TakebackMove(pv[0].moves[0]);
             }
@@ -964,9 +962,8 @@ bool k2engine::MakeMove(const char *move_str)
     for(movcr_t i = 0; i < root_moves.size(); ++i)
     {
         const auto cur_move = root_moves.at(i).second;
-        auto it = coords[wtm].at(cur_move.piece_id);
-        cur_move_str[0] = get_col(*it) + 'a';
-        cur_move_str[1] = get_row(*it) + '1';
+        cur_move_str[0] = get_col(cur_move.from_coord) + 'a';
+        cur_move_str[1] = get_row(cur_move.from_coord) + '1';
         cur_move_str[2] = get_col(cur_move.to_coord) + 'a';
         cur_move_str[3] = get_row(cur_move.to_coord) + '1';
         cur_move_str[4] = (cur_move.flag & is_promotion) ?
@@ -975,8 +972,6 @@ bool k2engine::MakeMove(const char *move_str)
 
         if(strcmp(move_str, cur_move_str) != 0)
             continue;
-
-        it = coords[wtm].at(cur_move.piece_id);
 
         MakeMove(cur_move);
         MakeAttacks(cur_move);
@@ -1516,7 +1511,7 @@ void k2engine::ShowCurrentUciInfo()
 
     const auto move = root_moves.at(root_move_cr).second;
     char move_str[6];
-    MoveToCoordinateNotation(move, wtm, move_str);
+    MoveToCoordinateNotation(move, move_str);
     std::cout << " currmove " << move_str;
     std::cout << " currmovenumber " << root_move_cr + 1;
     std::cout << " hashfull ";

@@ -117,7 +117,7 @@ protected:
 private:
 
 
-    void MoveHashKey(const move_c m, const bool special);
+    void MoveHashKey(const move_c move, const bool special);
 
     piece_t piece_hash_index(piece_t piece)
     {

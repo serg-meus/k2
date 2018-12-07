@@ -128,7 +128,7 @@ protected:
     void InitPawnStruct();
     void SetPawnStruct(const coord_t col);
     bool IsPasser(const coord_t col, const bool stm) const;
-    bool MakeMove(const move_c m);
+    bool MakeMove(const move_c move);
     void TakebackMove(const move_c move);
 
     eval_t ReturnEval(const bool stm) const
@@ -172,8 +172,7 @@ private:
     bool IsUnstoppablePawn(const coord_t col, const bool side_of_pawn,
                            const bool stm) const;
     void MaterialImbalances();
-    void MovePawnStruct(const piece_t movedPiece, const coord_t from_coord,
-                        const move_c m);
+    void MovePawnStruct(const piece_t movedPiece, const move_c move);
     void MobilityEval(bool stm);
     void KingSafety(const bool king_color);
     eval_t KingShelter(const coord_t k_col, coord_t k_row,

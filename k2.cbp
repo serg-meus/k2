@@ -61,7 +61,6 @@
 		<Unit filename="engine.h" />
 		<Unit filename="Timer.cpp" />
 		<Unit filename="Timer.h" />
-		<Unit filename="short_list.h" />
 		<Extensions>
 			<code_completion />
 			<envvars />

@@ -2,11 +2,11 @@
 #include <cstring>
 #include <cstdint>
 #include <assert.h>
-#include <bitset>
 #include <vector>
-#include <limits.h>
+#include <limits>
 #include <cmath>
-#include "short_list.h"
+#include <list>
+#include <algorithm>
 
 
 class k2chess
@@ -35,8 +35,8 @@ protected:
 
     typedef i16 depth_t;
     typedef u8 piece_t;
+    typedef u8 piece_type_t;
     typedef u8 coord_t;
-
     typedef i16 eval_t;
     typedef u8 move_flag_t;
     typedef u8 castle_t;
@@ -46,6 +46,8 @@ protected:
     typedef u8 priority_t;
     typedef u8 ray_mask_t;
     typedef u8 piece_id_t;
+
+    typedef std::list<std::pair<eval_t, piece_id_t>> k2list_t;
 
     const static depth_t max_ply = 100;  // maximum search depth
     const static coord_t board_width = 8;
@@ -59,57 +61,8 @@ protected:
     const static coord_t max_row = board_height - 1;
     const static u8 max_pieces_one_side = 16;
     const static u8 max_rays = 8;
-    const static piece_id_t piece_not_found = -1;
+    const static coord_t piece_not_found = -1;
     coord_t max_ray_length;
-
-    class k2list : public short_list<coord_t, max_pieces_one_side>
-    {
-
-    public:
-
-        piece_t *board;
-        eval_t *values;
-
-        piece_t get_type(piece_t piece)  // must be as in k2chess class
-        {
-            return piece/sides;
-        }
-
-        void sort()
-        {
-            bool replaced = true;
-            if(this->size() <= 1)
-                return;
-
-            while(replaced)
-            {
-                replaced = false;
-                iterator it;
-                for(it = this->begin(); it != --(this->end()); ++it)
-                {
-                    iterator it_nxt = it;
-                    ++it_nxt;
-                    auto s_it = values[get_type(board[*it])];
-                    auto s_nxt = values[get_type(board[*it_nxt])];
-                    if(s_it > s_nxt)
-                    {
-                        direct_swap(it, it_nxt);
-                        replaced = true;
-                    }
-                }
-#ifndef NDEBUG
-                for(it = this->begin(); it != --(this->end()); ++it)
-                {
-                    iterator it_nxt = it;
-                    ++it_nxt;
-                    assert(values[get_type(board[*it])] >=
-                        values[get_type(board[*it])]);
-                }
-#endif
-            }
-        }
-    };
-    typedef k2list::iterator iterator;
 
     const static piece_t
     empty_square = 0,
@@ -153,7 +106,7 @@ protected:
     static const size_t move_max_display_length = 5;
     static const attack_t attack_digits = sizeof(attack_t)*CHAR_BIT;
 
-    static const piece_t
+    static const piece_type_t
     pawn = black_pawn/sides,
     bishop = black_bishop/sides,
     knight = black_knight/sides,
@@ -194,22 +147,22 @@ protected:
     class move_c
     {
     public:
-        coord_t to_coord;  // coordinate for piece to move to
-        piece_id_t piece_id;  // pointer to piece in piece list
+        coord_t from_coord;
+        coord_t to_coord;
         move_flag_t flag;  // special move flags (is_capture, etc)
         priority_t priority;  // priority of move assigned by move generator
 
         bool operator == (move_c m) const
         {
             return to_coord == m.to_coord
-                   && piece_id == m.piece_id
+                   && from_coord == m.from_coord
                    && flag == m.flag;
         }
 
         bool operator != (move_c m) const
         {
             return to_coord != m.to_coord
-                   || piece_id != m.piece_id
+                   || from_coord != m.from_coord
                    || flag != m.flag;
         }
 
@@ -224,10 +177,10 @@ protected:
     {
         move_c move;  // last move
         piece_t captured_piece;  // captured piece
-        piece_id_t captured_id;  // iterator to captured piece
-        coord_t from_coord;  // square coordinate from which move was made
+        piece_id_t captured_id;  // id of captured piece
+        coord_t next_piece_coord; // coord of piece after the captured
         castle_t castling_rights;  // castling rights, castle_kingside_w, ...
-        piece_id_t castled_rook_id;  // iterator to castled rook
+        piece_id_t castled_rook_id;  // id of castled rook
         enpass_t en_passant_rights;  // 0 = no en passant, 1..8 =
         // pawn col + 1, not null only if opponent pawn is near
         depth_t reversible_moves;  // reversible halfmove counter
@@ -252,7 +205,7 @@ protected:
         piece_id_t captured_id;
         bool set_attack_bit;
         ray_mask_t ray_mask;
-        piece_id_t ray_id;
+        ray_mask_t ray_id;
     };
 
     // side to move or white to move, k2chess::white (true) or k2chess::black
@@ -261,8 +214,17 @@ protected:
     // array representing the chess board
     piece_t b[board_width*board_height];
 
-    // black/white piece coordinates
-    k2list coords[sides];
+    // sorted by value list with piece id's
+    k2list_t coord_id[sides];
+
+    // list with delete peces id's (to avoid unwanted memory allocs)
+    k2list_t deleted_id[sides];
+
+    // array with piece coordinates sorted by their id's
+    coord_t coords[sides][max_pieces_one_side];
+
+    // array needed to fast find for piece id's by their coords
+    piece_id_t find_piece_id[board_width*board_height];
 
     // two tables for each color with attacks of all pieces
     attack_t attacks[sides][board_width*board_height];
@@ -310,16 +272,12 @@ protected:
     char cur_moves[move_max_display_length*max_ply];
     char *cv;  // current variation pointer (for debug mode only)
 
-    iterator king_coord[sides];  // king coord iterators for black and white
-
     attack_t done_attacks[max_ply][sides][board_height*board_width];
-
-    std::vector<k2list> store_coords;
-
+    std::vector<k2list_t> store_coord_id;
+    std::vector<std::vector<coord_t>> store_coords;
     coord_t done_mobility[max_ply][sides][max_pieces_one_side][max_rays];
 
     bool MakeMove(const move_c m);
-    piece_id_t find_piece(const bool stm, const coord_t coord);
     move_flag_t InitMoveFlag(const move_c move, const char promo_to);
     bool IsLegal(const move_c move);
     bool IsPseudoLegal(const move_c move);
@@ -331,13 +289,12 @@ protected:
     bool IsSliderAttack(const coord_t from_coord,
                         const coord_t to_coord) const;
     bool CheckBoardConsistency();
-    void MoveToCoordinateNotation(const move_c m, const bool stm, char * const out);
+    void MoveToCoordinateNotation(const move_c m, char * const out);
     void MakeAttacks(const move_c move);
     void TakebackMove(move_c move);
     bool PrintMoveSequence(const move_c * const moves, const size_t length,
                            const bool coordinate_notation);
-    void MoveToAlgebraicNotation(const move_c move, const bool stm,
-                                         char *out);
+    void MoveToAlgebraicNotation(const move_c move, char *out);
     void ProcessAmbiguousNotation(const move_c move, char *out);
 
     coord_t get_coord(const coord_t col, const coord_t row) const
@@ -361,7 +318,7 @@ protected:
         return coord/board_width;
     }
 
-    coord_t get_type(const piece_t piece) const
+    piece_type_t get_type(const piece_t piece) const
     {
         return piece/sides;
     }
@@ -396,14 +353,14 @@ protected:
     {
         move_c ans;
         const auto from_coord = get_coord(str);
-        const auto piece_id = find_piece(wtm, from_coord);
-        if(piece_id == piece_not_found)
+        const auto id = find_piece_id[from_coord];
+        if(id == piece_not_found)
         {
             ans.flag = not_a_move;
             return ans;
         }
+        ans.from_coord = from_coord;
         ans.to_coord = get_coord(&str[2]);
-        ans.piece_id = piece_id;
         ans.flag = InitMoveFlag(ans, str[4]);
         return ans;
     }
@@ -414,23 +371,42 @@ protected:
         memcpy(mobility, done_mobility[ply], sizeof(mobility));
     }
 
+    coord_t king_coord(const bool stm) const
+    {
+        const auto id = coord_id[stm].back();
+        const auto coord = coords[stm][id.second];
+        return coord;
+    }
+
+    k2list_t::iterator find_piece_it(bool stm, coord_t coord)
+    {
+        auto it = coord_id[stm].begin();
+        for(;it != coord_id[stm].end(); ++it)
+        {
+            const auto it_coord = coords[stm][(*it).second];
+            if(it_coord == coord)
+                break;
+        }
+        return it;
+    }
+
 
 private:
 
 
     void InitAttacks(const bool stm);
-    bool InitPieceLists();
-    void ShowMove(const coord_t from_coord, const coord_t to_coord);
-    void StoreCurrentBoardState(const move_c m, const coord_t from_coord);
+    bool InitPieceLists(bool stm);
+    void ShowMove(const move_c move);
+    void StoreCurrentBoardState(const move_c m);
     void MakeCapture(const move_c m);
     void MakePromotion(const move_c m);
     void TakebackCapture(const move_c m);
     void TakebackPromotion(move_c m);
-    bool MakeCastleOrUpdateFlags(const move_c m, const coord_t from_coord);
+    bool MakeCastleOrUpdateFlags(const move_c m);
     void TakebackCastle(const move_c m);
-    bool MakeEnPassantOrUpdateFlags(const move_c m, const coord_t from_coord);
+    bool MakeEnPassantOrUpdateFlags(const move_c m);
     void InitAttacksOnePiece(const coord_t coord, const bool setbit);
-    void UpdateAttacks(move_c move, const coord_t from_coord);
+    void UpdateAttacks(move_c move);
     void UpdateAttacksOnePiece(attack_params_s &p);
     char* ParseMainPartOfFen(char *ptr);
     char* ParseSideToMoveInFen(char *ptr);
@@ -445,9 +421,9 @@ private:
                             const piece_id_t piece_id, const coord_t type,
                             const bool change_bit,
                             ray_mask_t ray_mask);
-    bool IsPseudoLegalPawn(const move_c move, const coord_t from_coord) const;
-    bool IsPseudoLegalKing(const move_c move, const coord_t from_coord) const;
-    bool IsPseudoLegalKnight(const move_c move, const coord_t from_coord) const;
+    bool IsPseudoLegalPawn(const move_c move) const;
+    bool IsPseudoLegalKing(const move_c move) const;
+    bool IsPseudoLegalKnight(const move_c move) const;
     void InitSliderMask(bool stm);
     ray_mask_t GetRayMask(attack_params_s &p) const;
     piece_id_t GetRayId(const coord_t from_coord, const coord_t to_coord,
@@ -455,7 +431,7 @@ private:
     ray_mask_t GetRayMaskNotForMove(const coord_t target_coord,
                                     const coord_t piece_coord) const;
     void InitMobility(const bool color);
-    size_t test_mobility(const bool color);
+    size_t test_mobility(const bool stm);
     void UpdateMasks(const move_c move, const attack_params_s &p);
     void GetAttackParams(const piece_id_t piece_id, const move_c move,
                          const bool stm, attack_params_s &p);
@@ -466,7 +442,7 @@ private:
                               const coord_t to_coord) const;
     ray_mask_t GetKingMask(const coord_t piece_coord,
                               const coord_t to_coord) const;
-    bool IsLegalKingMove(const move_c move, coord_t from_coord);
+    bool IsLegalKingMove(const move_c move);
 
     void set_bit(const bool color, const coord_t col, const coord_t row,
                  const u8 index)

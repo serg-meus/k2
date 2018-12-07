@@ -40,15 +40,13 @@ k2hash::k2hash()
 k2hash::hash_key_t k2hash::InitHashKey()
 {
     hash_key_t ans = 0;
-
-    for(auto from_coord : coords[wtm])
-        ans ^= zorb[piece_hash_index(b[from_coord])]
-               [get_col(from_coord)][get_row(from_coord)];
-
-    for(auto from_coord : coords[!wtm])
-        ans ^= zorb[piece_hash_index(b[from_coord])]
-               [get_col(from_coord)][get_row(from_coord)];
-
+    for(auto stm : {black, white})
+        for(auto it : coord_id[stm])
+        {
+            const auto coord = coords[stm][it.second];
+            ans ^= zorb[piece_hash_index(b[coord])]
+                    [get_col(coord)][get_row(coord)];
+        }
     if(!wtm)
         ans ^= key_for_side_to_move;
     const auto &f = k2chess::state[ply];
@@ -63,40 +61,39 @@ k2hash::hash_key_t k2hash::InitHashKey()
 
 
 //--------------------------------
-void k2hash::MoveHashKey(const move_c m, const bool special)
+void k2hash::MoveHashKey(const move_c move, const bool special)
 {
     done_hash_keys[FIFTY_MOVES + ply - 1] = hash_key;
-    const auto from_coord = k2chess::state[ply].from_coord;
 
-    const auto piece = b[m.to_coord];
+    const auto piece = b[move.to_coord];
     const auto &st = k2chess::state[ply];
     auto &prev_st = k2chess::state[ply - 1];
 
     hash_key ^= zorb[piece_hash_index(piece)]
-                [get_col(from_coord)][get_row(from_coord)]
+                [get_col(move.from_coord)][get_row(move.from_coord)]
                 ^ zorb[piece_hash_index(piece)]
-                [get_col(m.to_coord)][get_row(m.to_coord)];
+                [get_col(move.to_coord)][get_row(move.to_coord)];
 
     if(st.captured_piece)
         hash_key ^= zorb[piece_hash_index(st.captured_piece)]
-                    [get_col(m.to_coord)][get_row(m.to_coord)];
+                    [get_col(move.to_coord)][get_row(move.to_coord)];
     if(prev_st.en_passant_rights)
         hash_key ^= zorb_en_passant[prev_st.en_passant_rights];
 
-    if(m.flag & is_promotion)
+    if(move.flag & is_promotion)
         hash_key ^= zorb[piece_hash_index(white_pawn ^ wtm)]
-                    [get_col(from_coord)][get_row(from_coord)]
+                    [get_col(move.from_coord)][get_row(move.from_coord)]
                     ^ zorb[piece_hash_index(piece)]
-                    [get_col(from_coord)][get_row(from_coord)];
-    else if(m.flag & is_en_passant)
+                    [get_col(move.from_coord)][get_row(move.from_coord)];
+    else if(move.flag & is_en_passant)
         hash_key ^= zorb[piece_hash_index(black_pawn ^ wtm)]
-                    [get_col(m.to_coord)][get_row(m.to_coord)
+                    [get_col(move.to_coord)][get_row(move.to_coord)
                                           + (wtm ? 1 : -1)];
-    else if(m.flag & is_castle)
+    else if(move.flag & is_castle)
     {
         if(!wtm)
         {
-            if(m.flag & is_right_castle)
+            if(move.flag & is_right_castle)
                 hash_key ^= zorb[piece_hash_index(white_rook)][7][0]
                             ^ zorb[piece_hash_index(white_rook)][5][0];
             else
@@ -105,7 +102,7 @@ void k2hash::MoveHashKey(const move_c m, const bool special)
         }
         else
         {
-            if(m.flag & is_right_castle)
+            if(move.flag & is_right_castle)
                 hash_key ^= zorb[piece_hash_index(black_rook)][7][7]
                             ^ zorb[piece_hash_index(black_rook)][5][7];
             else

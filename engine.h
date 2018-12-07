@@ -1,7 +1,6 @@
 #include "hash.h"
 #include <iomanip>
 #include <ctime>
-#include <algorithm>  // for sorting of vectors
 #include "Timer.h"
 
 
@@ -289,7 +288,7 @@ protected:
         if(k2chess::state[ply - 1].move.to_coord == is_null_move)
             return false;
         bool ans = false;
-        const auto k_coord = *king_coord[wtm];
+        const auto k_coord = king_coord(wtm);
         const auto to_coord = k2chess::state[ply].move.to_coord;
         const auto d_col = get_col(k_coord) - get_col(to_coord);
         const auto d_row = get_row(k_coord) - get_row(to_coord);
@@ -327,7 +326,7 @@ protected:
         }
         if(ans)
             return true;
-        const auto fr_coord = k2chess::state[ply].from_coord;
+        const auto fr_coord = k2chess::state[ply].move.from_coord;
         const auto d_col2 = get_col(k_coord) - get_col(fr_coord);
         const auto d_row2 = get_row(k_coord) - get_row(fr_coord);
         if(std::abs(d_col2) == std::abs(d_row2) || d_col2 == 0 || d_row2 == 0)
@@ -369,7 +368,7 @@ protected:
         if(delta == 1)
             wtm = !wtm;
         ply += delta;
-        bool in_check = attacks[!wtm][*king_coord[wtm]];
+        bool in_check = attacks[!wtm][king_coord(wtm)];
         state[ply].in_check = in_check;
         return in_check;
     }

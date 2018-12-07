@@ -33,15 +33,15 @@ k2chess::eval_t k2eval::Eval()
 
 
 //-----------------------------
-void k2eval::FastEval(const move_c m)
+void k2eval::FastEval(const move_c move)
 {
     eval_t ansO = 0, ansE = 0;
 
-    auto x = get_col(m.to_coord);
-    auto y = get_row(m.to_coord);
-    auto x0 = get_col(k2chess::state[ply].from_coord);
-    auto y0 = get_row(k2chess::state[ply].from_coord);
-    auto to_type = get_type(b[m.to_coord]);
+    auto x = get_col(move.to_coord);
+    auto y = get_row(move.to_coord);
+    auto x0 = get_col(move.from_coord);
+    auto y0 = get_row(move.from_coord);
+    auto to_type = get_type(b[move.to_coord]);
     if(!wtm)
     {
         y = max_row - y;
@@ -49,7 +49,7 @@ void k2eval::FastEval(const move_c m)
     }
 
     coord_t type;
-    auto flag = m.flag & is_promotion;
+    auto flag = move.flag & is_promotion;
     if(flag)
     {
         type = pawn;
@@ -66,10 +66,10 @@ void k2eval::FastEval(const move_c m)
 
     }
 
-    if(m.flag & is_capture)
+    if(move.flag & is_capture)
     {
         auto captured_piece = k2chess::state[ply].captured_piece;
-        if(m.flag & is_en_passant)
+        if(move.flag & is_en_passant)
         {
             type = pawn;
             ansO += material_values_opn[type] +
@@ -86,7 +86,7 @@ void k2eval::FastEval(const move_c m)
                     pst[type - 1][endgame][max_row - y][x];
         }
     }
-    else if(m.flag & is_right_castle)
+    else if(move.flag & is_right_castle)
     {
         type = rook;
         auto rook_col = default_king_col + cstl_move_length - 1;
@@ -95,7 +95,7 @@ void k2eval::FastEval(const move_c m)
         ansE += pst[type - 1][endgame][max_row][rook_col] -
                 pst[type - 1][endgame][max_row][max_col];
     }
-    else if(m.flag & is_left_castle)
+    else if(move.flag & is_left_castle)
     {
         type = rook;
         auto rook_col = default_king_col - cstl_move_length + 1;
@@ -243,11 +243,11 @@ void k2eval::EvalPawns(const bool stm)
         // following code executed only for passers
 
         // king pawn tropism
-        auto k = *king_coord[stm];
-        auto opp_k = *king_coord[!stm];
+        auto k_coord = king_coord(stm);
+        auto opp_k_coord = king_coord(!stm);
         auto pawn_coord = get_coord(col, stm ? mx + 1 : max_row - mx - 1);
-        auto k_dist = king_dist(k, pawn_coord);
-        auto opp_k_dist = king_dist(opp_k, pawn_coord);
+        auto k_dist = king_dist(k_coord, pawn_coord);
+        auto opp_k_dist = king_dist(opp_k_coord, pawn_coord);
 
         if(k_dist <= 1)
             ansE += pawn_king_tropism1 + pawn_king_tropism2*mx;
@@ -304,9 +304,9 @@ bool k2eval::IsUnstoppablePawn(const coord_t col, const bool side_of_pawn,
     if(pmax == pawn_default_row)
         pmax++;
     auto promo_square = get_coord(col, side_of_pawn ? max_row : 0);
-    int dist = king_dist(*king_coord[!side_of_pawn], promo_square);
-    auto k = *king_coord[side_of_pawn];
-    if(get_col(k) == col && king_dist(k, promo_square) <= max_row - pmax)
+    int dist = king_dist(king_coord(!side_of_pawn), promo_square);
+    auto k_coord = king_coord(side_of_pawn);
+    if(get_col(k_coord) == col && king_dist(k_coord, promo_square) <= max_row - pmax)
         pmax--;
     return dist - (side_of_pawn  != stm) > max_row - pmax;
 }
@@ -323,17 +323,16 @@ void k2eval::MobilityEval(bool stm)
                       21, 21, 21, 22, 22};
 
     eval_t ans = 0;
-    const auto beg = ++(coords[stm].rbegin());
-    const auto end = coords[stm].rend();
-    for(auto rit = beg; rit != end; ++rit)
+    for(auto id : coord_id[stm])
     {
-        const auto type = get_type(b[*rit]);
+        const auto type = get_type(b[coords[stm][id.second]]);
         if(type == pawn)
+            continue;
+        if(type == king)
             break;
-        const auto piece_id = rit.get_array_index();
         auto cr = 0;
         for(auto ray = ray_min[type]; ray < ray_max[type]; ++ray)
-            cr += mobility[stm][piece_id][ray];
+            cr += mobility[stm][id.second][ray];
         if(type == queen)
             cr /= 2;
         assert(cr < 15);
@@ -394,22 +393,22 @@ void k2eval::MaterialImbalances()
             auto stm = black;
             if(quantity[white][knight] == 1)
                 stm = white;
-            auto rit = coords[stm].begin();
-            for(; rit != coords[stm].end(); ++rit)
-                if(get_type(b[*rit]) == bishop)
+            auto id = coord_id[stm].begin();
+            for(; id != coord_id[stm].end(); ++id)
+                if(get_type(b[coords[stm][(*id).second]]) == bishop)
                     break;
-            assert(get_type(b[*rit]) == bishop);
 
             eval_t ans = 0;
-            const auto o_col = get_col(*king_coord[!stm]);
-            const auto o_row = get_row(*king_coord[!stm]);
+            const auto o_col = get_col(king_coord(!stm));
+            const auto o_row = get_row(king_coord(!stm));
             if((o_col == max_col - 1 && (o_row <= 1 || o_row >= max_row - 1)) ||
                     (o_col == max_col && (o_row == 0 || o_row == max_row)))
                 ans = imbalance_king_in_corner;
             if((o_col == 0 && (o_row <= 1 || o_row >= max_row - 1)) ||
                     (o_col == 1 && (o_row == 0 || o_row == max_row)))
                 ans = -imbalance_king_in_corner;
-            bool bishop_on_light_sq = ((get_col(*rit)) + get_row(*rit)) & 1;
+            const auto coord = coords[stm][(*id).second];
+            bool bishop_on_light_sq = ((get_col(coord)) + get_row(coord)) & 1;
             if(!bishop_on_light_sq)
                 ans = -ans;
             if(!stm)
@@ -427,15 +426,16 @@ void k2eval::MaterialImbalances()
         const auto pawn_col_max = pawn_max[max_col][!stm];
         if(pawn_col_max == 0 && pawn_col_min == 0)
             return;
-        auto it = ++coords[!stm].begin();
-        if(get_type(b[*it]) != bishop)
+        const auto id = ++coord_id[!stm].begin();
+        const auto coord = coords[!stm][(*id).second];
+        if(get_type(b[coord]) != bishop)
             return;
         const auto sq = get_coord(pawn_col_max == 0 ? 0 : max_col,
                                   stm ? 0 : max_row);
-        if(is_same_color(*it, sq))
+        if(is_same_color(coord, sq))
             return;
 
-        if(king_dist(*king_coord[stm], sq) <= 1)
+        if(king_dist(king_coord(stm), sq) <= 1)
         {
             val_opn = 0;
             val_end = 0;
@@ -446,11 +446,14 @@ void k2eval::MaterialImbalances()
     {
         // KPk
         const bool stm = material[white]/centipawn == 1;
-        const auto it = ++(coords[stm].rbegin());
-        const auto colp = get_col(*it);
+        const auto id = coord_id[stm].begin();
+        const auto coord = coords[stm][(*id).second];
+        const auto colp = get_col(coord);
         const bool unstop = IsUnstoppablePawn(colp, stm, wtm);
-        const auto dist_k = king_dist(*king_coord[stm], *it);
-        const auto dist_opp_k = king_dist(*king_coord[!stm], *it);
+        const auto k_coord = king_coord(stm);
+        const auto opp_k_coord = king_coord(!stm);
+        const auto dist_k = king_dist(k_coord, coord);
+        const auto dist_opp_k = king_dist(opp_k_coord, coord);
 
         if(!unstop && dist_k > dist_opp_k + (wtm == stm))
         {
@@ -461,7 +464,7 @@ void k2eval::MaterialImbalances()
         else if((colp == 0 || colp == max_col))
         {
             const auto sq = get_coord(colp, stm ? max_row : 0);
-            if(king_dist(*king_coord[!stm], sq) <= 1)
+            if(king_dist(opp_k_coord, sq) <= 1)
             {
                 val_opn = 0;
                 val_end = 0;
@@ -492,19 +495,16 @@ void k2eval::MaterialImbalances()
     if(quantity[white][bishop] == 1
             && quantity[black][bishop] == 1)
     {
-        auto w_it = coords[white].rbegin();
-        while(w_it != coords[white].rend()
-                && b[*w_it] != white_bishop)
-            ++w_it;
-        assert(w_it != coords[white].rend());
-
-        auto b_it = coords[black].rbegin();
-        while(b_it != coords[black].rend()
-                && b[*b_it] != black_bishop)
-            ++b_it;
-        assert(b_it != coords[white].rend());
-
-        if(!is_same_color(*w_it, *b_it))
+        auto w_it = coord_id[white].begin();
+        for(;w_it != coord_id[white].end(); ++w_it)
+            if(b[coords[white][(*w_it).second]] == white_bishop)
+                break;
+        auto b_it = coord_id[black].begin();
+        for(;b_it != coord_id[black].end(); ++b_it)
+            if(b[coords[black][(*b_it).second]] == black_bishop)
+                break;
+        if(!is_same_color(coords[white][(*w_it).second],
+                          coords[black][(*b_it).second]))
         {
             if(material[white]/centipawn - pieces[white] == 4 - 2
                     && material[black]/centipawn - pieces[black] == 4 - 2)
@@ -659,15 +659,13 @@ void k2eval::SetPawnStruct(const coord_t col)
 
 
 //-----------------------------
-void k2eval::MovePawnStruct(const piece_t moved_piece,
-                            const coord_t from_coord,
-                            const move_c move)
+void k2eval::MovePawnStruct(const piece_t moved_piece, const move_c move)
 {
     if(get_type(moved_piece) == pawn || (move.flag & is_promotion))
     {
         SetPawnStruct(get_col(move.to_coord));
         if(move.flag)
-            SetPawnStruct(get_col(from_coord));
+            SetPawnStruct(get_col(move.from_coord));
     }
     if(get_type(k2chess::state[ply].captured_piece) == pawn
             || (move.flag & is_en_passant))  // is_en_passant not needed
@@ -739,15 +737,14 @@ void k2eval::InitPawnStruct()
 
 
 //-----------------------------
-bool k2eval::MakeMove(const move_c m)
+bool k2eval::MakeMove(const move_c move)
 {
     state[ply].val_opn = val_opn;
     state[ply].val_end = val_end;
 
-    bool is_special_move = k2chess::MakeMove(m);
+    bool is_special_move = k2chess::MakeMove(move);
 
-    auto from_coord = k2chess::state[ply].from_coord;
-    MovePawnStruct(b[m.to_coord], from_coord, m);
+    MovePawnStruct(b[move.to_coord], move);
 
     return is_special_move;
 }
@@ -759,13 +756,11 @@ bool k2eval::MakeMove(const move_c m)
 //-----------------------------
 void k2eval::TakebackMove(const move_c move)
 {
-    auto from_coord = k2chess::state[ply].from_coord;
-
     k2chess::TakebackMove(move);
 
     ply++;
     wtm ^= white;
-    MovePawnStruct(b[from_coord], from_coord, move);
+    MovePawnStruct(b[move.from_coord], move);
     wtm ^= white;
     ply--;
 
@@ -781,20 +776,20 @@ void k2eval::TakebackMove(const move_c move)
 void k2eval::EvalRooks(const bool stm)
 {
     auto ans = 0;
-    auto rit = coords[stm].rbegin();
-
-    while(rit != coords[stm].rend() && get_type(b[*rit]) != rook)
-        ++rit;
-    if(rit == coords[stm].rend())
+    auto id = coord_id[stm].begin();
+    while(id != coord_id[stm].end() &&
+          get_type(b[coords[stm][(*id).second]]) != rook)
+        ++id;
+    if(id == coord_id[stm].end())
         return;
-
+    const auto coord = coords[stm][(*id).second];
     auto rooks_on_last_cr = 0;
-    if((stm && get_row(*rit) >= max_row - 1) ||
-            (!stm && get_row(*rit) <= 1))
+    if((stm && get_row(coord) >= max_row - 1) ||
+            (!stm && get_row(coord) <= 1))
         rooks_on_last_cr++;
     if(quantity[stm][pawn] >= rook_max_pawns_for_open_file &&
-            pawn_max[get_col(*rit)][stm] == 0)
-        ans += (pawn_max[get_col(*rit)][!stm] == 0 ? rook_open_file :
+            pawn_max[get_col(coord)][stm] == 0)
+        ans += (pawn_max[get_col(coord)][!stm] == 0 ? rook_open_file :
                                                      rook_semi_open_file);
 
     ans += rooks_on_last_cr*rook_on_last_rank;
@@ -883,7 +878,7 @@ k2chess::attack_t k2eval::KingSafetyBatteries(const coord_t targ_coord,
     {
         const auto piece_id = __builtin_ctz(msk);
         msk ^= (1 << piece_id);
-        const auto coord1 = *coords[!stm].at(piece_id);
+        const auto coord1 = coords[!stm][piece_id];
         auto maybe = attacks[!stm][coord1] & slider_mask[!stm];
         if(!maybe)
             continue;
@@ -891,7 +886,7 @@ k2chess::attack_t k2eval::KingSafetyBatteries(const coord_t targ_coord,
         {
             const auto j = __builtin_ctz(maybe);
             maybe ^= (1 << j);
-            const auto coord2 = *coords[!stm].at(j);
+            const auto coord2 = coords[!stm][j];
             const auto type1 = get_type(b[coord1]);
             const auto type2 = get_type(b[coord2]);
             bool is_ok = type1 == type2 || type2 == queen;
@@ -928,7 +923,7 @@ k2chess::attack_t k2eval::KingSafetyBatteries(const coord_t targ_coord,
 void k2eval::KingSafety(const bool stm)
 {
     auto ans = 0;
-    const auto k_coord = *king_coord[stm];
+    const auto k_coord = king_coord(stm);
     auto k_col = get_col(k_coord);
     const auto k_row = get_row(k_coord);
 

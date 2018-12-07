@@ -21,8 +21,7 @@ HEADERS += \
     movegen.h \
     hash.h \
     engine.h \
-    Timer.h \
-    short_list.h
+    Timer.h
 
 QMAKE_CXXFLAGS += -std=c++0x
 
