@@ -176,10 +176,10 @@ private:
     void MobilityEval(bool stm);
     void KingSafety(const bool king_color);
     eval_t KingShelter(const coord_t k_col, coord_t k_row,
-                       const bool stm);
+                       const bool stm) const;
     bool Sheltered(const coord_t k_col, coord_t k_row,
-                           const bool stm);
+                           const bool stm) const;
     attack_t KingSafetyBatteries(const coord_t targ_coord, const attack_t att,
-                                 const bool stm);
+                                 const bool stm) const;
     void EvalRooks(const bool stm);
 };

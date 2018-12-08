@@ -139,11 +139,13 @@ public:
     void ShowFen() const;
     void ReHash(size_t size_mb);
     void ClearHash();
+    void PonderHit();
+
     void EvalDebug()
     {
         k2eval::EvalDebug();
     }
-    void PonderHit();
+
     bool WhiteIsOnMove()
     {
         return wtm == white;
@@ -175,8 +177,8 @@ protected:
                    const eval_t beta, hash_entry_s **entry);
     move_c NextMove(move_c * const move_array, const movcr_t cur_move_cr,
                     movcr_t * const max_moves, move_c hash_best_move,
-                    bool hash_one_reply, const bool captures_only,
-                    const move_c prev_move);
+                    const bool hash_one_reply, const bool captures_only,
+                    const move_c prev_move) const;
     void StoreInHash(const depth_t depth, eval_t score,
                      const move_c best_move, const hbound_t bound,
                      const bool one_reply);
@@ -184,15 +186,16 @@ protected:
     void ShowPVfailHighOrLow(move_c m, eval_t x, const u8 exclimation);
     bool GetFirstMove(move_c * const move_array,
                       movcr_t * const max_moves,
-                      move_c hash_best_move, bool hash_one_reply,
+                      const move_c hash_best_move,
+                      const bool hash_one_reply,
                       const bool only_captures,
-                      move_c * const ans);
+                      move_c * const ans) const;
     bool GetSecondMove(move_c * const move_array, movcr_t * const max_moves,
-                       move_c prev_move, move_c *ans);
+                       move_c prev_move, move_c * const ans) const;
     size_t FindMaxMoveIndex(move_c * const move_array,
                             const movcr_t max_moves,
-                            const movcr_t cur_move);
-    bool CanFinishMainSearch(const eval_t x, const eval_t prev_x);
+                            const movcr_t cur_move) const;
+    bool CanFinishMainSearch(const eval_t x, const eval_t prev_x) const;
     void CheckForResign(const eval_t x);
 
     void CorrectHashScore(eval_t *x, depth_t depth)

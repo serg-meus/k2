@@ -68,11 +68,13 @@ protected:
         void clear();
         hash_entry_s& operator [](const hash_key_t key) const;
         bool resize(size_t size_mb);
-        size_t size()
+
+        size_t size() const
         {
             return _size;
         }
-        size_t max_size()
+
+        size_t max_size() const
         {
             return sizeof(hash_entry_s)*buckets*entries_in_a_bucket;
         }
@@ -99,7 +101,7 @@ protected:
 protected:
 
 
-    hash_key_t InitHashKey();
+    hash_key_t InitHashKey() const;
 
     void MakeMove(const move_c m)
     {
@@ -119,7 +121,7 @@ private:
 
     void MoveHashKey(const move_c move, const bool special);
 
-    piece_t piece_hash_index(piece_t piece)
+    piece_t piece_hash_index(piece_t piece) const
     {
         return piece - 2;
     }

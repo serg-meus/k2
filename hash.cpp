@@ -37,7 +37,7 @@ k2hash::k2hash()
 
 
 //--------------------------------
-k2hash::hash_key_t k2hash::InitHashKey()
+k2hash::hash_key_t k2hash::InitHashKey() const
 {
     hash_key_t ans = 0;
     for(auto stm : {black, white})

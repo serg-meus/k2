@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <assert.h>
 #include <vector>
-#include <limits>
+#include <limits.h>
 #include <cmath>
 #include <list>
 #include <algorithm>
@@ -278,24 +278,27 @@ protected:
     coord_t done_mobility[max_ply][sides][max_pieces_one_side][max_rays];
 
     bool MakeMove(const move_c m);
-    move_flag_t InitMoveFlag(const move_c move, const char promo_to);
-    bool IsLegal(const move_c move);
-    bool IsPseudoLegal(const move_c move);
+    move_flag_t InitMoveFlag(const move_c move, const char promo_to) const;
+    bool IsLegal(const move_c move) const;
+    bool IsPseudoLegal(const move_c move) const;
     bool IsLegalCastle(const move_c move) const;
     bool IsOnRay(const coord_t given, const coord_t k_coord,
                  const coord_t attacker_coord) const;
     bool IsDiscoveredAttack(const coord_t fr_coord, const coord_t to_coord,
-                            attack_t mask);
+                            attack_t mask) const;
     bool IsSliderAttack(const coord_t from_coord,
                         const coord_t to_coord) const;
     bool CheckBoardConsistency();
-    void MoveToCoordinateNotation(const move_c m, char * const out);
+    void MoveToCoordinateNotation(const move_c m, char * const out) const;
     void MakeAttacks(const move_c move);
     void TakebackMove(move_c move);
     bool PrintMoveSequence(const move_c * const moves, const size_t length,
                            const bool coordinate_notation);
-    void MoveToAlgebraicNotation(const move_c move, char *out);
-    void ProcessAmbiguousNotation(const move_c move, char *out);
+    void MoveToAlgebraicNotation(const move_c move, char *out) const;
+    void ProcessAmbiguousNotation(const move_c move, char *out) const;
+    bool IsDiscoveredEnPassant(const coord_t fr_coord,
+                               const coord_t attacker_coord,
+                               const coord_t k_coord) const;
 
     coord_t get_coord(const coord_t col, const coord_t row) const
     {
@@ -349,7 +352,7 @@ protected:
         return (T(0) < val) - (val < T(0));
     }
 
-    move_c MoveFromStr(const char *str)
+    move_c MoveFromStr(const char *str) const
     {
         move_c ans;
         const auto from_coord = get_coord(str);
@@ -412,9 +415,9 @@ private:
     char* ParseSideToMoveInFen(char *ptr);
     char* ParseCastlingRightsInFen(char *ptr);
     char* ParseEnPassantInFen(char *ptr);
-    size_t test_count_attacked_squares(const bool stm);
-    size_t test_count_all_attacks(const bool stm);
-    void test_attack_tables(const size_t att_w, const size_t att_b);
+    size_t test_count_attacked_squares(const bool stm) const;
+    size_t test_count_all_attacks(const bool stm) const;
+    void test_attack_tables(const size_t att_w, const size_t att_b) const;
     void InitAttacksPawn(const coord_t coord, const bool color,
                          const piece_id_t piece_id, const bool setbit);
     void InitAttacksNotPawn(const coord_t coord, const bool color,
@@ -431,10 +434,10 @@ private:
     ray_mask_t GetRayMaskNotForMove(const coord_t target_coord,
                                     const coord_t piece_coord) const;
     void InitMobility(const bool color);
-    size_t test_mobility(const bool stm);
+    size_t test_mobility(const bool stm) const;
     void UpdateMasks(const move_c move, const attack_params_s &p);
     void GetAttackParams(const piece_id_t piece_id, const move_c move,
-                         const bool stm, attack_params_s &p);
+                         const bool stm, attack_params_s &p) const;
     void InitAttacksSlider(coord_t coord, attack_params_s &p);
     void InitMobilitySlider(attack_params_s &p);
     ray_mask_t GetNonSliderMask(const attack_params_s &p) const;
@@ -442,7 +445,7 @@ private:
                               const coord_t to_coord) const;
     ray_mask_t GetKingMask(const coord_t piece_coord,
                               const coord_t to_coord) const;
-    bool IsLegalKingMove(const move_c move);
+    bool IsLegalKingMove(const move_c move) const;
 
     void set_bit(const bool color, const coord_t col, const coord_t row,
                  const u8 index)

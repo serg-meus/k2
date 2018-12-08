@@ -802,7 +802,7 @@ void k2eval::EvalRooks(const bool stm)
 
 //-----------------------------
 bool k2eval::Sheltered(const coord_t k_col, coord_t k_row,
-                       const bool stm)
+                       const bool stm) const
 {
     if(!col_within(k_col))
         return false;
@@ -839,7 +839,7 @@ bool k2eval::Sheltered(const coord_t k_col, coord_t k_row,
 
 //-----------------------------
 k2chess::eval_t k2eval::KingShelter(const coord_t k_col, coord_t k_row,
-                           const bool stm)
+                           const bool stm) const
 {
     const i32 cstl[] = {black_can_castle_left | black_can_castle_right,
                         white_can_castle_left | white_can_castle_right};
@@ -870,7 +870,7 @@ k2chess::eval_t k2eval::KingShelter(const coord_t k_col, coord_t k_row,
 //-----------------------------
 k2chess::attack_t k2eval::KingSafetyBatteries(const coord_t targ_coord,
                                               const attack_t att,
-                                              const bool stm)
+                                              const bool stm) const
 {
     auto msk = att & slider_mask[!stm];
     auto ans = att;

@@ -54,31 +54,30 @@ protected:
     principal_variation_s pv[max_ply];
     move_c killers[max_ply][sides];
     history_t history[sides][piece_types][board_height*board_width];
-    history_t min_history, max_history;
 
     movcr_t GenMoves(move_c * const move_array,
-                     const bool need_capture_or_promotion);
-    eval_t StaticExchangeEval(const move_c m);
+                     const bool need_capture_or_promotion) const;
+    eval_t StaticExchangeEval(const move_c m) const;
     void AppriceMoves(move_c * const move_array, const movcr_t moveCr,
-                      const move_c best_move);
+                      const move_c best_move) const;
 
 
 private:
 
 
     void GenPawnSilent(move_c * const move_array, movcr_t * const movCr,
-                       const piece_id_t piece_id);
+                       const piece_id_t piece_id) const;
     void GenPawnCapturesAndPromotions(move_c * const move_array,
                                       movcr_t * const movCr,
-                                      const piece_id_t piece_id);
-    void GenCastles(move_c * const move_array, movcr_t * const movCr);
+                                      const piece_id_t piece_id) const;
+    void GenCastles(move_c * const move_array, movcr_t * const movCr) const;
     eval_t SEE(const coord_t to_coord, const eval_t frStreng,
-               eval_t val, const bool stm);
-    size_t SeeMinAttacker(const coord_t to_coord) const;
+               eval_t val, bool stm, attack_t *att) const;
+    size_t SeeMinAttacker(const attack_t att) const;
 
     void PushMove(move_c * const move_array, movcr_t * const movCr,
                   const coord_t from_coord, const coord_t to_coord,
-                  const move_flag_t flag)
+                  const move_flag_t flag) const
     {
         move_c move;
         move.from_coord = from_coord;
@@ -92,9 +91,10 @@ private:
     }
 
     void ProcessSeeBatteries(const coord_t to_coord,
-                             const coord_t attacker_coord);
+                             const coord_t attacker_coord, const bool stm, attack_t *att) const;
 
-    size_t test_gen_pawn(const char* str_coord, bool captures_and_promotions);
-    size_t test_gen_castles();
+    size_t test_gen_pawn(const char* str_coord,
+                         bool captures_and_promotions) const;
+    size_t test_gen_castles() const;
     size_t test_gen_moves(bool need_captures_or_promotions);
 };

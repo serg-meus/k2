@@ -661,7 +661,7 @@ void k2engine::InitSearch()
 
 
 //--------------------------------
-bool k2engine::CanFinishMainSearch(const eval_t x, const eval_t prev_x)
+bool k2engine::CanFinishMainSearch(const eval_t x, const eval_t prev_x) const
 {
     if(time_control.time_spent > time_control.time_to_think &&
             time_control.max_nodes_to_search == 0
@@ -1335,10 +1335,10 @@ bool k2engine::HashProbe(const depth_t depth, eval_t * const alpha,
 //--------------------------------
 bool k2engine::GetFirstMove(move_c * const move_array,
                             movcr_t * const max_moves,
-                            move_c hash_best_move,
-                            bool hash_one_reply,
+                            const move_c hash_best_move,
+                            const bool hash_one_reply,
                             const bool only_captures,
-                            move_c * const ans)
+                            move_c * const ans) const
 {
     if(hash_best_move.flag == not_a_move)
     {
@@ -1399,7 +1399,8 @@ bool k2engine::GetFirstMove(move_c * const move_array,
 //--------------------------------
 bool k2engine::GetSecondMove(move_c * const move_array,
                              movcr_t * const max_moves,
-                             move_c prev_move, move_c *ans)
+                             const move_c prev_move,
+                             move_c * const ans) const
 {
     *max_moves = GenMoves(move_array, false);
     AppriceMoves(move_array, *max_moves, prev_move);
@@ -1429,7 +1430,7 @@ bool k2engine::GetSecondMove(move_c * const move_array,
 //--------------------------------
 size_t k2engine::FindMaxMoveIndex(move_c * const move_array,
                                   const movcr_t max_moves,
-                                  const movcr_t cur_move)
+                                  const movcr_t cur_move) const
 {
     auto max_score = 0;
     auto max_index = cur_move;
@@ -1454,9 +1455,9 @@ k2chess::move_c k2engine::NextMove(move_c * const move_array,
                                    const movcr_t cur_move_cr,
                                    movcr_t * const max_moves,
                                    move_c hash_best_move,
-                                   bool hash_one_reply,
+                                   const bool hash_one_reply,
                                    const bool only_captures,
-                                   const move_c prev_move)
+                                   const move_c prev_move) const
 {
     move_c ans;
     if(cur_move_cr == 0)

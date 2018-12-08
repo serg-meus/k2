@@ -171,7 +171,7 @@ void k2chess::UpdateMasks(const move_c move, const attack_params_s &p)
 
 //--------------------------------
 void k2chess::GetAttackParams(const piece_id_t piece_id, const move_c move,
-                              const bool stm, attack_params_s &p)
+                              const bool stm, attack_params_s &p) const
 {
     p.piece_coord = coords[stm][piece_id];
     p.type = get_type(b[p.piece_coord]);
@@ -783,7 +783,8 @@ void k2chess::StoreCurrentBoardState(const move_c move)
 
 
 //--------------------------------
-void k2chess::MoveToCoordinateNotation(const move_c move, char * const out)
+void k2chess::MoveToCoordinateNotation(const move_c move,
+                                       char * const out) const
 {
     char proms[] = {'?', 'q', 'n', 'r', 'b'};
     out[0] = get_col(move.from_coord) + 'a';
@@ -1205,7 +1206,7 @@ bool k2chess::MakeMove(const char* str)
 
 //--------------------------------
 k2chess::move_flag_t k2chess::InitMoveFlag(const move_c move,
-                                           const char promo_to)
+                                           const char promo_to) const
 {
     move_flag_t ans = 0;
     const auto piece = get_type(b[move.from_coord]);
@@ -1255,7 +1256,7 @@ k2chess::move_flag_t k2chess::InitMoveFlag(const move_c move,
 
 
 //--------------------------------
-bool k2chess::IsPseudoLegal(const move_c move)
+bool k2chess::IsPseudoLegal(const move_c move) const
 {
     if(b[move.from_coord] == empty_square)
         return false;
@@ -1510,7 +1511,7 @@ bool k2chess::IsSliderAttack(const coord_t from_coord,
 //--------------------------------
 bool k2chess::IsDiscoveredAttack(const coord_t fr_coord,
                                  const coord_t to_coord,
-                                 attack_t mask)
+                                 attack_t mask) const
 {
     while(mask)
     {
@@ -1520,28 +1521,7 @@ bool k2chess::IsDiscoveredAttack(const coord_t fr_coord,
         const auto k_coord = king_coord(wtm);
         if(fr_coord == to_coord)  // special for en_passant case
         {
-            const auto type = get_type(b[attacker_coord]);
-            if(b[attacker_coord] == empty_square || !is_slider[type]
-                    || get_color(b[attacker_coord]) == wtm)
-                continue;
-            if(!IsOnRay(fr_coord, k_coord, attacker_coord))
-                continue;
-            const auto p_coord = get_coord(state[ply].en_passant_rights - 1,
-                                           get_row(fr_coord));
-            const auto tmp1 = b[p_coord];
-            const auto tmp2 = b[fr_coord];
-            b[p_coord] = empty_square;
-            b[fr_coord] = empty_square;
-            const bool check = IsSliderAttack(k_coord, attacker_coord);
-            b[p_coord] = tmp1;
-            b[fr_coord] = tmp2;
-            if(!check)
-                continue;
-            const auto d_col = get_col(attacker_coord) - get_col(k_coord);
-            const auto d_row = get_row(attacker_coord) - get_row(k_coord);
-            if(type == bishop && (d_col == 0 || d_row == 0))
-                continue;
-            if(type == rook && d_col != 0 && d_row != 0)
+            if(!IsDiscoveredEnPassant(fr_coord, attacker_coord, k_coord))
                 continue;
         }
         else
@@ -1563,7 +1543,47 @@ bool k2chess::IsDiscoveredAttack(const coord_t fr_coord,
 
 
 //--------------------------------
-bool k2chess::IsLegalKingMove(const move_c move)
+bool k2chess::IsDiscoveredEnPassant(const coord_t fr_coord,
+                                    const coord_t attacker_coord,
+                                    const coord_t k_coord) const
+{
+    const auto type = get_type(b[attacker_coord]);
+    if(b[attacker_coord] == empty_square || !is_slider[type]
+            || get_color(b[attacker_coord]) == wtm)
+        return false;
+    if(!IsOnRay(fr_coord, k_coord, attacker_coord))
+        return false;
+    const auto p_coord = get_coord(state[ply].en_passant_rights - 1,
+                                   get_row(fr_coord));
+    bool check = true;
+    const auto d_col = get_col(attacker_coord) - get_col(k_coord);
+    const auto d_row = get_row(attacker_coord) - get_row(k_coord);
+
+    const auto delta = sgn(d_col) + board_width*sgn(d_row);
+    for(coord_t i = k_coord + delta; i != attacker_coord; i += delta)
+    {
+        if(i < sizeof(b)/sizeof(*b) &&
+                (b[i] == empty_square || i == p_coord || i == fr_coord))
+            continue;
+        check = false;
+        break;
+    }
+    if(!check)
+        return false;
+    if(type == bishop && (d_col == 0 || d_row == 0))
+        return false;
+    if(type == rook && d_col != 0 && d_row != 0)
+        return false;
+
+    return true;
+}
+
+
+
+
+
+//--------------------------------
+bool k2chess::IsLegalKingMove(const move_c move) const
 {
     if(move.flag & is_castle)
         return IsLegalCastle(move);
@@ -1587,7 +1607,7 @@ bool k2chess::IsLegalKingMove(const move_c move)
 
 
 //--------------------------------
-bool k2chess::IsLegal(const move_c move)
+bool k2chess::IsLegal(const move_c move) const
 {
     const auto piece_type = get_type(b[move.from_coord]);
     if(piece_type == king)
@@ -1665,7 +1685,7 @@ bool k2chess::PrintMoveSequence(const move_c * const moves,
 
 
 //-----------------------------
-void k2chess::MoveToAlgebraicNotation(const move_c move, char *out)
+void k2chess::MoveToAlgebraicNotation(const move_c move, char *out) const
 {
     char pc2chr[] = "??KKQQRRBBNNPP";
     const auto piece_char = pc2chr[b[move.from_coord]];
@@ -1714,7 +1734,7 @@ void k2chess::MoveToAlgebraicNotation(const move_c move, char *out)
 
 
 //-----------------------------
-void k2chess::ProcessAmbiguousNotation(const move_c move, char *out)
+void k2chess::ProcessAmbiguousNotation(const move_c move, char *out) const
 {
     move_c move_array[8];
     auto amb_cr = 0;
@@ -1766,7 +1786,7 @@ void k2chess::ProcessAmbiguousNotation(const move_c move, char *out)
 
 #ifndef NDEBUG
 //--------------------------------
-size_t k2chess::test_count_attacked_squares(const bool stm)
+size_t k2chess::test_count_attacked_squares(const bool stm) const
 {
     size_t ans = 0;
     for(auto it : attacks[stm])
@@ -1780,7 +1800,7 @@ size_t k2chess::test_count_attacked_squares(const bool stm)
 
 
 //--------------------------------
-size_t k2chess::test_count_all_attacks(const bool stm)
+size_t k2chess::test_count_all_attacks(const bool stm) const
 {
     size_t ans = 0;
     for(auto it : attacks[stm])
@@ -1793,7 +1813,7 @@ size_t k2chess::test_count_all_attacks(const bool stm)
 
 
 //--------------------------------
-void k2chess::test_attack_tables(const size_t att_w, const size_t att_b)
+void k2chess::test_attack_tables(const size_t att_w, const size_t att_b) const
 {
     size_t att_squares_w, att_squares_b;
     att_squares_w = test_count_attacked_squares(white);
@@ -1807,7 +1827,7 @@ void k2chess::test_attack_tables(const size_t att_w, const size_t att_b)
 
 
 //--------------------------------
-size_t k2chess::test_mobility(const bool stm)
+size_t k2chess::test_mobility(const bool stm) const
 {
     size_t ans = 0;
     for(auto id : coord_id[stm])

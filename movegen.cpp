@@ -6,7 +6,8 @@
 
 //--------------------------------
 k2movegen::movcr_t k2movegen::GenMoves(move_c * const move_array,
-                                       const bool need_capture_or_promotion)
+                                       const bool need_capture_or_promotion
+                                       ) const
 {
     movcr_t move_cr = 0;
 
@@ -64,7 +65,7 @@ k2movegen::movcr_t k2movegen::GenMoves(move_c * const move_array,
 //--------------------------------
 void k2movegen::GenPawnSilent(move_c * const move_array,
                               movcr_t * const moveCr,
-                              const piece_id_t piece_id)
+                              const piece_id_t piece_id) const
 {
     const auto from_coord = coords[wtm][piece_id];
     const auto col = get_col(from_coord);
@@ -91,7 +92,7 @@ void k2movegen::GenPawnSilent(move_c * const move_array,
 //--------------------------------
 void k2movegen::GenPawnCapturesAndPromotions(move_c * const move_array,
                                           movcr_t * const moveCr,
-                                          const piece_id_t piece_id)
+                                          const piece_id_t piece_id) const
 {
     const auto from_coord = coords[wtm][piece_id];
     const auto col = get_col(from_coord);
@@ -138,7 +139,8 @@ void k2movegen::GenPawnCapturesAndPromotions(move_c * const move_array,
 
 
 //--------------------------------
-void k2movegen::GenCastles(move_c * const move_array, movcr_t * const moveCr)
+void k2movegen::GenCastles(move_c * const move_array,
+                           movcr_t * const moveCr) const
 {
     const castle_t msk = wtm ? 0x03 : 0x0C;
     const auto shft = wtm ? 0 : 2;
@@ -180,10 +182,10 @@ void k2movegen::GenCastles(move_c * const move_array, movcr_t * const moveCr)
 
 //--------------------------------
 void k2movegen::AppriceMoves(move_c * const move_array, const movcr_t moveCr,
-                             const move_c best_move)
+                             const move_c best_move) const
 {
-    min_history = std::numeric_limits<history_t>::max();
-    max_history = 0;
+    history_t min_history = std::numeric_limits<history_t>::max();
+    history_t max_history = 0;
 
     for(auto i = 0; i < moveCr; ++i)
     {
@@ -293,19 +295,21 @@ void k2movegen::AppriceMoves(move_c * const move_array, const movcr_t moveCr,
 
 //-----------------------------
 void k2movegen::ProcessSeeBatteries(const coord_t to_coord,
-                                    const coord_t attacker_coord)
+                                    const coord_t attacker_coord,
+                                    const bool stm,
+                                    attack_t *att) const
 {
-    auto mask = attacks[wtm][attacker_coord] & slider_mask[wtm];
+    auto mask = attacks[stm][attacker_coord] & slider_mask[stm];
     while(mask)
     {
         const auto piece_id = __builtin_ctz(mask);
         mask ^= (1 << piece_id);
-        const auto second_coord = coords[wtm][piece_id];
+        const auto second_coord = coords[stm][piece_id];
         if(!IsOnRay(attacker_coord, second_coord, to_coord))
             continue;
         if(!IsSliderAttack(attacker_coord, second_coord))
             continue;
-        attacks[wtm][to_coord] |= 1 << piece_id;
+        att[stm] |= 1 << piece_id;
         return;
     }
 }
@@ -315,22 +319,20 @@ void k2movegen::ProcessSeeBatteries(const coord_t to_coord,
 
 //-----------------------------
 k2chess::eval_t k2movegen::SEE(const coord_t to_coord, const eval_t fr_value,
-                               eval_t val, const bool stm)
+                               eval_t val, bool stm, attack_t *att) const
 {
-    const auto piece_id = SeeMinAttacker(to_coord);
+    const auto piece_id = SeeMinAttacker(att[stm]);
     if(piece_id == -1U)
         return -val;
-    attacks[wtm][to_coord] ^= 1 << piece_id;
-    const auto from_coord = coords[wtm][piece_id];
+    att[stm] ^= 1 << piece_id;
+    const auto from_coord = coords[stm][piece_id];
     const auto type = get_type(b[from_coord]);
     if(type != knight)
-        ProcessSeeBatteries(to_coord, from_coord);
+        ProcessSeeBatteries(to_coord, from_coord, stm, att);
 
     val -= fr_value;
     const auto tmp1 = -val;
-    wtm = !wtm;
-    const auto tmp2 = -SEE(to_coord, values[type], -val, stm);
-    wtm = !wtm;
+    const auto tmp2 = -SEE(to_coord, values[type], -val, !stm, att);
     val = std::min(tmp1, tmp2);
 
     return val;
@@ -341,9 +343,8 @@ k2chess::eval_t k2movegen::SEE(const coord_t to_coord, const eval_t fr_value,
 
 
 //-----------------------------
-size_t k2movegen::SeeMinAttacker(const coord_t to_coord) const
+size_t k2movegen::SeeMinAttacker(const attack_t att) const
 {
-    const auto att = attacks[wtm][to_coord];
     if(!att)
         return -1U;
     return __builtin_ctz(att);
@@ -354,7 +355,7 @@ size_t k2movegen::SeeMinAttacker(const coord_t to_coord) const
 
 
 //-----------------------------
-k2chess::eval_t k2movegen::StaticExchangeEval(const move_c move)
+k2chess::eval_t k2movegen::StaticExchangeEval(const move_c move) const
 {
     const auto fr_piece = b[move.from_coord];
     const auto to_piece = b[move.to_coord];
@@ -362,19 +363,17 @@ k2chess::eval_t k2movegen::StaticExchangeEval(const move_c move)
     const auto to_type = get_type(to_piece);
     const auto src = values[fr_type];
     const auto dst = (move.flag & is_capture) ? values[to_type] : 0;
-    const auto store_att1 = attacks[wtm][move.to_coord];
-    const auto store_att2 = attacks[!wtm][move.to_coord];
 
-    attacks[wtm][move.to_coord] ^= 1 << find_piece_id[move.from_coord];
+    attack_t att[sides];
+    att[wtm] = attacks[wtm][move.to_coord];
+    att[!wtm] = attacks[!wtm][move.to_coord];
+
+    att[wtm] ^= 1 << find_piece_id[move.from_coord];
     if(fr_type != knight)
-        ProcessSeeBatteries(move.to_coord, move.from_coord);
-    wtm = !wtm;
-    auto see_score = -SEE(move.to_coord, src, dst, wtm);
-    wtm = !wtm;
+        ProcessSeeBatteries(move.to_coord, move.from_coord, wtm, att);
+    auto see_score = -SEE(move.to_coord, src, dst, !wtm, att);
     see_score = std::min(dst, see_score);
 
-    attacks[wtm][move.to_coord] = store_att1;
-    attacks[!wtm][move.to_coord] = store_att2;
     return see_score;
 }
 
@@ -384,7 +383,7 @@ k2chess::eval_t k2movegen::StaticExchangeEval(const move_c move)
 #ifndef NDEBUG
 //--------------------------------
 size_t k2movegen::test_gen_pawn(const char* str_coord,
-                                bool captures_and_promotions)
+                                bool captures_and_promotions) const
 {
     move_c move_array[move_array_size];
     movcr_t move_cr = 0;
@@ -404,7 +403,7 @@ size_t k2movegen::test_gen_pawn(const char* str_coord,
 
 
 //--------------------------------
-size_t k2movegen::test_gen_castles()
+size_t k2movegen::test_gen_castles() const
 {
     move_c move_array[move_array_size];
     movcr_t move_cr = 0;
@@ -512,25 +511,34 @@ void k2movegen::RunUnitTests()
     assert(test_gen_moves(true) == 14);
 
     SetupPosition("3k4/3b4/8/1Q5p/6B1/1r4N1/4p1nR/4K3 w - - 0 1");
-    auto piece_id = SeeMinAttacker(get_coord("e2"));
+    auto coord = get_coord("e2");
+    auto piece_id = SeeMinAttacker(attacks[wtm][coord]);
     assert(coords[wtm][piece_id] == get_coord("g3"));
-    piece_id = SeeMinAttacker(get_coord("h5"));
+    coord = get_coord("h5");
+    piece_id = SeeMinAttacker(attacks[wtm][coord]);
     assert(coords[wtm][piece_id] == get_coord("g3"));
-    piece_id = SeeMinAttacker(get_coord("b3"));
+    coord = get_coord("b3");
+    piece_id = SeeMinAttacker(attacks[wtm][coord]);
     assert(coords[wtm][piece_id] == get_coord("b5"));
-    piece_id = SeeMinAttacker(get_coord("g2"));
+    coord = get_coord("g2");
+    piece_id = SeeMinAttacker(attacks[wtm][coord]);
     assert(coords[wtm][piece_id] == get_coord("h2"));
-    piece_id = SeeMinAttacker(get_coord("d7"));
+    coord = get_coord("d7");
+    piece_id = SeeMinAttacker(attacks[wtm][coord]);
     assert(coords[wtm][piece_id] == get_coord("g4"));
     wtm = !wtm;
-    piece_id = SeeMinAttacker(get_coord("b5"));
+    coord = get_coord("b5");
+    piece_id = SeeMinAttacker(attacks[wtm][coord]);
     assert(coords[wtm][piece_id] == get_coord("d7"));
-    piece_id = SeeMinAttacker(get_coord("e1"));
+    coord = get_coord("e1");
+    piece_id = SeeMinAttacker(attacks[wtm][coord]);
     assert(coords[wtm][piece_id] == get_coord("g2"));
     wtm = !wtm;
-    piece_id = SeeMinAttacker(get_coord("e2"));
+    coord = get_coord("e2");
+    piece_id = SeeMinAttacker(attacks[wtm][coord]);
     attacks[wtm][get_coord("e2")] ^= 1 << piece_id;
-    piece_id = SeeMinAttacker(get_coord("e2"));
+    coord = get_coord("e2");
+    piece_id = SeeMinAttacker(attacks[wtm][coord]);
     assert(coords[wtm][piece_id] == get_coord("g4"));
 
     SetupPosition("1b3rk1/4n2p/6p1/5p2/6P1/3B2N1/6PP/5RK1 w - - 0 1");
