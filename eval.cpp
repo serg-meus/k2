@@ -325,14 +325,19 @@ void k2eval::MobilityEval(bool stm)
     eval_t ans = 0;
     for(auto id : coord_id[stm])
     {
-        const auto type = get_type(b[coords[stm][id.second]]);
+        const auto piece_id = id.second;
+        const auto coord = coords[stm][piece_id];
+        const auto type = get_type(b[coord]);
         if(type == pawn)
             continue;
         if(type == king)
-            break;
+            continue;
         auto cr = 0;
-        for(auto ray = ray_min[type]; ray < ray_max[type]; ++ray)
-            cr += mobility[stm][id.second][ray];
+        for(auto ray_id = 0; ray_id < max_rays; ++ray_id)
+        {
+            auto ac = directions[stm][piece_id][ray_id];
+            cr += ac - (ac ? 1 : 0);
+        }
         if(type == queen)
             cr /= 2;
         assert(cr < 15);

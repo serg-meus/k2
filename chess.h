@@ -44,7 +44,7 @@ protected:
     typedef u32 attack_t;
     typedef i8 shifts_t;
     typedef u8 priority_t;
-    typedef u8 ray_mask_t;
+    typedef u16 ray_mask_t;
     typedef u8 piece_id_t;
 
     typedef std::list<std::pair<eval_t, piece_id_t>> k2list_t;
@@ -60,7 +60,7 @@ protected:
     const static coord_t max_col = board_width - 1;
     const static coord_t max_row = board_height - 1;
     const static u8 max_pieces_one_side = 16;
-    const static u8 max_rays = 8;
+    const static u8 max_rays = 16;
     const static coord_t piece_not_found = -1;
     coord_t max_ray_length;
 
@@ -77,7 +77,7 @@ protected:
     white_rook = 7,
     white_bishop = 9,
     white_knight = 11,
-    white_pawn = 13;  // don't change any value
+    white_pawn = 13;
 
     const move_flag_t
     is_capture = 0x10,
@@ -85,7 +85,7 @@ protected:
     is_left_castle = 0x40,
     is_castle = 0x60,
     is_en_passant = 0x80,
-    is_promotion_to_queen = 0x01,  // don't change this and below
+    is_promotion_to_queen = 0x01,
     is_promotion_to_knight = 0x02,
     is_promotion_to_rook = 0x03,
     is_promotion_to_bishop = 0x04,
@@ -115,28 +115,8 @@ protected:
     king = black_king/sides;
 
     const ray_mask_t
-    rays_North = 1,
-    rays_East = 2,
-    rays_South = 4,
-    rays_West = 8,
-    rays_NE = 0x10,
-    rays_SE = 0x20,
-    rays_SW = 0x40,
-    rays_NW = 0x80,
-    rays_NNE = 1,
-    rays_NEE = 2,
-    rays_SEE = 4,
-    rays_SSE = 8,
-    rays_SSW = 0x10,
-    rays_SWW = 0x20,
-    rays_NWW = 0x40,
-    rays_NNW = 0x80,
-    rays_N_or_S = rays_North | rays_South,
-    rays_E_or_W = rays_East | rays_West,
-    rays_NE_or_SW = rays_NE | rays_SW,
-    rays_NW_or_SE = rays_NW | rays_SE,
-    rays_rook = rays_N_or_S | rays_E_or_W,
-    rays_bishop = rays_NE_or_SW | rays_NW_or_SE;
+    pawn_mask_white = 0x90,
+    pawn_mask_black = 0x60;
 
     coord_t not_a_capture = -1;
 
@@ -188,26 +168,6 @@ protected:
         bool attacks_updated;
     };
 
-    struct attack_params_s
-    {
-        coord_t from_coord;
-        coord_t to_coord;
-        coord_t piece_coord;
-        bool color;
-        coord_t type;
-        bool is_move;
-        bool is_captured;
-        bool is_special_move;
-        bool is_castle;
-        bool is_en_passant;
-        piece_id_t piece_id;
-        piece_id_t castled_rook_id;
-        piece_id_t captured_id;
-        bool set_attack_bit;
-        ray_mask_t ray_mask;
-        ray_mask_t ray_id;
-    };
-
     // side to move or white to move, k2chess::white (true) or k2chess::black
     bool wtm;
 
@@ -229,28 +189,21 @@ protected:
     // two tables for each color with attacks of all pieces
     attack_t attacks[sides][board_width*board_height];
 
-    // masks for fast detection of attacking sliders
+    // piece masks for fast detection of attacking sliders
     attack_t slider_mask[sides];
 
-    // masks for fast detection of pawn possible moves
-    attack_t pawn_mask[sides];
-
-    // masks for update attack tables
+    // piece masks for update attack tables
     attack_t update_mask[sides];
 
-    coord_t mobility[sides][max_pieces_one_side][max_rays];
-
-    // number of directions to move for each kind of piece
-    coord_t ray_min[piece_types + 1], ray_max[piece_types + 1];
+    // counters of attacks for each ray of each piece
+    coord_t directions[sides][max_pieces_one_side][max_rays];
 
     // ray masks for all types of pieces
-    ray_mask_t all_rays[piece_types + 1];
+    ray_mask_t ray_mask_all[piece_types + 1];
 
     // biases defining directions for 'rays'
-    shifts_t delta_col_kqrb[max_rays];
-    shifts_t delta_row_kqrb[max_rays];
-    shifts_t delta_col_knight[max_rays];
-    shifts_t delta_row_knight[max_rays];
+    shifts_t delta_col[max_rays];
+    shifts_t delta_row[max_rays];
 
     // for quick detection if piece is a slider
     bool is_slider[piece_types + 1];
@@ -275,30 +228,25 @@ protected:
     attack_t done_attacks[max_ply][sides][board_height*board_width];
     std::vector<k2list_t> store_coord_id;
     std::vector<std::vector<coord_t>> store_coords;
-    coord_t done_mobility[max_ply][sides][max_pieces_one_side][max_rays];
+    coord_t done_directions[max_ply][sides][max_pieces_one_side][max_rays];
 
     bool MakeMove(const move_c m);
     move_flag_t InitMoveFlag(const move_c move, const char promo_to) const;
     bool IsLegal(const move_c move) const;
     bool IsPseudoLegal(const move_c move) const;
-    bool IsLegalCastle(const move_c move) const;
-    bool IsOnRay(const coord_t given, const coord_t k_coord,
-                 const coord_t attacker_coord) const;
-    bool IsDiscoveredAttack(const coord_t fr_coord, const coord_t to_coord,
-                            attack_t mask) const;
+    bool IsOnRay(const coord_t given, const coord_t ray_coord1,
+                 const coord_t ray_coord2) const;
     bool IsSliderAttack(const coord_t from_coord,
                         const coord_t to_coord) const;
-    bool CheckBoardConsistency();
     void MoveToCoordinateNotation(const move_c m, char * const out) const;
-    void MakeAttacks(const move_c move);
+    void MakeAttacks(move_c move);
     void TakebackMove(move_c move);
     bool PrintMoveSequence(const move_c * const moves, const size_t length,
                            const bool coordinate_notation);
     void MoveToAlgebraicNotation(const move_c move, char *out) const;
     void ProcessAmbiguousNotation(const move_c move, char *out) const;
-    bool IsDiscoveredEnPassant(const coord_t fr_coord,
-                               const coord_t attacker_coord,
-                               const coord_t k_coord) const;
+    bool IsDiscoveredAttack(const move_c move) const;
+    bool IsDiscoveredEnPassant(const bool stm, const move_c move) const;
 
     coord_t get_coord(const coord_t col, const coord_t row) const
     {
@@ -347,6 +295,16 @@ protected:
         return (piece & ~white) | stm;
     }
 
+    bool is_light(const piece_t piece, const bool stm) const
+    {
+        return piece != empty_square && (piece & white) == stm;
+    }
+
+    bool is_dark(const piece_t piece, const bool stm) const
+    {
+        return piece != empty_square && (piece & white) != stm;
+    }
+
     template <typename T> int sgn(T val) const
     {
         return (T(0) < val) - (val < T(0));
@@ -371,7 +329,8 @@ protected:
     void TakebackAttacks()
     {
         memcpy(attacks, done_attacks[ply], sizeof(attacks));
-        memcpy(mobility, done_mobility[ply], sizeof(mobility));
+        memcpy(directions, done_directions[ply],
+               sizeof(directions));
     }
 
     coord_t king_coord(const bool stm) const
@@ -397,7 +356,6 @@ protected:
 private:
 
 
-    void InitAttacks(const bool stm);
     bool InitPieceLists(bool stm);
     void ShowMove(const move_c move);
     void StoreCurrentBoardState(const move_c m);
@@ -408,54 +366,73 @@ private:
     bool MakeCastleOrUpdateFlags(const move_c m);
     void TakebackCastle(const move_c m);
     bool MakeEnPassantOrUpdateFlags(const move_c m);
-    void InitAttacksOnePiece(const coord_t coord, const bool setbit);
-    void UpdateAttacks(move_c move);
-    void UpdateAttacksOnePiece(attack_params_s &p);
+    void UpdateAttacks(const bool stm, const move_c move);
+    void UpdateRayAttacks(const bool stm, const piece_id_t piece_id,
+                          const ray_mask_t ray_id, const coord_t old_cr,
+                          const coord_t new_cr);
     char* ParseMainPartOfFen(char *ptr);
     char* ParseSideToMoveInFen(char *ptr);
     char* ParseCastlingRightsInFen(char *ptr);
     char* ParseEnPassantInFen(char *ptr);
-    size_t test_count_attacked_squares(const bool stm) const;
-    size_t test_count_all_attacks(const bool stm) const;
-    void test_attack_tables(const size_t att_w, const size_t att_b) const;
-    void InitAttacksPawn(const coord_t coord, const bool color,
-                         const piece_id_t piece_id, const bool setbit);
-    void InitAttacksNotPawn(const coord_t coord, const bool color,
-                            const piece_id_t piece_id, const coord_t type,
-                            const bool change_bit,
-                            ray_mask_t ray_mask);
+    size_t test_attack_tables(const bool stm) const;
     bool IsPseudoLegalPawn(const move_c move) const;
     bool IsPseudoLegalKing(const move_c move) const;
     bool IsPseudoLegalKnight(const move_c move) const;
-    void InitSliderMask(bool stm);
-    ray_mask_t GetRayMask(attack_params_s &p) const;
-    piece_id_t GetRayId(const coord_t from_coord, const coord_t to_coord,
-                   coord_t *type) const;
-    ray_mask_t GetRayMaskNotForMove(const coord_t target_coord,
-                                    const coord_t piece_coord) const;
-    void InitMobility(const bool color);
-    size_t test_mobility(const bool stm) const;
-    void UpdateMasks(const move_c move, const attack_params_s &p);
-    void GetAttackParams(const piece_id_t piece_id, const move_c move,
-                         const bool stm, attack_params_s &p) const;
-    void InitAttacksSlider(coord_t coord, attack_params_s &p);
-    void InitMobilitySlider(attack_params_s &p);
-    ray_mask_t GetNonSliderMask(const attack_params_s &p) const;
-    ray_mask_t GetKnightMask(const coord_t piece_coord,
-                              const coord_t to_coord) const;
-    ray_mask_t GetKingMask(const coord_t piece_coord,
-                              const coord_t to_coord) const;
     bool IsLegalKingMove(const move_c move) const;
+    bool IsLegalCastle(const move_c move) const;
+    bool IsOnRayMask(const bool stm, const coord_t piece_coord,
+                     const coord_t move_coord, const piece_id_t piece_id,
+                     const ray_mask_t ray_id, const bool enps) const;
+    void UpdatePieceMasks(move_c move);
+    void UpdateDirections(const bool stm, const move_c move);
+    void UpdatePieceDirections(const bool stm,
+                                      const piece_id_t piece_id,
+                                      const move_c move);
+    void UpdateFromRayDirections(const bool stm, const piece_id_t piece_id,
+                               const coord_t coord,
+                               const piece_id_t ray_id);
+    void UpdateToRayDirections(const bool stm, const piece_id_t piece_id,
+                             const coord_t coord, const move_c move,
+                             const piece_id_t ray_id);
+    coord_t GetRayAttacks(const coord_t coord,
+                           piece_id_t ray_id, const bool slider) const;
+    void UpdatePieceMasksForCastle(move_c move);
+    void InitMasks(bool stm);
+    void InitAttacks(bool stm);
+    void InitDirections(const bool stm);
+    void ClearPieceAttacks(const bool stm, piece_id_t piece_id);
+    void UpdateMovingDirections(const bool stm, const piece_id_t piece_id,
+                                   const piece_type_t type,
+                                   const coord_t coord, ray_mask_t rmask);
+    void UpdateOrdinaryDirections(const bool stm,
+                                     const piece_id_t piece_id,
+                                     const coord_t coord, const move_c move,
+                                     ray_mask_t rmask);
+    bool UpdateCapturingDirections(const bool stm,
+                                      const piece_id_t piece_id,
+                                      const coord_t coord,
+                                      const piece_type_t type,
+                                      const move_c move);
+    void UpdatePieceAttacks(const bool stm, const piece_id_t piece_id,
+                            const move_c move);
+    bool IsCastledRook(const bool stm,
+                       const coord_t coord, const move_c move) const;
+    bool IsSameRay(const coord_t given, const coord_t ray_coord1,
+                   const coord_t ray_coord2) const;
 
     void set_bit(const bool color, const coord_t col, const coord_t row,
-                 const u8 index)
+                 const piece_id_t piece_id)
     {
-        attacks[color][get_coord(col, row)] |= (1 << index);
+        assert(col_within(col) && row_within(row));
+        assert(color == black || color == white);
+        attacks[color][get_coord(col, row)] |= (1 << piece_id);
     }
 
     void clear_bit(const bool color, const coord_t col, const coord_t row,
-                   const u8 index)
+                   const piece_id_t piece_id)
     {
-        attacks[color][get_coord(col, row)] &= ~(1 << index);
+        assert(col_within(col) && row_within(row));
+        assert(color == black || color == white);
+        attacks[color][get_coord(col, row)] &= ~(1 << piece_id);
     }
 };

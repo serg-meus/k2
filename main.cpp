@@ -589,20 +589,22 @@ void k2main::TestCommand(const std::string in)
         clock.start();
         tick1 = clock.getElapsedTimeInMicroSec();
 
-        if(!test_search("1rq2b1r/2N1k1pp/1pQp4/4n3/2P5/8/PP4PP/4RRK1 w - - 0 1"
+        if(!test_search("1rq2b1r/2N1k1pp/1pQp4/4n3/2P5/8/PP4PP/4RRK1 w - -"
                         " bm Rxe5", 7, "e1e5", false))
             break;
-        if(!test_search("1k1r2nr/ppp1q1p1/3pbp1p/4n3/Q3P2B/2P2N2/P3BPPP/"
-                        "1R3RK1 w - - 0 1 bm Rxb7", 10, "b1b7", false))
+        if(!test_search(
+                "1k1r2nr/ppp1q1p1/3pbp1p/4n3/Q3P2B/2P2N2/P3BPPP/1R3RK1 w - -"
+                " bm Rxb7", 10, "b1b7", false))
             break;
-        if(!test_search("8/k7/3p4/p2P1p2/P2P1P2/8/8/K7 w - - 0 1 bm Kb1",
+        if(!test_search("8/k7/3p4/p2P1p2/P2P1P2/8/8/K7 w - - bm Kb1",
                         22, "a1b1", false))
             break;
-        if(!test_search("3q2k1/3r1ppp/4nP2/1Q1pp1P1/4P2P/1P3R2/P1r1N3/"
-                        "1R4K1 w - - 0 28 am fxg7", 11, "f6g7", true))
+        if(!test_search(
+                "3q2k1/3r1ppp/4nP2/1Q1pp1P1/4P2P/1P3R2/P1r1N3/1R4K1 w - -"
+                " am fxg7", 11, "f6g7", true))
             break;
-        if(!test_search("3r2k1/1p3ppp/2pq4/p1n5/P6P/1P6/1PB2QP1/1K2R3 "
-                        "w - - am Rd1", 8, "e1d1", true))
+        if(!test_search("3r2k1/1p3ppp/2pq4/p1n5/P6P/1P6/1PB2QP1/1K2R3 w - -"
+                        "am Rd1", 8, "e1d1", true))
             break;
 
         tick2 = clock.getElapsedTimeInMicroSec();

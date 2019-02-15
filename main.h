@@ -104,9 +104,7 @@ protected:
         MainSearch();
         char move_str[6];
         MoveToCoordinateNotation(pv[0].moves[0], move_str);
-        if(!CheckBoardConsistency())
-            ans = false;
-        else if(strcmp(move_str, best_move) == 0)
+        if(strcmp(move_str, best_move) == 0)
             ans = !avoid_move;
         else
             ans = avoid_move;

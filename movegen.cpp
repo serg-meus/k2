@@ -28,15 +28,15 @@ k2movegen::movcr_t k2movegen::GenMoves(move_c * const move_array,
         }
         const auto col0 = get_col(from_coord);
         const auto row0 = get_row(from_coord);
-        const auto *delta_col = type == knight ? delta_col_knight :
-                                                delta_col_kqrb;
-        const auto *delta_row = type == knight ? delta_row_knight :
-                                                delta_row_kqrb;
-        for(auto ray = ray_min[type]; ray < ray_max[type]; ray++)
+        auto rmask = ray_mask_all[type];
+
+        while(rmask)
         {
-            const auto ray_len = mobility[wtm][piece_id][ray];
-            auto col = col0 + ray_len*delta_col[ray];
-            auto row = row0 + ray_len*delta_row[ray];
+            const auto ray_id = __builtin_ctz(rmask);
+            rmask ^= (1 << ray_id);
+            const auto ray_len = directions[wtm][piece_id][ray_id];
+            auto col = col0 + ray_len*delta_col[ray_id];
+            auto row = row0 + ray_len*delta_row[ray_id];
             const auto min_i = need_capture_or_promotion ? ray_len : 1;
             for(int i = ray_len; i >= min_i; --i)
             {
@@ -50,8 +50,8 @@ k2movegen::movcr_t k2movegen::GenMoves(move_c * const move_array,
                              to_coord,  empty ? 0 : is_capture);
                 if(!is_slider[type])
                         break;
-                col -= delta_col[ray];
-                row -= delta_row[ray];
+                col -= delta_col[ray_id];
+                row -= delta_row[ray_id];
                 }
             }
         }
@@ -324,7 +324,7 @@ k2chess::eval_t k2movegen::SEE(const coord_t to_coord, const eval_t fr_value,
     const auto piece_id = SeeMinAttacker(att[stm]);
     if(piece_id == -1U)
         return -val;
-    att[stm] ^= 1 << piece_id;
+    att[stm] ^= (1 << piece_id);
     const auto from_coord = coords[stm][piece_id];
     const auto type = get_type(b[from_coord]);
     if(type != knight)
@@ -497,18 +497,20 @@ void k2movegen::RunUnitTests()
     assert(test_gen_castles() == 1);
     assert(MakeMove("e1e2"));
     assert(test_gen_castles() == 1);
+    SetupPosition("8/8/8/8/8/8/6k1/4K2R w K -");
+    assert(test_gen_castles() == 0);
 
     SetupPosition(
         "r3k1r1/ppp1bpp1/5n1p/2Ppp3/4P2q/Q1NP4/PP3PPP/R1B1K2R w KQq d6");
-    assert(test_gen_moves(false) == 34);
+    assert(test_gen_moves(all_moves) == 34);
     assert(MakeMove("a1b1"));
-    assert(test_gen_moves(false) == 37);
+    assert(test_gen_moves(all_moves) == 37);
     assert(MakeMove("d5d4"));
     assert(MakeMove("c5c6"));
     assert(MakeMove("d4c3"));
     assert(MakeMove("c6b7"));
     assert(MakeMove("c3b2"));
-    assert(test_gen_moves(true) == 14);
+    assert(test_gen_moves(only_captures) == 14);
 
     SetupPosition("3k4/3b4/8/1Q5p/6B1/1r4N1/4p1nR/4K3 w - - 0 1");
     auto coord = get_coord("e2");
@@ -590,5 +592,8 @@ void k2movegen::RunUnitTests()
     SetupPosition("5b2/8/8/k7/1p6/2P5/3B4/4K3 w - - 0 1");
     move = MoveFromStr("c3b4");
     assert(StaticExchangeEval(move) == 0);
+    SetupPosition("3r2k1/6p1/2q2r1p/pp1p1p2/3P4/1QN1PBP1/PP3P1P/6K1 w - -");
+    move = MoveFromStr("c3d5");
+    assert(StaticExchangeEval(move) == values[pawn]);
 }
 #endif // NDEBUG

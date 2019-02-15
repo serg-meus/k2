@@ -140,16 +140,6 @@ protected:
         return stm ? (eval_t)(Y) : (eval_t)(-Y);
     }
 
-    bool is_light(const piece_t piece, const bool stm) const
-    {
-        return piece != empty_square && (piece & white) == stm;
-    }
-
-    bool is_dark(const piece_t piece, const bool stm) const
-    {
-        return piece != empty_square && (piece & white) != stm;
-    }
-
     dist_t king_dist(const coord_t from_coord, const coord_t to_coord) const
     {
         return std::max(std::abs(get_col(from_coord) - get_col(to_coord)),

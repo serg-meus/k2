@@ -98,7 +98,8 @@ k2chess::eval_t k2engine::Search(depth_t depth, eval_t alpha, eval_t beta,
     if(depth <= 0)
         return QSearch(alpha, beta);
 
-    in_check = MakeAttacksLater();
+    UpdateAllAttacks();
+    assert(in_check == (bool)(attacks[!wtm][king_coord(wtm)]));
 
     if((stats.nodes & nodes_to_check_stop) == nodes_to_check_stop &&
             CheckForInterrupt())
@@ -200,7 +201,7 @@ k2chess::eval_t k2engine::QSearch(eval_t alpha, const eval_t beta)
     if(HashProbe(0, &alpha, beta, &entry))
         return -alpha;
 
-    MakeAttacksLater();
+    UpdateAllAttacks();
 
     auto x = -Eval();
     if(x >= beta)
@@ -997,8 +998,6 @@ bool k2engine::MakeMove(const char *move_str)
                       << std::endl << "resign"
                       << std::endl;
         }
-        if(!CheckBoardConsistency())
-            std::cout << "telluser err03: board inconsistency\n";
         for(auto j = 0; j < FIFTY_MOVES; ++j)
             done_hash_keys[j] = done_hash_keys[j + 1];
 

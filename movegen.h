@@ -91,7 +91,8 @@ private:
     }
 
     void ProcessSeeBatteries(const coord_t to_coord,
-                             const coord_t attacker_coord, const bool stm, attack_t *att) const;
+                             const coord_t attacker_coord,
+                             const bool stm, attack_t *att) const;
 
     size_t test_gen_pawn(const char* str_coord,
                          bool captures_and_promotions) const;

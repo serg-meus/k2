@@ -292,54 +292,56 @@ protected:
             return false;
         bool ans = false;
         const auto k_coord = king_coord(wtm);
-        const auto to_coord = k2chess::state[ply].move.to_coord;
-        const auto d_col = get_col(k_coord) - get_col(to_coord);
-        const auto d_row = get_row(k_coord) - get_row(to_coord);
-        const auto type = get_type(b[to_coord]);
+        const auto move = k2chess::state[ply].move;
+        const auto d_row = get_row(k_coord) - get_row(move.to_coord);
+        const auto ac = std::abs(get_col(k_coord) - get_col(move.to_coord));
+        const auto ar = std::abs(d_row);
+        const auto type = get_type(b[move.to_coord]);
+        if((move.flag & is_promotion) && is_slider[type])
+        {
+            bool correct = type == queen ||
+                    (type == rook && sgn(ac) + sgn(ar) == 1) ||
+                    (type == bishop && sgn(ac) + sgn(ar) == 2);
+            if(correct && IsSliderAttack(move.to_coord, k_coord))
+                return true;
+        }
         switch(type)
         {
             case pawn :
-                ans = ((wtm && d_row == -1) || (!wtm && d_row == 1)) &&
-                        std::abs(d_col) == 1;
+                ans = ((wtm && d_row == -1) || (!wtm && d_row == 1)) && ac == 1;
                 break;
-
             case knight :
-                ans = (std::abs(d_col) == 2 && std::abs(d_row) == 1) ||
-                        (std::abs(d_col) == 1 && std::abs(d_row) == 2);
+                ans = (ac == 2 && ar == 1) || (ac == 1 && ar == 2);
                 break;
-
             case bishop :
-                ans = std::abs(d_col) == std::abs(d_row) &&
-                        IsSliderAttack(k_coord, to_coord);
+                ans = ac == ar && IsSliderAttack(k_coord, move.to_coord);
                 break;
-
             case rook :
-                ans = (d_col == 0 || d_row == 0) &&
-                        IsSliderAttack(k_coord, to_coord);
+                ans = (ac == 0 || ar == 0) && IsSliderAttack(k_coord,
+                                                             move.to_coord);
                 break;
-
             case queen :
-                ans = (std::abs(d_col) == std::abs(d_row) ||
-                        d_col == 0 || d_row == 0) &&
-                        IsSliderAttack(k_coord, to_coord);
+                ans = (ac == ar || ac == 0 || ar == 0) &&
+                        IsSliderAttack(k_coord, move.to_coord);
                 break;
-
+            case king :
+                if(move.flag & is_castle)
+                {
+                    const auto d_col = (move.flag & is_left_castle) ? -1 : 1;
+                    const auto r_col = default_king_col + d_col;
+                    const auto ok_coord = king_coord(!wtm);
+                    if(r_col == get_col(k_coord) &&
+                            IsSliderAttack(ok_coord - d_col, k_coord))
+                        return true;
+                }
+                break;
             default :
-                break;
+                assert(true);
         }
         if(ans)
             return true;
-        const auto fr_coord = k2chess::state[ply].move.from_coord;
-        const auto d_col2 = get_col(k_coord) - get_col(fr_coord);
-        const auto d_row2 = get_row(k_coord) - get_row(fr_coord);
-        if(std::abs(d_col2) == std::abs(d_row2) || d_col2 == 0 || d_row2 == 0)
-        {
-
-            const auto att_mask = attacks[!wtm][fr_coord] & slider_mask[!wtm];
-            if(att_mask && IsDiscoveredAttack(fr_coord, to_coord, att_mask))
-                return true;
-        }
-        return false;
+       
+        return IsDiscoveredEnPassant(wtm, move);
     }
 
     bool MateDistancePruning(eval_t alpha, eval_t *beta)
@@ -355,7 +357,7 @@ protected:
         return false;
     }
 
-    bool MakeAttacksLater()
+    void UpdateAllAttacks()
     {
         auto delta = 0;
         if(k2chess::state[ply - 1].move.to_coord == is_null_move)
@@ -371,8 +373,5 @@ protected:
         if(delta == 1)
             wtm = !wtm;
         ply += delta;
-        bool in_check = attacks[!wtm][king_coord(wtm)];
-        state[ply].in_check = in_check;
-        return in_check;
     }
 };
