@@ -5,13 +5,12 @@
 
 
 //--------------------------------
-k2movegen::movcr_t k2movegen::GenMoves(move_c * const move_array,
-                                       const bool need_capture_or_promotion
-                                       ) const
+size_t k2movegen::GenMoves(move_c * const move_array,
+                           const bool only_captures) const
 {
-    movcr_t move_cr = 0;
-
-    if(!need_capture_or_promotion)
+    size_t move_cr = 0;
+    
+    if(!only_captures)
         GenCastles(move_array, &move_cr);
 
     for(auto it : coord_id[wtm])
@@ -19,43 +18,65 @@ k2movegen::movcr_t k2movegen::GenMoves(move_c * const move_array,
         const auto piece_id = it.second;
         const auto from_coord = coords[wtm][piece_id];
         const auto type = get_type(b[from_coord]);
+        
         if(type == pawn)
         {
-            GenPawnCapturesAndPromotions(move_array, &move_cr, piece_id);
-            if(!need_capture_or_promotion)
-                GenPawnSilent(move_array, &move_cr, piece_id);
-            continue;
+            GenPawnCapturesAndPromotions(piece_id, move_array, &move_cr);
+            if(!only_captures)
+                GenPawnSilent(piece_id, move_array, &move_cr);
         }
-        const auto col0 = get_col(from_coord);
-        const auto row0 = get_row(from_coord);
-        auto rmask = ray_mask_all[type];
+        else if(is_slider[type])
+            GenSliderMoves(only_captures, piece_id, from_coord, type,
+                           move_array, &move_cr);
+        else
+            GenNonSliderMoves(only_captures, piece_id, from_coord, type,
+                              move_array, &move_cr);
+    }
+    return KeepOnlyLegalMoves(move_array, move_cr);
+}
 
-        while(rmask)
+
+
+
+
+
+//--------------------------------
+void k2movegen::GenSliderMoves(const bool only_captures,
+                               const piece_id_t piece_id,
+                               const coord_t from_coord,
+                               const piece_type_t type,
+                               move_c * const move_array,
+                               size_t * const move_cr) const
+{
+    const auto col0 = get_col(from_coord); 
+    const auto row0 = get_row(from_coord);
+    auto rmask = ray_mask_all[type];
+    while(rmask)
+    {
+        const auto ray_id = __builtin_ctz(rmask);
+        rmask ^= (1 << ray_id);
+        const auto ray_len = directions[wtm][piece_id][ray_id];
+        if(!ray_len)
+            continue;
+        auto col = col0 + ray_len*delta_col[ray_id];
+        auto row = row0 + ray_len*delta_row[ray_id];
+        auto to_coord = get_coord(col, row);
+        const bool capture = is_dark(b[to_coord], wtm);
+        if(capture || (!only_captures && b[to_coord] == empty_square))
+            PushMove(move_array, move_cr, from_coord, to_coord,
+                     capture ? is_capture : 0);
+        if(only_captures)
+            continue;
+        while(true)
         {
-            const auto ray_id = __builtin_ctz(rmask);
-            rmask ^= (1 << ray_id);
-            const auto ray_len = directions[wtm][piece_id][ray_id];
-            auto col = col0 + ray_len*delta_col[ray_id];
-            auto row = row0 + ray_len*delta_row[ray_id];
-            const auto min_i = need_capture_or_promotion ? ray_len : 1;
-            for(int i = ray_len; i >= min_i; --i)
-            {
-                const auto to_coord = get_coord(col, row);
-                const bool empty = b[to_coord] == empty_square;
-                const bool capture = !empty && get_color(b[to_coord]) != wtm;
-                if(need_capture_or_promotion && !capture)
-                    break;
-                if(col_within(col) && row_within(row) && (empty || capture))
-                    PushMove(move_array, &move_cr, from_coord,
-                             to_coord,  empty ? 0 : is_capture);
-                if(!is_slider[type])
-                        break;
-                col -= delta_col[ray_id];
-                row -= delta_row[ray_id];
-                }
-            }
+            col -= delta_col[ray_id];
+            row -= delta_row[ray_id];
+            to_coord = get_coord(col, row);
+            if(to_coord == from_coord)
+                break;
+            PushMove(move_array, move_cr, from_coord, to_coord, 0);
         }
-    return move_cr;
+    }
 }
 
 
@@ -63,9 +84,57 @@ k2movegen::movcr_t k2movegen::GenMoves(move_c * const move_array,
 
 
 //--------------------------------
-void k2movegen::GenPawnSilent(move_c * const move_array,
-                              movcr_t * const moveCr,
-                              const piece_id_t piece_id) const
+void k2movegen::GenNonSliderMoves(const bool only_captures,
+                                  const piece_id_t piece_id,
+                                  const coord_t from_coord,
+                                  const piece_type_t type,
+                                  move_c * const move_array,
+                                  size_t * const move_cr) const
+{
+    const auto col0 = get_col(from_coord);
+    const auto row0 = get_row(from_coord);
+    auto rmask = ray_mask_all[type]; 
+    while(rmask)
+    {
+        const auto ray_id = __builtin_ctz(rmask);
+        rmask ^= (1 << ray_id);
+        const auto ray_len = directions[wtm][piece_id][ray_id];
+        if(!ray_len)
+        	continue;
+        const auto col = col0 + delta_col[ray_id];
+        const auto row = row0 + delta_row[ray_id];
+        const auto to_coord = get_coord(col, row);
+        const auto empty = b[to_coord] == empty_square;
+        const auto capture = (!empty && get_color(b[to_coord]) != wtm) ?
+                    is_capture : 0;
+        if((!only_captures && empty) || capture)
+            PushMove(move_array, move_cr, from_coord, to_coord, capture);
+    }
+}
+
+
+
+
+
+//--------------------------------
+size_t k2movegen::KeepOnlyLegalMoves(move_c * const move_array,
+                                     const size_t move_cr) const
+{
+    size_t new_move_cr = 0;
+    for(size_t i = 0; i < move_cr; ++i)
+        if(IsLegal(move_array[i]))
+            move_array[new_move_cr++] = move_array[i];
+    return new_move_cr;
+}
+
+
+
+
+
+//--------------------------------
+void k2movegen::GenPawnSilent(const piece_id_t piece_id,
+                              move_c * const move_array,
+                              size_t * const moveCr) const
 {
     const auto from_coord = coords[wtm][piece_id];
     const auto col = get_col(from_coord);
@@ -90,9 +159,9 @@ void k2movegen::GenPawnSilent(move_c * const move_array,
 
 
 //--------------------------------
-void k2movegen::GenPawnCapturesAndPromotions(move_c * const move_array,
-                                          movcr_t * const moveCr,
-                                          const piece_id_t piece_id) const
+void k2movegen::GenPawnCapturesAndPromotions(const piece_id_t piece_id,
+                                             move_c * const move_array,
+                                             size_t * const moveCr) const
 {
     const auto from_coord = coords[wtm][piece_id];
     const auto col = get_col(from_coord);
@@ -140,7 +209,7 @@ void k2movegen::GenPawnCapturesAndPromotions(move_c * const move_array,
 
 //--------------------------------
 void k2movegen::GenCastles(move_c * const move_array,
-                           movcr_t * const moveCr) const
+                           size_t * const moveCr) const
 {
     const castle_t msk = wtm ? 0x03 : 0x0C;
     const auto shft = wtm ? 0 : 2;
@@ -181,13 +250,13 @@ void k2movegen::GenCastles(move_c * const move_array,
 
 
 //--------------------------------
-void k2movegen::AppriceMoves(move_c * const move_array, const movcr_t moveCr,
+void k2movegen::AppriceMoves(move_c * const move_array, const size_t moveCr,
                              const move_c best_move) const
 {
     history_t min_history = std::numeric_limits<history_t>::max();
     history_t max_history = 0;
 
-    for(auto i = 0; i < moveCr; ++i)
+    for(size_t i = 0; i < moveCr; ++i)
     {
         auto move = move_array[i];
 
@@ -271,7 +340,7 @@ void k2movegen::AppriceMoves(move_c * const move_array, const movcr_t moveCr,
         }
     }
 
-    for(auto i = 0; i < moveCr; ++i)
+    for(size_t i = 0; i < moveCr; ++i)
     {
         auto move = move_array[i];
         if(move.priority >= second_killer || (move.flag & is_capture))
@@ -383,16 +452,16 @@ k2chess::eval_t k2movegen::StaticExchangeEval(const move_c move) const
 #ifndef NDEBUG
 //--------------------------------
 size_t k2movegen::test_gen_pawn(const char* str_coord,
-                                bool captures_and_promotions) const
+                                bool only_captures) const
 {
     move_c move_array[move_array_size];
-    movcr_t move_cr = 0;
+    size_t move_cr = 0;
 
     size_t piece_id = find_piece_id[get_coord(str_coord)];
-    GenPawnCapturesAndPromotions(move_array, &move_cr, piece_id);
-    if(!captures_and_promotions)
-        GenPawnSilent(move_array, &move_cr, piece_id);
-    for(auto i = 0; i < move_cr; ++i)
+    GenPawnCapturesAndPromotions(piece_id, move_array, &move_cr);
+    if(!only_captures)
+        GenPawnSilent(piece_id, move_array, &move_cr);
+    for(size_t i = 0; i < move_cr; ++i)
         if(!IsLegal(move_array[i]))
             return -1U;
     return move_cr;
@@ -406,10 +475,10 @@ size_t k2movegen::test_gen_pawn(const char* str_coord,
 size_t k2movegen::test_gen_castles() const
 {
     move_c move_array[move_array_size];
-    movcr_t move_cr = 0;
+    size_t move_cr = 0;
 
     GenCastles(move_array, &move_cr);
-    for(auto i = 0; i < move_cr; ++i)
+    for(size_t i = 0; i < move_cr; ++i)
         if(!IsLegal(move_array[i]))
             return -1U;
     return move_cr;
@@ -420,11 +489,11 @@ size_t k2movegen::test_gen_castles() const
 
 
 //--------------------------------
-size_t k2movegen::test_gen_moves(bool need_captures_or_promotions)
+size_t k2movegen::test_gen_moves(const bool only_captures) const
 {
     move_c move_array[move_array_size];
-    movcr_t move_cr = GenMoves(move_array, need_captures_or_promotions);
-    for(auto i = 0; i < move_cr; ++i)
+    size_t move_cr = GenMoves(move_array, only_captures);
+    for(size_t i = 0; i < move_cr; ++i)
         if(!IsPseudoLegal(move_array[i]))
             return -1U;
     return move_cr;

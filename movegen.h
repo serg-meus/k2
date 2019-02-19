@@ -27,7 +27,6 @@ public:
 protected:
 
 
-    typedef u8 movcr_t;
     typedef u8 apprice_t;
     typedef u32 history_t;
 
@@ -39,12 +38,7 @@ protected:
     move_from_hash = std::numeric_limits<priority_t>::max(),
     king_capture = std::numeric_limits<priority_t>::max(),
     bad_captures = 63;
-
-    const static apprice_t
-    not_apprice = 0,
-    apprice_only_captures = 1,
-    apprice_all = 2;
-
+    
     struct principal_variation_s
     {
         size_t length;
@@ -55,27 +49,35 @@ protected:
     move_c killers[max_ply][sides];
     history_t history[sides][piece_types][board_height*board_width];
 
-    movcr_t GenMoves(move_c * const move_array,
-                     const bool need_capture_or_promotion) const;
+    size_t GenMoves(move_c * const move_array, const bool only_captures) const;
     eval_t StaticExchangeEval(const move_c m) const;
-    void AppriceMoves(move_c * const move_array, const movcr_t moveCr,
+    void AppriceMoves(move_c * const move_array, const size_t moveCr,
                       const move_c best_move) const;
+    size_t KeepOnlyLegalMoves(move_c * const move_array,
+                              const size_t move_cr) const;
 
 
 private:
 
 
-    void GenPawnSilent(move_c * const move_array, movcr_t * const movCr,
-                       const piece_id_t piece_id) const;
-    void GenPawnCapturesAndPromotions(move_c * const move_array,
-                                      movcr_t * const movCr,
-                                      const piece_id_t piece_id) const;
-    void GenCastles(move_c * const move_array, movcr_t * const movCr) const;
+    void GenPawnSilent(const piece_id_t piece_id, move_c * const move_array,
+                       size_t * const movCr) const;
+    void GenPawnCapturesAndPromotions(const piece_id_t piece_id, move_c * const move_array,
+                                      size_t * const movCr) const;
+    void GenCastles(move_c * const move_array, size_t * const movCr) const;
     eval_t SEE(const coord_t to_coord, const eval_t frStreng,
                eval_t val, bool stm, attack_t *att) const;
     size_t SeeMinAttacker(const attack_t att) const;
+    void GenSliderMoves(const bool only_captures, const piece_id_t piece_id,
+                        const coord_t from_coord, const piece_type_t type,
+                        move_c * const move_array,
+                        size_t * const move_cr) const;
+    void GenNonSliderMoves(const bool only_captures, const piece_id_t piece_id,
+                           const coord_t from_coord, const piece_type_t type,
+                           move_c * const move_array,
+                           size_t * const move_cr) const;
 
-    void PushMove(move_c * const move_array, movcr_t * const movCr,
+    void PushMove(move_c * const move_array, size_t * const move_cr,
                   const coord_t from_coord, const coord_t to_coord,
                   const move_flag_t flag) const
     {
@@ -86,16 +88,14 @@ private:
         move.priority = 0;
 
         assert(IsPseudoLegal(move));
-        if(IsLegal(move))
-            move_array[(*movCr)++] = move;
+        move_array[(*move_cr)++] = move;
     }
 
     void ProcessSeeBatteries(const coord_t to_coord,
                              const coord_t attacker_coord,
                              const bool stm, attack_t *att) const;
 
-    size_t test_gen_pawn(const char* str_coord,
-                         bool captures_and_promotions) const;
+    size_t test_gen_pawn(const char* str_coord, bool only_captures) const;
     size_t test_gen_castles() const;
-    size_t test_gen_moves(bool need_captures_or_promotions);
+    size_t test_gen_moves(bool only_captures) const;
 };

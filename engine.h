@@ -26,7 +26,7 @@ protected:
     const bool all_moves = false;
     const bool captures_only = true;
     const node_t nodes_to_check_stop = 7;
-    const movcr_t init_max_moves = 2;  // any number greater than 1
+    const size_t init_max_moves = 2;  // any number greater than 1
     const static size_t move_array_size = 256;
     const coord_t is_null_move = 0xFF;
 
@@ -36,11 +36,11 @@ protected:
     const depth_t null_move_max_r = 3;
     const depth_t null_move_min_r = 2;
     const depth_t lmr_min_depth = 3;
-    const movcr_t lmr_max_move = 4;
+    const size_t lmr_max_move = 4;
     const depth_t lmr_big_depth = 6;
-    const movcr_t lmr_big_max_move = 7;
+    const size_t lmr_big_max_move = 7;
     const depth_t lmp_min_depth = 2;
-    const movcr_t lmp_max_move = 6;
+    const size_t lmp_max_move = 6;
     const eval_t delta_pruning_margin = 100;
     const depth_t futility_max_depth = 2;
     const eval_t futility_marg0 = 185;
@@ -52,14 +52,14 @@ protected:
     const eval_t aspiration_margin = 47;
     const depth_t max_depth_for_single_move = 8;
 
-    const movcr_t max_moves_to_shuffle = 4;
+    const size_t max_moves_to_shuffle = 4;
     const eval_t eval_to_resign = 700;
     const depth_t moves_to_resign = 3;
 
-    const depth_t moves_for_time_exact_mode = 8;
+    const size_t moves_for_time_exact_mode = 8;
     const depth_t default_moves_to_go = 32;
     const depth_t exact_time_base_divider = 4;
-    const movcr_t min_moves_for_exact_time = 5;
+    const size_t min_moves_for_exact_time = 5;
     const depth_t time_to_think_divider = 2;
     const depth_t increment_time_divider = 4;
 
@@ -81,7 +81,7 @@ public:
         double time_base, time_inc, time_remains, total_time_spent;
         depth_t moves_per_session, max_search_depth;
         node_t max_nodes_to_search;
-        movcr_t moves_to_go;
+        size_t moves_to_go;
         bool time_command_sent, infinite_analyze;
     };
 
@@ -117,7 +117,7 @@ protected:
 
     const char *debug_variation;
     depth_t root_ply, debug_ply, halfmoves_made, resign_cr;
-    movcr_t root_move_cr;
+    size_t root_move_cr;
     bool randomness;
 
     std::vector<std::pair<node_t, move_c> > root_moves;
@@ -159,7 +159,7 @@ protected:
                   const node_type_t node_type);
     eval_t QSearch(eval_t alpha, const eval_t beta);
     void StorePV(const move_c m);
-    void UpdateStatistics(move_c m, depth_t dpt, movcr_t move_cr,
+    void UpdateStatistics(move_c m, depth_t dpt, size_t move_cr,
                           const hash_entry_s *entry);
     eval_t RootSearch(const depth_t depth, eval_t alpha, const eval_t beta);
     void GenerateRootMoves();
@@ -175,8 +175,8 @@ protected:
     bool DrawByRepetition() const;
     bool HashProbe(const depth_t depth, eval_t * const alpha,
                    const eval_t beta, hash_entry_s **entry);
-    move_c NextMove(move_c * const move_array, const movcr_t cur_move_cr,
-                    movcr_t * const max_moves, move_c hash_best_move,
+    move_c NextMove(move_c * const move_array, const size_t cur_move_cr,
+                    size_t * const max_moves, move_c hash_best_move,
                     const bool hash_one_reply, const bool captures_only,
                     const move_c prev_move) const;
     void StoreInHash(const depth_t depth, eval_t score,
@@ -185,16 +185,16 @@ protected:
     void ShowCurrentUciInfo();
     void ShowPVfailHighOrLow(move_c m, eval_t x, const u8 exclimation);
     bool GetFirstMove(move_c * const move_array,
-                      movcr_t * const max_moves,
+                      size_t * const max_moves,
                       const move_c hash_best_move,
                       const bool hash_one_reply,
                       const bool only_captures,
                       move_c * const ans) const;
-    bool GetSecondMove(move_c * const move_array, movcr_t * const max_moves,
+    bool GetSecondMove(move_c * const move_array, size_t * const max_moves,
                        move_c prev_move, move_c * const ans) const;
     size_t FindMaxMoveIndex(move_c * const move_array,
-                            const movcr_t max_moves,
-                            const movcr_t cur_move) const;
+                            const size_t max_moves,
+                            const size_t cur_move) const;
     bool CanFinishMainSearch(const eval_t x, const eval_t prev_x) const;
     void CheckForResign(const eval_t x);
 
@@ -229,7 +229,7 @@ protected:
     }
 
     depth_t LateMoveReduction(const depth_t depth, move_c cur_move,
-                              bool in_check,  movcr_t move_cr,
+                              bool in_check,  size_t move_cr,
                               node_type_t node_type)
     {
         auto ans = 1;

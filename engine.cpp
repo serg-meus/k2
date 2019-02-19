@@ -106,7 +106,7 @@ k2chess::eval_t k2engine::Search(depth_t depth, eval_t alpha, eval_t beta,
         return alpha;
 
     move_c move_array[move_array_size], cur_move;
-    movcr_t move_cr = 0, max_moves = init_max_moves;
+    size_t move_cr = 0, max_moves = init_max_moves;
     for(; move_cr < max_moves; move_cr++)
     {
         cur_move = NextMove(move_array, move_cr, &max_moves,
@@ -215,7 +215,7 @@ k2chess::eval_t k2engine::QSearch(eval_t alpha, const eval_t beta)
 
     move_c move_array[move_array_size], no_move;
     no_move.flag = not_a_move;
-    movcr_t move_cr = 0, max_moves = init_max_moves;
+    size_t move_cr = 0, max_moves = init_max_moves;
     for(; move_cr < max_moves; move_cr++)
     {
         move_c cur_move = NextMove(move_array, move_cr, &max_moves,
@@ -266,7 +266,7 @@ void k2engine::Perft(const depth_t depth)
 {
     move_c move_array[move_array_size];
     auto max_moves = GenMoves(move_array, false);
-    for(auto move_cr = 0; move_cr < max_moves; move_cr++)
+    for(size_t move_cr = 0; move_cr < max_moves; move_cr++)
     {
 #ifndef NDEBUG
         node_t tmpCr;
@@ -493,7 +493,7 @@ void k2engine::StorePV(const move_c move)
 
 //-----------------------------
 void k2engine::UpdateStatistics(const move_c move, const depth_t depth,
-                                const movcr_t move_cr,
+                                const size_t move_cr,
                                 const hash_entry_s *entry)
 {
     if(entry != nullptr && entry->best_move.flag != not_a_move)
@@ -570,13 +570,13 @@ void k2engine::GenerateRootMoves()
     hash_entry_s *entry = nullptr;
     HashProbe(max_ply, &alpha, beta, &entry);
 
-    for(movcr_t move_cr = 0; move_cr < max_moves; move_cr++)
+    for(size_t move_cr = 0; move_cr < max_moves; move_cr++)
     {
         cur_move = NextMove(move_array, move_cr, &max_moves,
                         no_move, false, all_moves, cur_move);
     }
     root_moves.clear();
-    for(movcr_t move_cr = 0; move_cr < max_moves; move_cr++)
+    for(size_t move_cr = 0; move_cr < max_moves; move_cr++)
     {
         cur_move = move_array[move_cr];
         auto rms = &root_moves_to_search;
@@ -596,7 +596,7 @@ void k2engine::GenerateRootMoves()
         for(auto i = 0; i < phase2; ++i)
         {
             const auto tmp = root_moves[0];
-            for(auto j = 0; j < max_moves_to_shuffle - 1; ++j)
+            for(size_t j = 0; j < max_moves_to_shuffle - 1; ++j)
             {
                 root_moves[j] = root_moves[j + 1];
             }
@@ -960,7 +960,7 @@ bool k2engine::MakeMove(const char *move_str)
 
     char cur_move_str[6];
     char proms[] = {'?', 'q', 'n', 'r', 'b'};
-    for(movcr_t i = 0; i < root_moves.size(); ++i)
+    for(size_t i = 0; i < root_moves.size(); ++i)
     {
         const auto cur_move = root_moves.at(i).second;
         cur_move_str[0] = get_col(cur_move.from_coord) + 'a';
@@ -1333,7 +1333,7 @@ bool k2engine::HashProbe(const depth_t depth, eval_t * const alpha,
 
 //--------------------------------
 bool k2engine::GetFirstMove(move_c * const move_array,
-                            movcr_t * const max_moves,
+                            size_t * const max_moves,
                             const move_c hash_best_move,
                             const bool hash_one_reply,
                             const bool only_captures,
@@ -1363,7 +1363,7 @@ bool k2engine::GetFirstMove(move_c * const move_array,
         const bool legal = IsPseudoLegal(*ans) && IsLegal(*ans);
 #ifndef NDEBUG
         const auto mx_ = GenMoves(move_array, false);
-        auto i = 0;
+        size_t i = 0;
         for(; i < mx_; ++i)
             if(move_array[i] == *ans)
                 break;
@@ -1397,7 +1397,7 @@ bool k2engine::GetFirstMove(move_c * const move_array,
 
 //--------------------------------
 bool k2engine::GetSecondMove(move_c * const move_array,
-                             movcr_t * const max_moves,
+                             size_t * const max_moves,
                              const move_c prev_move,
                              move_c * const ans) const
 {
@@ -1411,7 +1411,7 @@ bool k2engine::GetSecondMove(move_c * const move_array,
         assert(IsPseudoLegal(*ans));
         return true;
     }
-    auto i = 0;
+    size_t i = 0;
     for(; i < *max_moves; i++)
         if(move_array[i].priority == move_from_hash)
         {
@@ -1428,8 +1428,8 @@ bool k2engine::GetSecondMove(move_c * const move_array,
 
 //--------------------------------
 size_t k2engine::FindMaxMoveIndex(move_c * const move_array,
-                                  const movcr_t max_moves,
-                                  const movcr_t cur_move) const
+                                  const size_t max_moves,
+                                  const size_t cur_move) const
 {
     auto max_score = 0;
     auto max_index = cur_move;
@@ -1451,8 +1451,8 @@ size_t k2engine::FindMaxMoveIndex(move_c * const move_array,
 
 //--------------------------------
 k2chess::move_c k2engine::NextMove(move_c * const move_array,
-                                   const movcr_t cur_move_cr,
-                                   movcr_t * const max_moves,
+                                   const size_t cur_move_cr,
+                                   size_t * const max_moves,
                                    move_c hash_best_move,
                                    const bool hash_one_reply,
                                    const bool only_captures,
