@@ -62,12 +62,20 @@ private:
 
     void GenPawnSilent(const piece_id_t piece_id, move_c * const move_array,
                        size_t * const movCr) const;
-    void GenPawnCapturesAndPromotions(const piece_id_t piece_id, move_c * const move_array,
+    void GenPawnCapturesAndPromotions(const piece_id_t piece_id,
+                                      move_c * const move_array,
                                       size_t * const movCr) const;
     void GenCastles(move_c * const move_array, size_t * const movCr) const;
     eval_t SEE(const coord_t to_coord, const eval_t frStreng,
                eval_t val, bool stm, attack_t *att) const;
     size_t SeeMinAttacker(const attack_t att) const;
+    void ProcessSeeBatteries(const coord_t to_coord,
+                             const coord_t attacker_coord,
+                             const bool stm, attack_t *att) const;
+
+    size_t test_gen_pawn(const char* str_coord, bool only_captures) const;
+    size_t test_gen_castles() const;
+    size_t test_gen_moves(bool only_captures) const;
     void GenSliderMoves(const bool only_captures, const piece_id_t piece_id,
                         const coord_t from_coord, const piece_type_t type,
                         move_c * const move_array,
@@ -76,6 +84,11 @@ private:
                            const coord_t from_coord, const piece_type_t type,
                            move_c * const move_array,
                            size_t * const move_cr) const;
+    size_t AppriceCaptures(const move_c move) const;
+    size_t AppriceSilentMoves(const piece_type_t type, const coord_t fr_coord,
+                              const coord_t to_coord) const;
+    void AppriceHistory(move_c * const move_array, size_t move_cr,
+                        history_t min_history, history_t max_history) const;
 
     void PushMove(move_c * const move_array, size_t * const move_cr,
                   const coord_t from_coord, const coord_t to_coord,
@@ -90,12 +103,4 @@ private:
         assert(IsPseudoLegal(move));
         move_array[(*move_cr)++] = move;
     }
-
-    void ProcessSeeBatteries(const coord_t to_coord,
-                             const coord_t attacker_coord,
-                             const bool stm, attack_t *att) const;
-
-    size_t test_gen_pawn(const char* str_coord, bool only_captures) const;
-    size_t test_gen_castles() const;
-    size_t test_gen_moves(bool only_captures) const;
 };

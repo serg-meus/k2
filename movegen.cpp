@@ -250,112 +250,116 @@ void k2movegen::GenCastles(move_c * const move_array,
 
 
 //--------------------------------
-void k2movegen::AppriceMoves(move_c * const move_array, const size_t moveCr,
+void k2movegen::AppriceMoves(move_c * const move_array, const size_t move_cr,
                              const move_c best_move) const
 {
     history_t min_history = std::numeric_limits<history_t>::max();
     history_t max_history = 0;
 
-    for(size_t i = 0; i < moveCr; ++i)
+    for(size_t i = 0; i < move_cr; ++i)
     {
-        auto move = move_array[i];
+        auto move = &move_array[i];
+        const auto fr_coord = move->from_coord;
+        const auto to_coord = move->to_coord;
+        const auto type = get_type(b[fr_coord]);
 
-        const auto fr_sq = b[move.from_coord];
-        const auto to_sq = b[move.to_coord];
-
-        if(move == best_move)
-            move_array[i].priority = move_from_hash;
-        else if(to_sq == empty_square && !(move.flag & is_promotion))
+        if(*move == best_move)
+            move->priority = move_from_hash;
+        else if(move->flag == 0 || move->flag & is_castle)
         {
-            if(move == killers[ply][0])
-                move_array[i].priority = first_killer;
-            else if(move == killers[ply][1])
-                move_array[i].priority = second_killer;
+            if(*move == killers[ply][0])
+                move->priority = first_killer;
+            else if(*move == killers[ply][1])
+                move->priority = second_killer;
             else
             {
-                const auto type = get_type(b[move.from_coord]);
-                auto h = history[wtm][type - 1][move.to_coord];
+                const auto h = history[wtm][type - 1][to_coord];
                 if(h > max_history)
                     max_history = h;
                 if(h < min_history)
                     min_history = h;
-
-                auto y = get_row(move.to_coord);
-                const auto x = get_col(move.to_coord);
-                auto y0 = get_row(move.from_coord);
-                const auto x0 = get_col(move.from_coord);
-                if(wtm)
-                {
-                    y = max_row - y;
-                    y0 = max_row - y0;
-                }
-                const auto pstVal = pst[get_type(fr_sq) - 1][0][y][x]
-                              - pst[get_type(fr_sq) - 1][0][y0][x0];
-                const auto priority = 96 + pstVal/2;
-                move_array[i].priority = priority;
+                move->priority = AppriceSilentMoves(type, fr_coord, to_coord);
             }
         }
         else
-        {
-            auto src = values[get_type(fr_sq)]/10;
-            auto dst =  values[get_type(to_sq)]/10;
-            if(!(move.flag & is_capture))
-                dst = 0;
-            if(dst && dst - src <= 0)
-            {
-                auto tmp = StaticExchangeEval(move)/10;
-                dst = tmp;
-                src = 0;
-            }
-
-            if(dst > 120)
-            {
-                move_array[i].priority = 0;
-                continue;
-            }
-
-            eval_t prms[] = {0, 120, 40, 60, 40};
-            if(dst <= 120 && (move.flag & is_promotion))
-                dst += prms[move.flag & is_promotion];
-
-            auto ans = dst >= src ? dst - src/16 : dst - src;
-
-            if(dst - src >= 0)
-            {
-                assert(200 + ans/8 > first_killer);
-                assert(200 + ans/8 <= 250);
-                move_array[i].priority = (200 + ans/8);
-            }
-            else
-            {
-                if(get_type(b[move.from_coord]) != king)
-                {
-                    assert(-ans/2 >= 0);
-                    assert(-ans/2 <= bad_captures);
-                    move_array[i].priority = -ans/2;
-                }
-                else
-                    move_array[i].priority = 0;
-            }
-        }
+            move->priority = AppriceCaptures(*move);
     }
+    AppriceHistory(move_array, move_cr, min_history, max_history);
+}
 
-    for(size_t i = 0; i < moveCr; ++i)
+
+
+
+
+//-----------------------------
+void k2movegen::AppriceHistory(move_c * const move_array, size_t move_cr,
+                               history_t min_history,
+                               history_t max_history) const
+{
+    for(size_t i = 0; i < move_cr; ++i)
     {
-        auto move = move_array[i];
-        if(move.priority >= second_killer || (move.flag & is_capture))
+        auto move = &move_array[i];
+        if(move->priority >= second_killer || (move->flag & is_capture))
             continue;
-        const auto type = get_type(b[move.from_coord]);
-        auto hist = history[wtm][type - 1][move.to_coord];
+        const auto type = get_type(b[move->from_coord]);
+        auto hist = history[wtm][type - 1][move->to_coord];
         if(hist > 3)
         {
             hist -= min_history;
             hist = 64*hist / (max_history - min_history + 1);
             hist += 128;
-            move_array[i].priority = hist;
-            continue;
+            move->priority = hist;
         }
     }
+}
+
+
+
+
+
+//-----------------------------
+size_t k2movegen::AppriceSilentMoves(const piece_type_t type,
+                                     const coord_t from_coord,
+                                     const coord_t to_coord) const
+{
+    auto y = get_row(to_coord);
+    const auto x = get_col(to_coord);
+    auto y0 = get_row(from_coord);
+    const auto x0 = get_col(from_coord);
+    if(wtm)
+    {
+        y = max_row - y;
+        y0 = max_row - y0;
+    }
+    const auto pstVal = pst[type - 1][0][y][x] -
+            pst[type - 1][0][y0][x0];
+    return 96 + pstVal/2;
+}
+
+
+
+
+
+//-----------------------------
+size_t k2movegen::AppriceCaptures(const move_c move) const
+{
+    auto src = values[get_type(b[move.from_coord])]/10;
+    auto dst = values[get_type(b[move.to_coord])]/10;
+    if(move.flag & is_en_passant)
+        dst = values[pawn]/10;
+    else if(!(move.flag & is_capture))
+        dst = 0;
+    if(dst && dst - src <= 0)
+    {
+        dst = StaticExchangeEval(move)/10;
+        src = 0;
+    }
+    eval_t prms[] = {0, 120, 40, 60, 40};
+    if(dst <= 120 && (move.flag & is_promotion))
+        dst += prms[move.flag & is_promotion];
+
+    auto ans = dst >= src ? dst - src/16 : dst - src;
+    return dst >= src ? 200 + ans/8 : -ans/2;
 }
 
 
@@ -382,6 +386,7 @@ void k2movegen::ProcessSeeBatteries(const coord_t to_coord,
         return;
     }
 }
+
 
 
 
