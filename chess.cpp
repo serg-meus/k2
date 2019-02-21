@@ -50,8 +50,13 @@ void k2chess::UpdatePieceAttacks(const bool stm, const piece_id_t piece_id,
                           IsCastledRook(stm, coord, move));
     if(!update_all && is_move)
         ClearPieceAttacks(stm, piece_id);
-    for(auto ray_id = 0; ray_id < max_rays; ++ray_id)
+
+    auto rmask = update_all ? (1 << max_rays) - 1 :
+                              GetRayMask(stm, coord, move);
+    while(rmask)
     {
+        const auto ray_id = __builtin_ctz(rmask);
+        rmask ^= (1 << ray_id);
         const auto old_c = (update_all || is_move) ? 0 :
                 done_directions[ply - 1][stm][piece_id][ray_id];
         const auto new_c = directions[stm][piece_id][ray_id];

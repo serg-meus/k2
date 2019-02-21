@@ -435,4 +435,18 @@ private:
         assert(color == black || color == white);
         attacks[color][get_coord(col, row)] &= ~(1 << piece_id);
     }
+
+    ray_mask_t GetRayMask(const bool stm, const coord_t coord,
+                          const move_c move) const
+    {
+        const auto st = &k2chess::state[ply];
+        const bool captured = (coord == move.to_coord) && stm == wtm;
+        auto type = get_type(!captured ? b[coord] : st->captured_piece);
+        if(!type)  // en passant
+            type = pawn;
+        auto rmask = ray_mask_all[type];
+        if(type == pawn)
+            rmask &= (stm ? pawn_mask_white : pawn_mask_black);
+        return rmask;
+    }
 };
