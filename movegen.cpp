@@ -21,7 +21,7 @@ size_t k2movegen::GenMoves(move_c * const move_array,
         
         if(type == pawn)
         {
-            GenPawnCapturesAndPromotions(piece_id, move_array, &move_cr);
+            GenPawnNonSilent(piece_id, move_array, &move_cr);
             if(!only_captures)
                 GenPawnSilent(piece_id, move_array, &move_cr);
         }
@@ -32,7 +32,7 @@ size_t k2movegen::GenMoves(move_c * const move_array,
             GenNonSliderMoves(only_captures, piece_id, from_coord, type,
                               move_array, &move_cr);
     }
-    return KeepOnlyLegalMoves(move_array, move_cr);
+    return KeepLegalMoves(move_array, move_cr);
 }
 
 
@@ -117,8 +117,8 @@ void k2movegen::GenNonSliderMoves(const bool only_captures,
 
 
 //--------------------------------
-size_t k2movegen::KeepOnlyLegalMoves(move_c * const move_array,
-                                     const size_t move_cr) const
+size_t k2movegen::KeepLegalMoves(move_c * const move_array,
+                                 const size_t move_cr) const
 {
     size_t new_move_cr = 0;
     for(size_t i = 0; i < move_cr; ++i)
@@ -159,9 +159,9 @@ void k2movegen::GenPawnSilent(const piece_id_t piece_id,
 
 
 //--------------------------------
-void k2movegen::GenPawnCapturesAndPromotions(const piece_id_t piece_id,
-                                             move_c * const move_array,
-                                             size_t * const moveCr) const
+void k2movegen::GenPawnNonSilent(const piece_id_t piece_id,
+                                 move_c * const move_array,
+                                 size_t * const moveCr) const
 {
     const auto from_coord = coords[wtm][piece_id];
     const auto col = get_col(from_coord);

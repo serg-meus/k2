@@ -161,10 +161,10 @@ private:
     void EvalPawns(const bool stm);
     bool IsUnstoppablePawn(const coord_t col, const bool side_of_pawn,
                            const bool stm) const;
-    void MaterialImbalances();
+    void EvalImbalances();
     void MovePawnStruct(const piece_t movedPiece, const move_c move);
-    void MobilityEval(bool stm);
-    void KingSafety(const bool king_color);
+    void EvalMobility(bool stm);
+    void EvalKingSafety(const bool king_color);
     eval_t KingShelter(const coord_t k_col, coord_t k_row,
                        const bool stm) const;
     bool Sheltered(const coord_t k_col, coord_t k_row,

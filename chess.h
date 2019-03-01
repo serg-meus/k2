@@ -239,7 +239,7 @@ protected:
     bool IsSliderAttack(const coord_t from_coord,
                         const coord_t to_coord) const;
     void MoveToCoordinateNotation(const move_c m, char * const out) const;
-    void MakeAttacks(move_c move);
+    void UpdateAttackTables(move_c move);
     void TakebackMove(move_c move);
     bool PrintMoveSequence(const move_c * const moves, const size_t length,
                            const bool coordinate_notation);

@@ -14,10 +14,10 @@ k2chess::eval_t k2eval::Eval()
     {
         EvalPawns(color);
         EvalRooks(color);
-        KingSafety(color);
-        MobilityEval(color);
+        EvalKingSafety(color);
+        EvalMobility(color);
     }
-    MaterialImbalances();
+    EvalImbalances();
 
     auto ans = -ReturnEval(wtm);
     ans -= side_to_move_bonus;
@@ -316,7 +316,7 @@ bool k2eval::IsUnstoppablePawn(const coord_t col, const bool side_of_pawn,
 
 
 //-----------------------------
-void k2eval::MobilityEval(bool stm)
+void k2eval::EvalMobility(bool stm)
 {
     eval_t f_type[] = {0, 0, mob_queen, mob_rook, mob_bishop, mob_knight};
     eval_t f_num[] = {-25, -15, -10, -5, 0, 5, 10, 15, 18, 20,
@@ -355,7 +355,7 @@ void k2eval::MobilityEval(bool stm)
 
 
 //-----------------------------
-void k2eval::MaterialImbalances()
+void k2eval::EvalImbalances()
 {
     const auto X = material[black]/centipawn + 1 + material[white]/centipawn
             + 1 - pieces[black] - pieces[white];
@@ -555,14 +555,14 @@ k2chess::eval_t k2eval::EvalDebug()
     store_ve = val_end;
     store_sum = ReturnEval(white);
 
-    KingSafety(white);
+    EvalKingSafety(white);
     std::cout << "King safety white\t";
     std::cout << val_opn - store_vo << '\t' << val_end - store_ve << '\t'
               << ReturnEval(white) - store_sum << std::endl;
     store_vo = val_opn;
     store_ve = val_end;
     store_sum = ReturnEval(white);
-    KingSafety(black);
+    EvalKingSafety(black);
     std::cout << "King safety black\t";
     std::cout << val_opn - store_vo << '\t' << val_end - store_ve << '\t'
               << ReturnEval(white) - store_sum << std::endl;
@@ -570,14 +570,14 @@ k2chess::eval_t k2eval::EvalDebug()
     store_ve = val_end;
     store_sum = ReturnEval(white);
 
-    MobilityEval(white);
+    EvalMobility(white);
     std::cout << "Mobility white\t\t";
     std::cout << val_opn - store_vo << '\t' << val_end - store_ve << '\t'
               << ReturnEval(white) - store_sum << std::endl;
     store_vo = val_opn;
     store_ve = val_end;
     store_sum = ReturnEval(white);
-    MobilityEval(black);
+    EvalMobility(black);
     std::cout << "Mobility black\t\t";
     std::cout << val_opn - store_vo << '\t' << val_end - store_ve << '\t'
               << ReturnEval(white) - store_sum << std::endl;
@@ -600,7 +600,7 @@ k2chess::eval_t k2eval::EvalDebug()
     store_ve = val_end;
     store_sum = ReturnEval(white);
 
-    MaterialImbalances();
+    EvalImbalances();
     std::cout << "Imbalances summary\t";
     std::cout << val_opn - store_vo << '\t' << val_end - store_ve << '\t'
               << ReturnEval(white) - store_sum << std::endl;
@@ -925,7 +925,7 @@ k2chess::attack_t k2eval::KingSafetyBatteries(const coord_t targ_coord,
 
 
 //-----------------------------
-void k2eval::KingSafety(const bool stm)
+void k2eval::EvalKingSafety(const bool stm)
 {
     if(quantity[!stm][queen] < 1 && quantity[!stm][rook] < 2)
         return;

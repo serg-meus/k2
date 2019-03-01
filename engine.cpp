@@ -98,7 +98,7 @@ k2chess::eval_t k2engine::Search(depth_t depth, eval_t alpha, eval_t beta,
     if(depth <= 0)
         return QSearch(alpha, beta);
 
-    UpdateAllAttacks();
+    UpdateAttackTables();
     assert(in_check == (bool)(attacks[!wtm][king_coord(wtm)]));
 
     if((stats.nodes & nodes_to_check_stop) == nodes_to_check_stop &&
@@ -109,9 +109,9 @@ k2chess::eval_t k2engine::Search(depth_t depth, eval_t alpha, eval_t beta,
     size_t move_cr = 0, max_moves = init_max_moves;
     for(; move_cr < max_moves; move_cr++)
     {
-        cur_move = NextMove(move_array, move_cr, &max_moves,
-                            hash_best_move, hash_one_reply,
-                            all_moves, cur_move);
+        cur_move = GetNextMove(move_array, move_cr, &max_moves,
+                               hash_best_move, hash_one_reply,
+                               all_moves, cur_move);
         if(max_moves <= 0)
             break;
 
@@ -201,7 +201,7 @@ k2chess::eval_t k2engine::QSearch(eval_t alpha, const eval_t beta)
     if(HashProbe(0, &alpha, beta, &entry))
         return -alpha;
 
-    UpdateAllAttacks();
+    UpdateAttackTables();
 
     auto x = -Eval();
     if(x >= beta)
@@ -218,8 +218,8 @@ k2chess::eval_t k2engine::QSearch(eval_t alpha, const eval_t beta)
     size_t move_cr = 0, max_moves = init_max_moves;
     for(; move_cr < max_moves; move_cr++)
     {
-        move_c cur_move = NextMove(move_array, move_cr, &max_moves,
-                                   no_move, false, captures_only, cur_move);
+        move_c cur_move = GetNextMove(move_array, move_cr, &max_moves,
+                                      no_move, false, captures_only, cur_move);
         if(max_moves <= 0 || cur_move.priority <= bad_captures ||
                 DeltaPruning(alpha, cur_move))
             break;
@@ -281,7 +281,7 @@ void k2engine::Perft(const depth_t depth)
 #endif // NDEBUG
         if(depth > 1)
         {
-            MakeAttacks(cur_move);
+            k2chess::UpdateAttackTables(cur_move);
             Perft(depth - 1);
         }
         else if(depth == 1)
@@ -549,7 +549,7 @@ void k2engine::ShowPVfailHighOrLow(const move_c move, const eval_t val,
     pv[0].moves[0] = tmp_move;
 
     MakeMove(move);
-    MakeAttacks(move);
+    k2chess::UpdateAttackTables(move);
     FastEval(move);
 }
 
@@ -572,8 +572,8 @@ void k2engine::GenerateRootMoves()
 
     for(size_t move_cr = 0; move_cr < max_moves; move_cr++)
     {
-        cur_move = NextMove(move_array, move_cr, &max_moves,
-                        no_move, false, all_moves, cur_move);
+        cur_move = GetNextMove(move_array, move_cr, &max_moves,
+                               no_move, false, all_moves, cur_move);
     }
     root_moves.clear();
     for(size_t move_cr = 0; move_cr < max_moves; move_cr++)
@@ -975,7 +975,7 @@ bool k2engine::MakeMove(const char *move_str)
             continue;
 
         MakeMove(cur_move);
-        MakeAttacks(cur_move);
+        k2chess::UpdateAttackTables(cur_move);
         FastEval(cur_move);
 
         const auto store_val_opn = val_opn;
@@ -1450,13 +1450,13 @@ size_t k2engine::FindMaxMoveIndex(move_c * const move_array,
 
 
 //--------------------------------
-k2chess::move_c k2engine::NextMove(move_c * const move_array,
-                                   const size_t cur_move_cr,
-                                   size_t * const max_moves,
-                                   move_c hash_best_move,
-                                   const bool hash_one_reply,
-                                   const bool only_captures,
-                                   const move_c prev_move) const
+k2chess::move_c k2engine::GetNextMove(move_c * const move_array,
+                                      const size_t cur_move_cr,
+                                      size_t * const max_moves,
+                                      move_c hash_best_move,
+                                      const bool hash_one_reply,
+                                      const bool only_captures,
+                                      const move_c prev_move) const
 {
     move_c ans;
     if(cur_move_cr == 0)
@@ -1553,4 +1553,79 @@ void k2engine::PonderHit()
 void k2engine::ClearHash()
 {
     hash_table.clear();
+}
+
+
+
+
+
+//-----------------------------
+bool k2engine::IsInCheck()
+{
+    if(k2chess::state[ply - 1].move.to_coord == is_null_move)
+        return false;
+    bool ans = false;
+    const auto k_coord = king_coord(wtm);
+    const auto move = k2chess::state[ply].move;
+    const auto d_row = get_row(k_coord) - get_row(move.to_coord);
+    const auto ac = std::abs(get_col(k_coord) - get_col(move.to_coord));
+    const auto ar = std::abs(d_row);
+    const auto type = get_type(b[move.to_coord]);
+    if((move.flag & is_promotion) && is_slider[type])
+    {
+        bool correct = type == queen ||
+                (type == rook && sgn(ac) + sgn(ar) == 1) ||
+                (type == bishop && sgn(ac) + sgn(ar) == 2);
+        if(correct && IsSliderAttack(move.to_coord, k_coord))
+            return true;
+    }
+    switch(type)
+    {
+        case pawn :
+            ans = ((wtm && d_row == -1) || (!wtm && d_row == 1)) && ac == 1;
+            break;
+        case knight :
+            ans = (ac == 2 && ar == 1) || (ac == 1 && ar == 2);
+            break;
+        case bishop :
+            ans = ac == ar && IsSliderAttack(k_coord, move.to_coord);
+            break;
+        case rook :
+            ans = (ac == 0 || ar == 0) && IsSliderAttack(k_coord,
+                                                         move.to_coord);
+            break;
+        case queen :
+            ans = (ac == ar || ac == 0 || ar == 0) &&
+                    IsSliderAttack(k_coord, move.to_coord);
+            break;
+        case king :
+            if(move.flag & is_castle)
+            {
+                const auto d_col = (move.flag & is_left_castle) ? -1 : 1;
+                const auto r_col = default_king_col + d_col;
+                const auto ok_coord = king_coord(!wtm);
+                if(r_col == get_col(k_coord) &&
+                        IsSliderAttack(ok_coord - d_col, k_coord))
+                    return true;
+            }
+            break;
+        default :
+            assert(true);
+    }
+    if(ans)
+        return true;
+
+    if((move.flag & (is_en_passant | is_promotion)) &&
+            IsDiscoveredEnPassant(wtm, move))
+        return true;
+    else
+    {
+        const auto d_col2 = get_col(k_coord) - get_col(move.from_coord);
+        const auto d_row2 = get_row(k_coord) - get_row(move.from_coord);
+        if((std::abs(d_col2) == std::abs(d_row2) ||
+             d_col2 == 0 || d_row2 == 0) && IsDiscoveredAttack(move))
+        return true;
+    }
+
+    return false;
 }

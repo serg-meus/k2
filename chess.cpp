@@ -963,7 +963,7 @@ void k2chess::TakebackPromotion(const move_c move)
 
 
 //--------------------------------
-void k2chess::MakeAttacks(move_c move)
+void k2chess::UpdateAttackTables(move_c move)
 {
     if(state[ply].attacks_updated)
         return;
@@ -1109,7 +1109,7 @@ bool k2chess::MakeMove(const char* str)
     if(!IsPseudoLegal(move) || !IsLegal(move))
         return false;
     MakeMove(move);
-    MakeAttacks(move);
+    UpdateAttackTables(move);
     return true;
 }
 
@@ -1551,7 +1551,7 @@ bool k2chess::PrintMoveSequence(const move_c * const moves,
             MoveToAlgebraicNotation(cur_move, move_str);
         std::cout << move_str << " ";
         MakeMove(cur_move);
-        MakeAttacks(cur_move);
+        UpdateAttackTables(cur_move);
     }
     for(; i > 0; --i)
     {

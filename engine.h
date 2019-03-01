@@ -175,10 +175,10 @@ protected:
     bool DrawByRepetition() const;
     bool HashProbe(const depth_t depth, eval_t * const alpha,
                    const eval_t beta, hash_entry_s **entry);
-    move_c NextMove(move_c * const move_array, const size_t cur_move_cr,
-                    size_t * const max_moves, move_c hash_best_move,
-                    const bool hash_one_reply, const bool captures_only,
-                    const move_c prev_move) const;
+    move_c GetNextMove(move_c * const move_array, const size_t cur_move_cr,
+                       size_t * const max_moves, move_c hash_best_move,
+                       const bool hash_one_reply, const bool captures_only,
+                       const move_c prev_move) const;
     void StoreInHash(const depth_t depth, eval_t score,
                      const move_c best_move, const hbound_t bound,
                      const bool one_reply);
@@ -197,6 +197,7 @@ protected:
                             const size_t cur_move) const;
     bool CanFinishMainSearch(const eval_t x, const eval_t prev_x) const;
     void CheckForResign(const eval_t x);
+    bool IsInCheck();
 
     void CorrectHashScore(eval_t *x, depth_t depth)
     {
@@ -286,76 +287,6 @@ protected:
         return true;
     }
 
-    bool IsInCheck()
-    {
-        if(k2chess::state[ply - 1].move.to_coord == is_null_move)
-            return false;
-        bool ans = false;
-        const auto k_coord = king_coord(wtm);
-        const auto move = k2chess::state[ply].move;
-        const auto d_row = get_row(k_coord) - get_row(move.to_coord);
-        const auto ac = std::abs(get_col(k_coord) - get_col(move.to_coord));
-        const auto ar = std::abs(d_row);
-        const auto type = get_type(b[move.to_coord]);
-        if((move.flag & is_promotion) && is_slider[type])
-        {
-            bool correct = type == queen ||
-                    (type == rook && sgn(ac) + sgn(ar) == 1) ||
-                    (type == bishop && sgn(ac) + sgn(ar) == 2);
-            if(correct && IsSliderAttack(move.to_coord, k_coord))
-                return true;
-        }
-        switch(type)
-        {
-            case pawn :
-                ans = ((wtm && d_row == -1) || (!wtm && d_row == 1)) && ac == 1;
-                break;
-            case knight :
-                ans = (ac == 2 && ar == 1) || (ac == 1 && ar == 2);
-                break;
-            case bishop :
-                ans = ac == ar && IsSliderAttack(k_coord, move.to_coord);
-                break;
-            case rook :
-                ans = (ac == 0 || ar == 0) && IsSliderAttack(k_coord,
-                                                             move.to_coord);
-                break;
-            case queen :
-                ans = (ac == ar || ac == 0 || ar == 0) &&
-                        IsSliderAttack(k_coord, move.to_coord);
-                break;
-            case king :
-                if(move.flag & is_castle)
-                {
-                    const auto d_col = (move.flag & is_left_castle) ? -1 : 1;
-                    const auto r_col = default_king_col + d_col;
-                    const auto ok_coord = king_coord(!wtm);
-                    if(r_col == get_col(k_coord) &&
-                            IsSliderAttack(ok_coord - d_col, k_coord))
-                        return true;
-                }
-                break;
-            default :
-                assert(true);
-        }
-        if(ans)
-            return true;
-
-        if((move.flag & (is_en_passant | is_promotion)) &&
-                IsDiscoveredEnPassant(wtm, move))
-            return true;
-        else
-        {
-            const auto d_col2 = get_col(k_coord) - get_col(move.from_coord);
-            const auto d_row2 = get_row(k_coord) - get_row(move.from_coord);
-            if((std::abs(d_col2) == std::abs(d_row2) ||
-                 d_col2 == 0 || d_row2 == 0) && IsDiscoveredAttack(move))
-            return true;
-        }
-
-        return false;
-    }
-
     bool MateDistancePruning(eval_t alpha, eval_t *beta)
     {
         auto mate_sc = king_value - ply;
@@ -369,7 +300,7 @@ protected:
         return false;
     }
 
-    void UpdateAllAttacks()
+    void UpdateAttackTables()
     {
         auto delta = 0;
         if(k2chess::state[ply - 1].move.to_coord == is_null_move)
@@ -380,7 +311,7 @@ protected:
             wtm = !wtm;
         ply -= delta;
 
-        MakeAttacks(k2chess::state[ply + delta].move);
+        k2chess::UpdateAttackTables(k2chess::state[ply + delta].move);
 
         if(delta == 1)
             wtm = !wtm;

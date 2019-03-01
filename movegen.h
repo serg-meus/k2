@@ -53,8 +53,8 @@ protected:
     eval_t StaticExchangeEval(const move_c m) const;
     void AppriceMoves(move_c * const move_array, const size_t moveCr,
                       const move_c best_move) const;
-    size_t KeepOnlyLegalMoves(move_c * const move_array,
-                              const size_t move_cr) const;
+    size_t KeepLegalMoves(move_c * const move_array,
+                          const size_t move_cr) const;
 
 
 private:
@@ -62,9 +62,9 @@ private:
 
     void GenPawnSilent(const piece_id_t piece_id, move_c * const move_array,
                        size_t * const movCr) const;
-    void GenPawnCapturesAndPromotions(const piece_id_t piece_id,
-                                      move_c * const move_array,
-                                      size_t * const movCr) const;
+    void GenPawnNonSilent(const piece_id_t piece_id,
+                          move_c * const move_array,
+                          size_t * const movCr) const;
     void GenCastles(move_c * const move_array, size_t * const movCr) const;
     eval_t SEE(const coord_t to_coord, const eval_t frStreng,
                eval_t val, bool stm, attack_t *att) const;
