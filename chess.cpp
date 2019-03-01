@@ -1395,11 +1395,11 @@ bool k2chess::IsSameRay(const coord_t given, const coord_t ray_coord1,
     const auto dx2 = get_col(given) - get_col(ray_coord1);
     const auto dy2 = get_row(given) - get_row(ray_coord1);
 
+    if(sgn(dx1) != sgn(dx2) || sgn(dy1) != sgn(dy2))
+        return false;
     if(dx1 != 0 && dy1 != 0 && std::abs(dx1) != std::abs(dy1))
         return false;
     if(dx2 != 0 && dy2 != 0 && std::abs(dx2) != std::abs(dy2))
-        return false;
-    if(sgn(dx1) != sgn(dx2) || sgn(dy1) != sgn(dy2))
         return false;
 
     return true;
@@ -1421,6 +1421,8 @@ bool k2chess::IsOnRayMask(const bool stm, const coord_t piece_coord,
     const auto ray_row = get_row(piece_coord) + delta_row[ray_id];
     if(!col_within(ray_col) || !row_within(ray_row))
         return false;
+    if(!en_pass && !(attacks[stm][move_coord] & (1 << piece_id)))
+        return false;
     const auto ray_coord = get_coord(ray_col, ray_row);
     bool same_ray = IsSameRay(move_coord, piece_coord, ray_coord);
     if(en_pass)
@@ -1434,8 +1436,6 @@ bool k2chess::IsOnRayMask(const bool stm, const coord_t piece_coord,
             return true;
         return false;
     }
-    if(!(attacks[stm][move_coord] & (1 << piece_id)))
-        return false;
     return same_ray;
 }
 

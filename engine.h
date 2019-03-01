@@ -340,8 +340,20 @@ protected:
         }
         if(ans)
             return true;
-       
-        return IsDiscoveredEnPassant(wtm, move);
+
+        if((move.flag & (is_en_passant | is_promotion)) &&
+                IsDiscoveredEnPassant(wtm, move))
+            return true;
+        else
+        {
+            const auto d_col2 = get_col(k_coord) - get_col(move.from_coord);
+            const auto d_row2 = get_row(k_coord) - get_row(move.from_coord);
+            if((std::abs(d_col2) == std::abs(d_row2) ||
+                 d_col2 == 0 || d_row2 == 0) && IsDiscoveredAttack(move))
+            return true;
+        }
+
+        return false;
     }
 
     bool MateDistancePruning(eval_t alpha, eval_t *beta)
