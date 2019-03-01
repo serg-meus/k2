@@ -717,7 +717,7 @@ void k2main::SetOptionCommand(const std::string in)
         auto size_MB = atoi(arg1.c_str());
         ReHash(size_MB);
     }
-    else if(arg1 == "Randomness")
+    else if(arg1 == "Randomness" || arg1 == "rand")
     {
         GetFirstArg(arg2, &arg1, &arg2);
         if(arg1 != "value")
@@ -728,7 +728,7 @@ void k2main::SetOptionCommand(const std::string in)
         else
             randomness = false;
     }
-    else if (arg1 == "Separate_thread_for_input")
+    else if(arg1 == "Separate_thread_for_input" || arg1 == "thread")
     {
         GetFirstArg(arg2, &arg1, &arg2);
         if(arg1 != "value")
@@ -739,6 +739,8 @@ void k2main::SetOptionCommand(const std::string in)
         else
             use_thread = false;
     }
+    else
+        std::cout << "Error: incorrect command options\n";
 }
 
 
@@ -1025,20 +1027,22 @@ void k2main::OptionCommand(const std::string in)
     std::string arg1, arg2;
     GetFirstArg(in, &arg1, &arg2);
 
-    if(arg1 == "Randomness")
+    if(arg1 == "Randomness" || arg1 == "rand")
     {
         if(arg2 == "1" || arg2 == "true")
             randomness = true;
         else
             randomness = false;
     }
-    else if(arg1 == "Separate_thread_for_input")
+    else if(arg1 == "Separate_thread_for_input" || arg1 == "thread")
     {
         if(arg2 == "1" || arg2 == "true")
             use_thread = true;
         else
             use_thread = false;
     }
+    else
+        std::cout << "Error: incorrect command options\n";
 }
 
 
