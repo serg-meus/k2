@@ -927,6 +927,8 @@ k2chess::attack_t k2eval::KingSafetyBatteries(const coord_t targ_coord,
 //-----------------------------
 void k2eval::KingSafety(const bool stm)
 {
+    if(quantity[!stm][queen] < 1 && quantity[!stm][rook] < 2)
+        return;
     auto ans = 0;
     const auto k_coord = king_coord(stm);
     auto k_col = get_col(k_coord);
