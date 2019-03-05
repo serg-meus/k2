@@ -1221,132 +1221,132 @@ void k2eval::RunUnitTests()
 
     // endings
     SetupPosition("5k2/8/8/N7/8/8/8/4K3 w - -");  // KNk
-    MaterialImbalances();
+    EvalImbalances();
     assert(val_opn == 0 && val_end == 0);
     SetupPosition("5k2/8/8/n7/8/8/8/4K3 w - -");  // Kkn
-    MaterialImbalances();
+    EvalImbalances();
     assert(val_opn == 0 && val_end == 0);
     SetupPosition("5k2/8/8/B7/8/8/8/4K3 w - -");  // KBk
-    MaterialImbalances();
+    EvalImbalances();
     assert(val_opn == 0 && val_end == 0);
     SetupPosition("5k2/8/8/b7/8/8/8/4K3 w - -");  // Kkb
-    MaterialImbalances();
+    EvalImbalances();
     assert(val_opn == 0 && val_end == 0);
     SetupPosition("5k2/p7/8/b7/8/8/P7/4K3 w - -");  // KPkbp
-    MaterialImbalances();
+    EvalImbalances();
     assert(val_end < bishop_val_end);
     SetupPosition("5k2/8/8/n7/8/8/P7/4K3 w - -");  // KPkn
-    MaterialImbalances();
+    EvalImbalances();
     assert(val_end > pawn_val_end/4);
     SetupPosition("5k2/p7/8/B7/8/8/8/4K3 w - -");  // KBkp
-    MaterialImbalances();
+    EvalImbalances();
     assert(val_end < -pawn_val_end/4);
     SetupPosition("5k2/p6p/8/B7/8/8/7P/4K3 w - -");  // KBPkpp
-    MaterialImbalances();
+    EvalImbalances();
     assert(val_end > 2*pawn_val_end);
     SetupPosition("5k2/8/8/NN6/8/8/8/4K3 w - -");  // KNNk
-    MaterialImbalances();
+    EvalImbalances();
     assert(val_opn == 0 && val_end == 0);
     SetupPosition("5k2/8/8/nn6/8/8/8/4K3 w - -");  // Kknn
-    MaterialImbalances();
+    EvalImbalances();
     assert(val_opn == 0 && val_end == 0);
     SetupPosition("5k2/p7/8/nn6/8/8/P7/4K3 w - -");  // KPknnp
-    MaterialImbalances();
+    EvalImbalances();
     assert(val_end < -2*kinght_val_end + pawn_val_end);
     SetupPosition("5k2/8/8/nb6/8/8/8/4K3 w - -");  // Kknb
-    MaterialImbalances();
+    EvalImbalances();
     assert(val_end < -kinght_val_end - bishop_val_end + pawn_val_end);
     SetupPosition("5k2/8/8/1b6/8/7p/8/7K w - -");  // Kkbp not drawn
-    MaterialImbalances();
+    EvalImbalances();
     assert(val_end < -bishop_val_end - pawn_val_end/2);
     SetupPosition("7k/8/7P/1B6/8/8/8/6K1 w - -");  // KBPk drawn
-    MaterialImbalances();
+    EvalImbalances();
     assert(val_opn == 0 && val_end == 0);
     SetupPosition("5k2/8/8/3b4/p7/8/K7/8 w - -");  // Kkbp drawn
-    MaterialImbalances();
+    EvalImbalances();
     assert(val_opn == 0 && val_end == 0);
     SetupPosition("7k/8/P7/1B6/8/8/8/6K1 w - -");  // KBPk not drawn
-    MaterialImbalances();
+    EvalImbalances();
     assert(val_end > bishop_val_end + pawn_val_end/2);
     SetupPosition("2k5/8/P7/1B6/8/8/8/6K1 w - -");  // KBPk not drawn
-    MaterialImbalances();
+    EvalImbalances();
     assert(val_end > bishop_val_end + pawn_val_end/2);
     SetupPosition("1K6/8/P7/1B6/8/8/8/6k1 w - -");  // KBPk not drawn
-    MaterialImbalances();
+    EvalImbalances();
     assert(val_end > bishop_val_end + pawn_val_end/2);
     SetupPosition("1k6/8/1P6/1B6/8/8/8/6K1 w - -");  // KBPk not drawn
-    MaterialImbalances();
+    EvalImbalances();
     assert(val_end > bishop_val_end + pawn_val_end/2);
     SetupPosition("1k6/8/8/P7/8/4N3/8/6K1 w - -");  // KNPk
-    MaterialImbalances();
+    EvalImbalances();
     assert(val_end > kinght_val_end + pawn_val_end/2);
     SetupPosition("8/8/8/5K2/2k5/8/2P5/8 b - -");  // KPk
-    MaterialImbalances();
+    EvalImbalances();
     assert(val_opn == 0 && val_end == 0);
     SetupPosition("8/8/8/5K2/2k5/8/2P5/8 w - -");  // KPk
-    MaterialImbalances();
+    EvalImbalances();
     assert(val_end > pawn_val_end/2);
     SetupPosition("k7/2K5/8/P7/8/8/8/8 w - -");  // KPk
-    MaterialImbalances();
+    EvalImbalances();
     assert(val_opn == 0 && val_end == 0);
     SetupPosition("8/8/8/p7/8/1k6/8/1K6 w - -");  // Kkp
-    MaterialImbalances();
+    EvalImbalances();
     assert(val_opn == 0 && val_end == 0);
     SetupPosition("8/8/8/p7/8/1k6/8/2K5 w - -");  // Kkp
-    MaterialImbalances();
+    EvalImbalances();
     assert(val_end < -pawn_val_end/2);
     SetupPosition("8/8/8/pk6/8/K7/8/8 w - -");  // Kkp
-    MaterialImbalances();
+    EvalImbalances();
     assert(val_end < -pawn_val_end/2);
     SetupPosition("8/8/8/1k5p/8/8/8/K7 w - -");  // Kkp
-    MaterialImbalances();
+    EvalImbalances();
     assert(val_end < -pawn_val_end/2);
 
     // bishop pairs
     SetupPosition("rn1qkbnr/pppppppp/8/8/8/8/PPPPPPPP/R1BQKBNR w KQkq -");
     val_opn = 0;
     val_end = 0;
-    MaterialImbalances();
+    EvalImbalances();
     assert(val_opn == bishop_pair && val_end == bishop_pair);
     SetupPosition("1nb1kb2/4p3/8/8/8/8/4P3/1NB1K1N1 w - -");
     val_opn = 0;
     val_end = 0;
-    MaterialImbalances();
+    EvalImbalances();
     assert(val_opn == -bishop_pair && val_end == -bishop_pair);
     SetupPosition("1nb1k1b1/4p3/8/8/8/8/4P3/1NB1K1N1 w - -");
     val_opn = 0;
     val_end = 0;
-    MaterialImbalances();
+    EvalImbalances();
     assert(val_opn == -bishop_pair && val_end == -bishop_pair);
     SetupPosition("1nb1kbb1/4p3/8/8/8/8/4P3/1NB1K1N1 w - -");
     val_opn = 0;
     val_end = 0;
-    MaterialImbalances();
+    EvalImbalances();
     assert(val_opn == 0 && val_end == 0);  // NB
 
     SetupPosition("4kr2/8/8/8/8/8/8/1BBNK3 w - -"); // pawn absense
-    MaterialImbalances();
+    EvalImbalances();
     assert(val_end < bishop_val_end/2);
 
     // multicolored bishops
     SetupPosition("rn1qkbnr/p1pppppp/8/8/8/8/PPPPPPPP/RN1QKBNR w KQkq -");
     auto tmp = val_end;
-    MaterialImbalances();
+    EvalImbalances();
     assert(val_end < pawn_val_end && val_end < tmp);
     SetupPosition("rnbqk1nr/p1pppppp/8/8/8/8/PPPPPPPP/RNBQK1NR w KQkq -");
     tmp = val_end;
-    MaterialImbalances();
+    EvalImbalances();
     assert(val_end < pawn_val_end && val_end < tmp);
     SetupPosition("rnbqk1nr/p1pppppp/8/8/8/8/PPPPPPPP/RN1QKBNR w KQkq -");
     tmp = val_end;
-    MaterialImbalances();
+    EvalImbalances();
     assert(val_end == tmp);
     SetupPosition("rn1qkbnr/p1pppppp/8/8/8/8/PPPPPPPP/RNBQK1NR w KQkq -");
     tmp = val_end;
-    MaterialImbalances();
+    EvalImbalances();
     assert(val_end == tmp);
     SetupPosition("4kb2/pppp4/8/8/8/8/PPPPPPPP/4KB2 w - -");
-    MaterialImbalances();
+    EvalImbalances();
     assert(val_end < 5*pawn_val_end/2);
 
     //king safety

@@ -463,7 +463,7 @@ size_t k2movegen::test_gen_pawn(const char* str_coord,
     size_t move_cr = 0;
 
     size_t piece_id = find_piece_id[get_coord(str_coord)];
-    GenPawnCapturesAndPromotions(piece_id, move_array, &move_cr);
+    GenPawnNonSilent(piece_id, move_array, &move_cr);
     if(!only_captures)
         GenPawnSilent(piece_id, move_array, &move_cr);
     for(size_t i = 0; i < move_cr; ++i)
