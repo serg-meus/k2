@@ -86,6 +86,8 @@ void k2chess::UpdateRayAttacks(const bool stm, const piece_id_t piece_id,
     else
         for(auto i = new_cr + 1; i <= old_cr; ++i)
             clear_bit(stm, col + i*d_col, row + i*d_row, piece_id);
+
+    sum_directions[stm][piece_id] += new_cr - old_cr;
 }
 
 
@@ -198,6 +200,7 @@ void k2chess::InitDirections(const bool stm)
 {
     memset(directions[stm], 0, sizeof(directions[0]));
     memset(attacks[stm], 0, sizeof(attacks[0]));
+    memset(sum_directions[stm], 0, sizeof(sum_directions[0]));
 
     for(auto it : coord_id[stm])
     {
@@ -416,6 +419,7 @@ void k2chess::ClearPieceAttacks(const bool stm, piece_id_t piece_id)
 {
     for(auto &sq : attacks[stm])
         sq &= ~(1 << piece_id);
+    sum_directions[stm][piece_id] = 0;
 }
 
 
@@ -970,6 +974,8 @@ void k2chess::UpdateAttackTables(move_c move)
     memcpy(done_attacks[ply - 1], attacks, sizeof(attacks));
     memcpy(done_directions[ply - 1], directions,
            sizeof(directions));
+    memcpy(done_sum_directions[ply - 1], sum_directions,
+            sizeof(sum_directions));
 
     UpdatePieceMasks(move);
     UpdateDirections(wtm, move);

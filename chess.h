@@ -198,6 +198,9 @@ protected:
     // counters of attacks for each ray of each piece
     coord_t directions[sides][max_pieces_one_side][max_rays];
 
+    // counters of attacks for each piece
+    coord_t sum_directions[sides][max_pieces_one_side];
+
     // ray masks for all types of pieces
     ray_mask_t ray_mask_all[piece_types + 1];
 
@@ -229,6 +232,7 @@ protected:
     std::vector<k2list_t> store_coord_id;
     std::vector<std::vector<coord_t>> store_coords;
     coord_t done_directions[max_ply][sides][max_pieces_one_side][max_rays];
+    coord_t done_sum_directions[max_ply][sides][max_pieces_one_side];
 
     bool MakeMove(const move_c m);
     move_flag_t InitMoveFlag(const move_c move, const char promo_to) const;
@@ -331,6 +335,8 @@ protected:
         memcpy(attacks, done_attacks[ply], sizeof(attacks));
         memcpy(directions, done_directions[ply],
                sizeof(directions));
+        memcpy(sum_directions, done_sum_directions[ply],
+               sizeof(sum_directions));
     }
 
     coord_t king_coord(const bool stm) const

@@ -319,29 +319,21 @@ bool k2eval::IsUnstoppablePawn(const coord_t col, const bool side_of_pawn,
 void k2eval::EvalMobility(bool stm)
 {
     eval_t f_type[] = {0, 0, mob_queen, mob_rook, mob_bishop, mob_knight};
-    eval_t f_num[] = {-25, -15, -10, -5, 0, 5, 10, 15, 18, 20,
+    eval_t f_num[] = {-15, -15, -15, -10, -5, 5, 10, 15, 18, 20,
                       21, 21, 21, 22, 22};
 
     eval_t ans = 0;
-    for(auto id : coord_id[stm])
+    for(auto it : coord_id[stm])
     {
-        const auto piece_id = id.second;
+        const auto piece_id = it.second;
+        if(!(slider_mask[stm] & (1 << piece_id)))
+            continue;
         const auto coord = coords[stm][piece_id];
         const auto type = get_type(b[coord]);
-        if(type == pawn)
-            continue;
-        if(type == king)
-            continue;
-        auto cr = 0;
-        for(auto ray_id = 0; ray_id < max_rays; ++ray_id)
-        {
-            auto ac = directions[stm][piece_id][ray_id];
-            cr += ac - (ac ? 1 : 0);
-        }
+        int cr = sum_directions[stm][piece_id];
         if(type == queen)
             cr /= 2;
         assert(cr < 15);
-
         ans += f_type[type]*f_num[cr];
     }
     ans /= mobility_divider;
