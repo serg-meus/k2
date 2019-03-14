@@ -15,7 +15,6 @@ k2engine::k2engine() :
     pondering_in_process = false;
     stop = false;
     enable_output = true;
-    resign_cr = 0;
     state = &eng_state[prev_states];
     seed = 0;
 
@@ -1025,6 +1024,7 @@ bool k2engine::SetupPosition(const char *fen)
     hash_key = InitHashKey();
 
     initial_score = infinite_score;
+    resign_cr = 0;
     memset(eng_state, 0, sizeof(eng_state));
 
     return true;

@@ -68,7 +68,6 @@ protected:
     const depth_t ponder_time_factor = 5;
 
 
-
 public:
 
     struct time_s
