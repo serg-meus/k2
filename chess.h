@@ -47,8 +47,6 @@ protected:
     typedef u16 ray_mask_t;
     typedef u8 piece_id_t;
 
-    typedef std::list<std::pair<eval_t, piece_id_t>> k2list_t;
-
     const static depth_t max_ply = 100;  // maximum search depth
     const static coord_t board_width = 8;
     const static coord_t board_height = 8;
@@ -165,6 +163,7 @@ protected:
         // pawn col + 1, not null only if opponent pawn is near
         depth_t reversible_moves;  // reversible halfmove counter
         attack_t slider_mask;  // see slider_mask below
+        attack_t exist_mask[sides];  // see exist_mask below
         bool attacks_updated;
     };
 
@@ -173,12 +172,6 @@ protected:
 
     // array representing the chess board
     piece_t b[board_width*board_height];
-
-    // sorted by value list with piece id's
-    k2list_t coord_id[sides];
-
-    // list with delete peces id's (to avoid unwanted memory allocs)
-    k2list_t deleted_id[sides];
 
     // array with piece coordinates sorted by their id's
     coord_t coords[sides][max_pieces_one_side];
@@ -189,10 +182,16 @@ protected:
     // two tables for each color with attacks of all pieces
     attack_t attacks[sides][board_width*board_height];
 
-    // piece masks for fast detection of attacking sliders
+    // bit masks for pieces which exists on the board
+    attack_t exist_mask[sides];
+
+    // bit masks for each type of pieces
+    attack_t type_mask[sides][piece_types + 1];
+
+    // bit masks for fast detection of attacking sliders
     attack_t slider_mask[sides];
 
-    // piece masks for update attack tables
+    // bit masks for update attack tables
     attack_t update_mask[sides];
 
     // counters of attacks for each ray of each piece
@@ -229,8 +228,8 @@ protected:
     char *cv;  // current variation pointer (for debug mode only)
 
     attack_t done_attacks[max_ply][sides][board_height*board_width];
-    std::vector<k2list_t> store_coord_id;
     std::vector<std::vector<coord_t>> store_coords;
+    std::vector<std::vector<attack_t>> store_type_mask;
     coord_t done_directions[max_ply][sides][max_pieces_one_side][max_rays];
     coord_t done_sum_directions[max_ply][sides][max_pieces_one_side];
 
@@ -309,6 +308,19 @@ protected:
         return piece != empty_square && (piece & white) != stm;
     }
 
+    int lower_bit_num(const unsigned mask) const
+    {
+        if(mask == 0)
+            std::cout << "1";
+        return __builtin_ctz(mask);
+    }
+
+    int higher_bit_num(const unsigned mask) const
+    {
+        assert(mask != 0);
+        return __builtin_clz(mask) ^ 31;
+    }
+
     template <typename T> int sgn(T val) const
     {
         return (T(0) < val) - (val < T(0));
@@ -341,21 +353,7 @@ protected:
 
     coord_t king_coord(const bool stm) const
     {
-        const auto id = coord_id[stm].back();
-        const auto coord = coords[stm][id.second];
-        return coord;
-    }
-
-    k2list_t::iterator find_piece_it(bool stm, coord_t coord)
-    {
-        auto it = coord_id[stm].begin();
-        for(;it != coord_id[stm].end(); ++it)
-        {
-            const auto it_coord = coords[stm][(*it).second];
-            if(it_coord == coord)
-                break;
-        }
-        return it;
+        return coords[stm][higher_bit_num(exist_mask[stm])];
     }
 
 
@@ -454,5 +452,16 @@ private:
         if(type == pawn)
             rmask &= (stm ? pawn_mask_white : pawn_mask_black);
         return rmask;
+    }
+
+    void InitQuantity(bool stm)
+    {
+        auto mask = exist_mask[stm];
+        while(mask)
+        {
+            const auto piece_id = lower_bit_num(mask);
+            mask ^= (1 << piece_id);
+            quantity[stm][get_type(b[coords[stm][piece_id]])]++;
+        }
     }
 };

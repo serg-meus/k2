@@ -12,10 +12,11 @@ size_t k2movegen::GenMoves(move_c * const move_array,
     
     if(!only_captures)
         GenCastles(move_array, &move_cr);
-
-    for(auto it : coord_id[wtm])
+    auto mask = exist_mask[wtm];
+    while(mask)
     {
-        const auto piece_id = it.second;
+        const auto piece_id = lower_bit_num(mask);
+        mask ^= (1 << piece_id);
         const auto from_coord = coords[wtm][piece_id];
         const auto type = get_type(b[from_coord]);
         
@@ -53,7 +54,7 @@ void k2movegen::GenSliderMoves(const bool only_captures,
     auto rmask = ray_mask_all[type];
     while(rmask)
     {
-        const auto ray_id = __builtin_ctz(rmask);
+        const auto ray_id = lower_bit_num(rmask);
         rmask ^= (1 << ray_id);
         const auto ray_len = directions[wtm][piece_id][ray_id];
         if(!ray_len)
@@ -96,7 +97,7 @@ void k2movegen::GenNonSliderMoves(const bool only_captures,
     auto rmask = ray_mask_all[type]; 
     while(rmask)
     {
-        const auto ray_id = __builtin_ctz(rmask);
+        const auto ray_id = lower_bit_num(rmask);
         rmask ^= (1 << ray_id);
         const auto ray_len = directions[wtm][piece_id][ray_id];
         if(!ray_len)
@@ -375,7 +376,7 @@ void k2movegen::ProcessSeeBatteries(const coord_t to_coord,
     auto mask = attacks[stm][attacker_coord] & slider_mask[stm];
     while(mask)
     {
-        const auto piece_id = __builtin_ctz(mask);
+        const auto piece_id = lower_bit_num(mask);
         mask ^= (1 << piece_id);
         const auto second_coord = coords[stm][piece_id];
         if(!IsOnRay(attacker_coord, second_coord, to_coord))
@@ -421,7 +422,7 @@ size_t k2movegen::SeeMinAttacker(const attack_t att) const
 {
     if(!att)
         return -1U;
-    return __builtin_ctz(att);
+    return lower_bit_num(att);
 }
 
 

@@ -30,7 +30,7 @@ void k2chess::UpdateAttacks(const bool stm, const move_c move)
     auto mask = update_mask[stm];
     while(mask)
     {
-        const auto piece_id = __builtin_ctz(mask);
+        const auto piece_id = lower_bit_num(mask);
         mask ^= (1 << piece_id);
         UpdatePieceAttacks(stm, piece_id, move);
     }
@@ -55,7 +55,7 @@ void k2chess::UpdatePieceAttacks(const bool stm, const piece_id_t piece_id,
                               GetRayMask(stm, coord, move);
     while(rmask)
     {
-        const auto ray_id = __builtin_ctz(rmask);
+        const auto ray_id = lower_bit_num(rmask);
         rmask ^= (1 << ray_id);
         const auto old_c = (update_all || is_move) ? 0 :
                 done_directions[ply - 1][stm][piece_id][ray_id];
@@ -100,7 +100,7 @@ void k2chess::UpdateDirections(const bool stm, const move_c move)
     auto mask = update_mask[stm];
     while(mask)
     {
-        const auto piece_id = __builtin_ctz(mask);
+        const auto piece_id = lower_bit_num(mask);
         mask ^= (1 << piece_id);
         UpdatePieceDirections(stm, piece_id, move);
     }
@@ -133,7 +133,8 @@ void k2chess::UpdatePieceDirections(const bool stm, const piece_id_t piece_id,
 
 
 //--------------------------------
-bool k2chess::UpdateCapturingDirections(const bool stm, const piece_id_t piece_id,
+bool k2chess::UpdateCapturingDirections(const bool stm,
+                                        const piece_id_t piece_id,
                                         const coord_t coord,
                                         const piece_type_t type,
                                         const move_c move)
@@ -154,12 +155,13 @@ bool k2chess::UpdateCapturingDirections(const bool stm, const piece_id_t piece_i
 
 //--------------------------------
 void k2chess::UpdateMovingDirections(const bool stm, const piece_id_t piece_id,
-                                     const piece_type_t type, const coord_t coord,
+                                     const piece_type_t type,
+                                     const coord_t coord,
                                      ray_mask_t rmask)
 {
     while(rmask)
     {
-        const auto ray_id = __builtin_ctz(rmask);
+        const auto ray_id = lower_bit_num(rmask);
         rmask ^= (1 << ray_id);
         const auto cr = GetRayAttacks(coord, ray_id, is_slider[type]);
         directions[stm][piece_id][ray_id] = cr;
@@ -171,14 +173,15 @@ void k2chess::UpdateMovingDirections(const bool stm, const piece_id_t piece_id,
 
 
 //--------------------------------
-void k2chess::UpdateOrdinaryDirections(const bool stm, const piece_id_t piece_id,
+void k2chess::UpdateOrdinaryDirections(const bool stm,
+                                       const piece_id_t piece_id,
                                        const coord_t coord, const move_c move,
                                        ray_mask_t rmask)
 {
     const auto en_pass = move.flag & is_en_passant;
     while(rmask)
     {
-        const auto ray_id = __builtin_ctz(rmask);
+        const auto ray_id = lower_bit_num(rmask);
         rmask ^= (1 << ray_id);
         bool move_from_ray = IsOnRayMask(stm, coord, move.from_coord,
                                          piece_id, ray_id, en_pass);
@@ -202,9 +205,11 @@ void k2chess::InitDirections(const bool stm)
     memset(attacks[stm], 0, sizeof(attacks[0]));
     memset(sum_directions[stm], 0, sizeof(sum_directions[0]));
 
-    for(auto it : coord_id[stm])
+    auto mask = exist_mask[stm];
+    while(mask)
     {
-        const auto piece_id = it.second;
+        const auto piece_id = lower_bit_num(mask);
+        mask ^= (1 << piece_id);
         const auto coord = coords[stm][piece_id];
         const auto type = get_type(b[coord]);
         auto rmask = ray_mask_all[type];
@@ -212,7 +217,7 @@ void k2chess::InitDirections(const bool stm)
             rmask &= (stm ? pawn_mask_white : pawn_mask_black);
         while(rmask)
         {
-            const auto ray_id = __builtin_ctz(rmask);
+            const auto ray_id = lower_bit_num(rmask);
             rmask ^= (1 << ray_id);
             const auto cr = GetRayAttacks(coord, ray_id, is_slider[type]);
             directions[stm][piece_id][ray_id] = cr;
@@ -225,7 +230,8 @@ void k2chess::InitDirections(const bool stm)
 
 
 //--------------------------------
-void k2chess::UpdateFromRayDirections(const bool stm, const piece_id_t piece_id,
+void k2chess::UpdateFromRayDirections(const bool stm,
+                                      const piece_id_t piece_id,
                                       const coord_t coord,
                                       const piece_id_t ray_id)
 {
@@ -352,7 +358,7 @@ bool k2chess::IsDiscoveredAttack(const move_c move) const
     const auto k_coord = king_coord(wtm);
     while(mask)
     {
-        const auto piece_id = __builtin_ctz(mask);
+        const auto piece_id = lower_bit_num(mask);
         mask ^= (1 << piece_id);
         const auto attacker_coord = coords[!wtm][piece_id];
         if(!IsOnRay(move.from_coord, k_coord, attacker_coord))
@@ -429,27 +435,26 @@ void k2chess::ClearPieceAttacks(const bool stm, piece_id_t piece_id)
 //--------------------------------
 bool k2chess::InitPieceLists(bool stm)
 {
-    coord_id[stm].clear();
+    typedef std::pair<eval_t, piece_id_t> the_pair;
+    exist_mask[stm] = 0;
     memset(coords[stm], 0, sizeof(coords[0]));
 
-    std::vector<std::pair<eval_t, coord_t>> tmp;
-    tmp.reserve(max_pieces_one_side);
+    std::vector<std::pair<eval_t, coord_t>> tmp_vect;
+    tmp_vect.reserve(max_pieces_one_side);
     for(size_t coord = 0; coord < sizeof(b)/sizeof(*b); ++coord)
     {
         if(b[coord] == empty_square || get_color(b[coord]) != stm)
             continue;
         const auto type = get_type(b[coord]);
-        tmp.push_back(std::pair<eval_t, coord_t>(values[type], coord));
+        tmp_vect.push_back(the_pair(values[type], coord));
     }
     piece_id_t id = 0;
-    std::sort(tmp.begin(), tmp.end());
-    for(auto it : tmp)
+    std::sort(tmp_vect.begin(), tmp_vect.end());
+    for(auto it : tmp_vect)
     {
         const auto coord = it.second;
         coords[stm][id] = coord;
-        const auto type = get_type(b[coord]);
-        typedef std::pair<eval_t, piece_id_t> pr;
-        coord_id[stm].push_back(pr(values[type], id));
+        exist_mask[stm] |= (1 << id);
         find_piece_id[coord] = id++;
     }
     return true;
@@ -494,8 +499,7 @@ bool k2chess::SetupPosition(const char *fen)
     {
         InitPieceLists(stm);
         InitMasks(stm);
-        for(auto it : coord_id[stm])
-            quantity[stm][get_type(b[coords[stm][it.second]])]++;
+        InitQuantity(stm);
         InitDirections(stm);
         UpdateAttacks(stm, tmp);
     }
@@ -644,15 +648,19 @@ void k2chess::InitMasks(bool stm)
 {
     slider_mask[stm] = 0;
     update_mask[stm] = 0;
-    for(auto it : coord_id[stm])
+    memset(type_mask[stm], 0, sizeof(type_mask[0]));
+    auto mask = exist_mask[stm];
+    while(mask)
     {
-        const auto piece_id = it.second;
+        const auto piece_id = lower_bit_num(mask);
+        mask ^= (1 << piece_id);
         update_mask[stm] |= (1 << piece_id);
         const auto coord = coords[stm][piece_id];
         const auto piece = b[coord];
         assert(piece > empty_square);
         assert(piece <= white_pawn);
         const auto type = get_type(piece);
+        type_mask[stm][type] |= (1 << piece_id);
         if(is_slider[type])
             slider_mask[stm] |= (1 << piece_id);
     }
@@ -686,6 +694,9 @@ void k2chess::StoreCurrentBoardState(const move_c move)
     state[ply].captured_piece = b[move.to_coord];
     state[ply].reversible_moves = reversible_moves;
     state[ply].move = move;
+    state[ply].slider_mask = slider_mask[wtm];
+    state[ply].exist_mask[black] = exist_mask[black];
+    state[ply].exist_mask[white] = exist_mask[white];
 }
 
 
@@ -874,12 +885,7 @@ void k2chess::MakeCapture(const move_c move)
     const auto piece_id = find_piece_id[to_coord];
     assert(piece_id != piece_not_found);
     state[ply].captured_id = piece_id;
-    const auto it = find_piece_it(!wtm, to_coord);
-    assert(it != coord_id[!wtm].end());
-    auto next_it = it;
-    ++next_it;
-    state[ply].next_piece_coord = coords[!wtm][(*next_it).second];
-    deleted_id[!wtm].splice(deleted_id[!wtm].begin(), coord_id[!wtm], it);
+    exist_mask[!wtm] &= ~(1 << piece_id);
     pieces[!wtm]--;
     reversible_moves = 0;
 }
@@ -911,11 +917,6 @@ void k2chess::TakebackCapture(const move_c move)
     }
     material[!wtm] += values[type];
     quantity[!wtm][type]++;
-    const auto next_it = find_piece_it(!wtm, state[ply].next_piece_coord);
-    assert(next_it != coord_id[!wtm].end());
-    const auto it = deleted_id[!wtm].begin();
-    coord_id[!wtm].splice(next_it, deleted_id[!wtm], it);
-    assert(find_piece_it(!wtm, to_coord) != coord_id[!wtm].end());
     pieces[!wtm]++;
 }
 
@@ -937,12 +938,12 @@ void k2chess::MakePromotion(const move_c move)
     quantity[wtm][type]++;
     reversible_moves = 0;
 
-    store_coord_id.push_back(coord_id[wtm]);
+    std::vector<attack_t> t(std::begin(type_mask[wtm]),
+                            std::end(type_mask[wtm]));
+    store_type_mask.push_back(t);
     std::vector<coord_t> v(std::begin(coords[wtm]), std::end(coords[wtm]));
     store_coords.push_back(v);
     InitPieceLists(wtm);
-
-    state[ply].slider_mask = slider_mask[wtm];
     InitMasks(wtm);
 }
 
@@ -1034,8 +1035,8 @@ bool k2chess::MakeMove(const move_c move)
 
     if(move.flag & is_promotion)
         MakePromotion(move);
-    wtm = !wtm;
 
+    wtm = !wtm;
     state[ply].attacks_updated = false;
     return is_special_move;
 }
@@ -1049,13 +1050,19 @@ void k2chess::TakebackMove(move_c move)
 {
     if(move.flag & is_promotion)
     {
-        coord_id[!wtm] = store_coord_id.back();
-        store_coord_id.pop_back();
+        const auto &t = store_type_mask.back();
+        std::copy(t.begin(), t.end(), type_mask[!wtm]);
+        store_type_mask.pop_back();
         const auto &v = store_coords.back();
         std::copy(v.begin(), v.end(), coords[!wtm]);
         store_coords.pop_back();
-        for(auto it : coord_id[!wtm])
-            find_piece_id[coords[!wtm][it.second]] = it.second;
+        auto mask = state[ply].exist_mask[!wtm];
+        while(mask)
+        {
+            const auto piece_id = lower_bit_num(mask);
+            mask ^= (1 << piece_id);
+            find_piece_id[coords[!wtm][piece_id]] = piece_id;
+        }
     }
     assert(find_piece_id[move.to_coord] != piece_not_found);
     const auto id = find_piece_id[move.to_coord];
@@ -1080,6 +1087,8 @@ void k2chess::TakebackMove(move_c move)
         TakebackPromotion(move);
     else if(move.flag & is_castle)
         TakebackCastle(move);
+    exist_mask[black] = state[ply].exist_mask[black];
+    exist_mask[white] = state[ply].exist_mask[white];
 
     ply--;
 #ifndef NDEBUG
@@ -1483,7 +1492,7 @@ bool k2chess::IsLegalKingMove(const move_c move) const
     auto att_mask = attacks[!wtm][move.from_coord] & slider_mask[!wtm];
     while(att_mask)
     {
-        const auto piece_id = __builtin_ctz(att_mask);
+        const auto piece_id = lower_bit_num(att_mask);
         att_mask ^= (1 << piece_id);
         const auto attacker_coord = coords[!wtm][piece_id];
         if(IsOnRay(move.from_coord, move.to_coord, attacker_coord))
@@ -1516,7 +1525,7 @@ bool k2chess::IsLegal(const move_c move) const
     if(king_attackers == 0)
         return true;
 
-    const auto attacker_id = __builtin_ctz(attack_sum);
+    const auto attacker_id = lower_bit_num(attack_sum);
     const auto attacker_coord = coords[!wtm][attacker_id];
     if(is_slider[get_type(b[attacker_coord])])
         return IsOnRay(move.to_coord, k_coord, attacker_coord);
@@ -1628,9 +1637,11 @@ void k2chess::ProcessAmbiguousNotation(const move_c move, char *out) const
     const auto init_from_coord = move.from_coord;
     const auto init_piece_type = get_type(b[init_from_coord]);
 
-    for(auto it : coord_id[wtm])
+    auto mask = exist_mask[wtm];
+    while(mask)
     {
-        const auto piece_id = it.second;
+        const auto piece_id = lower_bit_num(mask);
+        mask ^= (1 << piece_id);
         const auto coord = coords[wtm][piece_id];
         if(coord == move.from_coord)
             continue;
@@ -1705,10 +1716,12 @@ void k2chess::RunUnitTests()
     assert(test_attack_tables(white) == 32);
 
     assert(SetupPosition(start_position));
-    assert(b[coords[white][coord_id[white].front().second]] == white_pawn);
-    assert(b[coords[white][coord_id[white].back().second]] == white_king);
-    assert(b[coords[black][coord_id[black].front().second]] == black_pawn);
-    assert(b[coords[black][coord_id[black].back().second]] == black_king);
+    assert(b[coords[white][lower_bit_num(exist_mask[white])]] == white_pawn);
+    assert(b[coords[white][higher_bit_num(exist_mask[white])]] ==
+            white_king);
+    assert(b[coords[black][lower_bit_num(exist_mask[black])]] == black_pawn);
+    assert(b[coords[black][higher_bit_num(exist_mask[black])]] ==
+            black_king);
     assert(king_coord(white) == get_coord(default_king_col, 0));
     assert(king_coord(black) ==
            get_coord(default_king_col, max_row));
@@ -1762,7 +1775,6 @@ void k2chess::RunUnitTests()
     assert(find_piece_id[get_coord("d5")] == piece_not_found);
     assert(find_piece_id[get_coord("e5")] == piece_not_found);
     assert(b[coords[white][find_piece_id[get_coord("e6")]]] == white_pawn);
-    assert(find_piece_it(black, get_coord("d5")) == coord_id[black].end());
     assert(test_attack_tables(black) == 29);
     assert(test_attack_tables(white) == 35);
 
@@ -1773,11 +1785,6 @@ void k2chess::RunUnitTests()
     assert(find_piece_id[get_coord("d6")] == piece_not_found);
     assert(b[coords[white][find_piece_id[get_coord("e5")]]] == white_pawn);
     assert(b[coords[black][find_piece_id[get_coord("d5")]]] == black_pawn);
-    auto it = find_piece_it(black, get_coord("d5"));
-    assert(it != coord_id[black].end());
-    assert(b[coords[black][(*it).second]] == black_pawn);
-    it = find_piece_it(white, get_coord("e5"));
-    assert(b[coords[white][(*it).second]] == white_pawn);
 
     assert(MakeMove("e5d6"));
     assert(MakeMove("e7d6"));
@@ -1890,10 +1897,9 @@ void k2chess::RunUnitTests()
     assert(reversible_moves == 0);
     assert(test_attack_tables(black) == 19);
     assert(test_attack_tables(white) == 24);
-    it = --coord_id[white].end();
-    assert(b[coords[white][(*it--).second]] == white_king);
-    assert(b[coords[white][(*it--).second]] == white_queen);
-    assert(b[coords[white][(*it--).second]] == white_bishop);
+    assert(b[coords[white][2]] == white_king);
+    assert(b[coords[white][1]] == white_queen);
+    assert(b[coords[white][0]] == white_bishop);
     assert(coords[white][find_piece_id[get_coord("d8")]] == get_coord("d8"));
     assert(coords[white][find_piece_id[get_coord("a2")]] == get_coord("a2"));
     assert(coords[white][find_piece_id[get_coord("a1")]] == get_coord("a1"));
@@ -1908,10 +1914,9 @@ void k2chess::RunUnitTests()
     assert(quantity[white][pawn] == 1);
     assert(quantity[white][queen] == 0);
     assert(reversible_moves == 4);
-    it = --coord_id[white].end();
-    assert(b[coords[white][(*it--).second]] == white_king);
-    assert(b[coords[white][(*it--).second]] == white_bishop);
-    assert(b[coords[white][(*it--).second]] == white_pawn);
+    assert(b[coords[white][2]] == white_king);
+    assert(b[coords[white][1]] == white_bishop);
+    assert(b[coords[white][0]] == white_pawn);
     assert(coords[white][find_piece_id[get_coord("d7")]] == get_coord("d7"));
     assert(coords[white][find_piece_id[get_coord("a2")]] == get_coord("a2"));
     assert(coords[white][find_piece_id[get_coord("a1")]] == get_coord("a1"));
@@ -1928,8 +1933,8 @@ void k2chess::RunUnitTests()
     assert(material[white] == values[queen] + values[bishop]);
     assert(material[black] == values[knight] + values[rook]);
     assert(reversible_moves == 0);
-
     TakebackMove();
+
     assert(MakeMove("d7e8b"));
     assert(b[get_coord("d7")] == empty_square);
     assert(b[get_coord("e8")] == white_bishop);
@@ -1940,6 +1945,7 @@ void k2chess::RunUnitTests()
     assert(material[white] == 2*values[bishop]);
     assert(material[black] == values[knight]);
     assert(reversible_moves == 0);
+    TakebackMove();
 
     assert(SetupPosition("k7/8/8/8/8/7K/3p4/2N1R3 b - - 0 1"));
     assert(MakeMove("d2c1r"));
@@ -1952,8 +1958,8 @@ void k2chess::RunUnitTests()
     assert(material[white] == values[rook]);
     assert(material[black] == values[rook]);
     assert(reversible_moves == 0);
-
     TakebackMove();
+
     assert(MakeMove("d2c1n"));
     assert(b[get_coord("d2")] == empty_square);
     assert(b[get_coord("c1")] == black_knight);
@@ -1964,8 +1970,8 @@ void k2chess::RunUnitTests()
     assert(material[white] == values[rook]);
     assert(material[black] == values[knight]);
     assert(reversible_moves == 0);
-
     TakebackMove();
+
     assert(!MakeMove("d2d1m"));
 
     assert(SetupPosition(start_position));
@@ -2210,6 +2216,8 @@ void k2chess::RunUnitTests()
     assert(MakeMove("e7d8"));
     assert(MakeMove("c1c2"));
     assert(MakeMove("d8c8"));
+    for(auto i = 0; i < 4; ++i)
+        TakebackMove();
 
     assert(SetupPosition("4K3/2P5/2B5/8/b7/1p6/7P/3k4 w - - 0 1"));
     assert(MakeMove("c6a4"));
@@ -2222,6 +2230,7 @@ void k2chess::RunUnitTests()
     for(auto i = 0; i < 3; ++i)
         TakebackMove();
     assert(MakeMove("c7c8r"));
+    TakebackMove();
 
     assert(SetupPosition("4k3/8/8/b7/1r6/8/1P1K1N2/8 b - - 0 1"));
     assert(MakeMove("b4d4"));
@@ -2244,6 +2253,8 @@ void k2chess::RunUnitTests()
     assert(MakeMove("d2d4"));
     assert(MakeMove("b2a1q"));
     assert(MakeMove("h6f7"));
+    for(auto i = 0; i < 2; ++i)
+        TakebackMove();
     assert(SetupPosition(
         "rnb2k1r/pp1PbBpp/1qp5/8/8/8/PPP1NnPP/RNBQK2R w KQ -"));
     assert(MakeMove("d7d8q"));
@@ -2251,15 +2262,18 @@ void k2chess::RunUnitTests()
     assert(MakeMove("a2a4"));
     assert(MakeMove("b6b4"));
     assert(!MakeMove("a4a5"));
+    for(auto i = 0; i < 4; ++i)
+        TakebackMove();
 
     assert(SetupPosition(
                "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ -"));
     assert(MakeMove("e1g1"));
     assert(MakeMove("f2d1"));
     assert(MakeMove("d7c8q"));
-    assert(b[coords[white][coord_id[white].front().second]] == white_pawn);
-    assert(b[coords[white][coord_id[white].back().second]] == white_king);
-    assert(b[coords[black][coord_id[black].front().second]] == black_pawn);
-    assert(b[coords[black][coord_id[black].back().second]] == black_king);
+    TakebackMove();
+    assert(b[coords[white][lower_bit_num(exist_mask[white])]] == white_pawn);
+    assert(b[coords[white][higher_bit_num(exist_mask[white])]] == white_king);
+    assert(b[coords[black][lower_bit_num(exist_mask[black])]] == black_pawn);
+    assert(b[coords[black][higher_bit_num(exist_mask[black])]] == black_king);
 }
 #endif // NDEBUG

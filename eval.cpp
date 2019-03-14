@@ -323,11 +323,11 @@ void k2eval::EvalMobility(bool stm)
                       21, 21, 21, 22, 22};
 
     eval_t ans = 0;
-    for(auto it : coord_id[stm])
+    auto mask = exist_mask[stm] & slider_mask[stm];
+    while(mask)
     {
-        const auto piece_id = it.second;
-        if(!(slider_mask[stm] & (1 << piece_id)))
-            continue;
+        const auto piece_id = lower_bit_num(mask);
+        mask ^= (1 << piece_id);
         const auto coord = coords[stm][piece_id];
         const auto type = get_type(b[coord]);
         int cr = sum_directions[stm][piece_id];
@@ -390,11 +390,8 @@ void k2eval::EvalImbalances()
             auto stm = black;
             if(quantity[white][knight] == 1)
                 stm = white;
-            auto id = coord_id[stm].begin();
-            for(; id != coord_id[stm].end(); ++id)
-                if(get_type(b[coords[stm][(*id).second]]) == bishop)
-                    break;
-
+            const auto bishop_mask = exist_mask[stm] & type_mask[stm][bishop];
+            const auto bishop_id = lower_bit_num(bishop_mask);
             eval_t ans = 0;
             const auto o_col = get_col(king_coord(!stm));
             const auto o_row = get_row(king_coord(!stm));
@@ -404,7 +401,7 @@ void k2eval::EvalImbalances()
             if((o_col == 0 && (o_row <= 1 || o_row >= max_row - 1)) ||
                     (o_col == 1 && (o_row == 0 || o_row == max_row)))
                 ans = -imbalance_king_in_corner;
-            const auto coord = coords[stm][(*id).second];
+            const auto coord = coords[stm][bishop_id];
             bool bishop_on_light_sq = ((get_col(coord)) + get_row(coord)) & 1;
             if(!bishop_on_light_sq)
                 ans = -ans;
@@ -423,10 +420,10 @@ void k2eval::EvalImbalances()
         const auto pawn_col_max = pawn_max[max_col][!stm];
         if(pawn_col_max == 0 && pawn_col_min == 0)
             return;
-        const auto id = ++coord_id[!stm].begin();
-        const auto coord = coords[!stm][(*id).second];
-        if(get_type(b[coord]) != bishop)
+        const auto bishop_mask = exist_mask[!stm] & type_mask[!stm][bishop];
+        if(!bishop_mask)
             return;
+        const auto coord = coords[!stm][lower_bit_num(bishop_mask)];
         const auto sq = get_coord(pawn_col_max == 0 ? 0 : max_col,
                                   stm ? 0 : max_row);
         if(is_same_color(coord, sq))
@@ -443,8 +440,9 @@ void k2eval::EvalImbalances()
     {
         // KPk
         const bool stm = material[white]/centipawn == 1;
-        const auto id = coord_id[stm].begin();
-        const auto coord = coords[stm][(*id).second];
+        const auto pawn_mask = exist_mask[stm] & type_mask[stm][pawn];
+        const auto pawn_id = lower_bit_num(pawn_mask);
+        const auto coord = coords[stm][pawn_id];
         const auto colp = get_col(coord);
         const bool unstop = IsUnstoppablePawn(colp, stm, wtm);
         const auto k_coord = king_coord(stm);
@@ -492,16 +490,11 @@ void k2eval::EvalImbalances()
     if(quantity[white][bishop] == 1
             && quantity[black][bishop] == 1)
     {
-        auto w_it = coord_id[white].begin();
-        for(;w_it != coord_id[white].end(); ++w_it)
-            if(b[coords[white][(*w_it).second]] == white_bishop)
-                break;
-        auto b_it = coord_id[black].begin();
-        for(;b_it != coord_id[black].end(); ++b_it)
-            if(b[coords[black][(*b_it).second]] == black_bishop)
-                break;
-        if(!is_same_color(coords[white][(*w_it).second],
-                          coords[black][(*b_it).second]))
+        const auto wb_mask = exist_mask[white] & type_mask[white][bishop];
+        const auto wb_id = lower_bit_num(wb_mask);
+        const auto bb_mask = exist_mask[black] & type_mask[black][bishop];
+        const auto bb_id = lower_bit_num(bb_mask);
+        if(!is_same_color(coords[white][wb_id], coords[black][bb_id]))
         {
             if(material[white]/centipawn - pieces[white] == 4 - 2
                     && material[black]/centipawn - pieces[black] == 4 - 2)
@@ -773,22 +766,21 @@ void k2eval::TakebackMove(const move_c move)
 void k2eval::EvalRooks(const bool stm)
 {
     auto ans = 0;
-    auto id = coord_id[stm].begin();
-    while(id != coord_id[stm].end() &&
-          get_type(b[coords[stm][(*id).second]]) != rook)
-        ++id;
-    if(id == coord_id[stm].end())
-        return;
-    const auto coord = coords[stm][(*id).second];
     auto rooks_on_last_cr = 0;
-    if((stm && get_row(coord) >= max_row - 1) ||
-            (!stm && get_row(coord) <= 1))
-        rooks_on_last_cr++;
-    if(quantity[stm][pawn] >= rook_max_pawns_for_open_file &&
-            pawn_max[get_col(coord)][stm] == 0)
-        ans += (pawn_max[get_col(coord)][!stm] == 0 ? rook_open_file :
-                                                     rook_semi_open_file);
-
+    auto mask = exist_mask[stm] & type_mask[stm][rook];
+    while(mask)
+    {
+        auto rook_id = lower_bit_num(mask);
+        mask ^= (1 << rook_id);
+        const auto coord = coords[stm][rook_id];
+        if((stm && get_row(coord) >= max_row - 1) ||
+                (!stm && get_row(coord) <= 1))
+            rooks_on_last_cr++;
+        if(quantity[stm][pawn] >= rook_max_pawns_for_open_file &&
+                pawn_max[get_col(coord)][stm] == 0)
+            ans += (pawn_max[get_col(coord)][!stm] == 0 ? rook_open_file :
+                                                         rook_semi_open_file);
+    }
     ans += rooks_on_last_cr*rook_on_last_rank;
     val_opn += (stm ? ans : -ans);
 }
@@ -873,7 +865,7 @@ k2chess::attack_t k2eval::KingSafetyBatteries(const coord_t targ_coord,
     auto ans = att;
     while(msk)
     {
-        const auto piece_id = __builtin_ctz(msk);
+        const auto piece_id = lower_bit_num(msk);
         msk ^= (1 << piece_id);
         const auto coord1 = coords[!stm][piece_id];
         auto maybe = attacks[!stm][coord1] & slider_mask[!stm];
@@ -881,7 +873,7 @@ k2chess::attack_t k2eval::KingSafetyBatteries(const coord_t targ_coord,
             continue;
         while(maybe)
         {
-            const auto j = __builtin_ctz(maybe);
+            const auto j = lower_bit_num(maybe);
             maybe ^= (1 << j);
             const auto coord2 = coords[!stm][j];
             const auto type1 = get_type(b[coord1]);

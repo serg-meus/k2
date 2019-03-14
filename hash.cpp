@@ -41,12 +41,17 @@ k2hash::hash_key_t k2hash::InitHashKey() const
 {
     hash_key_t ans = 0;
     for(auto stm : {black, white})
-        for(auto it : coord_id[stm])
+    {
+        auto mask = exist_mask[stm];
+        while(mask)
         {
-            const auto coord = coords[stm][it.second];
+            const auto piece_id = lower_bit_num(mask);
+            mask ^= (1 << piece_id);
+            const auto coord = coords[stm][piece_id];
             ans ^= zorb[piece_hash_index(b[coord])]
                     [get_col(coord)][get_row(coord)];
         }
+    }
     if(!wtm)
         ans ^= key_for_side_to_move;
     const auto &f = k2chess::state[ply];
