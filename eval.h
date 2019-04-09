@@ -61,11 +61,10 @@ protected:
     pawn_pass_connected = 28,
     pawn_unstoppable_1 = 120,
     pawn_unstoppable_2 = 350,
-    king_no_shelter = 22,
-    king_saf_1 = 2,
-    king_saf_2 = 20,
-    king_saf_3 = 20,
-    king_saf_4 = 22,
+    king_saf_no_shelter = 22,
+    king_saf_no_queen = 20,
+    king_saf_attack1 = 20,
+    king_saf_attack2 = 88,
     king_saf_central_files = 68,
     rook_on_last_rank = 47,
     rook_semi_open_file = 22,
@@ -165,11 +164,11 @@ private:
     void MovePawnStruct(const piece_t movedPiece, const move_c move);
     void EvalMobility(bool stm);
     void EvalKingSafety(const bool king_color);
-    eval_t KingShelter(const coord_t k_col, coord_t k_row,
-                       const bool stm) const;
-    bool Sheltered(const coord_t k_col, coord_t k_row,
-                           const bool stm) const;
+    bool KingHasNoShelter(coord_t k_col, coord_t k_row, const bool stm) const;
+    bool Sheltered(const coord_t k_col, coord_t k_row, const bool stm) const;
     attack_t KingSafetyBatteries(const coord_t targ_coord, const attack_t att,
                                  const bool stm) const;
     void EvalRooks(const bool stm);
+    size_t CountAttacksOnKing(const bool stm, const coord_t k_col,
+                              const coord_t k_row);
 };

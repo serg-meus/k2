@@ -827,14 +827,18 @@ bool k2eval::Sheltered(const coord_t k_col, coord_t k_row,
 
 
 //-----------------------------
-k2chess::eval_t k2eval::KingShelter(const coord_t k_col, coord_t k_row,
-                           const bool stm) const
+bool k2eval::KingHasNoShelter(coord_t k_col, coord_t k_row,
+                              const bool stm) const
 {
+    if(k_col == 0)
+        k_col++;
+    else if(k_col == max_col)
+        k_col--;
     const i32 cstl[] = {black_can_castle_left | black_can_castle_right,
                         white_can_castle_left | white_can_castle_right};
     if(quantity[!stm][queen] == 0 ||
             k2chess::state[ply].castling_rights & cstl[stm])
-        return 0;
+        return false;
     if(!Sheltered(k_col, k_row, stm))
     {
         if(k_col > 0 && k_col < max_col &&
@@ -842,13 +846,13 @@ k2chess::eval_t k2eval::KingShelter(const coord_t k_col, coord_t k_row,
                 b[get_coord(k_col, k_row+(stm ? 1 : -1))] != empty_square &&
                 Sheltered(k_col - 1, k_row, stm) &&
                 Sheltered(k_col + 1, k_row, stm))
-            return 0;
+            return false;
         else
-            return king_no_shelter;
+            return true;
     }
     if(!Sheltered(k_col - 1, k_row, stm) &&
             !Sheltered(k_col + 1, k_row, stm))
-        return king_no_shelter;
+        return true;
     return 0;
 }
 
@@ -909,15 +913,10 @@ k2chess::attack_t k2eval::KingSafetyBatteries(const coord_t targ_coord,
 
 
 //-----------------------------
-void k2eval::EvalKingSafety(const bool stm)
+size_t k2eval::CountAttacksOnKing(const bool stm, const coord_t k_col,
+                                  const coord_t k_row)
 {
-    if(quantity[!stm][queen] < 1 && quantity[!stm][rook] < 2)
-        return;
-    auto ans = 0;
-    const auto k_coord = king_coord(stm);
-    auto k_col = get_col(k_coord);
-    const auto k_row = get_row(k_coord);
-
+    size_t ans = 0;
     for(auto delta_col = -1; delta_col <= 1; ++delta_col)
         for(auto delta_row = -1; delta_row <= 1; ++delta_row)
         {
@@ -930,21 +929,37 @@ void k2eval::EvalKingSafety(const bool stm)
             if(!att)
                 continue;
             const auto all_att = KingSafetyBatteries(targ_coord, att, stm);
-            ans += king_saf_1*__builtin_popcount(all_att);
+            ans += __builtin_popcount(all_att);
         }
-    if(k_col == 0)
-        k_col++;
-    else if(k_col == max_col)
-        k_col--;
+    return ans;
+}
 
-    const auto ks = KingShelter(k_col, k_row, stm);
-    const auto f_ks = ks == 0 ? 10 : king_saf_2;
-    const auto f_q = quantity[!stm][queen] == 0 ? king_saf_3 : 10;
-    auto f_cntr = ((k_col == 3 || k_col == 4) &&
+
+
+
+
+//-----------------------------
+void k2eval::EvalKingSafety(const bool stm)
+{
+    if(quantity[!stm][queen] < 1 && quantity[!stm][rook] < 2)
+        return;
+    const auto k_col = get_col(king_coord(stm));
+    const auto k_row = get_row(king_coord(stm));
+
+    const auto attacks = CountAttacksOnKing(stm, k_col, k_row);
+    const bool no_shelter = KingHasNoShelter(k_col, k_row, stm);
+    const auto f_saf = no_shelter ? king_saf_attack1*king_saf_attack2/10 :
+                                    king_saf_attack2;
+    const auto f_queen = quantity[!stm][queen] == 0 ? king_saf_no_queen : 10;
+    const auto center = (std::abs(2*k_col - max_col) <= 1 &&
             quantity[!stm][queen] != 0) ? king_saf_central_files : 0;
-    ans = f_cntr + ks + king_saf_4*f_ks*ans*ans/10/f_q;
+
+    const auto ans = center + king_saf_no_shelter*no_shelter +
+            attacks*attacks*f_saf/f_queen;
+
     val_opn += stm ? -ans : ans;
 }
+
 
 
 
@@ -1348,31 +1363,41 @@ void k2eval::RunUnitTests()
     assert(!Sheltered(4, 7, black));
 
     SetupPosition("q5k1/pp3p1p/6p1/8/8/8/PP3PPP/Q5K1 w - -");
-    assert(KingShelter(6, 0, white) == 0);
-    assert(KingShelter(6, 7, black) == 0);
+    assert(KingHasNoShelter(6, 0, white) == false);
+    assert(KingHasNoShelter(6, 7, black) == false);
     SetupPosition("q5k1/pp4pp/5p2/8/8/7P/PP3PP1/Q5K1 w - -");
-    assert(KingShelter(6, 0, white) == 0);
-    assert(KingShelter(6, 7, black) == 0);
+    assert(KingHasNoShelter(6, 0, white) == false);
+    assert(KingHasNoShelter(6, 7, black) == false);
     SetupPosition("q5k1/pp3pbp/6n1/8/8/6P1/PP3P1P/Q5K1 w - -");
-    assert(KingShelter(6, 0, white) == 0);
-    assert(KingShelter(6, 7, black) == 0);
+    assert(KingHasNoShelter(6, 0, white) == false);
+    assert(KingHasNoShelter(6, 7, black) == false);
     SetupPosition("q5k1/pp3nbr/5nnq/8/8/5P1N/PP4PB/Q5K1 w - -");
-    assert(KingShelter(6, 0, white) == 0);
-    assert(KingShelter(6, 7, black) == 0);
+    assert(KingHasNoShelter(6, 0, white) == false);
+    assert(KingHasNoShelter(6, 7, black) == false);
     SetupPosition("q5k1/pp4bn/6nr/8/8/5P2/PP4P1/Q5K1 w - -");
-    assert(KingShelter(6, 0, white) == 0);
-    assert(KingShelter(6, 7, black) == 0);
+    assert(KingHasNoShelter(6, 0, white) == false);
+    assert(KingHasNoShelter(6, 7, black) == false);
     SetupPosition("4k2r/pp6/8/8/8/8/PP6/Q5K1 w k -");
-    assert(KingShelter(6, 0, white) == 0);
-    assert(KingShelter(4, 7, black) == 0);
+    assert(KingHasNoShelter(6, 0, white) == false);
+    assert(KingHasNoShelter(4, 7, black) == false);
     SetupPosition("q3kr2/pp1p1p2/8/8/5P1P/8/PP4P1/Q5K1 w - -");
-    assert(KingShelter(6, 0, white) == king_no_shelter);
-    assert(KingShelter(4, 7, black) == king_no_shelter);
+    assert(KingHasNoShelter(6, 0, white) == true);
+    assert(KingHasNoShelter(4, 7, black) == true);
     SetupPosition("q5k1/pp3p1p/7p/8/8/5P2/PP3P1P/Q5K1 w - -");
-    assert(KingShelter(6, 0, white) == king_no_shelter);
-    assert(KingShelter(4, 7, black) == king_no_shelter);
+    assert(KingHasNoShelter(6, 0, white) == true);
+    assert(KingHasNoShelter(4, 7, black) == true);
     SetupPosition("q5k1/pp4p1/6p1/8/8/6N1/PP3P1P/Q5K1 w - -");
-    assert(KingShelter(6, 0, white) == king_no_shelter);
-    assert(KingShelter(4, 7, black) == king_no_shelter);
+    assert(KingHasNoShelter(6, 0, white) == true);
+    assert(KingHasNoShelter(4, 7, black) == true);
+
+    SetupPosition("6k1/pp1N1ppp/6r1/8/4n2q/B3p3/PP4P1/Q4RK1 w - -");
+    assert(CountAttacksOnKing(white, 6, 0) == 3 + 1 + 1 + 0 + 1);
+    assert(CountAttacksOnKing(black, 6, 7) == 1 + 0 + 0 + 2 + 0);
+    SetupPosition("2q2rk1/pp3pp1/2r4p/2r5/8/2P4Q/PPP2PPR/1K5R w - -");
+    assert(CountAttacksOnKing(white, 1, 0) == 0);
+    assert(CountAttacksOnKing(black, 6, 7) == 0);
+    SetupPosition("2q2r2/pp3pk1/2r3p1/2r5/8/7Q/PPP2PPR/1K5R w - -");
+    assert(CountAttacksOnKing(white, 1, 0) == 0 + 0 + 2 + 0 + 0);
+    assert(CountAttacksOnKing(black, 6, 6) == 0+0+2 + 0+0+2 + 0+0+2);
 }
 #endif // NDEBUG
