@@ -18,6 +18,7 @@ k2chess::k2chess() :
     max_ray_length = std::max(static_cast<size_t>(board_height),
                               static_cast<size_t>(board_width));
     SetupPosition(start_position);
+    InitPossibleAttacksArray();
 }
 
 
@@ -1193,7 +1194,7 @@ bool k2chess::IsPseudoLegal(const move_c move) const
 
     if(move.flag & not_a_move)
         return false;
-    if(move.to_coord >= board_height*board_width)
+    if(move.to_coord >= board_size)
         return false;
     const auto to_piece = b[move.to_coord];
     if(to_piece != empty_square && get_color(to_piece) == wtm)
@@ -1402,22 +1403,13 @@ bool k2chess::IsOnRay(const coord_t given, const coord_t ray_coord1,
 
 
 //--------------------------------
-bool k2chess::IsSameRay(const coord_t given, const coord_t ray_coord1,
-                       const coord_t ray_coord2) const
+bool k2chess::IsSameRay(const coord_t given_coord, const coord_t beg_coord,
+                       const coord_t end_coord) const
 {
-    const auto dx1 = get_col(ray_coord2) - get_col(ray_coord1);
-    const auto dy1 = get_row(ray_coord2) - get_row(ray_coord1);
-    const auto dx2 = get_col(given) - get_col(ray_coord1);
-    const auto dy2 = get_row(given) - get_row(ray_coord1);
-
-    if(sgn(dx1) != sgn(dx2) || sgn(dy1) != sgn(dy2))
-        return false;
-    if(dx1 != 0 && dy1 != 0 && std::abs(dx1) != std::abs(dy1))
-        return false;
-    if(dx2 != 0 && dy2 != 0 && std::abs(dx2) != std::abs(dy2))
-        return false;
-
-    return true;
+    const auto beg = pseudocoord(beg_coord);
+    const auto id1 = find_ray_mask[2*board_size + pseudocoord(end_coord) - beg];
+    const auto id2 = find_ray_mask[2*board_size + pseudocoord(given_coord) - beg];
+    return id1 & id2;
 }
 
 
@@ -1432,25 +1424,23 @@ bool k2chess::IsOnRayMask(const bool stm, const coord_t piece_coord,
     if(get_type(b[piece_coord]) == knight)
         return move_coord == piece_coord +
                 get_coord(delta_col[ray_id], delta_row[ray_id]);
-    const auto ray_col = get_col(piece_coord) + delta_col[ray_id];
-    const auto ray_row = get_row(piece_coord) + delta_row[ray_id];
-    if(!col_within(ray_col) || !row_within(ray_row))
-        return false;
     if(!en_pass && !(attacks[stm][move_coord] & (1 << piece_id)))
         return false;
-    const auto ray_coord = get_coord(ray_col, ray_row);
-    bool same_ray = IsSameRay(move_coord, piece_coord, ray_coord);
+    const auto ray_mask = GetRayMask(piece_coord, move_coord);
+    const bool same_ray = (1 << ray_id) == ray_mask;
+
     if(en_pass)
     {
         const auto p_coord = coords[wtm][k2chess::state[ply].captured_id];
         if(same_ray && IsSliderAttack(piece_coord, move_coord))
             return true;
-        if(std::abs(move_coord - p_coord) == 1 &&
-                IsSameRay(p_coord, piece_coord, ray_coord) &&
+        const auto ray_mask2 = GetRayMask(piece_coord, p_coord);
+        if(std::abs(move_coord - p_coord) == 1 && (1 << ray_id) == ray_mask2 &&
                 IsSliderAttack(piece_coord, p_coord))
             return true;
         return false;
     }
+
     return same_ray;
 }
 
@@ -1678,6 +1668,35 @@ void k2chess::ProcessAmbiguousNotation(const move_c move, char *out) const
         *(out++) = get_col(init_from_coord) + 'a';
 }
 
+
+
+
+
+//--------------------------------
+void k2chess::InitPossibleAttacksArray()
+{
+    memset(find_ray_mask, 0, sizeof(find_ray_mask));
+    for(auto type = king; type <= pawn; ++type)
+    {
+        auto mask = ray_mask_all[type];
+        while(mask)
+        {
+            const auto ray = lower_bit_num(mask);
+            mask ^= (1 << ray);
+            const int d_coord = 2*board_width*delta_row[ray] + delta_col[ray];
+            auto coord = 0;
+            const auto len = is_slider[type] ? max_ray_length -1 : 1;
+            for(auto i = 0; i < len; ++i)
+            {
+                coord += d_coord;
+                assert(2*board_size + coord >= 0);
+                assert(2*board_size + coord < 4*board_size);
+                find_ray_mask[2*board_size + coord] |=
+                        (1 << ray);
+            }
+        }
+    }
+}
 
 
 

@@ -50,6 +50,7 @@ protected:
     const static depth_t max_ply = 100;  // maximum search depth
     const static coord_t board_width = 8;
     const static coord_t board_height = 8;
+    const static coord_t board_size = board_height*board_width;
     const static u8 sides = 2;  // black and white
     const static u8 piece_types = 6;  // pawns, knights, ...
     const static bool white = true;
@@ -171,16 +172,19 @@ protected:
     bool wtm;
 
     // array representing the chess board
-    piece_t b[board_width*board_height];
+    piece_t b[board_size];
 
     // array with piece coordinates sorted by their id's
     coord_t coords[sides][max_pieces_one_side];
 
     // array needed to fast find for piece id's by their coords
-    piece_id_t find_piece_id[board_width*board_height];
+    piece_id_t find_piece_id[board_size];
+
+    // array needed to fast find for ray mask by two coord
+    ray_mask_t find_ray_mask[4*board_size];
 
     // two tables for each color with attacks of all pieces
-    attack_t attacks[sides][board_width*board_height];
+    attack_t attacks[sides][board_size];
 
     // bit masks for pieces which exists on the board
     attack_t exist_mask[sides];
@@ -227,7 +231,7 @@ protected:
     char cur_moves[move_max_display_length*max_ply];
     char *cv;  // current variation pointer (for debug mode only)
 
-    attack_t done_attacks[max_ply][sides][board_height*board_width];
+    attack_t done_attacks[max_ply][sides][board_size];
     std::vector<std::vector<coord_t>> store_coords;
     std::vector<std::vector<attack_t>> store_type_mask;
     coord_t done_directions[max_ply][sides][max_pieces_one_side][max_rays];
@@ -421,8 +425,9 @@ private:
                             const move_c move);
     bool IsCastledRook(const bool stm,
                        const coord_t coord, const move_c move) const;
-    bool IsSameRay(const coord_t given, const coord_t ray_coord1,
-                   const coord_t ray_coord2) const;
+    bool IsSameRay(const coord_t given_coord, const coord_t beg_coord,
+                   const coord_t end_coord) const;
+    void InitPossibleAttacksArray();
 
     void set_bit(const bool color, const coord_t col, const coord_t row,
                  const piece_id_t piece_id)
@@ -463,5 +468,18 @@ private:
             mask ^= (1 << piece_id);
             quantity[stm][get_type(b[coords[stm][piece_id]])]++;
         }
+    }
+
+    coord_t pseudocoord(const coord_t coord) const
+    {
+        return 2*board_width*get_row(coord) + get_col(coord);
+    }
+
+    ray_mask_t GetRayMask(const coord_t beg_coord,
+                        const coord_t end_coord) const
+    {
+        const auto beg = pseudocoord(beg_coord);
+        const auto end = pseudocoord(end_coord);
+        return find_ray_mask[2*board_size + end - beg];
     }
 };

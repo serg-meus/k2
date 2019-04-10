@@ -47,7 +47,7 @@ protected:
 
     principal_variation_s pv[max_ply];
     move_c killers[max_ply][sides];
-    history_t history[sides][piece_types][board_height*board_width];
+    history_t history[sides][piece_types][board_size];
 
     size_t GenMoves(move_c * const move_array, const bool only_captures) const;
     eval_t StaticExchangeEval(const move_c m) const;
