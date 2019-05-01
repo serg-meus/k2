@@ -30,8 +30,9 @@ protected:
     knight_val_end = 369,
     bishop_val_end = 405,
     rook_val_end = 640,
-    queen_val_end = 1300,
+    queen_val_end = 1300;
 
+    eval_t
     pawn_dbl_iso_opn = -15,
     pawn_dbl_iso_end = -55,
     pawn_iso_opn = -15,
@@ -90,7 +91,7 @@ protected:
     eval_t material_values_opn[piece_types + 1];
     eval_t material_values_end[piece_types + 1];
 
-    const pst_t pst[piece_types][sides][board_height][board_width];
+    pst_t pst[piece_types][sides][board_height][board_width];
 //    std::vector<float> tuning_factors;
 
 
