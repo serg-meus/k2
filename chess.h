@@ -314,8 +314,7 @@ protected:
 
     int lower_bit_num(const unsigned mask) const
     {
-        if(mask == 0)
-            std::cout << "1";
+        assert(mask != 0);
         return __builtin_ctz(mask);
     }
 

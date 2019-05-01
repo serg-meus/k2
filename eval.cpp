@@ -596,7 +596,8 @@ k2chess::eval_t k2eval::EvalDebug()
     auto ans = -ReturnEval(wtm);
     ans -= side_to_move_bonus;
     std::cout << "Bonus for side to move\t\t\t";
-    std::cout << (wtm ? 8 : -8) << std::endl << std::endl;
+    std::cout << (wtm ? side_to_move_bonus : -side_to_move_bonus)
+              << std::endl << std::endl;
 
     std::cout << std::endl << std::endl;
 
@@ -966,9 +967,9 @@ void k2eval::EvalKingSafety(const bool stm)
 
 //-----------------------------
 k2eval::k2eval() : material_values_opn {0, 0, queen_val_opn, rook_val_opn,
-            bishop_val_opn, kinght_val_opn, pawn_val_opn},
+            bishop_val_opn, knight_val_opn, pawn_val_opn},
     material_values_end {0, 0, queen_val_end, rook_val_end,
-                           bishop_val_end, kinght_val_end, pawn_val_end},
+                           bishop_val_end, knight_val_end, pawn_val_end},
 pst
 {
     {
@@ -1251,10 +1252,10 @@ void k2eval::RunUnitTests()
     assert(val_opn == 0 && val_end == 0);
     SetupPosition("5k2/p7/8/nn6/8/8/P7/4K3 w - -");  // KPknnp
     EvalImbalances();
-    assert(val_end < -2*kinght_val_end + pawn_val_end);
+    assert(val_end < -2*knight_val_end + pawn_val_end);
     SetupPosition("5k2/8/8/nb6/8/8/8/4K3 w - -");  // Kknb
     EvalImbalances();
-    assert(val_end < -kinght_val_end - bishop_val_end + pawn_val_end);
+    assert(val_end < -knight_val_end - bishop_val_end + pawn_val_end);
     SetupPosition("5k2/8/8/1b6/8/7p/8/7K w - -");  // Kkbp not drawn
     EvalImbalances();
     assert(val_end < -bishop_val_end - pawn_val_end/2);
@@ -1278,7 +1279,7 @@ void k2eval::RunUnitTests()
     assert(val_end > bishop_val_end + pawn_val_end/2);
     SetupPosition("1k6/8/8/P7/8/4N3/8/6K1 w - -");  // KNPk
     EvalImbalances();
-    assert(val_end > kinght_val_end + pawn_val_end/2);
+    assert(val_end > knight_val_end + pawn_val_end/2);
     SetupPosition("8/8/8/5K2/2k5/8/2P5/8 b - -");  // KPk
     EvalImbalances();
     assert(val_opn == 0 && val_end == 0);
