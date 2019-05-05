@@ -1065,22 +1065,76 @@ void k2main::SetvalueCommand(const std::string in)
 
 
 //--------------------------------
+void k2main::TuningParsePos(std::string fen, parsed_pos_s *pos, double result)
+{
+    SetupPosition(fen.c_str());
+    pos->wtm = wtm;
+    memcpy(pos->b, b, sizeof(b));
+    memcpy(pos->coords, coords, sizeof(coords));
+    memcpy(pos->attacks, attacks, sizeof(attacks));
+    memcpy(pos->exist_mask, exist_mask, sizeof(exist_mask));
+    memcpy(pos->type_mask, type_mask, sizeof(type_mask));
+    memcpy(pos->slider_mask, slider_mask, sizeof(slider_mask));
+    memcpy(pos->directions, directions, sizeof(directions));
+    memcpy(pos->sum_directions, sum_directions, sizeof(sum_directions));
+    memcpy(pos->material, material, sizeof(material));
+    memcpy(pos->pieces, pieces, sizeof(pieces));
+    memcpy(pos->quantity, quantity, sizeof(quantity));
+    memcpy(pos->p_max, p_max, sizeof(p_max));
+    memcpy(pos->p_min, p_min, sizeof(p_min));
+    pos->castling_rights = k2chess::state[0].castling_rights;
+
+
+    pos->result = result;
+}
+
+
+
+
+
+//--------------------------------
+void k2main::TuningApplyPosData(parsed_pos_s *pos)
+{
+    wtm = pos->wtm;
+    memcpy(b, pos->b, sizeof(b));
+    memcpy(coords, pos->coords, sizeof(coords));
+    memcpy(attacks, pos->attacks, sizeof(attacks));
+    memcpy(exist_mask, pos->exist_mask, sizeof(exist_mask));
+    memcpy(type_mask, pos->type_mask, sizeof(type_mask));
+    memcpy(slider_mask, pos->slider_mask, sizeof(slider_mask));
+    memcpy(directions, pos->directions, sizeof(directions));
+    memcpy(sum_directions, pos->sum_directions, sizeof(sum_directions));
+    memcpy(material, pos->material, sizeof(material));
+    memcpy(pieces, pos->pieces, sizeof(pieces));
+    memcpy(quantity, pos->quantity, sizeof(quantity));
+    memcpy(p_max, pos->p_max, sizeof(p_max));
+    memcpy(p_min, pos->p_min, sizeof(p_min));
+    k2chess::state[0].castling_rights = pos->castling_rights;
+    InitEvalOfMaterialAndPst();
+}
+
+
+
+
+
+//--------------------------------
 void k2main::TuningLoadCommand(const std::string in)
 {
+    using namespace std;
     Timer clock;
     clock.start();
     const auto tick1 = clock.getElapsedTimeInMicroSec();
 
     training_positions.clear();
 
-    std::string line;
-    std::ifstream myfile(in);
+    string line;
+    ifstream myfile(in);
     if(!myfile)
     {
-        std::cout << "Error: epd file not found" << std::endl;
+        cout << "Error: epd file not found" << endl;
         return;
     }
-    while (std::getline(myfile, line))
+    while(getline(myfile, line))
     {
         auto pos = line.find_first_of("\"");
         auto res_str = line.substr(pos, line.size());
@@ -1095,18 +1149,18 @@ void k2main::TuningLoadCommand(const std::string in)
             result = 0.5;
         else
         {
-            std::cout << "Error: epd file labeled incorrectly" << std::endl;
+            cout << "Error: epd file labeled incorrectly" << endl;
             return;
         }
-        auto line1 = line.substr(0, pos - 1);
-        typedef std::pair<std::string, float> the_pair;
-        training_positions.push_back(the_pair(line1, result));
+        parsed_pos_s parsed_pos;
+        TuningParsePos(line, &parsed_pos, result);
+        training_positions.push_back(parsed_pos);
     }
     const auto tick2 = clock.getElapsedTimeInMicroSec();
     const auto deltaTick = tick2 - tick1;
 
-    std::cout << training_positions.size() << " positions loaded successfully\n";
-    std::cout << "Elapsed time is " << deltaTick / 1000000. << " s.\n";
+    cout << training_positions.size() << " positions loaded successfully\n";
+    cout << "Elapsed time is " << deltaTick / 1000000. << " s.\n";
 }
 
 
@@ -1119,10 +1173,10 @@ double k2main::GetEvalError()
     double sum = 0;
     for(auto pos : training_positions)
     {
-        SetupPosition(pos.first.c_str());
+        TuningApplyPosData(&pos);
         double x = wtm ? -Eval() : Eval();
         const auto sigm = sigmoid(x);
-        const auto dif = (pos.second - sigm);
+        const auto dif = (pos.result - sigm);
         const auto sq_dif = dif*dif;
         sum += sq_dif;
     }
@@ -1173,6 +1227,12 @@ void k2main::TuneParamCommand(const std::string in)
         eps = 1;
     int flag = 0;
     double y1 = 0, y2 = 0;
+
+    if(!SetParamValue(param, (a + b)/2))
+    {
+        cout << "Error: wrong param name" << endl;
+        return;
+    }
 
     for(auto it = 0; it < 100; it++)
     {

@@ -43,7 +43,25 @@ protected:
         method_ptr mptr;
     };
 
-    std::vector<std::pair<std::string, float> > training_positions;
+    struct parsed_pos_s
+    {
+        bool wtm;
+        piece_t b[board_size];
+        coord_t coords[sides][max_pieces_one_side];
+        attack_t attacks[sides][board_size], exist_mask[sides];
+        attack_t type_mask[sides][piece_types + 1], slider_mask[sides];
+        coord_t directions[sides][max_pieces_one_side][max_rays];
+        coord_t sum_directions[sides][max_pieces_one_side];
+        eval_t material[sides], pieces[sides];
+        coord_t quantity[sides][piece_types + 1];
+        rank_t p_max[board_width + 2][sides], p_min[board_width + 2][sides];
+        castle_t castling_rights;
+
+        double result;
+
+    };
+
+    std::vector<parsed_pos_s> training_positions;
     double tuning_factor = 1.3;
 
     std::vector<std::pair<std::string, eval_t *> > eval_params =
@@ -155,6 +173,8 @@ protected:
     bool SetParamValue(const std::string param, double val);
     bool SetPstValue(const std::string param, double val);
     double GetEvalError();
+    void TuningParsePos(std::string fen, parsed_pos_s *pos, double result);
+    void TuningApplyPosData(parsed_pos_s *pos_struct);
 
     bool test_perft(const char *pos, depth_t depth, node_t node_cr)
     {
