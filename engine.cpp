@@ -300,6 +300,41 @@ void k2engine::Perft(const depth_t depth)
 
 
 //--------------------------------
+bool k2engine::GetRootSearchBounds(const eval_t x, const eval_t prev_x,
+                                   eval_t &alpha, eval_t &beta)
+{
+    if(stop)
+        return false;
+
+    if(alpha == beta)
+    {
+        alpha = AddEval(x, -aspiration_margin);
+        beta = AddEval(x, aspiration_margin);
+    }
+    else if(x <= alpha)
+    {
+        if(beta != infinite_score)
+            beta = AddEval(prev_x, aspiration_margin);
+        alpha = -infinite_score;
+    }
+    else if(x >= beta)
+    {
+        if(alpha != -infinite_score)
+            alpha = AddEval(prev_x, -aspiration_margin);
+        beta = infinite_score;
+    }
+    else
+        return false;
+
+    assert(alpha < beta);
+    return true;
+}
+
+
+
+
+
+//--------------------------------
 void k2engine::MainSearch()
 {
     busy = true;
@@ -314,25 +349,14 @@ void k2engine::MainSearch()
     GenerateRootMoves();
     if(root_moves.size() > 0)
         pv[0].moves[0] = root_moves.at(0).second;
+
     for(; root_ply <= max_ply; ++root_ply)
     {
         const auto prev_x = x;
-        x = RootSearch(root_ply, x - aspiration_margin, x + aspiration_margin);
-        if(!stop && x <= prev_x - aspiration_margin)
-        {
-            x = RootSearch(root_ply, -infinite_score,
-                           prev_x + aspiration_margin);
-            if (!stop && x >= prev_x - aspiration_margin)
-                x = RootSearch(root_ply, -infinite_score, infinite_score);
-        }
-        else if(!stop && x >= prev_x + aspiration_margin)
-        {
-            x = RootSearch(root_ply, prev_x - aspiration_margin,
-                           infinite_score);
-            if(!stop && x <= prev_x + aspiration_margin)
-                x = RootSearch(root_ply, -infinite_score, infinite_score);
-        }
-        if(stop && x == -infinite_score)
+        eval_t alpha = 0, beta = 0;
+        while(GetRootSearchBounds(x, prev_x, alpha, beta))
+            x = RootSearch(root_ply, alpha, beta);
+        if(stop)
             x = prev_x;
 
         const double time1 = time_control.timer.getElapsedTimeInMicroSec();
@@ -416,7 +440,7 @@ k2chess::eval_t k2engine::RootSearch(const depth_t depth, eval_t alpha,
                     ShowCurrentUciInfo();
                 if(!stop)
                     x = x_;
-                if(x >= beta)
+                if(!stop && x >= beta)
                 {
                     pv[0].moves[0] = cur_move;
                     pv[1].length = 1;

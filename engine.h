@@ -150,6 +150,15 @@ public:
         return wtm == white;
     }
 
+    eval_t AddEval(const i32 x1, const i32 x2)
+    {
+        if(x1 + x2 >= infinite_score)
+            return infinite_score;
+        else if(x1 + x2 <= -infinite_score)
+            return -infinite_score;
+        return x1 + x2;
+    }
+
 
 protected:
 
@@ -197,6 +206,8 @@ protected:
     bool CanFinishMainSearch(const eval_t x, const eval_t prev_x) const;
     void CheckForResign(const eval_t x);
     bool IsInCheck();
+    bool GetRootSearchBounds(const eval_t x, const eval_t prev_x,
+                             eval_t &alpha, eval_t &beta);
 
     void CorrectHashScore(eval_t *x, depth_t depth)
     {
