@@ -33,8 +33,8 @@ protected:
     const depth_t null_move_min_depth = 2;
     const eval_t null_move_min_strength = 0;
     const depth_t null_move_switch_r_depth = 6;
-    const depth_t null_move_max_r = 3;
-    const depth_t null_move_min_r = 2;
+    const depth_t null_move_max_r = 4;
+    const depth_t null_move_min_r = 3;
     const depth_t lmr_min_depth = 3;
     const size_t lmr_max_move = 4;
     const depth_t lmr_big_depth = 6;
