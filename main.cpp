@@ -272,6 +272,7 @@ void k2main::SetboardCommand(const std::string in)
 {
     if(busy)
         return;
+    busy = true;
 
     const auto firstSymbol = in.find_first_not_of(" \t");
     const auto in1 = in.substr(firstSymbol, in.size() - firstSymbol);
@@ -280,6 +281,7 @@ void k2main::SetboardCommand(const std::string in)
         std::cout << "Illegal position" << std::endl;
     else if(time_control.infinite_analyze && xboard)
         AnalyzeCommand(in);
+    busy = false;
 }
 
 
@@ -305,6 +307,7 @@ void k2main::PerftCommand(const std::string in)
 {
     if(busy)
         return;
+    busy = true;
 
     Timer clock;
     clock.start();
@@ -312,7 +315,9 @@ void k2main::PerftCommand(const std::string in)
 
     stats.nodes = 0;
     time_control.max_search_depth = atoi(in.c_str());
+
     Perft(time_control.max_search_depth);
+
     time_control.max_search_depth = k2chess::max_ply;
     const auto tick2 = clock.getElapsedTimeInMicroSec();
     const auto deltaTick = tick2 - tick1;
@@ -321,6 +326,7 @@ void k2main::PerftCommand(const std::string in)
               << "dt = " << deltaTick / 1000000. << std::endl
               << "Mnps = " << stats.nodes / (deltaTick + 1)
               << std::endl << std::endl;
+    busy = false;
 }
 
 
@@ -559,6 +565,7 @@ void k2main::TestCommand(const std::string in)
 
     if(busy)
         return;
+    busy = true;
 
     bool ans = false;
     bool store_uci = uci;
@@ -633,6 +640,7 @@ void k2main::TestCommand(const std::string in)
     SetupPosition(start_position);
     if(!ans)
         std::cout << "Integration testing FAILED\n";
+    busy = false;
 }
 
 
@@ -757,7 +765,8 @@ void k2main::SetOptionCommand(const std::string in)
 void k2main::IsReadyCommand(const std::string in)
 {
     (void)(in);
-
+    if(busy)
+        thr.join();
     std::cout << "\nreadyok\n";  // '\n' to avoid multithreading problems
 }
 
@@ -768,7 +777,7 @@ void k2main::IsReadyCommand(const std::string in)
 //--------------------------------
 void k2main::PositionCommand(const std::string in)
 {
-
+    busy = true;
     std::string arg1, arg2;
     GetFirstArg(in, &arg1, &arg2);
 
@@ -788,13 +797,17 @@ void k2main::PositionCommand(const std::string in)
 
     const int moves = arg2.find("moves");
     if(moves == -1)
+    {
+        busy = false;
         return;
+    }
 
     auto mov_seq = arg2.substr(moves + 5, in.size());
     const auto beg = mov_seq.find_first_not_of(" \t");
     mov_seq = mov_seq.substr(beg, mov_seq.size());
 
     ProcessMoveSequence(mov_seq);
+    busy = false;
 }
 
 
