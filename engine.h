@@ -175,7 +175,7 @@ protected:
     void PrintFinalSearchResult();
     void PrintCurrentSearchResult(eval_t sc, const u8 exclimation);
     void InitTime();
-    bool DrawDetect() const;
+    bool DrawDetect(const bool in_check);
     bool CheckForInterrupt();
     void MakeNullMove();
     void UnMakeNullMove();

@@ -59,12 +59,12 @@ k2engine::k2engine() :
 k2chess::eval_t k2engine::Search(depth_t depth, eval_t alpha, eval_t beta,
                                  const node_type_t node_type)
 {
-    if(ply >= max_ply - 1 || DrawDetect())
+    bool in_check = IsInCheck();
+    if(ply >= max_ply - 1 || DrawDetect(in_check))
     {
         pv[ply].length = 0;
         return 0;
     }
-    bool in_check = IsInCheck();
     state[ply].in_check = in_check;
 
     if(depth < 0)
@@ -1021,7 +1021,7 @@ bool k2engine::MakeMove(const char *move_str)
                       << std::endl << "resign"
                       << std::endl;
         }
-        for(auto j = 0; j < FIFTY_MOVES; ++j)
+        for(auto j = 0; j < fifty_moves; ++j)
             done_hash_keys[j] = done_hash_keys[j + 1];
 
         halfmoves_made++;
@@ -1059,7 +1059,7 @@ bool k2engine::SetupPosition(const char *fen)
 
 
 //--------------------------------
-bool k2engine::DrawDetect() const
+bool k2engine::DrawDetect(const bool in_check)
 {
     if(material[0] + material[1] == 0)
         return true;
@@ -1070,8 +1070,16 @@ bool k2engine::DrawDetect() const
             && material[0]/centipawn == 4 && material[1]/centipawn == 4)
         return true;
 
-    if(reversible_moves == FIFTY_MOVES)
-        return true;
+    if(reversible_moves == fifty_moves)
+    {
+        if(!in_check)
+            return true;
+        reversible_moves++;
+        const auto x = Search(1, -infinite_score,
+                              -mate_score + 1, cut_node);
+        reversible_moves--;
+        return x > -mate_score;
+    }
 
     return DrawByRepetition();
 }
@@ -1147,7 +1155,7 @@ void k2engine::MakeNullMove()
     ply++;
 
     hash_key ^= key_for_side_to_move;
-    done_hash_keys[FIFTY_MOVES + ply - 1] = hash_key;
+    done_hash_keys[fifty_moves + ply - 1] = hash_key;
 
     wtm ^= white;
 }
@@ -1228,12 +1236,12 @@ bool k2engine::DrawByRepetition() const
         max_count = reversible_moves;
 
     // on case that GUI does not recognize 50 move rule
-    if(max_count > FIFTY_MOVES + (depth_t)ply)
-        max_count = FIFTY_MOVES + ply;
+    if(max_count > fifty_moves + (depth_t)ply)
+        max_count = fifty_moves + ply;
 
     for(auto i = 4; i <= max_count; i += 2)
     {
-        if(hash_key == done_hash_keys[FIFTY_MOVES + ply - i])
+        if(hash_key == done_hash_keys[fifty_moves + ply - i])
             return true;
     }
 

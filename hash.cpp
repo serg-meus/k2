@@ -68,7 +68,7 @@ k2hash::hash_key_t k2hash::InitHashKey() const
 //--------------------------------
 void k2hash::MoveHashKey(const move_c move, const bool special)
 {
-    done_hash_keys[FIFTY_MOVES + ply - 1] = hash_key;
+    done_hash_keys[fifty_moves + ply - 1] = hash_key;
 
     const auto piece = b[move.to_coord];
     const auto &st = k2chess::state[ply];

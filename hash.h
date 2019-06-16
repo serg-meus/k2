@@ -22,8 +22,7 @@ protected:
     typedef u64 hash_key_t;
     typedef u64 node_t;
 
-    // 101 because last 50th move can be a mate
-    const static depth_t FIFTY_MOVES = 101;
+    const static depth_t fifty_moves = 100;
     const hash_key_t key_for_side_to_move = -1ULL;
     const hbound_t
     exact_value = 1,
@@ -95,7 +94,7 @@ protected:
     hash_key_t zorb[2*piece_types][board_width][board_height];
     hash_key_t zorb_en_passant[board_width + 1];
     hash_key_t zorb_castling[16];
-    hash_key_t done_hash_keys[FIFTY_MOVES + max_ply];
+    hash_key_t done_hash_keys[fifty_moves + max_ply];
 
 
 protected:
@@ -112,7 +111,7 @@ protected:
     void TakebackMove(const move_c m)
     {
         k2eval::TakebackMove(m);
-        hash_key = done_hash_keys[FIFTY_MOVES + ply];
+        hash_key = done_hash_keys[fifty_moves + ply];
     }
 
 
