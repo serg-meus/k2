@@ -387,27 +387,25 @@ void k2eval::EvalImbalances()
                 (quantity[black][knight] == 1 &&
                  quantity[black][bishop] == 1))
         {
-            auto stm = black;
-            if(quantity[white][knight] == 1)
-                stm = white;
+            const auto stm = quantity[black][knight] == 1 ? black : white;
             const auto bishop_mask = exist_mask[stm] & type_mask[stm][bishop];
             const auto bishop_id = lower_bit_num(bishop_mask);
-            eval_t ans = 0;
-            const auto o_col = get_col(king_coord(!stm));
-            const auto o_row = get_row(king_coord(!stm));
-            if((o_col == max_col - 1 && (o_row <= 1 || o_row >= max_row - 1)) ||
-                    (o_col == max_col && (o_row == 0 || o_row == max_row)))
-                ans = imbalance_king_in_corner;
-            if((o_col == 0 && (o_row <= 1 || o_row >= max_row - 1)) ||
-                    (o_col == 1 && (o_row == 0 || o_row == max_row)))
-                ans = -imbalance_king_in_corner;
-            const auto coord = coords[stm][bishop_id];
-            bool bishop_on_light_sq = ((get_col(coord)) + get_row(coord)) & 1;
-            if(!bishop_on_light_sq)
-                ans = -ans;
-            if(!stm)
-                ans = -ans;
-            val_end += ans;
+            const auto bishop_coord = coords[stm][bishop_id];
+            const bool is_light_b = (get_col(bishop_coord) +
+                                     get_row(bishop_coord)) & 1;
+            const auto corner1 = is_light_b ? get_coord(0, max_row) : 0;
+            const auto corner2 = is_light_b ? get_coord(max_col, 0) :
+                                              get_coord(max_col, max_row);
+            const auto opp_k = king_coord(!stm);
+            if(king_dist(corner1, opp_k) > 1 && king_dist(corner2, opp_k) > 1)
+                return;
+            const auto opp_col = get_col(opp_k);
+            const auto opp_row = get_row(opp_k);
+            if(opp_col == 0 || opp_row == 0 ||
+                    opp_col == max_col || opp_row == max_row)
+                val_end += stm ? imbalance_king_in_corner :
+                                 -imbalance_king_in_corner;
+            return;
         }
     }
     else if(X == 3)
@@ -1301,6 +1299,31 @@ void k2eval::RunUnitTests()
     SetupPosition("8/8/8/1k5p/8/8/8/K7 w - -");  // Kkp
     EvalImbalances();
     assert(val_end < -pawn_val_end/2);
+
+    SetupPosition("7k/5B2/5K2/8/3N4/8/8/8 w - -");  //KBNk
+    val_end = 0;
+    EvalImbalances();
+    assert(val_end == 0);
+    SetupPosition("7k/4B3/5K2/8/3N4/8/8/8 w - -");  //KBNk
+    val_end = 0;
+    EvalImbalances();
+    assert(val_end == imbalance_king_in_corner);
+    SetupPosition("k7/5n2/8/8/8/b7/8/7K w - -");  //Kkbn
+    val_end = 0;
+    EvalImbalances();
+    assert(val_end == 0);
+    SetupPosition("k7/5n2/8/8/8/b7/8/K7 w - -");  //Kkbn
+    val_end = 0;
+    EvalImbalances();
+    assert(val_end == -imbalance_king_in_corner);
+    SetupPosition("8/8/8/8/8/2k2n2/4b3/1K6 b - -");  //Kkbn
+    val_end = 0;
+    EvalImbalances();
+    assert(val_end == 0);
+    SetupPosition("8/1K6/8/8/8/2k2n2/4b3/8 b - -");  //Kkbn
+    val_end = 0;
+    EvalImbalances();
+    assert(val_end == 0);
 
     // bishop pairs
     SetupPosition("rn1qkbnr/pppppppp/8/8/8/8/PPPPPPPP/R1BQKBNR w KQkq -");
