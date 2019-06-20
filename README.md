@@ -3,11 +3,12 @@ K2, the chess engine
 
 Author: Sergey Meus, Russian Federation.
 
-Latest release version: 0.91 (July, 2018).
+Latest release version: 0.95 (June, 2019).
 
-Strength: about 2600 Elo.
+Strength: about 2700 Elo.
 
-Link for download executable: https://github.com/serg-meus/k2/releases/091
+Link for download executable: https://github.com/serg-meus/k2/releases/tag/095
+
 http://sdchess.ru/russian_engines.htm
 
 Main features:
