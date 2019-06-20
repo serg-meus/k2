@@ -363,16 +363,20 @@ void k2eval::EvalImbalances()
             return;
         }
         // KPkn, KPkb
-        if(material[white]/centipawn == 1 && material[black]/centipawn == 4)
-            val_end += bishop_val_end + pawn_val_end/4;
-        // KNkp, KBkp
-        if(material[black]/centipawn == 1 && material[white]/centipawn == 4)
-            val_end -= bishop_val_end + pawn_val_end/4;
+        else if((material[white]/centipawn == 1 &&
+                 material[black]/centipawn == 4) ||
+                (material[black]/centipawn == 1 &&
+                 material[white]/centipawn == 4))
+        {
+            val_opn /= imbalance_draw_divider;
+            val_end /= imbalance_draw_divider;
+            return;
+        }
     }
     // KNNk, KBNk, KBBk, etc
     else if(X == 6 && (material[black] == 0 || material[white] == 0))
     {
-        if(quantity[white][pawn] != 0 || quantity[black][pawn] != 0)
+        if(quantity[white][pawn] || quantity[black][pawn])
             return;
         if(quantity[white][knight] == 2
                 || quantity[black][knight] == 2)
@@ -408,12 +412,41 @@ void k2eval::EvalImbalances()
             return;
         }
     }
+    // KXPkx, where X = {N, B, R, Q}
+    else if((X == 6 || X == 10 || X == 22) &&
+            quantity[white][pawn] + quantity[black][pawn] == 1)
+    {
+        const auto stm = quantity[white][pawn] == 1 ? white : black;
+        const auto pawn_mask = exist_mask[stm] & type_mask[stm][pawn];
+        const auto pawn_id = lower_bit_num(pawn_mask);
+        const auto pawn_coord = coords[stm][pawn_id];
+        const auto telestop = get_coord(get_col(pawn_coord),
+                                        stm ? max_row : 0);
+        auto king_row = get_row(king_coord(stm));
+        if(!stm)
+            king_row = max_row - king_row;
+        const auto king_col = get_col(king_coord(stm));
+        const auto pawn_col = get_col(pawn_coord);
+        const bool king_in_front = king_row >
+                pawn_max[get_col(pawn_coord)][stm] &&
+                std::abs(king_col - pawn_col) <= 1;
+
+        if(king_dist(king_coord(!stm), telestop) <= 1 && (!king_in_front
+                || king_dist(king_coord(stm), pawn_coord) > 2))
+        {
+            val_end /= imbalance_draw_divider;
+            val_opn /= imbalance_draw_divider;
+            return;
+        }
+    }
+    // KBPk(p) with pawn at first(last) file and bishop with 'good' color
     else if(X == 3)
     {
-        if(quantity[black][pawn] + quantity[white][pawn] != 1)
+        if(quantity[black][pawn] > 1 || quantity[white][pawn] > 1)
             return;
-        // KBPk with pawn at first(last) file and bishop with 'good' color
-        const bool stm = material[white] == 0;
+        if(!quantity[white][bishop] && !quantity[black][bishop])
+            return;
+        const bool stm = quantity[white][bishop] == 0;
         const auto pawn_col_min = pawn_max[0][!stm];
         const auto pawn_col_max = pawn_max[max_col][!stm];
         if(pawn_col_max == 0 && pawn_col_min == 0)
@@ -465,6 +498,17 @@ void k2eval::EvalImbalances()
             }
         }
     }
+    // KRB(N)kr or KB(N)B(N)kb(n)
+    else if((X == 13 || X == 9) &&
+            !quantity[white][pawn] && !quantity[black][pawn])
+    {
+        const bool stm = material[white] < material[black];
+        if(!is_king_near_corner(stm))
+        {
+            val_opn = val_opn*imbalance_no_pawns/64;
+            val_end = val_end*imbalance_no_pawns/64;  // no return => goes on
+        }
+    }
 
     // two bishops
     if(quantity[white][bishop] == 2)
@@ -479,10 +523,12 @@ void k2eval::EvalImbalances()
     }
 
     // pawn absence for both sides
-    if(quantity[white][pawn] == 0
-            && quantity[black][pawn] == 0
+    if(!quantity[white][pawn] && !quantity[black][pawn]
             && material[white] != 0 && material[black] != 0)
-        val_end /= imbalance_no_pawns;
+    {
+        val_opn = val_opn*imbalance_no_pawns/64;
+        val_end = val_end*imbalance_no_pawns/64;
+    }
 
     // multicolored bishops
     if(quantity[white][bishop] == 1
@@ -492,17 +538,20 @@ void k2eval::EvalImbalances()
         const auto wb_id = lower_bit_num(wb_mask);
         const auto bb_mask = exist_mask[black] & type_mask[black][bishop];
         const auto bb_id = lower_bit_num(bb_mask);
-        if(!is_same_color(coords[white][wb_id], coords[black][bb_id]))
+        if(is_same_color(coords[white][wb_id], coords[black][bb_id]))
+            return;
+        const bool only_pawns =
+                material[white]/centipawn - pieces[white] == 4 - 2 &&
+                material[black]/centipawn - pieces[black] == 4 - 2;
+        if(only_pawns && quantity[white][pawn] + quantity[black][pawn] == 1)
         {
-            if(material[white]/centipawn - pieces[white] == 4 - 2
-                    && material[black]/centipawn - pieces[black] == 4 - 2)
-                val_end /= imbalance_multicolor1;
-            else
-                val_end = val_end*imbalance_multicolor2/imbalance_multicolor3;
-
+            val_end /= imbalance_draw_divider;
+            val_opn /= imbalance_draw_divider;
+            return;
         }
+        val_end = val_end*(only_pawns ? imbalance_multicolor1 :
+                                        imbalance_multicolor2)/64;
     }
-
 }
 
 
@@ -835,8 +884,8 @@ bool k2eval::KingHasNoShelter(coord_t k_col, coord_t k_row,
         k_col--;
     const i32 cstl[] = {black_can_castle_left | black_can_castle_right,
                         white_can_castle_left | white_can_castle_right};
-    if(quantity[!stm][queen] == 0 ||
-            k2chess::state[ply].castling_rights & cstl[stm])
+    if(!quantity[!stm][queen] ||
+            (k2chess::state[ply].castling_rights & cstl[stm]))
         return false;
     if(!Sheltered(k_col, k_row, stm))
     {
@@ -949,9 +998,9 @@ void k2eval::EvalKingSafety(const bool stm)
     const bool no_shelter = KingHasNoShelter(k_col, k_row, stm);
     const auto f_saf = no_shelter ? king_saf_attack1*king_saf_attack2/10 :
                                     king_saf_attack2;
-    const auto f_queen = quantity[!stm][queen] == 0 ? king_saf_no_queen : 10;
+    const auto f_queen = !quantity[!stm][queen] ? king_saf_no_queen : 10;
     const auto center = (std::abs(2*k_col - max_col) <= 1 &&
-            quantity[!stm][queen] != 0) ? king_saf_central_files : 0;
+                         quantity[!stm][queen]) ? king_saf_central_files : 0;
 
     const auto ans = center + king_saf_no_shelter*no_shelter +
             attacks*attacks*f_saf/f_queen;
@@ -1220,25 +1269,25 @@ void k2eval::RunUnitTests()
     // endings
     SetupPosition("5k2/8/8/N7/8/8/8/4K3 w - -");  // KNk
     EvalImbalances();
-    assert(val_opn == 0 && val_end == 0);
+    assert(val_end < pawn_val_end/4);
     SetupPosition("5k2/8/8/n7/8/8/8/4K3 w - -");  // Kkn
     EvalImbalances();
-    assert(val_opn == 0 && val_end == 0);
+    assert(val_end > -pawn_val_end/4);
     SetupPosition("5k2/8/8/B7/8/8/8/4K3 w - -");  // KBk
     EvalImbalances();
-    assert(val_opn == 0 && val_end == 0);
+    assert(val_end < pawn_val_end/4);
     SetupPosition("5k2/8/8/b7/8/8/8/4K3 w - -");  // Kkb
     EvalImbalances();
-    assert(val_opn == 0 && val_end == 0);
+    assert(val_end > -pawn_val_end/4);
     SetupPosition("5k2/p7/8/b7/8/8/P7/4K3 w - -");  // KPkbp
     EvalImbalances();
     assert(val_end < bishop_val_end);
     SetupPosition("5k2/8/8/n7/8/8/P7/4K3 w - -");  // KPkn
     EvalImbalances();
-    assert(val_end > pawn_val_end/4);
+    assert(val_end < pawn_val_end/4);
     SetupPosition("5k2/p7/8/B7/8/8/8/4K3 w - -");  // KBkp
     EvalImbalances();
-    assert(val_end < -pawn_val_end/4);
+    assert(val_end > -pawn_val_end/4);
     SetupPosition("5k2/p6p/8/B7/8/8/7P/4K3 w - -");  // KBPkpp
     EvalImbalances();
     assert(val_end > 2*pawn_val_end);
@@ -1275,6 +1324,13 @@ void k2eval::RunUnitTests()
     SetupPosition("1k6/8/1P6/1B6/8/8/8/6K1 w - -");  // KBPk not drawn
     EvalImbalances();
     assert(val_end > bishop_val_end + pawn_val_end/2);
+    SetupPosition("5k2/8/8/3b4/p4P2/8/K7/8 w - -");  // KPkbp drawn
+    EvalImbalances();
+    assert(val_opn == 0 && val_end == 0);
+    SetupPosition("5k2/8/8/3b4/p4P2/8/8/2K5 w - -");  // KPkbp not drawn
+    EvalImbalances();
+    assert(val_end < -bishop_val_end);
+
     SetupPosition("1k6/8/8/P7/8/4N3/8/6K1 w - -");  // KNPk
     EvalImbalances();
     assert(val_end > knight_val_end + pawn_val_end/2);
@@ -1300,30 +1356,72 @@ void k2eval::RunUnitTests()
     EvalImbalances();
     assert(val_end < -pawn_val_end/2);
 
-    SetupPosition("7k/5B2/5K2/8/3N4/8/8/8 w - -");  //KBNk
+    SetupPosition("7k/5B2/5K2/8/3N4/8/8/8 w - -");  // KBNk
     val_end = 0;
     EvalImbalances();
     assert(val_end == 0);
-    SetupPosition("7k/4B3/5K2/8/3N4/8/8/8 w - -");  //KBNk
+    SetupPosition("7k/4B3/5K2/8/3N4/8/8/8 w - -");  // KBNk
     val_end = 0;
     EvalImbalances();
     assert(val_end == imbalance_king_in_corner);
-    SetupPosition("k7/5n2/8/8/8/b7/8/7K w - -");  //Kkbn
+    SetupPosition("k7/5n2/8/8/8/b7/8/7K w - -");  // Kkbn
     val_end = 0;
     EvalImbalances();
     assert(val_end == 0);
-    SetupPosition("k7/5n2/8/8/8/b7/8/K7 w - -");  //Kkbn
+    SetupPosition("k7/5n2/8/8/8/b7/8/K7 w - -");  // Kkbn
     val_end = 0;
     EvalImbalances();
     assert(val_end == -imbalance_king_in_corner);
-    SetupPosition("8/8/8/8/8/2k2n2/4b3/1K6 b - -");  //Kkbn
+    SetupPosition("8/8/8/8/8/2k2n2/4b3/1K6 b - -");  // Kkbn
     val_end = 0;
     EvalImbalances();
     assert(val_end == 0);
-    SetupPosition("8/1K6/8/8/8/2k2n2/4b3/8 b - -");  //Kkbn
+    SetupPosition("8/1K6/8/8/8/2k2n2/4b3/8 b - -");  // Kkbn
     val_end = 0;
     EvalImbalances();
     assert(val_end == 0);
+
+    // imbalances with opponent king near telestop
+    SetupPosition("6k1/4R3/8/8/5KP1/8/3r4/8 b - -");  // KRPkr
+    EvalImbalances();
+    assert(val_end < pawn_val_end/4);
+    SetupPosition("6k1/4Q3/8/8/5KP1/8/3q4/8 b - -");  // KQPkq
+    EvalImbalances();
+    assert(val_end < pawn_val_end/4);
+    SetupPosition("8/4B2k/8/8/5KP1/8/3n4/8 b - -");  // KBPkn
+    EvalImbalances();
+    assert(val_end < pawn_val_end/4);
+    SetupPosition("8/2n1B3/8/8/6k1/1p6/8/1K6 b - -");  // KBknp
+    EvalImbalances();
+    assert(val_end > -pawn_val_end/4);
+    SetupPosition("8/2n1B3/8/8/6K1/1p6/8/1k6 b - -");  // KBknp
+    EvalImbalances();
+    assert(val_end < -pawn_val_end/4);
+    SetupPosition("1r6/8/6k1/8/8/1p6/1K6/1R6 b - -");  // KRkrp
+    EvalImbalances();
+    assert(val_end > -pawn_val_end/4);
+    SetupPosition("6k1/4R3/8/5K2/6P1/8/3r4/8 b - -");  // KRPkr
+    EvalImbalances();
+    assert(val_end > pawn_val_end/4);
+    SetupPosition("2r5/4R3/8/8/3p4/4k3/8/3K4 b - -");  // KRkrp
+    EvalImbalances();
+    assert(val_end < -pawn_val_end/4);
+    SetupPosition("2r5/4R3/8/8/3p4/8/8/3K2k1 b - -");  // KRkrp
+    EvalImbalances();
+    assert(val_end > -pawn_val_end/4);
+    SetupPosition("8/3k4/6K1/4R3/8/6p1/7r/8 w - -");  // KRkrp
+    EvalImbalances();
+    assert(val_end < -pawn_val_end/4);
+
+    SetupPosition("8/4R3/3n1K2/8/1k6/8/8/6r1 b - -");  // KRkrn
+    EvalImbalances();
+    assert(val_end > -pawn_val_end);
+    SetupPosition("4R3/8/1K6/8/8/2B2k2/8/3r4 b - -");  // KRBkr
+    EvalImbalances();
+    assert(val_end > -pawn_val_end);
+    SetupPosition("8/4R2K/3n4/8/1k6/8/8/6r1 b - -");  // KRkrn
+    EvalImbalances();
+    assert(val_end < -pawn_val_end);
 
     // bishop pairs
     SetupPosition("rn1qkbnr/pppppppp/8/8/8/8/PPPPPPPP/R1BQKBNR w KQkq -");
@@ -1349,7 +1447,7 @@ void k2eval::RunUnitTests()
 
     SetupPosition("4kr2/8/8/8/8/8/8/1BBNK3 w - -"); // pawn absense
     EvalImbalances();
-    assert(val_end < bishop_val_end/2);
+    assert(val_end < rook_val_end/2);
 
     // multicolored bishops
     SetupPosition("rn1qkbnr/p1pppppp/8/8/8/8/PPPPPPPP/RN1QKBNR w KQkq -");

@@ -78,10 +78,10 @@ protected:
     mob_knight = 0,
     mobility_divider = 8,
     imbalance_king_in_corner = 200,
-    imbalance_multicolor1 = 2,
-    imbalance_multicolor2 = 4,
-    imbalance_multicolor3 = 5,
-    imbalance_no_pawns = 5,
+    imbalance_multicolor1 = 30,
+    imbalance_multicolor2 = 57,
+    imbalance_draw_divider = 32,
+    imbalance_no_pawns = 24,
     side_to_move_bonus = 8;
 
     eval_t val_opn, val_end;
@@ -146,11 +146,24 @@ protected:
                         std::abs(get_row(from_coord) - get_row(to_coord)));
     }
 
-    bool is_same_color(coord_t coord1, coord_t coord2)
+    bool is_same_color(const coord_t coord1, const coord_t coord2) const
     {
         const auto sum_coord1 = get_col(coord1) + get_row(coord1);
         const auto sum_coord2 = get_col(coord2) + get_row(coord2);
         return (sum_coord1 & 1) == (sum_coord2 & 1);
+    }
+
+    bool is_king_near_corner(const bool stm) const
+    {
+        const auto k = king_coord(stm);
+        const auto min_dist1 = std::min(king_dist(k, get_coord(0, 0)),
+                                        king_dist(k, get_coord(0, max_row)));
+        const auto min_dist2 = std::min(king_dist(k, get_coord(max_col, 0)),
+                                        king_dist(k, get_coord(max_col,
+                                                               max_row)));
+        return std::min(min_dist1, min_dist2) <= 1 &&
+                (get_col(k) == 0 || get_row(k) == 0 ||
+                 get_col(k) == max_col || get_row(k) == max_row);
     }
 
 

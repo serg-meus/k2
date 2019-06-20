@@ -121,7 +121,6 @@ protected:
         {"imbalance_king_in_corner", &imbalance_king_in_corner},
         {"imbalance_multicolor1", &imbalance_multicolor1},
         {"imbalance_multicolor2", &imbalance_multicolor2},
-        {"imbalance_multicolor3", &imbalance_multicolor3},
         {"imbalance_no_pawns", &imbalance_no_pawns},
         {"side_to_move_bonus", &side_to_move_bonus},
     };
