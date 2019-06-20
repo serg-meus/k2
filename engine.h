@@ -42,7 +42,7 @@ protected:
     const depth_t lmp_min_depth = 2;
     const size_t lmp_max_move = 6;
     const eval_t delta_pruning_margin = 100;
-    const depth_t futility_max_depth = 2;
+    const depth_t futility_max_depth = 3;
     const eval_t futility_marg0 = 185;
     const eval_t futility_marg1 = 220;
     const eval_t futility_marg2 = 255;
@@ -274,9 +274,8 @@ protected:
 
     bool FutilityPruning(depth_t depth, eval_t beta, bool in_check)
     {
-        const eval_t margin[3] = {futility_marg0,
-                                  futility_marg1,
-                                  futility_marg2};
+        const eval_t margin[] = {futility_marg0, futility_marg1,
+                                  futility_marg2, futility_marg2};
         if(depth > futility_max_depth || in_check || beta >= mate_score)
             return false;
         if(k2chess::state[ply].captured_piece != empty_square ||
