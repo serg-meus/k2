@@ -685,15 +685,18 @@ void k2engine::InitSearch()
 
 
 //--------------------------------
-bool k2engine::CanFinishMainSearch(const eval_t x, const eval_t prev_x) const
+bool k2engine::CanFinishMainSearch(const eval_t x, const eval_t prev_x)
 {
     if(time_control.time_spent > time_control.time_to_think &&
             time_control.max_nodes_to_search == 0
             && root_ply >= 2)
         return true;
     if(std::abs(x) > mate_score && std::abs(prev_x) > mate_score
-            && !stop && root_ply >= 2)
+            && !stop && root_ply >= max_depth_for_single_move)
+    {
+        ClearHash();
         return true;
+    }
     if(root_moves.size() == 1 && root_ply >= max_depth_for_single_move
             && root_moves_to_search.empty())
         return true;

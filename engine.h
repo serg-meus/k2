@@ -203,7 +203,7 @@ protected:
     size_t FindMaxMoveIndex(move_c * const move_array,
                             const size_t max_moves,
                             const size_t cur_move) const;
-    bool CanFinishMainSearch(const eval_t x, const eval_t prev_x) const;
+    bool CanFinishMainSearch(const eval_t x, const eval_t prev_x);
     void CheckForResign(const eval_t x);
     bool IsInCheck();
     bool GetRootSearchBounds(const eval_t x, const eval_t prev_x,
