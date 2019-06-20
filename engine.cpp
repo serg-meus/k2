@@ -5,7 +5,7 @@
 
 
 k2engine::k2engine() :
-    engine_version{"0.92dev"},
+    engine_version{"0.95"},
     debug_variation{""},
     debug_ply{}
 {
