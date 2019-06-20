@@ -53,7 +53,7 @@ protected:
     const depth_t max_depth_for_single_move = 8;
 
     const size_t max_moves_to_shuffle = 4;
-    const eval_t eval_to_resign = 700;
+    const eval_t eval_to_resign = 1300;
     const depth_t moves_to_resign = 3;
 
     const size_t moves_for_time_exact_mode = 8;
