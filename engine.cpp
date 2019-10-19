@@ -427,7 +427,9 @@ k2chess::eval_t k2engine::RootSearch(const depth_t depth, eval_t alpha,
         }
         else
         {
-            x = -Search(depth - 1, -alpha - 1, -alpha, cut_node);
+            const auto lmr = LateMoveReduction(depth, cur_move, in_check,
+                                               root_move_cr, cut_node);
+            x = -Search(depth - lmr - 1, -alpha - 1, -alpha, cut_node);
             if(uci && root_ply > min_depth_to_show_uci_info)
                 ShowCurrentUciInfo();
             if(!stop && x > alpha)
