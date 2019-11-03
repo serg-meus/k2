@@ -299,7 +299,7 @@ protected:
 
     piece_t set_color(const piece_t piece, const bool stm) const
     {
-        return (piece & ~white) | stm;
+        return (piece & ~static_cast<piece_t>(white)) | stm;
     }
 
     bool is_light(const piece_t piece, const bool stm) const
