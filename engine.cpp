@@ -1100,8 +1100,10 @@ bool k2engine::CheckForInterrupt()
     {
         if(stats.nodes >=
                 time_control.max_nodes_to_search - nodes_to_check_stop)
+        {
             stop = true;
             return true;
+        }
     }
     if(time_control.infinite_analyze ||
             (pondering_in_process && !time_control.spent_exact_time))
