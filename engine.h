@@ -49,7 +49,7 @@ protected:
     const depth_t one_reply_min_depth = 2;
     const eval_t qs_min_material_to_drop = 2400;
     const depth_t qs_beta_exceed_to_drop = 250;
-    const eval_t aspiration_margin = 47;
+    const eval_t aspiration_margin = 32;
     const depth_t max_depth_for_single_move = 8;
 
     const size_t max_moves_to_shuffle = 4;
@@ -206,8 +206,8 @@ protected:
     bool CanFinishMainSearch(const eval_t x, const eval_t prev_x);
     void CheckForResign(const eval_t x);
     bool IsInCheck();
-    bool GetRootSearchBounds(const eval_t x, const eval_t prev_x,
-                             eval_t &alpha, eval_t &beta);
+    bool GetRootSearchBounds(const eval_t x,
+                             eval_t *alpha, eval_t *beta);
 
     void CorrectHashScore(eval_t *x, depth_t depth)
     {

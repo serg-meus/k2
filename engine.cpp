@@ -300,33 +300,31 @@ void k2engine::Perft(const depth_t depth)
 
 
 //--------------------------------
-bool k2engine::GetRootSearchBounds(const eval_t x, const eval_t prev_x,
-                                   eval_t &alpha, eval_t &beta)
+bool k2engine::GetRootSearchBounds(const eval_t x,
+                                   eval_t *alpha, eval_t *beta)
 {
     if(stop)
         return false;
 
-    if(alpha == beta)
+    if(*alpha == *beta)
     {
-        alpha = AddEval(x, -aspiration_margin);
-        beta = AddEval(x, aspiration_margin);
+        *alpha = AddEval(x, -aspiration_margin);
+        *beta = AddEval(x, aspiration_margin);
     }
-    else if(x <= alpha)
+    else if(x <= *alpha)
     {
-        if(beta != infinite_score)
-            beta = AddEval(prev_x, aspiration_margin);
-        alpha = -infinite_score;
+        *alpha = AddEval(*alpha, 2*(*alpha - *beta));
+        *beta = AddEval(*beta, aspiration_margin);
     }
-    else if(x >= beta)
+    else if(x >= *beta)
     {
-        if(alpha != -infinite_score)
-            alpha = AddEval(prev_x, -aspiration_margin);
-        beta = infinite_score;
+        *alpha = AddEval(*alpha, -aspiration_margin);
+        *beta = AddEval(*beta, 2*(*beta - *alpha));
     }
     else
         return false;
 
-    assert(alpha < beta);
+    assert(*alpha < *beta);
     return true;
 }
 
@@ -354,7 +352,7 @@ void k2engine::MainSearch()
     {
         const auto prev_x = x;
         eval_t alpha = 0, beta = 0;
-        while(GetRootSearchBounds(x, prev_x, alpha, beta))
+        while(GetRootSearchBounds(x, &alpha, &beta))
             x = RootSearch(root_ply, alpha, beta);
         if(stop)
             x = prev_x;
