@@ -1654,7 +1654,7 @@ bool k2engine::IsInCheck()
 
     if(move.flag & (is_en_passant | is_promotion))
     {
-        if(IsDiscoveredEnPassant(wtm, move))
+        if(IsDiscoveredEnPassant(wtm, move, ply - 1))
             return true;
     }
     else

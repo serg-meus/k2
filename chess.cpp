@@ -378,10 +378,12 @@ bool k2chess::IsDiscoveredAttack(const move_c move) const
 
 
 //--------------------------------
-bool k2chess::IsDiscoveredEnPassant(const bool stm, const move_c move) const
+bool k2chess::IsDiscoveredEnPassant(const bool stm, const move_c move,
+                                    const depth_t _ply_) const
 {
     const bool enps = move.flag & is_en_passant;
-    const auto enps_taken_coord = get_coord(state[ply].en_passant_rights - 1,
+    assert(!enps || state[_ply_].en_passant_rights != 0);
+    const auto enps_taken_coord = get_coord(state[_ply_].en_passant_rights - 1,
                                    get_row(move.from_coord));
     for(auto ray_id = 0; ray_id < 8; ++ray_id)
     {
@@ -398,8 +400,7 @@ bool k2chess::IsDiscoveredEnPassant(const bool stm, const move_c move) const
                 break;
             if(b[coord] == empty_square)
                 continue;
-            if((move.flag & is_en_passant) &&
-                    (coord == enps_taken_coord || coord == move.from_coord))
+            if(enps && (coord == enps_taken_coord || coord == move.from_coord))
                 continue;
             if(is_light(b[coord], stm))
                 break;
@@ -1501,7 +1502,7 @@ bool k2chess::IsLegal(const move_c move) const
     const auto piece_type = get_type(b[move.from_coord]);
     if(piece_type == king)
         return IsLegalKingMove(move);
-    if((move.flag & is_en_passant) && IsDiscoveredEnPassant(wtm, move))
+    if((move.flag & is_en_passant) && IsDiscoveredEnPassant(wtm, move, ply))
         return false;
     const auto k_coord = king_coord(wtm);
     const auto attack_sum = attacks[!wtm][k_coord];
@@ -1509,8 +1510,7 @@ bool k2chess::IsLegal(const move_c move) const
     assert(king_attackers <= 2);
     if(king_attackers == 2)
         return false;
-    const auto att_mask = attacks[!wtm][move.from_coord] & slider_mask[!wtm];
-    if(att_mask && IsDiscoveredAttack(move))
+    if(IsDiscoveredAttack(move))
         return false;
     if(king_attackers == 0)
         return true;

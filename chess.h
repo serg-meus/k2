@@ -253,7 +253,9 @@ protected:
     void MoveToAlgebraicNotation(const move_c move, char *out) const;
     void ProcessAmbiguousNotation(const move_c move, char *out) const;
     bool IsDiscoveredAttack(const move_c move) const;
-    bool IsDiscoveredEnPassant(const bool stm, const move_c move) const;
+    bool IsDiscoveredEnPassant(const bool stm, const move_c move,
+                               const depth_t _ply_) const;
+    bool InitPieceLists(bool stm);
 
     coord_t get_coord(const coord_t col, const coord_t row) const
     {
@@ -363,7 +365,6 @@ protected:
 private:
 
 
-    bool InitPieceLists(bool stm);
     void ShowMove(const move_c move);
     void StoreCurrentBoardState(const move_c m);
     void MakeCapture(const move_c m);
