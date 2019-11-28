@@ -1591,7 +1591,7 @@ void k2chess::MoveToAlgebraicNotation(const move_c move, char *out) const
     else if(piece_char != 'P')
     {
         *(out++) = piece_char;
-        ProcessAmbiguousNotation(move, out);
+        out = ProcessAmbiguousNotation(move, out);
         if(move.flag & is_capture)
             *(out++) = 'x';
         *(out++) = get_col(move.to_coord) + 'a';
@@ -1620,7 +1620,7 @@ void k2chess::MoveToAlgebraicNotation(const move_c move, char *out) const
 
 
 //-----------------------------
-void k2chess::ProcessAmbiguousNotation(const move_c move, char *out) const
+char* k2chess::ProcessAmbiguousNotation(const move_c move, char *out) const
 {
     move_c move_array[8];
     auto amb_cr = 0;
@@ -1647,7 +1647,7 @@ void k2chess::ProcessAmbiguousNotation(const move_c move, char *out) const
         move_array[amb_cr++] = tmp;
     }
     if(!amb_cr)
-        return;
+        return out;
 
     bool same_cols = false, same_rows = false;
     for(auto i = 0; i < amb_cr; i++)
@@ -1666,6 +1666,7 @@ void k2chess::ProcessAmbiguousNotation(const move_c move, char *out) const
         *(out++) = get_row(init_from_coord) + '1';
     else
         *(out++) = get_col(init_from_coord) + 'a';
+    return out;
 }
 
 

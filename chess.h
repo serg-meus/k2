@@ -251,7 +251,7 @@ protected:
     bool PrintMoveSequence(const move_c * const moves, const size_t length,
                            const bool coordinate_notation);
     void MoveToAlgebraicNotation(const move_c move, char *out) const;
-    void ProcessAmbiguousNotation(const move_c move, char *out) const;
+    char *ProcessAmbiguousNotation(const move_c move, char *out) const;
     bool IsDiscoveredAttack(const move_c move) const;
     bool IsDiscoveredEnPassant(const bool stm, const move_c move,
                                const depth_t _ply_) const;
