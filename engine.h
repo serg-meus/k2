@@ -231,30 +231,24 @@ protected:
 
     bool IsRecapture()
     {
-        return(k2chess::state[ply - 1].captured_piece
-                && k2chess::state[ply].captured_piece
-                && k2chess::state[ply].move.to_coord ==
-                k2chess::state[ply - 1].move.to_coord
-                && k2chess::state[ply - 1].move.priority > bad_captures
-                && k2chess::state[ply].move.priority > bad_captures);
+        const auto &cur = k2chess::state[ply];
+        const auto &prev = k2chess::state[ply - 1];
+        return(cur.captured_piece && prev.captured_piece &&
+               cur.move.to_coord == prev.move.to_coord && cur.move.priority >
+               bad_captures && prev.move.priority > bad_captures);
     }
 
     depth_t LateMoveReduction(const depth_t depth, move_c cur_move,
                               bool in_check,  size_t move_cr,
                               node_type_t node_type)
     {
-        auto ans = 1;
-        if(depth < lmr_min_depth || cur_move.flag || in_check)
-            ans = 0;
-        else if(move_cr < lmr_max_move)
-            ans = 0;
-        else if(get_type(b[cur_move.to_coord]) == pawn &&
+        if(depth < lmr_min_depth || cur_move.flag ||
+                in_check || move_cr < lmr_max_move)
+            return 0;
+        if(get_type(b[cur_move.to_coord]) == pawn &&
                 IsPasser(get_col(cur_move.to_coord), !wtm))
-            ans = 0;
-        else if(depth <= lmr_big_depth && move_cr > lmr_big_max_move &&
-                node_type != pv_node)
-            ans = 2;
-        return ans;
+            return 0;
+        return 1 + (node_type != pv_node && move_cr > lmr_big_max_move);
     }
 
     bool DeltaPruning(eval_t alpha, move_c cur_move)
