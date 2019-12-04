@@ -37,7 +37,6 @@ protected:
     const depth_t null_move_min_r = 3;
     const depth_t lmr_min_depth = 3;
     const size_t lmr_max_move = 4;
-    const depth_t lmr_big_depth = 6;
     const size_t lmr_big_max_move = 7;
     const depth_t lmp_min_depth = 2;
     const size_t lmp_max_move = 6;
@@ -145,12 +144,12 @@ public:
         k2eval::EvalDebug();
     }
 
-    bool WhiteIsOnMove()
+    bool WhiteIsOnMove() const
     {
         return wtm == white;
     }
 
-    eval_t AddEval(const i32 x1, const i32 x2)
+    eval_t AddEval(const i32 x1, const i32 x2) const
     {
         if(x1 + x2 >= infinite_score)
             return infinite_score;
@@ -205,11 +204,11 @@ protected:
                             const size_t cur_move) const;
     bool CanFinishMainSearch(const eval_t x, const eval_t prev_x);
     void CheckForResign(const eval_t x);
-    bool IsInCheck();
+    bool IsInCheck() const;
     bool GetRootSearchBounds(const eval_t x,
-                             eval_t *alpha, eval_t *beta);
+                             eval_t *alpha, eval_t *beta) const;
 
-    void CorrectHashScore(eval_t *x, depth_t depth)
+    void CorrectHashScore(eval_t * const x, const depth_t depth) const
     {
         if(*x > mate_score && *x != infinite_score)
             *x += ply - depth - 1;
@@ -229,7 +228,7 @@ protected:
             TakebackAttacks();
     }
 
-    bool IsRecapture()
+    bool IsRecapture() const
     {
         const auto &cur = k2chess::state[ply];
         const auto &prev = k2chess::state[ply - 1];
@@ -238,9 +237,9 @@ protected:
                bad_captures && prev.move.priority > bad_captures);
     }
 
-    depth_t LateMoveReduction(const depth_t depth, move_c cur_move,
-                              bool in_check,  size_t move_cr,
-                              node_type_t node_type)
+    depth_t LateMoveReduction(const depth_t depth, const move_c cur_move,
+                              const bool in_check, const size_t move_cr,
+                              const node_type_t node_type) const
     {
         if(depth < lmr_min_depth || cur_move.flag ||
                 in_check || move_cr < lmr_max_move)
@@ -251,7 +250,7 @@ protected:
         return 1 + (node_type != pv_node && move_cr > lmr_big_max_move);
     }
 
-    bool DeltaPruning(eval_t alpha, move_c cur_move)
+    bool DeltaPruning(const eval_t alpha, const move_c cur_move) const
     {
         if(quantity[black][rook] == 0 && quantity[white][rook] == 0 &&
                 quantity[black][queen] == 0 && quantity[white][queen] == 0)
@@ -266,7 +265,8 @@ protected:
         return cur_eval + capture + margin < alpha;
     }
 
-    bool FutilityPruning(depth_t depth, eval_t beta, bool in_check)
+    bool FutilityPruning(const depth_t depth, const eval_t beta,
+                         const bool in_check)
     {
         const eval_t margin[] = {futility_marg0, futility_marg1,
                                   futility_marg2, futility_marg2};
@@ -290,7 +290,7 @@ protected:
         return true;
     }
 
-    bool MateDistancePruning(eval_t alpha, eval_t *beta)
+    bool MateDistancePruning(const eval_t alpha, eval_t * const beta) const
     {
         auto mate_sc = king_value - ply;
         if(alpha >= mate_sc)

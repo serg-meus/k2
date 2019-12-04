@@ -326,7 +326,7 @@ protected:
         return __builtin_clz(mask) ^ 31;
     }
 
-    template <typename T> int sgn(T val) const
+    template <typename T> int sgn(const T val) const
     {
         return (T(0) < val) - (val < T(0));
     }
@@ -459,7 +459,7 @@ private:
         return rmask;
     }
 
-    void InitQuantity(bool stm)
+    void InitQuantity(const bool stm)
     {
         auto mask = exist_mask[stm];
         while(mask)

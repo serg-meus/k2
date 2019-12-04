@@ -155,8 +155,6 @@ protected:
     void PositionCommand(const std::string in);
     void ProcessMoveSequence(const std::string in);
     void UciGoCommand(const std::string in);
-    void EasyCommand(const std::string in);
-    void HardCommand(const std::string in);
     void PonderhitCommand(const std::string in);
     void AnalyzeCommand(const std::string in);
     void ExitCommand(const std::string in);
@@ -169,13 +167,13 @@ protected:
     void TuningResultCommand(const std::string in);
     void TuneParamCommand(const std::string in);
 
-    bool SetParamValue(const std::string param, double val);
+    bool SetParamValue(const std::string param, const double val);
     bool SetPstValue(const std::string param, double val);
     double GetEvalError();
     void TuningParsePos(std::string fen, parsed_pos_s *pos, double result);
     void TuningApplyPosData(parsed_pos_s *pos_struct);
 
-    bool test_perft(const char *pos, depth_t depth, node_t node_cr)
+    bool test_perft(const char *pos, const depth_t depth, const node_t node_cr)
     {
         stats.nodes = 0;
         SetupPosition(pos);
@@ -186,8 +184,8 @@ protected:
         return stats.nodes == node_cr;
     }
 
-    bool test_search(const char *pos, depth_t depth, const char *best_move,
-                     bool avoid_move)
+    bool test_search(const char *pos, const depth_t depth,
+                     const char *best_move, const bool avoid_move)
     {
         bool ans = true;
         SetupPosition(pos);
@@ -207,7 +205,7 @@ protected:
         return ans;
     }
 
-    double sigmoid(const double s)
+    double sigmoid(const double s) const
     {
         return 1/(1 + pow(10, -tuning_factor*s/400));
     }

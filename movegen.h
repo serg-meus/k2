@@ -36,7 +36,6 @@ protected:
     second_killer = 198,
     first_killer = 199,
     move_from_hash = std::numeric_limits<priority_t>::max(),
-    king_capture = std::numeric_limits<priority_t>::max(),
     bad_captures = 63;
     
     struct principal_variation_s

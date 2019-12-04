@@ -119,7 +119,42 @@ void k2eval::FastEval(const move_c move)
 
 
 //-----------------------------
-void k2eval::InitEvalOfMaterialAndPst()
+void k2eval::InitEvalOfMaterial()
+{
+    val_opn = 0;
+    val_end = 0;
+    for(auto col = 0; col <= max_col; ++col)
+        for(auto row = 0; row <= max_row; ++row)
+        {
+            auto piece = b[get_coord(col, row)];
+            if(piece == empty_square)
+                continue;
+
+            auto type = get_type(piece);
+            auto delta_o = material_values_opn[type];
+            auto delta_e = material_values_end[type];
+
+            if(piece & white)
+            {
+                val_opn += delta_o;
+                val_end += delta_e;
+            }
+            else
+            {
+                val_opn -= delta_o;
+                val_end -= delta_e;
+            }
+    }
+    state[ply].val_opn = val_opn;
+    state[ply].val_end = val_end;
+}
+
+
+
+
+
+//-----------------------------
+void k2eval::InitEvalOfPST()
 {
     val_opn = 0;
     val_end = 0;
@@ -150,8 +185,8 @@ void k2eval::InitEvalOfMaterialAndPst()
                 val_end -= delta_e;
             }
     }
-    state[ply].val_opn = val_opn;
-    state[ply].val_end = val_end;
+    state[ply].val_opn += val_opn;
+    state[ply].val_end += val_end;
 }
 
 
@@ -559,97 +594,59 @@ void k2eval::EvalImbalances()
 
 
 //-----------------------------
+void k2eval::DbgOut(const char *str, eval_t &vo, eval_t &ve, eval_t &sum) const
+{
+    std::cout << str << '\t';
+    std::cout << val_opn - vo << '\t' << val_end - ve << '\t'
+              << ReturnEval(white) - sum << std::endl;
+    vo = val_opn;
+    ve = val_end;
+    sum = ReturnEval(white);
+}
+
+
+
+
+
+//-----------------------------
 k2chess::eval_t k2eval::EvalDebug()
 {
+    using namespace std;
+    eval_t store_vo = 0, store_ve = 0, store_sum = 0;
     state[ply].val_opn = val_opn;
     state[ply].val_end = val_end;
+    cout << "\t\t\tMidgame\tEndgame\tTotal" << endl;
 
-    auto store_vo = val_opn;
-    auto store_ve = val_end;
-    auto store_sum = ReturnEval(white);
-    std::cout << "\t\t\tMidgame\tEndgame\tTotal" << std::endl;
-    std::cout << "Material + PST\t\t";
-    std::cout << val_opn << '\t' << val_end << '\t'
-              << store_sum << std::endl;
-
+    InitEvalOfMaterial();
+    DbgOut("Material both sides", store_vo, store_ve, store_sum);
+    InitEvalOfPST();
+    DbgOut("PST both sides\t", store_vo, store_ve, store_sum);
     EvalPawns(white);
-    std::cout << "White pawns\t\t";
-    std::cout << val_opn - store_vo << '\t' << val_end - store_ve << '\t'
-              << ReturnEval(white) - store_sum << std::endl;
-    store_vo = val_opn;
-    store_ve = val_end;
-    store_sum = ReturnEval(white);
+    DbgOut("White pawns\t", store_vo, store_ve, store_sum);
     EvalPawns(black);
-    std::cout << "Black pawns\t\t";
-    std::cout << val_opn - store_vo << '\t' << val_end - store_ve << '\t'
-              << ReturnEval(white) - store_sum << std::endl;
-    store_vo = val_opn;
-    store_ve = val_end;
-    store_sum = ReturnEval(white);
-
+    DbgOut("Black pawns\t", store_vo, store_ve, store_sum);
     EvalKingSafety(white);
-    std::cout << "King safety white\t";
-    std::cout << val_opn - store_vo << '\t' << val_end - store_ve << '\t'
-              << ReturnEval(white) - store_sum << std::endl;
-    store_vo = val_opn;
-    store_ve = val_end;
-    store_sum = ReturnEval(white);
+    DbgOut("King safety white", store_vo, store_ve, store_sum);
     EvalKingSafety(black);
-    std::cout << "King safety black\t";
-    std::cout << val_opn - store_vo << '\t' << val_end - store_ve << '\t'
-              << ReturnEval(white) - store_sum << std::endl;
-    store_vo = val_opn;
-    store_ve = val_end;
-    store_sum = ReturnEval(white);
-
+    DbgOut("King safety black", store_vo, store_ve, store_sum);
     EvalMobility(white);
-    std::cout << "Mobility white\t\t";
-    std::cout << val_opn - store_vo << '\t' << val_end - store_ve << '\t'
-              << ReturnEval(white) - store_sum << std::endl;
-    store_vo = val_opn;
-    store_ve = val_end;
-    store_sum = ReturnEval(white);
+    DbgOut("Mobility white\t", store_vo, store_ve, store_sum);
     EvalMobility(black);
-    std::cout << "Mobility black\t\t";
-    std::cout << val_opn - store_vo << '\t' << val_end - store_ve << '\t'
-              << ReturnEval(white) - store_sum << std::endl;
-    store_vo = val_opn;
-    store_ve = val_end;
-    store_sum = ReturnEval(white);
-
+    DbgOut("Mobility black\t", store_vo, store_ve, store_sum);
     EvalRooks(white);
-    std::cout << "Rooks white\t\t";
-    std::cout << val_opn - store_vo << '\t' << val_end - store_ve << '\t'
-              << ReturnEval(white) - store_sum << std::endl;
-    store_vo = val_opn;
-    store_ve = val_end;
-    store_sum = ReturnEval(white);
+    DbgOut("Rooks white\t", store_vo, store_ve, store_sum);
     EvalRooks(black);
-    std::cout << "Rooks black\t\t";
-    std::cout << val_opn - store_vo << '\t' << val_end - store_ve << '\t'
-              << ReturnEval(white) - store_sum << std::endl;
-    store_vo = val_opn;
-    store_ve = val_end;
-    store_sum = ReturnEval(white);
-
+    DbgOut("Rooks black\t", store_vo, store_ve, store_sum);
     EvalImbalances();
-    std::cout << "Imbalances summary\t";
-    std::cout << val_opn - store_vo << '\t' << val_end - store_ve << '\t'
-              << ReturnEval(white) - store_sum << std::endl;
-    store_vo = val_opn;
-    store_ve = val_end;
-    store_sum = ReturnEval(white);
-
+    DbgOut("Imbalances both sides", store_vo, store_ve, store_sum);
     auto ans = -ReturnEval(wtm);
     ans -= side_to_move_bonus;
-    std::cout << "Bonus for side to move\t\t\t";
-    std::cout << (wtm ? side_to_move_bonus : -side_to_move_bonus)
-              << std::endl << std::endl;
+    cout << "Bonus for side to move\t\t\t";
+    cout << (wtm ? side_to_move_bonus : -side_to_move_bonus)
+              << endl << endl << endl << endl;
 
-    std::cout << std::endl << std::endl;
-
-    std::cout << "Eval summary: " << (wtm ? -ans : ans) << std::endl;
-    std::cout << "(positive values means advantage for white)" << std::endl;
+    cout << "Grand total: " << (wtm ? -ans : ans) << endl;
+    cout << "(positive values means advantage for white)" << endl;
 
     val_opn = state[ply].val_opn;
     val_end = state[ply].val_end;
@@ -962,7 +959,7 @@ k2chess::attack_t k2eval::KingSafetyBatteries(const coord_t targ_coord,
 
 //-----------------------------
 size_t k2eval::CountAttacksOnKing(const bool stm, const coord_t k_col,
-                                  const coord_t k_row)
+                                  const coord_t k_row) const
 {
     size_t ans = 0;
     for(auto delta_col = -1; delta_col <= 1; ++delta_col)
@@ -1179,7 +1176,8 @@ pst
     p_min[9][white] = 7;
 
     InitPawnStruct();
-    InitEvalOfMaterialAndPst();
+    InitEvalOfMaterial();
+    InitEvalOfPST();
 }
 
 

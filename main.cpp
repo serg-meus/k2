@@ -1036,7 +1036,7 @@ bool k2main::SetPstValue(const std::string param, double val)
 
 
 //--------------------------------
-bool k2main::SetParamValue(const std::string param, double val)
+bool k2main::SetParamValue(const std::string param, const double val)
 {
     bool found = false;
     for(auto p : eval_params)
@@ -1123,7 +1123,8 @@ void k2main::TuningApplyPosData(parsed_pos_s *pos)
     memcpy(p_max, pos->p_max, sizeof(p_max));
     memcpy(p_min, pos->p_min, sizeof(p_min));
     k2chess::state[0].castling_rights = pos->castling_rights;
-    InitEvalOfMaterialAndPst();
+    InitEvalOfMaterial();
+    InitEvalOfPST();
 }
 
 

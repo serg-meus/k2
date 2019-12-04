@@ -301,7 +301,7 @@ void k2engine::Perft(const depth_t depth)
 
 //--------------------------------
 bool k2engine::GetRootSearchBounds(const eval_t x,
-                                   eval_t *alpha, eval_t *beta)
+                                   eval_t *alpha, eval_t *beta) const
 {
     if(stop)
         return false;
@@ -728,17 +728,19 @@ void k2engine::CheckForResign(const eval_t x)
 //--------------------------------
 void k2engine::PrintFinalSearchResult()
 {
+    using namespace std;
+
     char move_str[6];
     MoveToCoordinateNotation(pv[0].moves[0], move_str);
 
     if(!uci && !MakeMove(move_str))
-        std::cout << "tellusererror err01"
-                  << std::endl << "resign" << std::endl;
+        cout << "tellusererror err01"
+                  << endl << "resign" << endl;
     if(!uci)
-        std::cout << "move " << move_str << std::endl;
+        cout << "move " << move_str << endl;
     else
     {
-        std::cout << "bestmove " << move_str;
+        cout << "bestmove " << move_str;
         if(!time_control.infinite_analyze)
         {
             char pndr[6] = "a1a1";
@@ -759,40 +761,40 @@ void k2engine::PrintFinalSearchResult()
                 }
                 TakebackMove(pv[0].moves[0]);
             }
-            std::cout << " ponder " << pndr;
+            cout << " ponder " << pndr;
         }
-        std::cout << std::endl;
+        cout << endl;
     }
 
     if(xboard || uci || !enable_output)
         return;
 
-    std::cout << "( nodes = " << stats.nodes
+    cout << "( nodes = " << stats.nodes
               << ", cuts = [";
     if(stats.cut_cr == 0)
         stats.cut_cr = 1;
     for(size_t i = 0;
         i < sizeof(stats.cut_num_cr)/sizeof(*(stats.cut_num_cr));
         ++i)
-        std::cout << std::setprecision(1) << std::fixed
+        cout << setprecision(1) << fixed
                   << 100.*stats.cut_num_cr[i]/stats.cut_cr << " ";
-    std::cout << "]% )" << std::endl;
+    cout << "]% )" << endl;
 
-    std::cout << "( q_nodes = " << stats.q_nodes
+    cout << "( q_nodes = " << stats.q_nodes
               << ", q_cuts = [";
     if(stats.q_cut_cr == 0)
         stats.q_cut_cr = 1;
     for(size_t i = 0;
         i < sizeof(stats.q_cut_num_cr)/sizeof(*(stats.q_cut_num_cr));
         ++i)
-        std::cout << std::setprecision(1) << std::fixed
+        cout << setprecision(1) << fixed
                   << 100.*stats.q_cut_num_cr[i]/stats.q_cut_cr << " ";
-    std::cout << "]%, ";
+    cout << "]%, ";
     if(stats.nodes == 0)
         stats.nodes = 1;
-    std::cout << "q/n = " << std::setprecision(1) << std::fixed
+    cout << "q/n = " << setprecision(1) << fixed
               << 100.*stats.q_nodes/stats.nodes
-              << "% )" << std::endl;
+              << "% )" << endl;
 
     if(stats.hash_probe_cr == 0)
         stats.hash_probe_cr = 1;
@@ -800,49 +802,49 @@ void k2engine::PrintFinalSearchResult()
         stats.hash_hit_cr = 1;
     if(stats.hash_best_move_cr == 0)
         stats.hash_best_move_cr = 1;
-    std::cout << "( hash probes = " << stats.hash_probe_cr
+    cout << "( hash probes = " << stats.hash_probe_cr
               << ", cuts by val = "
-              << std::setprecision(1) << std::fixed
+              << setprecision(1) << fixed
               << 100.*stats.hash_cut_cr/stats.hash_probe_cr << "%, "
               << "cuts by best move = "
               << 100.*stats.hash_cutoff_by_best_move_cr /
                  stats.hash_best_move_cr << "% )"
-              << std::endl
+              << endl
               << "( hash full = "
               << (i32)100*hash_table.size()/hash_table.max_size()
               << "% (" << hash_table.size()/sizeof(hash_entry_s)
               << "/" << hash_table.max_size()/sizeof(hash_entry_s)
-              << " entries )" << std::endl;
+              << " entries )" << endl;
 
     if(stats.null_probe_cr == 0)
         stats.null_probe_cr = 1;
-    std::cout << "( null move probes = " << stats.null_probe_cr
+    cout << "( null move probes = " << stats.null_probe_cr
               << ", cutoffs = "
-              << std::setprecision(1) << std::fixed
+              << setprecision(1) << fixed
               << 100.*stats.null_cut_cr/stats.null_probe_cr << "% )"
-              << std::endl;
+              << endl;
 
     if(stats.futility_probes == 0)
         stats.futility_probes = 1;
-    std::cout << "( futility probes = " << stats.futility_probes
-              << ", hits = " << std::setprecision(1) << std::fixed
+    cout << "( futility probes = " << stats.futility_probes
+              << ", hits = " << setprecision(1) << fixed
               << 100.*stats.futility_hits/stats.futility_probes
-              << "% )" << std::endl;
+              << "% )" << endl;
 
     if(stats.killer1_probes == 0)
         stats.killer1_probes = 1;
-    std::cout << "( killer1 probes = " << stats.killer1_probes
-              << ", hits = " << std::setprecision(1) << std::fixed
+    cout << "( killer1 probes = " << stats.killer1_probes
+              << ", hits = " << setprecision(1) << fixed
               << 100.*stats.killer1_hits/stats.killer1_probes
-              << "% )" << std::endl;
+              << "% )" << endl;
     if(stats.killer1_probes == 0)
         stats.killer1_probes = 1;
-    std::cout << "( killer2 probes = " << stats.killer2_probes
-              << ", hits = " << std::setprecision(1) << std::fixed
+    cout << "( killer2 probes = " << stats.killer2_probes
+              << ", hits = " << setprecision(1) << fixed
               << 100.*stats.killer2_hits/stats.killer2_probes
-              << "% )" << std::endl;
-    std::cout << "( time spent = " << time_control.time_spent/1.e6
-              << "s )" << std::endl;
+              << "% )" << endl;
+    cout << "( time spent = " << time_control.time_spent/1.e6
+              << "s )" << endl;
 }
 
 
@@ -865,7 +867,7 @@ void k2engine::PrintCurrentSearchResult(const eval_t max_value,
     {
         cout << "info depth " << root_ply;
 
-        if(std::abs(max_value) < mate_score)
+        if(abs(max_value) < mate_score)
             cout << " score cp " << max_value;
         else
         {
@@ -904,40 +906,38 @@ void k2engine::PrintCurrentSearchResult(const eval_t max_value,
 //-----------------------------
 void k2engine::InitTime()
 {
-    if(!time_control.time_command_sent)
-        time_control.time_remains -= time_control.time_spent;
-    if(time_control.time_remains < 0)
-        time_control.time_remains = 0;
+    auto tc = &time_control;
+    if(!tc->time_command_sent)
+        tc->time_remains -= tc->time_spent;
+    if(tc->time_remains < 0)
+        tc->time_remains = 0;
 
-    if(time_control.moves_per_session == 0)
-        time_control.moves_to_go = default_moves_to_go;
+    if(tc->moves_per_session == 0)
+        tc->moves_to_go = default_moves_to_go;
     else if(uci)
-        time_control.moves_to_go = time_control.moves_per_session;
+        tc->moves_to_go = tc->moves_per_session;
     else
-        time_control.moves_to_go = time_control.moves_per_session -
-                (halfmoves_made/2 % time_control.moves_per_session);
+        tc->moves_to_go = tc->moves_per_session -
+                (halfmoves_made/2 % tc->moves_per_session);
 
-    if(time_control.time_base == 0)
-        time_control.moves_to_go = 1;
+    if(tc->time_base == 0)
+        tc->moves_to_go = 1;
 
-    if(time_control.moves_to_go <= moves_for_time_exact_mode ||
-            (time_control.time_inc == 0 &&
-             time_control.moves_per_session == 0 &&
-             time_control.time_remains <
-             time_control.time_base/exact_time_base_divider))
-        time_control.spent_exact_time = true;
+    if(tc->moves_to_go <= moves_for_time_exact_mode ||
+            (tc->time_inc == 0 && tc->moves_per_session == 0 &&
+             tc->time_remains < tc->time_base/exact_time_base_divider))
+        tc->spent_exact_time = true;
 
 
-    if((uci && time_control.move_remains == 1) ||
-            (!uci && time_control.moves_per_session != 0 &&
-             (halfmoves_made/2 % time_control.moves_per_session) == 0))
+    if((uci && tc->move_remains == 1) || (!uci && tc->moves_per_session != 0 &&
+             (halfmoves_made/2 % tc->moves_per_session) == 0))
     {
-        if(!time_control.time_command_sent)
-            time_control.time_remains += time_control.time_base;
+        if(!tc->time_command_sent)
+            tc->time_remains += tc->time_base;
 
-        if(time_control.moves_to_go > min_moves_for_exact_time)
-            time_control.spent_exact_time = false;
-        if(time_control.moves_to_go > 1)
+        if(tc->moves_to_go > min_moves_for_exact_time)
+            tc->spent_exact_time = false;
+        if(tc->moves_to_go > 1)
         {
             ClearHash();
             memset(killers, 0, sizeof(killers));
@@ -946,31 +946,27 @@ void k2engine::InitTime()
             std::cout << "( ht cleared )\n";
 #endif
         }
-        time_control.move_remains = 0;
+        tc->move_remains = 0;
     }
 #ifndef NDEBUG
     if(enable_output)
         std::cout << "( halfmoves=" << halfmoves_made <<
-                     ", movestogo=" << (int)time_control.moves_to_go <<
-                     ", movespersession=" << time_control.moves_per_session <<
-                     ", exacttime=" << (int)time_control.spent_exact_time <<
+                     ", movestogo=" << (int)tc->moves_to_go <<
+                     ", movespersession=" << tc->moves_per_session <<
+                     ", exacttime=" << (int)tc->spent_exact_time <<
                      " )\n";
 #endif
-    if(!time_control.time_command_sent)
-        time_control.time_remains += time_control.time_inc;
-    time_control.time_to_think =
-            time_control.time_remains/time_control.moves_to_go;
-    if(time_control.time_inc == 0 && time_control.moves_to_go != 1 &&
-            !time_control.spent_exact_time)
-        time_control.time_to_think /= time_to_think_divider;
-    else if(time_control.time_inc != 0 && time_control.time_base != 0)
-        time_control.time_to_think +=
-                time_control.time_inc/increment_time_divider;
+    if(!tc->time_command_sent)
+        tc->time_remains += tc->time_inc;
+    tc->time_to_think = tc->time_remains/tc->moves_to_go;
+    if(tc->time_inc == 0 && tc->moves_to_go != 1 && !tc->spent_exact_time)
+        tc->time_to_think /= time_to_think_divider;
+    else if(tc->time_inc != 0 && tc->time_base != 0)
+        tc->time_to_think += tc->time_inc/increment_time_divider;
 
-    time_control.time_command_sent = false;
+    tc->time_command_sent = false;
     if(uci)
-        time_control.move_remains =
-                time_control.moves_per_session == 1 ? 1 : 0;
+        tc->move_remains = tc->moves_per_session == 1 ? 1 : 0;
 }
 
 
@@ -1014,7 +1010,8 @@ bool k2engine::MakeMove(const char *move_str)
         memmove(&eng_state[0], &eng_state[1],
                 (prev_states + 2)*sizeof(k2engine::state_s));
         ply--;
-        InitEvalOfMaterialAndPst();
+        InitEvalOfMaterial();
+        InitEvalOfPST();
         if(enable_output && (val_opn != store_val_opn ||
                              val_end != store_val_end))
         {
@@ -1538,23 +1535,25 @@ void k2engine::StoreInHash(const depth_t depth, eval_t score,
 //-----------------------------
 void k2engine::ShowCurrentUciInfo()
 {
+    using namespace std;
+
     if(!enable_output)
         return;
     const double t = time_control.timer.getElapsedTimeInMicroSec();
 
-    std::cout << "info nodes " << stats.nodes
+    cout << "info nodes " << stats.nodes
               << " nps " <<
                  (i32)(1000000 * stats.nodes / (t - time_control.time0 + 1));
 
     const auto move = root_moves.at(root_move_cr).second;
     char move_str[6];
     MoveToCoordinateNotation(move, move_str);
-    std::cout << " currmove " << move_str;
-    std::cout << " currmovenumber " << root_move_cr + 1;
-    std::cout << " hashfull ";
+    cout << " currmove " << move_str;
+    cout << " currmovenumber " << root_move_cr + 1;
+    cout << " hashfull ";
 
     size_t hash_size = 1000.*hash_table.size() / hash_table.max_size();
-    std::cout << hash_size << std::endl;
+    cout << hash_size << endl;
 }
 
 
@@ -1597,7 +1596,7 @@ void k2engine::ClearHash()
 
 
 //-----------------------------
-bool k2engine::IsInCheck()
+bool k2engine::IsInCheck() const
 {
     if(k2chess::state[ply - 1].move.to_coord == is_null_move)
         return false;

@@ -104,7 +104,8 @@ public:
     {
         bool ans = k2chess::SetupPosition(p);
         InitPawnStruct();
-        InitEvalOfMaterialAndPst();
+        InitEvalOfMaterial();
+        InitEvalOfPST();
         memset(e_state, 0, sizeof(e_state));
         return ans;
     }
@@ -124,7 +125,8 @@ protected:
 
     void FastEval(const move_c m);
     eval_t Eval();
-    void InitEvalOfMaterialAndPst();
+    void InitEvalOfMaterial();
+    void InitEvalOfPST();
     void InitPawnStruct();
     void SetPawnStruct(const coord_t col);
     bool IsPasser(const coord_t col, const bool stm) const;
@@ -184,5 +186,6 @@ private:
                                  const bool stm) const;
     void EvalRooks(const bool stm);
     size_t CountAttacksOnKing(const bool stm, const coord_t k_col,
-                              const coord_t k_row);
+                              const coord_t k_row) const;
+    void DbgOut(const char *str, eval_t &vo, eval_t &ve, eval_t &sum) const;
 };
