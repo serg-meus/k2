@@ -37,8 +37,6 @@ int main(int argc, char* argv[])
 k2main::k2main() : force(false), quit(false), use_thread(true)
 {
     ClearHash();
-
-//    tuning_factors.assign(2, 1); // two params with value 1
 }
 
 
@@ -1011,23 +1009,22 @@ void k2main::ExitCommand(const std::string in)
 
 
 //--------------------------------
-bool k2main::SetPstValue(const std::string param, double val)
+bool k2main::SetPstValue(const std::string param, eval_t val_mid,
+                         eval_t val_end)
 {
-    if(param.size() != 8)
+    if(param.size() != 7)
         return false;
-    char c1 = param[4], c2 = param[5], c3 = param[6], c4 = param[7];
+    char c1 = param[4], c2 = param[5], c3 = param[6];
     char chars[] = "kqrbnp";
-    pst_t i1 = 0;
+    piece_t i1 = 0;
     for(; i1 < piece_types; ++i1)
         if(chars[i1] == c1)
             break;
-    pst_t i2 = c2 == 'o' ? 0 : (c2 == 'e' ? 1 : -1);
-    pst_t i3 = c3 - 'a', i4 = c4 - '1';
-    if(i1 < 0 || i2 < 0 || i3 < 0 || i4 < 0 || i1 >= piece_types ||
-            i2 >= sides || i3 > max_col || i4 > max_row)
+    coord_t i3 = c2 - 'a', i4 = c3 - '1';
+    if(i1 >= piece_types || i3 > max_col || i4 > max_row)
         return false;
 
-    pst[i1][i2][max_row - i4][i3] = val;
+    pst[i1][max_row - i4][i3] = {val_mid, val_end};
     return true;
 }
 
@@ -1036,22 +1033,26 @@ bool k2main::SetPstValue(const std::string param, double val)
 
 
 //--------------------------------
-bool k2main::SetParamValue(const std::string param, const double val)
+bool k2main::SetParamValue(const std::string param, const eval_t val,
+                           const bool is_mid)
 {
     bool found = false;
     for(auto p : eval_params)
         if(param == p.first)
         {
-            *(p.second) = val;
+            if(is_mid)
+                p.second->real(val);
+            else
+                p.second->imag(val);
             found = true;
         }
     if(found)
         return true;
 
     if(param == "tuning_factor")
-        tuning_factor = val;
+        tuning_factor.real(val);
     else if(param.rfind("pst_", 0) == 0)
-        return SetPstValue(param, val);
+        return SetPstValue(param, val, is_mid);
     else
         return false;
     return true;
@@ -1065,11 +1066,13 @@ bool k2main::SetParamValue(const std::string param, const double val)
 void k2main::SetvalueCommand(const std::string in)
 {
 
-    std::string arg1, arg2;
+    std::string arg1, arg2, arg3;
     GetFirstArg(in, &arg1, &arg2);
-    auto val = atof(arg2.c_str());
+    GetFirstArg(arg2, &arg2, &arg3);
+    const auto val_mid = atof(arg2.c_str());
+    const auto val_end = atof(arg3.c_str());
 
-    if(!SetParamValue(arg1, val))
+    if(!SetParamValue(arg1, val_mid, val_end))
         std::cout << "error: wrong parameter name" << std ::endl;
 }
 
@@ -1123,8 +1126,7 @@ void k2main::TuningApplyPosData(parsed_pos_s *pos)
     memcpy(p_max, pos->p_max, sizeof(p_max));
     memcpy(p_min, pos->p_min, sizeof(p_min));
     k2chess::state[0].castling_rights = pos->castling_rights;
-    InitEvalOfMaterial();
-    InitEvalOfPST();
+    state[0].eval = InitEvalOfMaterial() + InitEvalOfPST();
 }
 
 
@@ -1148,6 +1150,13 @@ void k2main::TuningLoadCommand(const std::string in)
         cout << "Error: epd file not found" << endl;
         return;
     }
+    cout << "Loading..." << endl;
+    size_t lines = 0;
+    while(getline(myfile, line))
+        lines++;
+    training_positions.reserve(lines);
+    myfile.clear();
+    myfile.seekg(0);
     while(getline(myfile, line))
     {
         auto pos = line.find_first_of("\"");
@@ -1188,8 +1197,8 @@ double k2main::GetEvalError()
     for(auto pos : training_positions)
     {
         TuningApplyPosData(&pos);
-        double x = wtm ? -Eval() : Eval();
-        const auto sigm = sigmoid(x);
+        double eval = Eval(white, state[0].eval);
+        const auto sigm = sigmoid(eval);
         const auto dif = (pos.result - sigm);
         const auto sq_dif = dif*dif;
         sum += sq_dif;
@@ -1234,15 +1243,18 @@ void k2main::TuneParamCommand(const std::string in)
     GetFirstArg(arg2, &arg2, &arg3);
 
     const double phi = 1.618;
-    double a = atof(arg1.c_str());
-    double b = atof(arg2.c_str());
-    double eps = atof(arg3.c_str());
-    if(eps <= 0)
-        eps = 1;
+    eval_t a = atoi(arg1.c_str());
+    eval_t b = atoi(arg2.c_str());
+    bool is_mid = arg3 == "mid";
     int flag = 0;
     double y1 = 0, y2 = 0;
 
-    if(!SetParamValue(param, (a + b)/2))
+    if(arg3 != "mid" && arg3 != "end")
+    {
+        cout << "Error: third parameter 'mid' or 'end' nod defined" << endl;
+        return;
+    }
+    if(!SetParamValue(param, a, b))
     {
         cout << "Error: wrong param name" << endl;
         return;
@@ -1259,12 +1271,12 @@ void k2main::TuneParamCommand(const std::string in)
             y2 = y1;
         if(flag != 1)
         {
-            SetParamValue(param, x1);
+            SetParamValue(param, x1, is_mid);
             y1 = GetEvalError();
         }
         if(flag != 2)
         {
-            SetParamValue(param, x2);
+            SetParamValue(param, x2, is_mid);
             y2 = GetEvalError();
         }
 
@@ -1280,12 +1292,13 @@ void k2main::TuneParamCommand(const std::string in)
         }
         cout << " Current " << param << " best value: "
              << (a + b)/2 << " ± " << abs(b - a);
-        if(abs(b - a) < eps)
+        if(abs(b - a) <= 2)
             break;
     }
-    const auto x = (a + b)/2;
-    SetParamValue(param, x);
+    const eval_t x = (a + b)/2;
+    SetParamValue(param, x, is_mid);
     cout << endl;
+
 }
 
 

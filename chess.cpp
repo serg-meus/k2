@@ -1409,7 +1409,8 @@ bool k2chess::IsSameRay(const coord_t given_coord, const coord_t beg_coord,
 {
     const auto beg = pseudocoord(beg_coord);
     const auto id1 = find_ray_mask[2*board_size + pseudocoord(end_coord) - beg];
-    const auto id2 = find_ray_mask[2*board_size + pseudocoord(given_coord) - beg];
+    const auto id2 = find_ray_mask[2*board_size +
+            pseudocoord(given_coord) - beg];
     return id1 & id2;
 }
 

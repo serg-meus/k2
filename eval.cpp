@@ -5,26 +5,96 @@
 
 
 //-----------------------------
-k2chess::eval_t k2eval::Eval()
+k2chess::eval_t k2eval::Eval(const bool stm, eval_vect cur_eval)
 {
-    state[ply].val_opn = val_opn;
-    state[ply].val_end = val_end;
-
-    for(auto color: {black, white})
+    for(auto side: {black, white})
     {
-        EvalPawns(color);
-        EvalRooks(color);
-        EvalKingSafety(color);
-        EvalMobility(color);
+        cur_eval += EvalPawns(side, stm);
+        cur_eval += EvalRooks(side);
+        cur_eval += EvalKingSafety(side);
+        cur_eval += EvalMobility(side);
     }
-    EvalImbalances();
+    cur_eval += EvalSideToMove(stm);
+    cur_eval = EvalImbalances(stm, cur_eval);
 
-    auto ans = -ReturnEval(wtm);
-    ans -= side_to_move_bonus;
+    return GetEvalScore(stm, cur_eval);
+}
 
-    val_opn = state[ply].val_opn;
-    val_end = state[ply].val_end;
 
+
+
+
+//-----------------------------
+k2eval::eval_vect k2eval::FastEval(const bool stm, const move_c move) const
+{
+    eval_vect ans = {0, 0};
+
+    auto x = get_col(move.to_coord);
+    auto y = get_row(move.to_coord);
+    auto x0 = get_col(move.from_coord);
+    auto y0 = get_row(move.from_coord);
+    auto to_type = get_type(b[move.to_coord]);
+    if(!stm)
+    {
+        y = max_row - y;
+        y0 = max_row - y0;
+    }
+
+    if(move.flag & is_promotion)
+    {
+        ans -= material_values[pawn] + pst[pawn - 1][y0][x0];
+
+        piece_t prom_pc[] =
+        {
+            black_queen, black_knight, black_rook, black_bishop
+        };
+        const auto type = get_type(prom_pc[(move.flag & is_promotion) - 1]);
+        ans += material_values[type] + pst[type - 1][y0][x0];
+    }
+
+    if(move.flag & is_capture)
+    {
+        auto captured_piece = k2chess::state[ply].captured_piece;
+        if(move.flag & is_en_passant)
+            ans += material_values[pawn] + pst[pawn - 1][max_row - y0][x];
+        else
+        {
+            const auto type = get_type(captured_piece);
+            ans += material_values[type] + pst[type - 1][max_row - y][x];
+        }
+    }
+    else if(move.flag & is_right_castle)
+    {
+        const auto r_col = default_king_col + cstl_move_length - 1;
+        ans += pst[rook - 1][max_row][r_col] - pst[rook - 1][max_row][max_col];
+    }
+    else if(move.flag & is_left_castle)
+    {
+        auto r_col = default_king_col - cstl_move_length + 1;
+        ans += pst[rook - 1][max_row][r_col] - pst[rook - 1][max_row][0];
+    }
+    ans += pst[to_type - 1][y][x] - pst[to_type - 1][y0][x0];
+
+    return stm ? -ans : ans;
+}
+
+
+
+
+
+//-----------------------------
+k2eval::eval_vect k2eval::InitEvalOfMaterial()
+{
+    eval_vect ans = {0, 0};
+    for(auto col = 0; col <= max_col; ++col)
+        for(auto row = 0; row <= max_row; ++row)
+        {
+            auto piece = b[get_coord(col, row)];
+            if(piece == empty_square)
+                continue;
+            auto delta = material_values[get_type(piece)];
+            ans += (piece & white) ? delta : -delta;
+    }
     return ans;
 }
 
@@ -33,131 +103,9 @@ k2chess::eval_t k2eval::Eval()
 
 
 //-----------------------------
-void k2eval::FastEval(const move_c move)
+k2eval::eval_vect k2eval::InitEvalOfPST()
 {
-    eval_t ansO = 0, ansE = 0;
-
-    auto x = get_col(move.to_coord);
-    auto y = get_row(move.to_coord);
-    auto x0 = get_col(move.from_coord);
-    auto y0 = get_row(move.from_coord);
-    auto to_type = get_type(b[move.to_coord]);
-    if(!wtm)
-    {
-        y = max_row - y;
-        y0 = max_row - y0;
-    }
-
-    coord_t type;
-    auto flag = move.flag & is_promotion;
-    if(flag)
-    {
-        type = pawn;
-        ansO -= material_values_opn[type] + pst[type - 1][opening][y0][x0];
-        ansE -= material_values_end[type] + pst[type - 1][endgame][y0][x0];
-
-        piece_t promo_pieces[] =
-        {
-            black_queen, black_knight, black_rook, black_bishop
-        };
-        type = get_type(promo_pieces[flag - 1]);
-        ansO += material_values_opn[type] + pst[type - 1][opening][y0][x0];
-        ansE += material_values_end[type] + pst[type - 1][endgame][y0][x0];
-
-    }
-
-    if(move.flag & is_capture)
-    {
-        auto captured_piece = k2chess::state[ply].captured_piece;
-        if(move.flag & is_en_passant)
-        {
-            type = pawn;
-            ansO += material_values_opn[type] +
-                    pst[type - 1][opening][max_row - y0][x];
-            ansE += material_values_end[type] +
-                    pst[type - 1][endgame][max_row - y0][x];
-        }
-        else
-        {
-            type = get_type(captured_piece);
-            ansO += material_values_opn[type] +
-                    pst[type - 1][opening][max_row - y][x];
-            ansE += material_values_end[type] +
-                    pst[type - 1][endgame][max_row - y][x];
-        }
-    }
-    else if(move.flag & is_right_castle)
-    {
-        type = rook;
-        auto rook_col = default_king_col + cstl_move_length - 1;
-        ansO += pst[type - 1][opening][max_row][rook_col] -
-                pst[type - 1][opening][max_row][max_col];
-        ansE += pst[type - 1][endgame][max_row][rook_col] -
-                pst[type - 1][endgame][max_row][max_col];
-    }
-    else if(move.flag & is_left_castle)
-    {
-        type = rook;
-        auto rook_col = default_king_col - cstl_move_length + 1;
-        ansO += pst[type - 1][opening][max_row][rook_col] -
-                pst[type - 1][opening][max_row][0];
-        ansE += pst[type - 1][endgame][max_row][rook_col] -
-                pst[type - 1][endgame][max_row][0];
-    }
-
-    ansO += pst[to_type - 1][opening][y][x] -
-            pst[to_type - 1][opening][y0][x0];
-    ansE += pst[to_type - 1][endgame][y][x] -
-            pst[to_type - 1][endgame][y0][x0];
-
-    val_opn += wtm ? -ansO : ansO;
-    val_end += wtm ? -ansE : ansE;
-}
-
-
-
-
-
-//-----------------------------
-void k2eval::InitEvalOfMaterial()
-{
-    val_opn = 0;
-    val_end = 0;
-    for(auto col = 0; col <= max_col; ++col)
-        for(auto row = 0; row <= max_row; ++row)
-        {
-            auto piece = b[get_coord(col, row)];
-            if(piece == empty_square)
-                continue;
-
-            auto type = get_type(piece);
-            auto delta_o = material_values_opn[type];
-            auto delta_e = material_values_end[type];
-
-            if(piece & white)
-            {
-                val_opn += delta_o;
-                val_end += delta_e;
-            }
-            else
-            {
-                val_opn -= delta_o;
-                val_end -= delta_e;
-            }
-    }
-    state[ply].val_opn = val_opn;
-    state[ply].val_end = val_end;
-}
-
-
-
-
-
-//-----------------------------
-void k2eval::InitEvalOfPST()
-{
-    val_opn = 0;
-    val_end = 0;
+    eval_vect ans = {0, 0};
     for(auto col = 0; col <= max_col; ++col)
         for(auto row = 0; row <= max_row; ++row)
         {
@@ -169,24 +117,10 @@ void k2eval::InitEvalOfPST()
                 row_ = max_row - row;
 
             auto type = get_type(piece);
-            auto delta_o = material_values_opn[type] +
-                    pst[type - 1][opening][row_][col];
-            auto delta_e = material_values_end[type] +
-                    pst[type - 1][endgame][row_][col];
-
-            if(piece & white)
-            {
-                val_opn += delta_o;
-                val_end += delta_e;
-            }
-            else
-            {
-                val_opn -= delta_o;
-                val_end -= delta_e;
-            }
+            auto delta = pst[type - 1][row_][col];
+            ans += (piece & white) ? delta : -delta;
     }
-    state[ply].val_opn += val_opn;
-    state[ply].val_end += val_end;
+    return ans;
 }
 
 
@@ -198,12 +132,9 @@ bool k2eval::IsPasser(const coord_t col, const bool stm) const
 {
     auto mx = pawn_max[col][stm];
 
-    if(mx >= max_row - pawn_min[col][!stm]
-            && mx >= max_row - pawn_min[col - 1][!stm]
-            && mx >= max_row - pawn_min[col + 1][!stm])
-        return true;
-    else
-        return false;
+    return (mx >= max_row - pawn_min[col][!stm] &&
+            mx >= max_row - pawn_min[col - 1][!stm] &&
+            mx >= max_row - pawn_min[col + 1][!stm]);
 }
 
 
@@ -211,120 +142,101 @@ bool k2eval::IsPasser(const coord_t col, const bool stm) const
 
 
 //--------------------------------
-void k2eval::EvalPawns(const bool stm)
+k2eval::eval_vect k2eval::EvalPawns(const bool side, const bool stm)
 {
-    eval_t ansO = 0, ansE = 0;
+    eval_vect ans = {0, 0};
     bool passer, prev_passer = false;
-    bool opp_only_pawns = material[!stm]/centipawn == pieces[!stm] - 1;
+    bool opp_only_pawns = material[!side]/centipawn == pieces[!side] - 1;
 
     for(auto col = 0; col <= max_col; col++)
     {
         bool doubled = false, isolany = false;
 
-        auto mx = pawn_max[col][stm];
+        const eval_t mx = pawn_max[col][side];
         if(mx == 0)
         {
             prev_passer = false;
             continue;
         }
 
-        if(pawn_min[col][stm] != mx)
+        if(pawn_min[col][side] != mx)
             doubled = true;
-        if(pawn_max[col - 1][stm] == 0 && pawn_max[col + 1][stm] == 0)
+        if(pawn_max[col - 1][side] == 0 && pawn_max[col + 1][side] == 0)
             isolany = true;
         if(doubled && isolany)
-        {
-            ansE += pawn_dbl_iso_end;
-            ansO += pawn_dbl_iso_opn;
-        }
+            ans -= pawn_dbl_iso;
         else if(isolany)
-        {
-            ansE += pawn_iso_end;
-            ansO += pawn_iso_opn;
-        }
+            ans -= pawn_iso;
         else if(doubled)
-        {
-            ansE += pawn_dbl_end;
-            ansO += pawn_dbl_opn;
-        }
+            ans -= pawn_dbl;
 
-        passer = IsPasser(col, stm);
+        passer = IsPasser(col, side);
         if(!passer)
         {
             // pawn holes occupied by enemy pieces
-            if(col > 0 && col < max_col && mx < pawn_min[col - 1][stm]
-                    && mx < pawn_min[col + 1][stm])
+            if(col > 0 && col < max_col && mx < pawn_min[col - 1][side]
+                    && mx < pawn_min[col + 1][side])
             {
-                auto y_coord = stm ? mx + 1 : max_row - mx - 1;
+                auto y_coord = side ? mx + 1 : max_row - mx - 1;
                 auto op_piece = b[get_coord(col, y_coord)];
-                bool occupied = is_dark(op_piece, stm)
+                bool occupied = is_dark(op_piece, side)
                                 && get_type(op_piece) != pawn;
                 if(occupied)
-                {
-                    ansE += pawn_hole_end;
-                    ansO += pawn_hole_opn;
-                }
+                    ans -= pawn_hole;
             }
             // gaps in pawn structure
-            if(pawn_max[col - 1][stm]
-                    && std::abs(mx - pawn_max[col - 1][stm]) > 1)
-            {
-                ansE += pawn_gap_end;
-                ansO += pawn_gap_opn;
-            }
+            if(pawn_max[col - 1][side]
+                    && std::abs(mx - pawn_max[col - 1][side]) > 1)
+                ans -= pawn_gap;
+
             prev_passer = false;
             continue;
         }
         // following code executed only for passers
 
         // king pawn tropism
-        auto k_coord = king_coord(stm);
-        auto opp_k_coord = king_coord(!stm);
-        auto pawn_coord = get_coord(col, stm ? mx + 1 : max_row - mx - 1);
-        auto k_dist = king_dist(k_coord, pawn_coord);
-        auto opp_k_dist = king_dist(opp_k_coord, pawn_coord);
+        const auto k_coord = king_coord(side);
+        const auto opp_k_coord = king_coord(!side);
+        const auto stop_coord = get_coord(col, side ? mx + 1 : max_row - mx-1);
+        const auto k_dist = king_dist(k_coord, stop_coord);
+        const auto opp_k_dist = king_dist(opp_k_coord, stop_coord);
 
         if(k_dist <= 1)
-            ansE += pawn_king_tropism1 + pawn_king_tropism2*mx;
+            ans += pawn_king_tropism1 + mx*pawn_king_tropism2;
         else if(k_dist == 2)
-            ansE += pawn_king_tropism3;
+            ans += pawn_king_tropism3;
         if(opp_k_dist <= 1)
-            ansE -= pawn_king_tropism1 + pawn_king_tropism2*mx;
+            ans -= pawn_king_tropism1 + mx*pawn_king_tropism2;
         else if(opp_k_dist == 2)
-            ansE -= pawn_king_tropism3;
+            ans -= pawn_king_tropism3;
 
         // passed pawn evaluation
-        eval_t pass[] = {0, pawn_pass_1, pawn_pass_2, pawn_pass_3,
-                         pawn_pass_4, pawn_pass_5, pawn_pass_6};
-        eval_t blocked_pass[] = {0, pawn_blk_pass_1, pawn_blk_pass_2,
-                                 pawn_blk_pass_3, pawn_blk_pass_4,
-                                 pawn_blk_pass_5, pawn_blk_pass_6};
-        auto next_square = get_coord(col, stm ? mx + 1 : max_row - mx - 1);
-        bool blocked = b[next_square] != empty_square;
-        auto delta = blocked ? blocked_pass[mx] : pass[mx];
-
-        ansE += delta;
-        ansO += delta/pawn_pass_opn_divider;
+        const bool blocked = b[stop_coord] != empty_square;
+        const eval_t mx2 = mx*mx;
+        if(blocked)
+            ans += mx2*pawn_blk_pass2 + mx*pawn_blk_pass1 + pawn_blk_pass0;
+        else
+            ans += mx2*pawn_pass2 + mx*pawn_pass1 + pawn_pass0;
 
         // connected passers
         if(passer && prev_passer
-                && std::abs(mx - pawn_max[col - 1][stm]) <= 1)
+                && std::abs(mx - pawn_max[col - 1][side]) <= 1)
         {
-            auto mmx = std::max(pawn_max[col - 1][stm], mx);
+            const eval_t mmx = std::max(
+                        mx, static_cast<eval_t>(pawn_max[col - 1][side]));
             if(mmx > 4)
-                ansE += pawn_pass_connected*mmx;
+                ans += mmx*pawn_pass_connected;
         }
         prev_passer = true;
 
         // unstoppable
-        if(opp_only_pawns && IsUnstoppablePawn(col, stm, wtm))
+        if(opp_only_pawns && IsUnstoppablePawn(col, side, stm))
         {
-            ansO += pawn_unstoppable_1*mx + pawn_unstoppable_2;
-            ansE += pawn_unstoppable_1*mx + pawn_unstoppable_2;
+            ans.real(ans.real() + mx*pawn_unstoppable.real());
+            ans.imag(ans.imag() + pawn_unstoppable.imag());
         }
     }
-    val_opn += stm ? ansO : -ansO;
-    val_end += stm ? ansE : -ansE;
+    return side ? ans : -ans;
 }
 
 
@@ -332,18 +244,19 @@ void k2eval::EvalPawns(const bool stm)
 
 
 //-----------------------------
-bool k2eval::IsUnstoppablePawn(const coord_t col, const bool side_of_pawn,
+bool k2eval::IsUnstoppablePawn(const coord_t col, const bool side,
                                const bool stm) const
 {
-    auto pmax = pawn_max[col][side_of_pawn];
+    auto pmax = pawn_max[col][side];
     if(pmax == pawn_default_row)
         pmax++;
-    auto promo_square = get_coord(col, side_of_pawn ? max_row : 0);
-    int dist = king_dist(king_coord(!side_of_pawn), promo_square);
-    auto k_coord = king_coord(side_of_pawn);
-    if(get_col(k_coord) == col && king_dist(k_coord, promo_square) <= max_row - pmax)
+    const auto promo_square = get_coord(col, side ? max_row : 0);
+    const int dist = king_dist(king_coord(!side), promo_square);
+    const auto k_coord = king_coord(side);
+    if(get_col(k_coord) == col &&
+            king_dist(k_coord, promo_square) <= max_row - pmax)
         pmax--;
-    return dist - (side_of_pawn  != stm) > max_row - pmax;
+    return dist - (side != stm) > max_row - pmax;
 }
 
 
@@ -351,13 +264,14 @@ bool k2eval::IsUnstoppablePawn(const coord_t col, const bool side_of_pawn,
 
 
 //-----------------------------
-void k2eval::EvalMobility(bool stm)
+k2eval::eval_vect k2eval::EvalMobility(bool stm)
 {
-    eval_t f_type[] = {0, 0, mob_queen, mob_rook, mob_bishop, mob_knight};
+    eval_vect f_type[] = {{0, 0}, {0, 0}, mob_queen, mob_rook, mob_bishop,
+                          mob_knight};
     eval_t f_num[] = {-15, -15, -15, -10, -5, 5, 10, 15, 18, 20,
                       21, 21, 21, 22, 22};
 
-    eval_t ans = 0;
+    eval_vect ans = {0, 0};
     auto mask = exist_mask[stm] & slider_mask[stm];
     while(mask)
     {
@@ -369,12 +283,10 @@ void k2eval::EvalMobility(bool stm)
         if(type == queen)
             cr /= 2;
         assert(cr < 15);
-        ans += f_type[type]*f_num[cr];
+        ans += f_num[cr]*f_type[type];
     }
-    ans /= mobility_divider;
-
-    val_opn += stm ? ans : -ans;
-    val_end += stm ? ans : -ans;
+    const eval_t mob_devider = 8;
+    return stm ? ans/mob_devider : -ans/mob_devider;
 }
 
 
@@ -382,7 +294,7 @@ void k2eval::EvalMobility(bool stm)
 
 
 //-----------------------------
-void k2eval::EvalImbalances()
+k2eval::eval_vect k2eval::EvalImbalances(const bool stm, eval_vect val)
 {
     const auto X = material[black]/centipawn + 1 + material[white]/centipawn
             + 1 - pieces[black] - pieces[white];
@@ -392,34 +304,22 @@ void k2eval::EvalImbalances()
     {
         // KNk, KBk, Kkn, Kkb
         if(pieces[black] + pieces[white] == 3)
-        {
-            val_opn = 0;
-            val_end = 0;
-            return;
-        }
+            return {0, 0};
         // KPkn, KPkb
         else if((material[white]/centipawn == 1 &&
                  material[black]/centipawn == 4) ||
                 (material[black]/centipawn == 1 &&
                  material[white]/centipawn == 4))
-        {
-            val_opn /= imbalance_draw_divider;
-            val_end /= imbalance_draw_divider;
-            return;
-        }
+            return vect_div(val, imbalance_draw_divider);
     }
     // KNNk, KBNk, KBBk, etc
     else if(X == 6 && (material[black] == 0 || material[white] == 0))
     {
         if(quantity[white][pawn] || quantity[black][pawn])
-            return;
+            return val;
         if(quantity[white][knight] == 2
                 || quantity[black][knight] == 2)
-        {
-            val_opn = 0;
-            val_end = 0;
-            return;
-        }
+            return {0, 0};
         // many code for mating with only bishop and knight
         else if((quantity[white][knight] == 1 &&
                  quantity[white][bishop] == 1) ||
@@ -437,14 +337,14 @@ void k2eval::EvalImbalances()
                                               get_coord(max_col, max_row);
             const auto opp_k = king_coord(!stm);
             if(king_dist(corner1, opp_k) > 1 && king_dist(corner2, opp_k) > 1)
-                return;
+                return val;
             const auto opp_col = get_col(opp_k);
             const auto opp_row = get_row(opp_k);
             if(opp_col == 0 || opp_row == 0 ||
                     opp_col == max_col || opp_row == max_row)
-                val_end += stm ? imbalance_king_in_corner :
+                return stm ? imbalance_king_in_corner :
                                  -imbalance_king_in_corner;
-            return;
+            return val;
         }
     }
     // KXPkx, where X = {N, B, R, Q}
@@ -468,69 +368,53 @@ void k2eval::EvalImbalances()
 
         if(king_dist(king_coord(!stm), telestop) <= 1 && (!king_in_front
                 || king_dist(king_coord(stm), pawn_coord) > 2))
-        {
-            val_end /= imbalance_draw_divider;
-            val_opn /= imbalance_draw_divider;
-            return;
-        }
+            return vect_div(val, imbalance_draw_divider);
     }
     // KBPk(p) with pawn at first(last) file and bishop with 'good' color
     else if(X == 3)
     {
         if(quantity[black][pawn] > 1 || quantity[white][pawn] > 1)
-            return;
+            return val;
         if(!quantity[white][bishop] && !quantity[black][bishop])
-            return;
+            return val;
         const bool stm = quantity[white][bishop] == 0;
         const auto pawn_col_min = pawn_max[0][!stm];
         const auto pawn_col_max = pawn_max[max_col][!stm];
         if(pawn_col_max == 0 && pawn_col_min == 0)
-            return;
+            return val;
         const auto bishop_mask = exist_mask[!stm] & type_mask[!stm][bishop];
         if(!bishop_mask)
-            return;
+            return val;
         const auto coord = coords[!stm][lower_bit_num(bishop_mask)];
         const auto sq = get_coord(pawn_col_max == 0 ? 0 : max_col,
                                   stm ? 0 : max_row);
         if(is_same_color(coord, sq))
-            return;
+            return val;
 
         if(king_dist(king_coord(stm), sq) <= 1)
-        {
-            val_opn = 0;
-            val_end = 0;
-            return;
-        }
+            return {0, 0};
     }
     else if(X == 0 && (material[white] + material[black])/centipawn == 1)
     {
         // KPk
-        const bool stm = material[white]/centipawn == 1;
-        const auto pawn_mask = exist_mask[stm] & type_mask[stm][pawn];
+        const bool side = material[white]/centipawn == 1;
+        const auto pawn_mask = exist_mask[side] & type_mask[side][pawn];
         const auto pawn_id = lower_bit_num(pawn_mask);
-        const auto coord = coords[stm][pawn_id];
+        const auto coord = coords[side][pawn_id];
         const auto colp = get_col(coord);
-        const bool unstop = IsUnstoppablePawn(colp, stm, wtm);
-        const auto k_coord = king_coord(stm);
-        const auto opp_k_coord = king_coord(!stm);
+        const bool unstop = IsUnstoppablePawn(colp, side, stm);
+        const auto k_coord = king_coord(side);
+        const auto opp_k_coord = king_coord(!side);
         const auto dist_k = king_dist(k_coord, coord);
         const auto dist_opp_k = king_dist(opp_k_coord, coord);
 
-        if(!unstop && dist_k > dist_opp_k + (wtm == stm))
-        {
-            val_opn = 0;
-            val_end = 0;
-            return;
-        }
+        if(!unstop && dist_k > dist_opp_k + (stm == side))
+            return {0, 0};
         else if((colp == 0 || colp == max_col))
         {
-            const auto sq = get_coord(colp, stm ? max_row : 0);
+            const auto sq = get_coord(colp, side ? max_row : 0);
             if(king_dist(opp_k_coord, sq) <= 1)
-            {
-                val_opn = 0;
-                val_end = 0;
-                return;
-            }
+                return {0, 0};
         }
     }
     // KRB(N)kr or KB(N)B(N)kb(n)
@@ -539,54 +423,39 @@ void k2eval::EvalImbalances()
     {
         const bool stm = material[white] < material[black];
         if(!is_king_near_corner(stm))
-        {
-            val_opn = val_opn*imbalance_no_pawns/64;
-            val_end = val_end*imbalance_no_pawns/64;  // no return => goes on
-        }
+            val = vect_mul(val, imbalance_no_pawns)/static_cast<eval_t>(64);
     }
 
     // two bishops
     if(quantity[white][bishop] == 2)
-    {
-        val_opn += bishop_pair;
-        val_end += bishop_pair;
-    }
+        val += bishop_pair;
     if(quantity[black][bishop] == 2)
-    {
-        val_opn -= bishop_pair;
-        val_end -= bishop_pair;
-    }
+        val -= bishop_pair;
 
     // pawn absence for both sides
     if(!quantity[white][pawn] && !quantity[black][pawn]
             && material[white] != 0 && material[black] != 0)
-    {
-        val_opn = val_opn*imbalance_no_pawns/64;
-        val_end = val_end*imbalance_no_pawns/64;
-    }
+        val = vect_mul(val, imbalance_no_pawns)/static_cast<eval_t>(64);
 
     // multicolored bishops
-    if(quantity[white][bishop] == 1
-            && quantity[black][bishop] == 1)
+    if(quantity[white][bishop] == 1 && quantity[black][bishop] == 1)
     {
         const auto wb_mask = exist_mask[white] & type_mask[white][bishop];
         const auto wb_id = lower_bit_num(wb_mask);
         const auto bb_mask = exist_mask[black] & type_mask[black][bishop];
         const auto bb_id = lower_bit_num(bb_mask);
         if(is_same_color(coords[white][wb_id], coords[black][bb_id]))
-            return;
+            return val;
         const bool only_pawns =
                 material[white]/centipawn - pieces[white] == 4 - 2 &&
                 material[black]/centipawn - pieces[black] == 4 - 2;
         if(only_pawns && quantity[white][pawn] + quantity[black][pawn] == 1)
-        {
-            val_end /= imbalance_draw_divider;
-            val_opn /= imbalance_draw_divider;
-            return;
-        }
-        val_end = val_end*(only_pawns ? imbalance_multicolor1 :
-                                        imbalance_multicolor2)/64;
+            return vect_div(val, imbalance_draw_divider);
+        auto Ki = only_pawns ? imbalance_multicolor.real() :
+                               imbalance_multicolor.imag();
+        val.imag(val.imag()*Ki/64);
     }
+    return val;
 }
 
 
@@ -594,14 +463,12 @@ void k2eval::EvalImbalances()
 
 
 //-----------------------------
-void k2eval::DbgOut(const char *str, eval_t &vo, eval_t &ve, eval_t &sum) const
+void k2eval::DbgOut(const char *str, eval_vect val, eval_vect &sum) const
 {
     std::cout << str << '\t';
-    std::cout << val_opn - vo << '\t' << val_end - ve << '\t'
-              << ReturnEval(white) - sum << std::endl;
-    vo = val_opn;
-    ve = val_end;
-    sum = ReturnEval(white);
+    std::cout << val.real() << '\t' << val.imag() << '\t' <<
+                 GetEvalScore(white, val) << std::endl;
+    sum += val;
 }
 
 
@@ -609,49 +476,33 @@ void k2eval::DbgOut(const char *str, eval_t &vo, eval_t &ve, eval_t &sum) const
 
 
 //-----------------------------
-k2chess::eval_t k2eval::EvalDebug()
+void k2eval::EvalDebug(const bool stm)
 {
-    using namespace std;
-    eval_t store_vo = 0, store_ve = 0, store_sum = 0;
-    state[ply].val_opn = val_opn;
-    state[ply].val_end = val_end;
-    cout << "\t\t\tMidgame\tEndgame\tTotal" << endl;
-
-    InitEvalOfMaterial();
-    DbgOut("Material both sides", store_vo, store_ve, store_sum);
-    InitEvalOfPST();
-    DbgOut("PST both sides\t", store_vo, store_ve, store_sum);
-    EvalPawns(white);
-    DbgOut("White pawns\t", store_vo, store_ve, store_sum);
-    EvalPawns(black);
-    DbgOut("Black pawns\t", store_vo, store_ve, store_sum);
-    EvalKingSafety(white);
-    DbgOut("King safety white", store_vo, store_ve, store_sum);
-    EvalKingSafety(black);
-    DbgOut("King safety black", store_vo, store_ve, store_sum);
-    EvalMobility(white);
-    DbgOut("Mobility white\t", store_vo, store_ve, store_sum);
-    EvalMobility(black);
-    DbgOut("Mobility black\t", store_vo, store_ve, store_sum);
-    EvalRooks(white);
-    DbgOut("Rooks white\t", store_vo, store_ve, store_sum);
-    EvalRooks(black);
-    DbgOut("Rooks black\t", store_vo, store_ve, store_sum);
-    EvalImbalances();
-    DbgOut("Imbalances both sides", store_vo, store_ve, store_sum);
-    auto ans = -ReturnEval(wtm);
-    ans -= side_to_move_bonus;
-    cout << "Bonus for side to move\t\t\t";
-    cout << (wtm ? side_to_move_bonus : -side_to_move_bonus)
-              << endl << endl << endl << endl;
-
-    cout << "Grand total: " << (wtm ? -ans : ans) << endl;
-    cout << "(positive values means advantage for white)" << endl;
-
-    val_opn = state[ply].val_opn;
-    val_end = state[ply].val_end;
-
-    return ans;
+    std::cout << "\t\t\tMidgame\tEndgame\tTotal" << std::endl;
+    eval_vect sum = {0, 0}, zeros = {0, 0};
+    DbgOut("Material both sides", InitEvalOfMaterial(), sum);
+    DbgOut("PST both sides\t", InitEvalOfPST(), sum);
+    DbgOut("White pawns\t", EvalPawns(white, stm), sum);
+    DbgOut("Black pawns\t", EvalPawns(black, stm), sum);
+    DbgOut("King safety white", EvalKingSafety(white), sum);
+    DbgOut("King safety black", EvalKingSafety(black), sum);
+    DbgOut("Mobility white\t", EvalMobility(white), sum);
+    DbgOut("Mobility black\t", EvalMobility(black), sum);
+    DbgOut("Rooks white\t", EvalRooks(white), sum);
+    DbgOut("Rooks black\t", EvalRooks(black), sum);
+    DbgOut("Bonus for side to move", EvalSideToMove(stm), sum);
+    DbgOut("Imbalances both sides", EvalImbalances(stm, sum) - sum, zeros);
+    sum = EvalImbalances(stm, sum);
+    eval_vect tmp = InitEvalOfMaterial() + InitEvalOfPST();
+    if(Eval(wtm, tmp) != GetEvalScore(wtm, sum))
+    {
+        assert(true);
+        std::cout << "\nInternal error, please contact with developer\n";
+        return;
+    }
+    std::cout << std::endl << "Grand Total:\t\t" << sum.real() << '\t' <<
+                 sum.imag() << '\t' << GetEvalScore(white, sum) << std::endl;
+    std::cout << "(positive values mean advantage for white)\n\n";
 }
 
 
@@ -726,6 +577,14 @@ void k2eval::MovePawnStruct(const piece_t moved_piece, const move_c move)
 //-----------------------------
 void k2eval::InitPawnStruct()
 {
+    pawn_max = &p_max[1];
+    pawn_min = &p_min[1];
+    for(auto col: {0, 9})
+        for(auto color: {black, white})
+        {
+            p_max[col][color] = 0;
+            p_min[col][color] = 7;
+        }
     for(auto col = 0; col <= max_col; col++)
     {
         pawn_max[col][black] = 0;
@@ -774,13 +633,8 @@ void k2eval::InitPawnStruct()
 //-----------------------------
 bool k2eval::MakeMove(const move_c move)
 {
-    state[ply].val_opn = val_opn;
-    state[ply].val_end = val_end;
-
     bool is_special_move = k2chess::MakeMove(move);
-
     MovePawnStruct(b[move.to_coord], move);
-
     return is_special_move;
 }
 
@@ -798,9 +652,6 @@ void k2eval::TakebackMove(const move_c move)
     MovePawnStruct(b[move.from_coord], move);
     wtm ^= white;
     ply--;
-
-    val_opn = state[ply].val_opn;
-    val_end = state[ply].val_end;
 }
 
 
@@ -808,10 +659,10 @@ void k2eval::TakebackMove(const move_c move)
 
 
 //-----------------------------
-void k2eval::EvalRooks(const bool stm)
+k2eval::eval_vect k2eval::EvalRooks(const bool stm)
 {
-    auto ans = 0;
-    auto rooks_on_last_cr = 0;
+    eval_vect ans = 0;
+    eval_t rooks_on_last_cr = 0;
     auto mask = exist_mask[stm] & type_mask[stm][rook];
     while(mask)
     {
@@ -826,8 +677,8 @@ void k2eval::EvalRooks(const bool stm)
             ans += (pawn_max[get_col(coord)][!stm] == 0 ? rook_open_file :
                                                          rook_semi_open_file);
     }
-    ans += rooks_on_last_cr*rook_on_last_rank;
-    val_opn += (stm ? ans : -ans);
+    ans += rooks_on_last_cr*rook_last_rank;
+    return stm ? ans : -ans;
 }
 
 
@@ -984,25 +835,31 @@ size_t k2eval::CountAttacksOnKing(const bool stm, const coord_t k_col,
 
 
 //-----------------------------
-void k2eval::EvalKingSafety(const bool stm)
+k2eval::eval_vect k2eval::EvalKingSafety(const bool stm)
 {
+    eval_vect zeros = {0, 0};
     if(quantity[!stm][queen] < 1 && quantity[!stm][rook] < 2)
-        return;
+        return zeros;
     const auto k_col = get_col(king_coord(stm));
     const auto k_row = get_row(king_coord(stm));
 
-    const auto attacks = CountAttacksOnKing(stm, k_col, k_row);
-    const bool no_shelter = KingHasNoShelter(k_col, k_row, stm);
-    const auto f_saf = no_shelter ? king_saf_attack1*king_saf_attack2/10 :
-                                    king_saf_attack2;
-    const auto f_queen = !quantity[!stm][queen] ? king_saf_no_queen : 10;
-    const auto center = (std::abs(2*k_col - max_col) <= 1 &&
-                         quantity[!stm][queen]) ? king_saf_central_files : 0;
+    const eval_t attacks = CountAttacksOnKing(stm, k_col, k_row);
+    const eval_t no_shelter = KingHasNoShelter(k_col, k_row, stm);
+    const eval_t div = 10;
+    const eval_vect f_saf = no_shelter ?
+                vect_mul(king_saf_attack1, king_saf_attack2)/div :
+                king_saf_attack2;
+    eval_vect f_queen = {10, 10};
+    if(!quantity[!stm][queen])
+        f_queen = king_saf_no_queen;
+    const eval_vect center = (std::abs(2*k_col - max_col) <= 1 &&
+                              quantity[!stm][queen]) ? king_saf_central_files :
+                                                       zeros;
+    const eval_t att2 = attacks*attacks;
+    const eval_vect ans = center + king_saf_no_shelter*no_shelter +
+            vect_div(att2*f_saf, f_queen);
 
-    const auto ans = center + king_saf_no_shelter*no_shelter +
-            attacks*attacks*f_saf/f_queen;
-
-    val_opn += stm ? -ans : ans;
+    return stm ? -ans : ans;
 }
 
 
@@ -1010,174 +867,79 @@ void k2eval::EvalKingSafety(const bool stm)
 
 
 //-----------------------------
-k2eval::k2eval() : material_values_opn {0, 0, queen_val_opn, rook_val_opn,
-            bishop_val_opn, knight_val_opn, pawn_val_opn},
-    material_values_end {0, 0, queen_val_end, rook_val_end,
-                           bishop_val_end, knight_val_end, pawn_val_end},
+k2eval::k2eval() : material_values {{0, 0}, king_val, queen_val, rook_val,
+            bishop_val, knight_val, pawn_val},
 pst
 {
-    {
-        // KING
-        {   {-121,  62,  89,   25,   -7,  73, 119,  68},
-            { 113, 126,  91,  123,   69, 124, 117,  81},
-            { 121,  82,   9,  -79,  -51, 115, 127,  45},
-            {  20,  72, -63, -103,  -96, -73, 115,   8},
-            { -62,   2, -79, -123, -124, -66,  16, -26},
-            {  26,  40, -37,  -52,  -49, -41,  65,  36},
-            {  27,  59,  29,  -37,    5,  11,  66,  63},
-            { -61,  41,  17,  -43,   56, -15,  71,  22}
-        },
+{ //king
+{{-121,-83},{62,-44},{89,-44},{25,-32}, {-7,-9},  {73,3},   {119,-34},{68,-52}},
+{{113,-35}, {126,-7},{91,6},  {123,16}, {69,15},  {124,28}, {117,-7}, {81,-24}},
+{{121,-17}, {82,8},  {9,26},  {-79,36}, {-51,32}, {115,43}, {127,27}, {45,-13}},
+{{20,-23},  {72,6},  {-63,35},{-103,47},{-96,43}, {-73,38}, {115,7},  {8,-17}},
+{{-62,-25}, {2,-3},  {-79,34},{-123,42},{-124,45},{-66,34}, {16,-1}, {-26,-23}},
+{{26,-29},  {40,-5}, {-37,23},{-52,31}, {-49,34}, {-41,26}, {65,1},   {36,-24}},
+{{27,-45},  {59,-18},{29,-1}, {-37,17}, {5,15},   {11,8},   {66,-14}, {63,-40}},
+{{-61,-64}, {41,-46},{17,-25},{-43,-7}, {56,-35}, {-15,-35},{71,-47}, {22,-66}},
+},
 
-        {   {-83, -44, -44, -32,  -9,   3, -34, -52},
-            {-35,  -7,   6,  16,  15,  28,  -7, -24},
-            {-17,   8,  26,  36,  32,  43,  27, -13},
-            {-23,   6,  35,  47,  43,  38,   7, -17},
-            {-25,  -3,  34,  42,  45,  34,  -1, -23},
-            {-29,  -5,  23,  31,  34,  26,   1, -24},
-            {-45, -18,  -1,  17,  15,   8, -14, -40},
-            {-64, -46, -25,  -7, -35, -35, -47, -66}
-        }
-    },
+{ // queen
+{{-86,-21},{-26,7},  {-15,-6},{-40,2}, {17,-8}, {-17,-10},{-22,-23},{12,-21}},
+{{-69,-15},{-65,-1}, {-27,13},{34,11}, {-35,21},{-2,2},   {-17,-6}, {30,-42}},
+{{-38,-16},{-47,-7}, {-7,-1}, {-12,22},{43,21}, {11,1},   {-15,-3}, {-10,-24}},
+{{-31,-1}, {-27,8},  {-26,12},{-16,33},{12,23}, {6,12},   {-12,16}, {-17,-6}},
+{{6,-13},  {-24,24}, {2,13},  {-13,36},{20,14}, {4,13},   {7,8},    {-14,-10}},
+{{-7,-1},  {20,-22}, {8,7},   {4,1},   {8,1},   {1,9},    {9,1},    {8,-11}},
+{{-21,-7}, {-8,-1},  {32,-12},{11,-1}, {22,-9}, {11,-15}, {-28,-19},{6,-26}},
+{{11,-21}, {-15,-12},{2,-3},  {34,-8}, {2,-7},  {-34,-7}, {-47,-19},{-72,-34}},
+},
 
-    {
-        // QUEEN
-        {   {-86, -26, -15, -40,  17, -17, -22,  12},
-            {-69, -65, -27,  34, -35,  -2, -17,  30},
-            {-38, -47,  -7, -12,  43,  11, -15, -10},
-            {-31, -27, -26, -16,  12,   6, -12, -17},
-            {  6, -24,   2, -13,  20,   4,   7, -14},
-            { -7,  20,   8,   4,   8,   1,   9,   8},
-            {-21,  -8,  32,  11,  22,  11, -28,   6},
-            { 11, -15,   2,  34,   2, -34, -47, -72}
-        },
+{ // rook
+{{45,14}, {30,11}, {6,18}, {41,14},{65,14}, {16,12}, {9,13},  {-15,17}},
+{{23,13}, {11,12}, {45,8}, {45,9}, {24,5},  {34,5},  {-14,13},{2,11}},
+{{13,4},  {18,7},  {13,6}, {25,7}, {-12,4}, {-12,1}, {16,-2}, {-19,-5}},
+{{-12,3}, {-22,7}, {14,11},{11,1}, {3,1},   {-6,1},  {-60,-3},{-15,-4}},
+{{-26,6}, {-15,10},{-3,10},{-10,9},{-9,1},  {-44,6}, {-20,-4},{-21,-5}},
+{{-29,4}, {-10,4}, {-17,1},{-20,5},{-12,-3},{-29,-1},{-19,3}, {-39,1}},
+{{-25,-1},{-2,-1}, {-22,1},{-5,1}, {-12,-5},{-12,-3},{-38,-3},{-63,-2}},
+{{2,-2},  {3,7},   {17,4}, {7,7},  {12,2},  {1,2},   {-42,7}, {10,-24}},
+},
 
-        {   {-21,   7,  -6,  2, -8, -10, -23, -21},
-            {-15,  -1,  13, 11, 21,   2,  -6, -42},
-            {-16,  -7,  -1, 22, 21,   1,  -3, -24},
-            { -1,   8,  12, 33, 23,  12,  16,  -6},
-            {-13,  24,  13, 36, 14,  13,   8, -10},
-            { -1, -22,   7,  1,  1,   9,   1, -11},
-            { -7,  -1, -12, -1, -9, -15, -19, -26},
-            {-21, -12,  -3, -8, -7,  -7, -19, -34},
-        }
-    },
+{ // bishop
+{{-99,-9}, {-50,-15},{-126,1},{-101,1},{-29,-5},{-96,-2},{-35,-12},{-32,-29}},
+{{-66,-7}, {-17,-5}, {-36,7}, {-67,-4},{13,-8}, {34,-7}, {7,-13},  {-101,-12}},
+{{-42,4},  {-1,-5},  {22,-5}, {1,-1},  {-5,4},  {25,-3}, {-1,1},   {-23,-3}},
+{{-8,-6},  {-21,11}, {-2,8},  {43,7},  {22,6},  {30,-4}, {-15,-1}, {-10,-8}},
+{{-1,-5},  {6,-2},   {2,11},  {25,13}, {26,5},  {-12,8}, {-1,-4},  {8,-13}},
+{{10,-7},  {10,4},   {13,8},  {11,8},  {-2,13}, {22,5},  {6,4},    {11,-4}},
+{{2,-16},  {25,-10}, {18,-7}, {-3,-2}, {3,8},   {7,-5},  {41,-5},  {-5,-28}},
+{{-29,-24},{8,-15},  {-8,-13},{-2,-4}, {2,-12}, {-6,-12},{-37,-7}, {-35,-7}},
+},
 
-    {
-        // ROOK
-        {   { 45,  30,   6,  41,  65,  16,   9, -15},
-            { 23,  11,  45,  45,  24,  34, -14,   2},
-            { 13,  18,  13,  25, -12, -12,  16, -19},
-            {-12, -22,  14,  11,   3,  -6, -60, -15},
-            {-26, -15,  -3, -10,  -9, -44, -20, -21},
-            {-29, -10, -17, -20, -12, -29, -19, -39},
-            {-25,  -2, -22,  -5, -12, -12, -38, -63},
-            {  2,   3,  17,   7,  12,   1, -42,  10}
-        },
+{ // knight
+{{-126,-89},{-126,-24},{-15,7},{-58,-5},{68,-15},{-126,-16},{-121,-28},{-126,-100}},
+{{-126,-5}, {-51,9},   {82,-1},{50,20}, {8,13},  {59,-6},   {16,-15},{-81,-38}},
+{{-89,-3},  {33,12},   {62,36},{82,34}, {87,22}, {124,11},  {50,1},  {8,-26}},
+{{-1,-3},   {21,27},   {41,47},{82,45}, {36,53}, {101,31},  {9,32},  {37,-8}},
+{{-21,3},   {16,16},   {39,42},{32,52}, {47,43}, {42,42},   {47,22}, {9,-4}},
+{{-22,-11}, {2,26},    {16,32},{40,38}, {55,32}, {39,26},   {28,13}, {-20,-4}},
+{{-32,-25}, {-38,-1},  {9,7},  {27,14}, {8,27},  {16,6},    {-1,1},  {-1,-32}},
+{{-61,-44}, {-10,-30}, {-54,-3},{-29,1},{10,-7}, {-4,-7},   {-12,-9},{-34,-59}},
+},
 
-        {   {14, 11, 18, 14, 14, 12, 13,  17},
-            {13, 12,  8,  9,  5,  5, 13,  11},
-            { 4,  7,  6,  7,  4,  1, -2,  -5},
-            { 3,  7, 11,  1,  1,  1, -3,  -4},
-            { 6, 10, 10,  9,  1,  6, -4,  -5},
-            { 4,  4,  1,  5, -3, -1,  3,   1},
-            {-1, -1,  1,  1, -5, -3, -3,  -2},
-            {-2,  7,  4,  7,  2,  2,  7, -24}
-        }
-    },
-
-    {
-        //BISHOP
-        {   {-99, -50, -126, -101, -29, -96, -35,  -32},
-            {-66, -17,  -36,  -67,  13,  34,   7, -101},
-            {-42,  -1,   22,    1,  -5,  25,  -1,  -23},
-            { -8, -21,   -2,   43,  22,  30, -15,  -10},
-            { -1,   6,    2,   25,  26, -12,  -1,    8},
-            { 10,  10,   13,   11,  -2,  22,   6,   11},
-            {  2,  25,   18,   -3,   3,   7,  41,   -5},
-            {-29,   8,   -8,   -2,   2,  -6, -37,  -35}
-        },
-
-        {   { -9, -15,   1,  1,  -5,  -2, -12, -29},
-            { -7,  -5,   7, -4,  -8,  -7, -13, -12},
-            {  4,  -5,  -5, -1,   4,  -3,   1,  -3},
-            { -6,  11,   8,  7,   6,  -4,  -1,  -8},
-            { -5,  -2,  11, 13,   5,   8,  -4, -13},
-            { -7,   4,   8,  8,  13,   5,   4,  -4},
-            {-16, -10,  -7, -2,   8,  -5,  -5, -28},
-            {-24, -15, -13, -4, -12, -12,  -7,  -7}
-        }
-    },
-
-    {
-        //KNIGHT
-        {   {-126, -126, -15, -58, 68, -126, -121, -126},
-            {-126,  -51,  82,  50,  8,   59,   16,  -81},
-            { -89,   33,  62,  82, 87,  124,   50,    8},
-            {  -1,   21,  41,  82, 36,  101,    9,   37},
-            { -21,   16,  39,  32, 47,   42,   47,    9},
-            { -22,    2,  16,  40, 55,   39,   28,  -20},
-            { -32,  -38,   9,  27,  8,   16,   -1,   -1},
-            { -61,  -10, -54, -29, 10,   -4,  -12,  -34}
-        },
-
-        {   {-89, -24,  7, -5, -15, -16, -28, -100},
-            { -5,   9, -1, 20,  13,  -6, -15,  -38},
-            { -3,  12, 36, 34,  22,  11,   1,  -26},
-            { -3,  27, 47, 45,  53,  31,  32,   -8},
-            {  3,  16, 42, 52,  43,  42,  22,   -4},
-            {-11,  26, 32, 38,  32,  26,  13,   -4},
-            {-25,  -1,  7, 14,  27,   6,   1,  -32},
-            {-44, -30, -3,  1,  -7,  -7,  -9,  -59}
-        }
-    },
-
-    {
-        //PAWN
-        {   {  0,   0,   0,   0,   0,   0,   0,   0},
-            {127, 127, 127, 127, 127, 127, 108, 124},
-            { 85,  50,  38,   4,  36, 113,  60,  53},
-            { 12,  13,  -2,  19,  26,  14,  16, -12},
-            {-19, -23, -18,   7,   9,  -8, -20, -32},
-            {-15, -30, -24, -18,  -9, -17,  -7, -14},
-            {-14, -27, -48, -35, -23,  16,  -7, -18},
-            {  0,   0,   0,   0,   0,   0,   0,   0},
-        },
-
-        {   {  0,   0,   0,   0,   0,   0,   0,   0},
-            { 92,  61,  33,  20,  40,  29,  55,  76},
-            { 25,  22,   8, -14, -19, -12,   7,  20},
-            {  7,  -4,  -8, -21, -13,  -8,   1,   3},
-            {  1,  -2,  -7, -16, -11,  -9,  -6,  -5},
-            {-16, -10, -10,  -5,  -3,  -2, -13, -19},
-            {-10,  -9,  12,  -3,   3,   3,  -3, -17},
-            {  0,   0,   0,   0,   0,   0,   0,   0},
-        }
-    }
+{ // pawn
+{{0,0},    {0,0},    {0,0},    {0,0},   {0,0},   {0,0},    {0,0},   {0,0},},
+{{127,92}, {127,61}, {127,33}, {127,20},{127,40},{127,29}, {108,55},{124,76},},
+{{85,25},  {50,22},  {38,8},   {4,-14}, {36,-19},{113,-12},{60,7},  {53,20},},
+{{12,7},   {13,-4},  {-2,-8},  {19,-21},{26,-13},{14,-8},  {16,1},  {-12,3},},
+{{-19,1},  {-23,-2}, {-18,-7}, {7,-16}, {9,-11}, {-8,-9},  {-20,-6},{-32,-5},},
+{{-15,-16},{-30,-10},{-24,-10},{-18,-5},{-9,-3}, {-17,-2}, {-7,-13},{-14,-19},},
+{{-14,-10},{-27,-9}, {-48,12}, {-35,-3},{-23,3}, {16,3},   {-7,-3}, {-18,-17},},
+{{0,0},    {0,0},    {0,0},    {0,0},   {0,0},   {0,0},    {0,0},   {0,0},},
+},
 }
 
 {
-    pawn_max = &p_max[1];
-    pawn_min = &p_min[1];
-    state = &e_state[prev_states];
-
-    val_opn = 0;
-    val_end = 0;
-
-    state[ply].val_opn = 0;
-    state[ply].val_end = 0;
-
-    p_max[0][black] = 0;
-    p_max[0][white] = 0;
-    p_min[0][black] = 7;
-    p_min[0][white] = 7;
-    p_max[9][black] = 0;
-    p_max[9][white] = 0;
-    p_min[9][black] = 7;
-    p_min[9][white] = 7;
-
     InitPawnStruct();
-    InitEvalOfMaterial();
-    InitEvalOfPST();
 }
 
 
@@ -1213,260 +975,233 @@ void k2eval::RunUnitTests()
     assert(!IsPasser(7, white));
     assert(!IsPasser(1, black));
 
+    eval_vect val, zeros = {0, 0};
     SetupPosition("4k3/1p6/8/8/1P6/8/1P6/4K3 w - -");
-    val_opn = 0;
-    val_end = 0;
-    EvalPawns(white);
-    assert(val_opn == pawn_dbl_iso_opn);
-    assert(val_end == pawn_dbl_iso_end);
-    val_opn = 0;
-    val_end = 0;
-    EvalPawns(black);
-    assert(val_opn == -pawn_iso_opn);
-    assert(val_end == -pawn_iso_end);
+    val = EvalPawns(white, wtm);
+    assert(val == -pawn_dbl_iso);
+    val = EvalPawns(black, wtm);
+    assert(val == pawn_iso);
     SetupPosition("4k3/1pp5/1p6/8/1P6/1P6/1P6/4K3 w - -");
-    val_opn = 0;
-    val_end = 0;
-    EvalPawns(white);
-    assert(val_opn == pawn_dbl_iso_opn);
-    assert(val_end == pawn_dbl_iso_end);
-    val_opn = 0;
-    val_end = 0;
-    EvalPawns(black);
-    assert(val_opn == -pawn_dbl_opn);
-    assert(val_end == -pawn_dbl_end);
+    val = EvalPawns(white, wtm);
+    assert(val == -pawn_dbl_iso);
+    val = EvalPawns(black, wtm);
+    assert(val == pawn_dbl);
     SetupPosition("4k3/2p1p1p1/2Np1pPp/7P/1p6/Pr1PnP2/1P2P3/4K3 b - -");
-    val_opn = 0;
-    val_end = 0;
-    EvalPawns(white);
-    assert(val_opn == 2*pawn_hole_opn + pawn_gap_opn);
-    assert(val_end == 2*pawn_hole_end + pawn_gap_end);
-    val_opn = 0;
-    val_end = 0;
-    EvalPawns(black);
-    assert(val_opn == -pawn_hole_opn - pawn_gap_opn);
-    assert(val_end == -pawn_hole_end - pawn_gap_end);
+    val = EvalPawns(white, wtm);
+    assert(val == static_cast<eval_t>(-2)*pawn_hole - pawn_gap);
+    val = EvalPawns(black, wtm);
+    assert(val == pawn_hole + pawn_gap);
     SetupPosition("8/8/3K1P2/3p2P1/1Pkn4/8/8/8 w - -");
-    val_opn = 0;
-    val_end = 0;
-    EvalPawns(white);
-    assert(val_opn == pawn_pass_3/pawn_pass_opn_divider +
-           pawn_pass_4/pawn_pass_opn_divider +
-           pawn_pass_5/pawn_pass_opn_divider + pawn_iso_opn);
-    assert(val_end == pawn_pass_3 + pawn_pass_4 + pawn_pass_5 +
-           2*pawn_king_tropism3 - pawn_king_tropism1 -
-           3*pawn_king_tropism2 +
-           5*pawn_pass_connected + pawn_iso_end);
-    val_opn = 0;
-    val_end = 0;
-    EvalPawns(black);
-    assert(val_opn == -pawn_blk_pass_3/pawn_pass_opn_divider - pawn_iso_opn);
-    assert(val_end == -pawn_blk_pass_3 - pawn_king_tropism1 -
-           3*pawn_king_tropism2 + pawn_king_tropism3 - pawn_iso_end);
+    val = EvalPawns(white, wtm);
+    assert(val == (eval_t)(3*3 + 4*4 + 5*5)*pawn_pass2 +
+           (eval_t)(3 + 4 + 5)*pawn_pass1 + (eval_t)3*pawn_pass0 - pawn_iso +
+           (eval_t)2*pawn_king_tropism3 - pawn_king_tropism1 -
+           (eval_t)3*pawn_king_tropism2 + (eval_t)5*pawn_pass_connected);
+    val = EvalPawns(black, wtm);
+    assert(val == (eval_t)(-3*3)*pawn_blk_pass2 - (eval_t)3*pawn_blk_pass1 -
+           pawn_blk_pass0 + pawn_iso - pawn_king_tropism1 -
+           (eval_t)3*pawn_king_tropism2 + pawn_king_tropism3);
 
     // endings
-    SetupPosition("5k2/8/8/N7/8/8/8/4K3 w - -");  // KNk
-    EvalImbalances();
-    assert(val_end < pawn_val_end/4);
-    SetupPosition("5k2/8/8/n7/8/8/8/4K3 w - -");  // Kkn
-    EvalImbalances();
-    assert(val_end > -pawn_val_end/4);
-    SetupPosition("5k2/8/8/B7/8/8/8/4K3 w - -");  // KBk
-    EvalImbalances();
-    assert(val_end < pawn_val_end/4);
-    SetupPosition("5k2/8/8/b7/8/8/8/4K3 w - -");  // Kkb
-    EvalImbalances();
-    assert(val_end > -pawn_val_end/4);
-    SetupPosition("5k2/p7/8/b7/8/8/P7/4K3 w - -");  // KPkbp
-    EvalImbalances();
-    assert(val_end < bishop_val_end);
-    SetupPosition("5k2/8/8/n7/8/8/P7/4K3 w - -");  // KPkn
-    EvalImbalances();
-    assert(val_end < pawn_val_end/4);
-    SetupPosition("5k2/p7/8/B7/8/8/8/4K3 w - -");  // KBkp
-    EvalImbalances();
-    assert(val_end > -pawn_val_end/4);
-    SetupPosition("5k2/p6p/8/B7/8/8/7P/4K3 w - -");  // KBPkpp
-    EvalImbalances();
-    assert(val_end > 2*pawn_val_end);
-    SetupPosition("5k2/8/8/NN6/8/8/8/4K3 w - -");  // KNNk
-    EvalImbalances();
-    assert(val_opn == 0 && val_end == 0);
-    SetupPosition("5k2/8/8/nn6/8/8/8/4K3 w - -");  // Kknn
-    EvalImbalances();
-    assert(val_opn == 0 && val_end == 0);
-    SetupPosition("5k2/p7/8/nn6/8/8/P7/4K3 w - -");  // KPknnp
-    EvalImbalances();
-    assert(val_end < -2*knight_val_end + pawn_val_end);
-    SetupPosition("5k2/8/8/nb6/8/8/8/4K3 w - -");  // Kknb
-    EvalImbalances();
-    assert(val_end < -knight_val_end - bishop_val_end + pawn_val_end);
-    SetupPosition("5k2/8/8/1b6/8/7p/8/7K w - -");  // Kkbp not drawn
-    EvalImbalances();
-    assert(val_end < -bishop_val_end - pawn_val_end/2);
-    SetupPosition("7k/8/7P/1B6/8/8/8/6K1 w - -");  // KBPk drawn
-    EvalImbalances();
-    assert(val_opn == 0 && val_end == 0);
-    SetupPosition("5k2/8/8/3b4/p7/8/K7/8 w - -");  // Kkbp drawn
-    EvalImbalances();
-    assert(val_opn == 0 && val_end == 0);
-    SetupPosition("7k/8/P7/1B6/8/8/8/6K1 w - -");  // KBPk not drawn
-    EvalImbalances();
-    assert(val_end > bishop_val_end + pawn_val_end/2);
-    SetupPosition("2k5/8/P7/1B6/8/8/8/6K1 w - -");  // KBPk not drawn
-    EvalImbalances();
-    assert(val_end > bishop_val_end + pawn_val_end/2);
-    SetupPosition("1K6/8/P7/1B6/8/8/8/6k1 w - -");  // KBPk not drawn
-    EvalImbalances();
-    assert(val_end > bishop_val_end + pawn_val_end/2);
-    SetupPosition("1k6/8/1P6/1B6/8/8/8/6K1 w - -");  // KBPk not drawn
-    EvalImbalances();
-    assert(val_end > bishop_val_end + pawn_val_end/2);
-    SetupPosition("5k2/8/8/3b4/p4P2/8/K7/8 w - -");  // KPkbp drawn
-    EvalImbalances();
-    assert(val_opn == 0 && val_end == 0);
-    SetupPosition("5k2/8/8/3b4/p4P2/8/8/2K5 w - -");  // KPkbp not drawn
-    EvalImbalances();
-    assert(val_end < -bishop_val_end);
+    val = SetupPosition("5k2/8/8/N7/8/8/8/4K3 w - -");  // KNk
+    val = EvalImbalances(wtm, val);
+    assert(val.imag() < pawn_val.imag()/4);
+    val = SetupPosition("5k2/8/8/n7/8/8/8/4K3 w - -");  // Kkn
+    val = EvalImbalances(wtm, val);
+    assert(val.imag() > -pawn_val.imag()/4);
+    val = SetupPosition("5k2/8/8/B7/8/8/8/4K3 w - -");  // KBk
+    val = EvalImbalances(wtm, val);
+    assert(val.imag() < pawn_val.imag()/4);
+    val = SetupPosition("5k2/8/8/b7/8/8/8/4K3 w - -");  // Kkb
+    val = EvalImbalances(wtm, val);
+    assert(val.imag() > -pawn_val.imag()/4);
+    val = SetupPosition("5k2/p7/8/b7/8/8/P7/4K3 w - -");  // KPkbp
+    val = EvalImbalances(wtm, val);
+    assert(val.imag() < bishop_val.imag());
+    val = SetupPosition("5k2/8/8/n7/8/8/P7/4K3 w - -");  // KPkn
+    val = EvalImbalances(wtm, val);
+    assert(val.imag() < pawn_val.imag()/4);
+    val = SetupPosition("5k2/p7/8/B7/8/8/8/4K3 w - -");  // KBkp
+    val = EvalImbalances(wtm, val);
+    assert(val.imag() > -pawn_val.imag()/4);
+    val = SetupPosition("5k2/p6p/8/B7/8/8/7P/4K3 w - -");  // KBPkpp
+    val = EvalImbalances(wtm, val);
+    assert(val.imag() > 2*pawn_val.imag());
+    val = SetupPosition("5k2/8/8/NN6/8/8/8/4K3 w - -");  // KNNk
+    val = EvalImbalances(wtm, val);
+    assert(val == zeros);
+    val = SetupPosition("5k2/8/8/nn6/8/8/8/4K3 w - -");  // Kknn
+    val = EvalImbalances(wtm, val);
+    assert(val == zeros);
+    val = SetupPosition("5k2/p7/8/nn6/8/8/P7/4K3 w - -");  // KPknnp
+    val = EvalImbalances(wtm, val);
+    assert(val.imag() < -2*knight_val.imag() + pawn_val.imag());
+    val = SetupPosition("5k2/8/8/nb6/8/8/8/4K3 w - -");  // Kknb
+    val = EvalImbalances(wtm, val);
+    assert(val.imag() < -knight_val.imag() - bishop_val.imag() +
+           pawn_val.imag());
+    val = SetupPosition("5k2/8/8/1b6/8/7p/8/7K w - -");  // Kkbp not drawn
+    val = EvalImbalances(wtm, val);
+    assert(val.imag() < -bishop_val.imag()- pawn_val.imag()/2);
+    val = SetupPosition("7k/8/7P/1B6/8/8/8/6K1 w - -");  // KBPk drawn
+    val = EvalImbalances(wtm, val);
+    assert(val == zeros);
+    val = SetupPosition("5k2/8/8/3b4/p7/8/K7/8 w - -");  // Kkbp drawn
+    val = EvalImbalances(wtm, val);
+    assert(val == zeros);
+    val = SetupPosition("7k/8/P7/1B6/8/8/8/6K1 w - -");  // KBPk not drawn
+    val = EvalImbalances(wtm, val);
+    assert(val.imag() > bishop_val.imag() + pawn_val.imag()/2);
+    val = SetupPosition("2k5/8/P7/1B6/8/8/8/6K1 w - -");  // KBPk not drawn
+    val = EvalImbalances(wtm, val);
+    assert(val.imag() > bishop_val.imag() + pawn_val.imag()/2);
+    val = SetupPosition("1K6/8/P7/1B6/8/8/8/6k1 w - -");  // KBPk not drawn
+    val = EvalImbalances(wtm, val);
+    assert(val.imag() > bishop_val.imag() + pawn_val.imag()/2);
+    val = SetupPosition("1k6/8/1P6/1B6/8/8/8/6K1 w - -");  // KBPk not drawn
+    val = EvalImbalances(wtm, val);
+    assert(val.imag() > bishop_val.imag() + pawn_val.imag()/2);
+    val = SetupPosition("5k2/8/8/3b4/p4P2/8/K7/8 w - -");  // KPkbp drawn
+    val = EvalImbalances(wtm, val);
+    assert(val == zeros);
+    val = SetupPosition("5k2/8/8/3b4/p4P2/8/8/2K5 w - -");  // KPkbp not drawn
+    val = EvalImbalances(wtm, val);
+    assert(val.imag() < -bishop_val.imag());
 
-    SetupPosition("1k6/8/8/P7/8/4N3/8/6K1 w - -");  // KNPk
-    EvalImbalances();
-    assert(val_end > knight_val_end + pawn_val_end/2);
-    SetupPosition("8/8/8/5K2/2k5/8/2P5/8 b - -");  // KPk
-    EvalImbalances();
-    assert(val_opn == 0 && val_end == 0);
-    SetupPosition("8/8/8/5K2/2k5/8/2P5/8 w - -");  // KPk
-    EvalImbalances();
-    assert(val_end > pawn_val_end/2);
-    SetupPosition("k7/2K5/8/P7/8/8/8/8 w - -");  // KPk
-    EvalImbalances();
-    assert(val_opn == 0 && val_end == 0);
-    SetupPosition("8/8/8/p7/8/1k6/8/1K6 w - -");  // Kkp
-    EvalImbalances();
-    assert(val_opn == 0 && val_end == 0);
-    SetupPosition("8/8/8/p7/8/1k6/8/2K5 w - -");  // Kkp
-    EvalImbalances();
-    assert(val_end < -pawn_val_end/2);
-    SetupPosition("8/8/8/pk6/8/K7/8/8 w - -");  // Kkp
-    EvalImbalances();
-    assert(val_end < -pawn_val_end/2);
-    SetupPosition("8/8/8/1k5p/8/8/8/K7 w - -");  // Kkp
-    EvalImbalances();
-    assert(val_end < -pawn_val_end/2);
+    val = SetupPosition("1k6/8/8/P7/8/4N3/8/6K1 w - -");  // KNPk
+    val = EvalImbalances(wtm, val);
+    assert(val.imag() > knight_val.imag() + pawn_val.imag()/2);
+    val = SetupPosition("8/8/8/5K2/2k5/8/2P5/8 b - -");  // KPk
+    val = EvalImbalances(wtm, val);
+    assert(val == zeros);
+    val = SetupPosition("8/8/8/5K2/2k5/8/2P5/8 w - -");  // KPk
+    val = EvalImbalances(wtm, val);
+    assert(val.imag() > pawn_val.imag()/2);
+    val = SetupPosition("k7/2K5/8/P7/8/8/8/8 w - -");  // KPk
+    val = EvalImbalances(wtm, val);
+    assert(val == zeros);
+    val = SetupPosition("8/8/8/p7/8/1k6/8/1K6 w - -");  // Kkp
+    val = EvalImbalances(wtm, val);
+    assert(val == zeros);
+    val = SetupPosition("8/8/8/p7/8/1k6/8/2K5 w - -");  // Kkp
+    val = EvalImbalances(wtm, val);
+    assert(val.imag() < -pawn_val.imag()/2);
+    val = SetupPosition("8/8/8/pk6/8/K7/8/8 w - -");  // Kkp
+    val = EvalImbalances(wtm, val);
+    assert(val.imag() < -pawn_val.imag()/2);
+    val = SetupPosition("8/8/8/1k5p/8/8/8/K7 w - -");  // Kkp
+    val = EvalImbalances(wtm, val);
+    assert(val.imag() < -pawn_val.imag()/2);
 
     SetupPosition("7k/5B2/5K2/8/3N4/8/8/8 w - -");  // KBNk
-    val_end = 0;
-    EvalImbalances();
-    assert(val_end == 0);
+    val = zeros;
+    val = EvalImbalances(wtm, val);
+    assert(val.imag() == 0);
     SetupPosition("7k/4B3/5K2/8/3N4/8/8/8 w - -");  // KBNk
-    val_end = 0;
-    EvalImbalances();
-    assert(val_end == imbalance_king_in_corner);
+    val = zeros;
+    val = EvalImbalances(wtm, val);
+    assert(val.imag() == imbalance_king_in_corner.imag());
     SetupPosition("k7/5n2/8/8/8/b7/8/7K w - -");  // Kkbn
-    val_end = 0;
-    EvalImbalances();
-    assert(val_end == 0);
+    val = zeros;
+    val = EvalImbalances(wtm, val);
+    assert(val.imag() == 0);
     SetupPosition("k7/5n2/8/8/8/b7/8/K7 w - -");  // Kkbn
-    val_end = 0;
-    EvalImbalances();
-    assert(val_end == -imbalance_king_in_corner);
+    val = zeros;
+    val = EvalImbalances(wtm, val);
+    assert(val.imag() == -imbalance_king_in_corner.imag());
     SetupPosition("8/8/8/8/8/2k2n2/4b3/1K6 b - -");  // Kkbn
-    val_end = 0;
-    EvalImbalances();
-    assert(val_end == 0);
+    val = zeros;
+    val = EvalImbalances(wtm, val);
+    assert(val.imag() == 0);
     SetupPosition("8/1K6/8/8/8/2k2n2/4b3/8 b - -");  // Kkbn
-    val_end = 0;
-    EvalImbalances();
-    assert(val_end == 0);
+    val = zeros;
+    val = EvalImbalances(wtm, val);
+    assert(val.imag() == 0);
 
     // imbalances with opponent king near telestop
-    SetupPosition("6k1/4R3/8/8/5KP1/8/3r4/8 b - -");  // KRPkr
-    EvalImbalances();
-    assert(val_end < pawn_val_end/4);
-    SetupPosition("6k1/4Q3/8/8/5KP1/8/3q4/8 b - -");  // KQPkq
-    EvalImbalances();
-    assert(val_end < pawn_val_end/4);
-    SetupPosition("8/4B2k/8/8/5KP1/8/3n4/8 b - -");  // KBPkn
-    EvalImbalances();
-    assert(val_end < pawn_val_end/4);
-    SetupPosition("8/2n1B3/8/8/6k1/1p6/8/1K6 b - -");  // KBknp
-    EvalImbalances();
-    assert(val_end > -pawn_val_end/4);
-    SetupPosition("8/2n1B3/8/8/6K1/1p6/8/1k6 b - -");  // KBknp
-    EvalImbalances();
-    assert(val_end < -pawn_val_end/4);
-    SetupPosition("1r6/8/6k1/8/8/1p6/1K6/1R6 b - -");  // KRkrp
-    EvalImbalances();
-    assert(val_end > -pawn_val_end/4);
-    SetupPosition("6k1/4R3/8/5K2/6P1/8/3r4/8 b - -");  // KRPkr
-    EvalImbalances();
-    assert(val_end > pawn_val_end/4);
-    SetupPosition("2r5/4R3/8/8/3p4/4k3/8/3K4 b - -");  // KRkrp
-    EvalImbalances();
-    assert(val_end < -pawn_val_end/4);
-    SetupPosition("2r5/4R3/8/8/3p4/8/8/3K2k1 b - -");  // KRkrp
-    EvalImbalances();
-    assert(val_end > -pawn_val_end/4);
-    SetupPosition("8/3k4/6K1/4R3/8/6p1/7r/8 w - -");  // KRkrp
-    EvalImbalances();
-    assert(val_end < -pawn_val_end/4);
+    val = SetupPosition("6k1/4R3/8/8/5KP1/8/3r4/8 b - -");  // KRPkr
+    val = EvalImbalances(wtm, val);
+    assert(val.imag() < pawn_val.imag()/4);
+    val = SetupPosition("6k1/4Q3/8/8/5KP1/8/3q4/8 b - -");  // KQPkq
+    val = EvalImbalances(wtm, val);
+    assert(val.imag() < pawn_val.imag()/4);
+    val = SetupPosition("8/4B2k/8/8/5KP1/8/3n4/8 b - -");  // KBPkn
+    val = EvalImbalances(wtm, val);
+    assert(val.imag() < pawn_val.imag()/4);
+    val = SetupPosition("8/2n1B3/8/8/6k1/1p6/8/1K6 b - -");  // KBknp
+    val = EvalImbalances(wtm, val);
+    assert(val.imag() > -pawn_val.imag()/4);
+    val = SetupPosition("8/2n1B3/8/8/6K1/1p6/8/1k6 b - -");  // KBknp
+    val = EvalImbalances(wtm, val);
+    assert(val.imag() < -pawn_val.imag()/4);
+    val = SetupPosition("1r6/8/6k1/8/8/1p6/1K6/1R6 b - -");  // KRkrp
+    val = EvalImbalances(wtm, val);
+    assert(val.imag() > -pawn_val.imag()/4);
+    val = SetupPosition("6k1/4R3/8/5K2/6P1/8/3r4/8 b - -");  // KRPkr
+    val = EvalImbalances(wtm, val);
+    assert(val.imag() > pawn_val.imag()/4);
+    val = SetupPosition("2r5/4R3/8/8/3p4/4k3/8/3K4 b - -");  // KRkrp
+    val = EvalImbalances(wtm, val);
+    assert(val.imag() < -pawn_val.imag()/4);
+    val = SetupPosition("2r5/4R3/8/8/3p4/8/8/3K2k1 b - -");  // KRkrp
+    val = EvalImbalances(wtm, val);
+    assert(val.imag() > -pawn_val.imag()/4);
+    val = SetupPosition("8/3k4/6K1/4R3/8/6p1/7r/8 w - -");  // KRkrp
+    val = EvalImbalances(wtm, val);
+    assert(val.imag() < -pawn_val.imag()/4);
 
-    SetupPosition("8/4R3/3n1K2/8/1k6/8/8/6r1 b - -");  // KRkrn
-    EvalImbalances();
-    assert(val_end > -pawn_val_end);
-    SetupPosition("4R3/8/1K6/8/8/2B2k2/8/3r4 b - -");  // KRBkr
-    EvalImbalances();
-    assert(val_end > -pawn_val_end);
-    SetupPosition("8/4R2K/3n4/8/1k6/8/8/6r1 b - -");  // KRkrn
-    EvalImbalances();
-    assert(val_end < -pawn_val_end);
+    val = SetupPosition("8/4R3/3n1K2/8/1k6/8/8/6r1 b - -");  // KRkrn
+    val = EvalImbalances(wtm, val);
+    assert(val.imag() > -pawn_val.imag());
+    val = SetupPosition("4R3/8/1K6/8/8/2B2k2/8/3r4 b - -");  // KRBkr
+    val = EvalImbalances(wtm, val);
+    assert(val.imag() > -pawn_val.imag());
+    val = SetupPosition("8/4R2K/3n4/8/1k6/8/8/6r1 b - -");  // KRkrn
+    val = EvalImbalances(wtm, val);
+    assert(val.imag() < -pawn_val.imag());
 
     // bishop pairs
     SetupPosition("rn1qkbnr/pppppppp/8/8/8/8/PPPPPPPP/R1BQKBNR w KQkq -");
-    val_opn = 0;
-    val_end = 0;
-    EvalImbalances();
-    assert(val_opn == bishop_pair && val_end == bishop_pair);
+    val = zeros;
+    val = EvalImbalances(wtm, val);
+    assert(val == bishop_pair);
     SetupPosition("1nb1kb2/4p3/8/8/8/8/4P3/1NB1K1N1 w - -");
-    val_opn = 0;
-    val_end = 0;
-    EvalImbalances();
-    assert(val_opn == -bishop_pair && val_end == -bishop_pair);
+    val = zeros;
+    val = EvalImbalances(wtm, val);
+    assert(val == -bishop_pair);
     SetupPosition("1nb1k1b1/4p3/8/8/8/8/4P3/1NB1K1N1 w - -");
-    val_opn = 0;
-    val_end = 0;
-    EvalImbalances();
-    assert(val_opn == -bishop_pair && val_end == -bishop_pair);
+    val = zeros;
+    val = EvalImbalances(wtm, val);
+    assert(val == -bishop_pair);
     SetupPosition("1nb1kbb1/4p3/8/8/8/8/4P3/1NB1K1N1 w - -");
-    val_opn = 0;
-    val_end = 0;
-    EvalImbalances();
-    assert(val_opn == 0 && val_end == 0);  // NB
+    val = zeros;
+    val = EvalImbalances(wtm, val);
+    assert(val == zeros);  // NB
 
-    SetupPosition("4kr2/8/8/8/8/8/8/1BBNK3 w - -"); // pawn absense
-    EvalImbalances();
-    assert(val_end < rook_val_end/2);
+    val = SetupPosition("4kr2/8/8/8/8/8/8/1BBNK3 w - -"); // pawn absense
+    val = EvalImbalances(wtm, val);
+    assert(val.imag() < rook_val.imag()/2);
 
     // multicolored bishops
-    SetupPosition("rn1qkbnr/p1pppppp/8/8/8/8/PPPPPPPP/RN1QKBNR w KQkq -");
-    auto tmp = val_end;
-    EvalImbalances();
-    assert(val_end < pawn_val_end && val_end < tmp);
-    SetupPosition("rnbqk1nr/p1pppppp/8/8/8/8/PPPPPPPP/RNBQK1NR w KQkq -");
-    tmp = val_end;
-    EvalImbalances();
-    assert(val_end < pawn_val_end && val_end < tmp);
-    SetupPosition("rnbqk1nr/p1pppppp/8/8/8/8/PPPPPPPP/RN1QKBNR w KQkq -");
-    tmp = val_end;
-    EvalImbalances();
-    assert(val_end == tmp);
-    SetupPosition("rn1qkbnr/p1pppppp/8/8/8/8/PPPPPPPP/RNBQK1NR w KQkq -");
-    tmp = val_end;
-    EvalImbalances();
-    assert(val_end == tmp);
-    SetupPosition("4kb2/pppp4/8/8/8/8/PPPPPPPP/4KB2 w - -");
-    EvalImbalances();
-    assert(val_end < 5*pawn_val_end/2);
+    val = SetupPosition("rn1qkbnr/p1pppppp/8/8/8/8/PPPPPPPP/RN1QKBNR w KQkq -");
+    auto tmp = val;
+    val = EvalImbalances(wtm, val);
+    assert(val.imag() < pawn_val.imag() && val.imag() < tmp.imag());
+    val = SetupPosition("rnbqk1nr/p1pppppp/8/8/8/8/PPPPPPPP/RNBQK1NR w KQkq -");
+    tmp = val;
+    val = EvalImbalances(wtm, val);
+    assert(val.imag() < pawn_val.imag() && val.imag() < tmp.imag());
+    val = SetupPosition("rnbqk1nr/p1pppppp/8/8/8/8/PPPPPPPP/RN1QKBNR w KQkq -");
+    tmp = val;
+    val = EvalImbalances(wtm, val);
+    assert(val.imag() == tmp.imag());
+    val = SetupPosition("rn1qkbnr/p1pppppp/8/8/8/8/PPPPPPPP/RNBQK1NR w KQkq -");
+    tmp = val;
+    val = EvalImbalances(wtm, val);
+    assert(val.imag() == tmp.imag());
+    val = SetupPosition("4kb2/pppp4/8/8/8/8/PPPPPPPP/4KB2 w - -");
+    val = EvalImbalances(wtm, val);
+    assert(val.imag() < 5*pawn_val.imag()/2);
 
     //king safety
     SetupPosition("4k3/4p3/8/8/8/4P3/5P2/4K3 w - -");

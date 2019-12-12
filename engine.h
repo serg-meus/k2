@@ -111,6 +111,7 @@ protected:
     struct state_s
     {
         bool in_check;
+        eval_vect eval;
     };
 
     const char *debug_variation;
@@ -141,7 +142,7 @@ public:
 
     void EvalDebug()
     {
-        k2eval::EvalDebug();
+        k2eval::EvalDebug(wtm);
     }
 
     bool WhiteIsOnMove() const
@@ -219,6 +220,7 @@ protected:
     void MakeMove(const move_c move)
     {
         k2hash::MakeMove(move);
+        state[ply].eval = state[ply - 1].eval + FastEval(wtm, move);
     }
 
     void TakebackMove(const move_c move)
@@ -259,9 +261,9 @@ protected:
                 (cur_move.flag & is_promotion))
             return false;
 
-        auto cur_eval = ReturnEval(wtm);
-        auto capture = values[get_type(b[cur_move.to_coord])];
-        auto margin = delta_pruning_margin;
+        const auto cur_eval = GetEvalScore(wtm, state[ply].eval);
+        const auto capture = values[get_type(b[cur_move.to_coord])];
+        const auto margin = delta_pruning_margin;
         return cur_eval + capture + margin < alpha;
     }
 
@@ -282,7 +284,7 @@ protected:
             return false;
         }
         stats.futility_probes++;
-        auto score = ReturnEval(wtm);
+        auto score = GetEvalScore(wtm, state[ply].eval);
         if(score <= margin[depth] + beta)
             return false;
 

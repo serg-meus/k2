@@ -133,8 +133,6 @@ k2chess::eval_t k2engine::Search(depth_t depth, eval_t alpha, eval_t beta,
             std::cout << "( breakpoint )" << std::endl;
 #endif // NDEBUG
 
-        FastEval(cur_move);
-
         const auto lmr = LateMoveReduction(depth, cur_move, in_check,
                                            move_cr, node_type);
         if(move_cr == 0)
@@ -193,7 +191,8 @@ k2chess::eval_t k2engine::QSearch(eval_t alpha, const eval_t beta)
     pv[ply].length = 0;
 
     if(material[0] + material[1] > qs_min_material_to_drop &&
-            ReturnEval(wtm) > beta + qs_beta_exceed_to_drop)
+            GetEvalScore(wtm, state[ply].eval) >
+            beta + qs_beta_exceed_to_drop)
         return beta;
 
     hash_entry_s *entry = nullptr;
@@ -202,7 +201,7 @@ k2chess::eval_t k2engine::QSearch(eval_t alpha, const eval_t beta)
 
     UpdateAttackTables();
 
-    auto x = -Eval();
+    auto x = Eval(wtm, state[ply].eval);
     if(x >= beta)
         return beta;
     else if(x > alpha)
@@ -231,7 +230,6 @@ k2chess::eval_t k2engine::QSearch(eval_t alpha, const eval_t beta)
             std::cout << "( breakpoint )" << std::endl;
 #endif // NDEBUG
 
-        FastEval(cur_move);
         x = -QSearch(-beta, -alpha);
         TakebackMove(cur_move);
         if(stop)
@@ -411,8 +409,6 @@ k2chess::eval_t k2engine::RootSearch(const depth_t depth, eval_t alpha,
             std::cout << "( breakpoint )" << std::endl;
 #endif // NDEBUG
 
-        FastEval(cur_move);
-
         auto prev_nodes = stats.nodes;
         bool fail_high = false;
         if(root_move_cr == 0)
@@ -573,7 +569,6 @@ void k2engine::ShowPVfailHighOrLow(const move_c move, const eval_t val,
 
     MakeMove(move);
     k2chess::UpdateAttackTables(move);
-    FastEval(move);
 }
 
 
@@ -678,6 +673,7 @@ void k2engine::InitSearch()
 
     memset(history, 0, sizeof(history));
     k2chess::state[ply].attacks_updated = true;
+    state[0].eval = InitEvalOfMaterial() + InitEvalOfPST();
 }
 
 
@@ -998,29 +994,12 @@ bool k2engine::MakeMove(const char *move_str)
 
         MakeMove(cur_move);
         k2chess::UpdateAttackTables(cur_move);
-        FastEval(cur_move);
-
-        const auto store_val_opn = val_opn;
-        const auto store_val_end = val_end;
 
         memmove(&b_state[0], &b_state[1],
                 (prev_states + 2)*sizeof(k2chess::state_s));
-        memmove(&e_state[0], &e_state[1],
-                (prev_states + 2)*sizeof(k2eval::state_s));
         memmove(&eng_state[0], &eng_state[1],
                 (prev_states + 2)*sizeof(k2engine::state_s));
-        ply--;
-        InitEvalOfMaterial();
-        InitEvalOfPST();
-        if(enable_output && (val_opn != store_val_opn ||
-                             val_end != store_val_end))
-        {
-            std::cout << "telluser err02: wrong score. Fast: "
-                      << store_val_opn << '/' << store_val_end
-                      << ", all: " << val_opn << '/' << val_end
-                      << std::endl << "resign"
-                      << std::endl;
-        }
+        ply = 0;
         for(auto j = 0; j < fifty_moves; ++j)
             done_hash_keys[j] = done_hash_keys[j + 1];
 
@@ -1037,10 +1016,7 @@ bool k2engine::MakeMove(const char *move_str)
 //--------------------------------
 bool k2engine::SetupPosition(const char *fen)
 {
-    const bool ans = k2eval::SetupPosition(fen);
-
-    if(!ans)
-        return false;
+    state[0].eval = k2eval::SetupPosition(fen);
 
     time_control.time_spent = 0;
     time_control.time_remains = time_control.time_base;

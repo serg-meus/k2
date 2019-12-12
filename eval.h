@@ -1,145 +1,122 @@
 #include "chess.h"
+#include <complex>
 
 
 //--------------------------------
 class k2eval : public k2chess
 {
 
+
 public:
+
+
     k2eval();
     void RunUnitTests();
 
+
 protected:
 
-    typedef i8 pst_t;
+
     typedef u8 rank_t;
     typedef u8 dist_t;
 
+    // type for storing mid- (real) and endgame (imag) part of eval terms
+    typedef std::complex<eval_t> eval_vect;
+
     const eval_t
     centipawn = 100,
-    king_value = 32000,
     infinite_score = 32760,
+    king_value = 32000,
     material_total = 80,
+    rook_max_pawns_for_open_file = 2;
 
-    pawn_val_opn = 100,
-    knight_val_opn = 395,
-    bishop_val_opn = 405,
-    rook_val_opn = 600,
-    queen_val_opn = 1200,
-    pawn_val_end = 128,
-    knight_val_end = 369,
-    bishop_val_end = 405,
-    rook_val_end = 640,
-    queen_val_end = 1300;
+    eval_vect
+    pawn_val = {100, 128},
+    knight_val = {395, 369},
+    bishop_val = {405, 405},
+    rook_val = {600, 640},
+    queen_val = {1200, 1300},
+    king_val = {0, 0},
 
-    eval_t
-    pawn_dbl_iso_opn = -56,
-    pawn_dbl_iso_end = -49,
-    pawn_iso_opn = -15,
-    pawn_iso_end = -25,
-    pawn_dbl_opn = -5,
-    pawn_dbl_end = -19,
-    pawn_hole_opn = -47,
-    pawn_hole_end = -22,
-    pawn_gap_opn = 2,
-    pawn_gap_end = -24,
-    pawn_king_tropism1 = 26,
-    pawn_king_tropism2 = 15,
-    pawn_king_tropism3 = 34,
-    pawn_pass_1 = -8,
-    pawn_pass_2 = 4,
-    pawn_pass_3 = 36,
-    pawn_pass_4 = 80,
-    pawn_pass_5 = 152,
-    pawn_pass_6 = 216,
-    pawn_blk_pass_1 = -22,
-    pawn_blk_pass_2 = -2,
-    pawn_blk_pass_3 = 25,
-    pawn_blk_pass_4 = 60,
-    pawn_blk_pass_5 = 80,
-    pawn_blk_pass_6 = 84,
-    pawn_pass_opn_divider = 8,
-    pawn_pass_connected = 16,
-    pawn_unstoppable_1 = 12,
-    pawn_unstoppable_2 = 242,
-    king_saf_no_shelter = 22,
-    king_saf_no_queen = 20,
-    king_saf_attack1 = 20,
-    king_saf_attack2 = 88,
-    king_saf_central_files = 63,
-    rook_on_last_rank = 21,
-    rook_semi_open_file = 22,
-    rook_open_file = 58,
-    rook_max_pawns_for_open_file = 2,
-    bishop_pair = 47,
-    mob_queen = 6,
-    mob_rook = 13,
-    mob_bishop = 10,
-    mob_knight = 0,
-    mobility_divider = 8,
-    imbalance_king_in_corner = 200,
-    imbalance_multicolor1 = 30,
-    imbalance_multicolor2 = 57,
-    imbalance_draw_divider = 32,
-    imbalance_no_pawns = 24,
-    side_to_move_bonus = 8;
+    pawn_dbl_iso = {46, 49},
+    pawn_iso = {15, 25},
+    pawn_dbl = {5, 19},
+    pawn_hole = {47, 22},
+    pawn_gap = {-2, 24},
+    pawn_king_tropism1 = {0, 26},
+    pawn_king_tropism2 = {0, 15},
+    pawn_king_tropism3 = {0, 34},
+    pawn_pass0 = {-1, -6},
+    pawn_pass1 = {-1, -10},
+    pawn_pass2 = {1, 9},
+    pawn_blk_pass0 = {-10, -100},
+    pawn_blk_pass1 = {6, 56},
+    pawn_blk_pass2 = {0, -4},
+    pawn_pass_connected = {0, 16},
+    pawn_unstoppable = {12, 242},
+    king_saf_no_shelter = {22, 0},
+    king_saf_no_queen = {20, 20},
+    king_saf_attack1 = {20, 0},
+    king_saf_attack2 = {88, 0},
+    king_saf_central_files = {63, 0},
+    rook_last_rank = {21, 0},
+    rook_semi_open_file = {22, 0},
+    rook_open_file = {58, 0},
+    bishop_pair = {47, 47},
+    mob_queen = {6, 6},
+    mob_rook = {13, 13},
+    mob_bishop = {10, 10},
+    mob_knight = {0, 0},
+    imbalance_king_in_corner = {0, 200},
+    imbalance_draw_divider = {32, 32},
+    imbalance_multicolor = {30, 57},
+    imbalance_no_pawns = {24, 24},
+    side_to_move_bonus = {8, 8};
 
-    eval_t val_opn, val_end;
     eval_t initial_score;
     rank_t p_max[board_width + 2][sides], p_min[board_width + 2][sides];
     rank_t (*pawn_max)[sides], (*pawn_min)[sides];
-    eval_t material_values_opn[piece_types + 1];
-    eval_t material_values_end[piece_types + 1];
+    eval_vect material_values[piece_types + 1];
 
-    pst_t pst[piece_types][sides][board_height][board_width];
-//    std::vector<float> tuning_factors;
+    eval_vect pst[piece_types][board_height][board_width];
 
 
 public:
 
 
-    eval_t EvalDebug();
+    void EvalDebug(const bool stm);
 
-    bool SetupPosition(const char *p)
+    eval_vect SetupPosition(const char *p)
     {
-        bool ans = k2chess::SetupPosition(p);
+        k2chess::SetupPosition(p);
         InitPawnStruct();
-        InitEvalOfMaterial();
-        InitEvalOfPST();
-        memset(e_state, 0, sizeof(e_state));
-        return ans;
+        eval_vect cur_eval = InitEvalOfMaterial() + InitEvalOfPST();
+        return cur_eval;
     }
 
 
 protected:
 
 
-    struct state_s
-    {
-        eval_t val_opn;
-        eval_t val_end;
-    };
-
-    state_s e_state[prev_states + max_ply]; // eval state for each ply depth
-    state_s *state;  // pointer to eval state
-
-    void FastEval(const move_c m);
-    eval_t Eval();
-    void InitEvalOfMaterial();
-    void InitEvalOfPST();
+    eval_vect FastEval(const bool stm, const move_c m) const;
+    eval_t Eval(const bool stm, eval_vect cur_eval);
+    eval_vect InitEvalOfMaterial();
+    eval_vect InitEvalOfPST();
     void InitPawnStruct();
     void SetPawnStruct(const coord_t col);
     bool IsPasser(const coord_t col, const bool stm) const;
     bool MakeMove(const move_c move);
     void TakebackMove(const move_c move);
 
-    eval_t ReturnEval(const bool stm) const
+    eval_t GetEvalScore(const bool stm, const eval_vect cur_eval) const
     {
         i32 X, Y;
         X = material[0]/centipawn + 1 + material[1]/centipawn +
                 1 - pieces[0] - pieces[1];
-        Y = ((val_opn - val_end)*X + material_total*val_end)/material_total;
-        return stm ? (eval_t)(Y) : (eval_t)(-Y);
+        Y = ((cur_eval.real() - cur_eval.imag())*X +
+             material_total*cur_eval.imag())/material_total;
+        eval_t ans = Y;
+        return stm ? ans : -ans;
     }
 
     dist_t king_dist(const coord_t from_coord, const coord_t to_coord) const
@@ -168,24 +145,44 @@ protected:
                  get_col(k) == max_col || get_row(k) == max_row);
     }
 
+    eval_vect vect_mul(eval_vect a, eval_vect b)
+    {
+        eval_vect ans;
+        ans.real(a.real()*b.real());
+        ans.imag(a.imag()*b.imag());
+        return ans;
+    }
+
+    eval_vect vect_div(eval_vect a, eval_vect b)
+    {
+        eval_vect ans;
+        ans.real(a.real()/b.real());
+        ans.imag(a.imag()/b.imag());
+        return ans;
+    }
+
+    eval_vect EvalSideToMove(const bool stm)
+    {
+        return stm ? side_to_move_bonus : -side_to_move_bonus;
+    }
+
 
 private:
 
-    const size_t opening = 0, endgame = 1;
 
-    void EvalPawns(const bool stm);
-    bool IsUnstoppablePawn(const coord_t col, const bool side_of_pawn,
+    eval_vect EvalPawns(const bool side, const bool stm);
+    bool IsUnstoppablePawn(const coord_t col, const bool side,
                            const bool stm) const;
-    void EvalImbalances();
+    eval_vect EvalImbalances(const bool stm, eval_vect val);
     void MovePawnStruct(const piece_t movedPiece, const move_c move);
-    void EvalMobility(bool stm);
-    void EvalKingSafety(const bool king_color);
+    eval_vect EvalMobility(bool stm);
+    eval_vect EvalKingSafety(const bool king_color);
     bool KingHasNoShelter(coord_t k_col, coord_t k_row, const bool stm) const;
     bool Sheltered(const coord_t k_col, coord_t k_row, const bool stm) const;
     attack_t KingSafetyBatteries(const coord_t targ_coord, const attack_t att,
                                  const bool stm) const;
-    void EvalRooks(const bool stm);
+    eval_vect EvalRooks(const bool stm);
     size_t CountAttacksOnKing(const bool stm, const coord_t k_col,
                               const coord_t k_row) const;
-    void DbgOut(const char *str, eval_t &vo, eval_t &ve, eval_t &sum) const;
+    void DbgOut(const char *str, eval_vect val, eval_vect &sum) const;
 };
