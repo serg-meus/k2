@@ -67,6 +67,7 @@ k2chess::eval_t k2engine::Search(depth_t depth, eval_t alpha, eval_t beta,
     }
     state[ply].in_check = in_check;
 
+    const auto orig_depth = depth;
     if(depth < 0)
         depth = 0;
     if(in_check)
@@ -79,9 +80,9 @@ k2chess::eval_t k2engine::Search(depth_t depth, eval_t alpha, eval_t beta,
             NullMovePruning(depth, beta, in_check))
         return beta;
 
-    eval_t x, initial_alpha = alpha;
+    eval_t x, orig_alpha = alpha;
     hash_entry_s *entry = nullptr;
-    if(HashProbe(depth, &alpha, beta, &entry))
+    if(HashProbe(orig_depth, &alpha, beta, &entry))
         return -alpha;
 
     move_c hash_best_move;
@@ -155,7 +156,8 @@ k2chess::eval_t k2engine::Search(depth_t depth, eval_t alpha, eval_t beta,
 
         if(x >= beta)
         {
-            StoreInHash(depth, beta, cur_move, lower_bound, max_moves == 1);
+            StoreInHash(orig_depth, beta, cur_move, lower_bound,
+                        max_moves == 1);
             UpdateStatistics(cur_move, depth, move_cr, entry);
             return beta;
         }
@@ -163,7 +165,8 @@ k2chess::eval_t k2engine::Search(depth_t depth, eval_t alpha, eval_t beta,
         {
             alpha = x;
             StorePV(cur_move);
-            StoreInHash(depth, alpha, cur_move, exact_value, max_moves == 1);
+            StoreInHash(orig_depth, alpha, cur_move, exact_value,
+                        max_moves == 1);
         }
     }
     if(move_cr == 0)
@@ -171,8 +174,8 @@ k2chess::eval_t k2engine::Search(depth_t depth, eval_t alpha, eval_t beta,
         pv[ply].length = 0;
         return in_check ? -king_value + ply : 0;
     }
-    else if(alpha == initial_alpha)
-        StoreInHash(depth, initial_alpha,
+    else if(alpha == orig_alpha)
+        StoreInHash(orig_depth, orig_alpha,
                     max_moves == 1 ? cur_move : move_array[0],
                     upper_bound, max_moves == 1);
 
