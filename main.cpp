@@ -1009,22 +1009,35 @@ void k2main::ExitCommand(const std::string in)
 
 
 //--------------------------------
-bool k2main::SetPstValue(const std::string param, eval_t val_mid,
-                         eval_t val_end)
+k2chess::piece_type_t k2main::GetTypeForPst(const char char_type)
+{
+    char chars[] = "kqrbnp";
+    piece_type_t ans = 0;
+    for(; ans < piece_types; ++ans)
+        if(chars[ans] == char_type)
+            break;
+    return ans;
+}
+
+
+
+
+
+//--------------------------------
+bool k2main::SetPstValue(const std::string param, const eval_t val,
+                         const bool is_mid)
 {
     if(param.size() != 7)
         return false;
-    char c1 = param[4], c2 = param[5], c3 = param[6];
-    char chars[] = "kqrbnp";
-    piece_t i1 = 0;
-    for(; i1 < piece_types; ++i1)
-        if(chars[i1] == c1)
-            break;
-    coord_t i3 = c2 - 'a', i4 = c3 - '1';
-    if(i1 >= piece_types || i3 > max_col || i4 > max_row)
+    const coord_t col = param[5] - 'a', row = param[6] - '1';
+    const auto type = GetTypeForPst(param[4]);
+    if(type >= piece_types || col > max_col || row > max_row)
         return false;
 
-    pst[i1][max_row - i4][i3] = {val_mid, val_end};
+    if(is_mid)
+        pst[type][max_row - row][col].real(val);
+    else
+        pst[type][max_row - row][col].imag(val);
     return true;
 }
 
@@ -1037,25 +1050,21 @@ bool k2main::SetParamValue(const std::string param, const eval_t val,
                            const bool is_mid)
 {
     bool found = false;
-    for(auto p : eval_params)
-        if(param == p.first)
-        {
-            if(is_mid)
-                p.second->real(val);
-            else
-                p.second->imag(val);
-            found = true;
-        }
-    if(found)
-        return true;
 
-    if(param == "tuning_factor")
-        tuning_factor.real(val);
-    else if(param.rfind("pst_", 0) == 0)
+    if(param.rfind("pst_", 0) == 0)
         return SetPstValue(param, val, is_mid);
     else
-        return false;
-    return true;
+        for(auto p : eval_params)
+            if(param == p.first)
+            {
+                if(is_mid)
+                    p.second->real(val);
+                else
+                    p.second->imag(val);
+                found = true;
+                break;
+            }
+    return found;
 }
 
 
@@ -1065,14 +1074,13 @@ bool k2main::SetParamValue(const std::string param, const eval_t val,
 //--------------------------------
 void k2main::SetvalueCommand(const std::string in)
 {
-
     std::string arg1, arg2, arg3;
     GetFirstArg(in, &arg1, &arg2);
     GetFirstArg(arg2, &arg2, &arg3);
     const auto val_mid = atof(arg2.c_str());
     const auto val_end = atof(arg3.c_str());
-
-    if(!SetParamValue(arg1, val_mid, val_end))
+    if(!SetParamValue(arg1, val_mid, true) ||
+            !SetParamValue(arg1, val_end, false))
         std::cout << "error: wrong parameter name" << std ::endl;
 }
 
@@ -1142,7 +1150,6 @@ void k2main::TuningLoadCommand(const std::string in)
     const auto tick1 = clock.getElapsedTimeInMicroSec();
 
     training_positions.clear();
-
     string line;
     ifstream myfile(in);
     if(!myfile)
@@ -1150,25 +1157,26 @@ void k2main::TuningLoadCommand(const std::string in)
         cout << "Error: epd file not found" << endl;
         return;
     }
-    cout << "Loading..." << endl;
+    cout << "Allocating memory..." << endl;
     size_t lines = 0;
     while(getline(myfile, line))
         lines++;
     training_positions.reserve(lines);
+
+    cout << "Loading..." << endl;
     myfile.clear();
     myfile.seekg(0);
     while(getline(myfile, line))
     {
-        auto pos = line.find_first_of("\"");
-        auto res_str = line.substr(pos, line.size());
-        auto pos1 = res_str.find_first_of(";");
-        res_str = res_str.substr(0, pos1);
+        const auto pos2 = line.rfind("\"");
+        const auto pos1 = line.rfind("\"", pos2 - 1);
+        const auto res_str = line.substr(pos1 + 1, pos2 - pos1 - 1);
         float result;
-        if(res_str == "\"1-0\"")
+        if(res_str == "1-0")
             result = 1;
-        else if(res_str == "\"0-1\"")
+        else if(res_str == "0-1")
             result = 0;
-        else if(res_str == "\"1/2-1/2\"")
+        else if(res_str == "1/2-1/2")
             result = 0.5;
         else
         {
@@ -1182,8 +1190,8 @@ void k2main::TuningLoadCommand(const std::string in)
     const auto tick2 = clock.getElapsedTimeInMicroSec();
     const auto deltaTick = tick2 - tick1;
 
-    cout << training_positions.size() << " positions loaded successfully\n";
-    cout << "Elapsed time is " << deltaTick / 1000000. << " s.\n";
+    cout << training_positions.size() << " positions loaded successfully, "
+         << "elapsed time is " << deltaTick / 1000000. << " s." << endl;
 }
 
 
@@ -1197,7 +1205,9 @@ double k2main::GetEvalError()
     for(auto pos : training_positions)
     {
         TuningApplyPosData(&pos);
-        double eval = Eval(white, state[0].eval);
+        double eval = Eval(pos.wtm, state[0].eval);
+        if(!pos.wtm)
+            eval = -eval;
         const auto sigm = sigmoid(eval);
         const auto dif = (pos.result - sigm);
         const auto sq_dif = dif*dif;
@@ -1224,9 +1234,48 @@ void k2main::TuningResultCommand(const std::string in)
 
     const auto tick2 = clock.getElapsedTimeInMicroSec();
     const auto deltaTick = tick2 - tick1;
-    cout << "Elapsed time: " << deltaTick / 1000000. << " s." << endl;
 
-    cout << "Eval error: " << scientific << ans << fixed << endl;
+    cout << "Eval error: " << scientific << ans << fixed <<
+            ", elapsed time: " << deltaTick / 1000000. << " s." << endl;
+}
+
+
+
+
+
+//--------------------------------
+bool k2main::TuneOneParam(const std::string param, const bool is_mid,
+                          eval_t &left_arg, eval_t &right_arg,
+                          double &left_err, double &right_err, int &flag)
+{
+    if(flag != 1)
+    {
+        SetParamValue(param, left_arg, is_mid);
+        left_err = GetEvalError();
+    }
+    if(flag != 2)
+    {
+        SetParamValue(param, right_arg, is_mid);
+        right_err = GetEvalError();
+    }
+    std::cout << " value: [" << left_arg << " .. " << right_arg <<
+                 "]"", err: [" << left_err << ", " << right_err << "]";
+    if(right_arg - left_arg == 1)
+        return false;
+    eval_t delta = round((right_arg - left_arg)/1.618);
+    if(delta <= 2)
+        delta = right_arg - left_arg - 1;
+    if(left_err >= right_err)
+    {
+        left_arg = right_arg - delta;
+        flag = 2;
+    }
+    else
+    {
+        right_arg = left_arg + delta;
+        flag = 1;
+    }
+    return true;
 }
 
 
@@ -1242,63 +1291,33 @@ void k2main::TuneParamCommand(const std::string in)
     GetFirstArg(arg1, &arg1, &arg2);
     GetFirstArg(arg2, &arg2, &arg3);
 
-    const double phi = 1.618;
-    eval_t a = atoi(arg1.c_str());
-    eval_t b = atoi(arg2.c_str());
-    bool is_mid = arg3 == "mid";
-    int flag = 0;
-    double y1 = 0, y2 = 0;
-
-    if(arg3 != "mid" && arg3 != "end")
+    eval_t left_arg = atoi(arg2.c_str());
+    eval_t right_arg = atoi(arg3.c_str());
+    if(arg1 != "mid" && arg1 != "end")
     {
-        cout << "Error: third parameter 'mid' or 'end' nod defined" << endl;
+        cout << "Error: 'mid' or 'end' after param name not defined" << endl;
         return;
     }
-    if(!SetParamValue(param, a, b))
+    const bool is_mid = arg1 == "mid";
+    if(!SetParamValue(param, 0, is_mid))
     {
         cout << "Error: wrong param name" << endl;
         return;
     }
+    int flag = 0;
+    double left_err = 0, right_err = 0;
 
-    for(auto it = 0; it < 100; it++)
+    for(auto it = 0; it < 100; ++it)
     {
-        cout << "\rIteration " << it << "..." << flush;
-        auto x1 = b - (b - a)/phi;
-        auto x2 = a + (b - a)/phi;
-        if(flag == 1)
-            y1 = y2;
-        else if(flag == 2)
-            y2 = y1;
-        if(flag != 1)
-        {
-            SetParamValue(param, x1, is_mid);
-            y1 = GetEvalError();
-        }
-        if(flag != 2)
-        {
-            SetParamValue(param, x2, is_mid);
-            y2 = GetEvalError();
-        }
-
-        if(y1 >= y2)
-        {
-            a = x1;
-            flag = 1;
-        }
-        else
-        {
-            b = x2;
-            flag = 2;
-        }
-        cout << " Current " << param << " best value: "
-             << (a + b)/2 << " ± " << abs(b - a);
-        if(abs(b - a) <= 2)
+        cout << it << ". ";
+        if(!TuneOneParam(param, is_mid, left_arg, right_arg,
+                         left_err, right_err, flag))
             break;
+        cout << endl;
     }
-    const eval_t x = (a + b)/2;
+    const auto x = (left_err < right_err) ? left_arg : right_arg;
     SetParamValue(param, x, is_mid);
-    cout << endl;
-
+    cout << ", finaly: " << x << endl;
 }
 
 

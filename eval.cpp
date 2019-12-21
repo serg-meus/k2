@@ -951,7 +951,7 @@ void k2eval::RunUnitTests()
     assert(val.imag() > -pawn_val.imag()/4);
     val = SetupPosition("5k2/p6p/8/B7/8/8/7P/4K3 w - -");  // KBPkpp
     val = EvalImbalances(wtm, val);
-    assert(val.imag() > 2*pawn_val.imag());
+    assert(val.imag() > 3*pawn_val.imag()/2);
     val = SetupPosition("5k2/8/8/NN6/8/8/8/4K3 w - -");  // KNNk
     val = EvalImbalances(wtm, val);
     assert(val == zeros);

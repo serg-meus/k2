@@ -105,6 +105,7 @@ protected:
         {"imbalance_multicolor", &imbalance_multicolor},
         {"imbalance_no_pawns", &imbalance_no_pawns},
         {"side_to_move_bonus", &side_to_move_bonus},
+        {"tuning_factor", &tuning_factor},
     };
 
     bool ExecuteCommand(const std::string in);
@@ -150,10 +151,15 @@ protected:
 
     bool SetParamValue(const std::string param, const eval_t val,
                        const bool is_mid);
-    bool SetPstValue(const std::string param, eval_t val_mid, eval_t val_end);
+    bool SetPstValue(const std::string param, const eval_t val,
+                     const bool is_mid);
     double GetEvalError();
     void TuningParsePos(std::string fen, parsed_pos_s *pos, double result);
     void TuningApplyPosData(parsed_pos_s *pos_struct);
+    piece_type_t GetTypeForPst(const char char_type);
+    bool TuneOneParam(const std::string param, const bool is_mid,
+                      eval_t &left_arg, eval_t &right_arg,
+                      double &left_err, double &right_err, int &flag);
 
     bool test_perft(const char *pos, const depth_t depth, const node_t node_cr)
     {
