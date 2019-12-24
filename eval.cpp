@@ -515,34 +515,20 @@ void k2eval::EvalDebug(const bool stm)
 
 
 //-----------------------------
-void k2eval::SetPawnStruct(const coord_t col)
+void k2eval::SetPawnStruct(const bool side, const coord_t col)
 {
     assert(col <= max_col);
-    coord_t y;
-    if(wtm)
-    {
-        y = pawn_default_row;
-        while(b[get_coord(col, max_row - y)] != black_pawn && y < max_row)
-            y++;
-        pawn_min[col][black] = y;
+    auto y = pawn_default_row;
+    const auto pwn = black_pawn | side;
 
-        y = max_row - pawn_default_row;
-        while(b[get_coord(col, max_row - y)] != black_pawn && y > 0)
-            y--;
-        pawn_max[col][black] = y;
-    }
-    else
-    {
-        y = pawn_default_row;
-        while(b[get_coord(col, y)] != white_pawn && y < max_row)
-            y++;
-        pawn_min[col][white] = y;
+    while(b[get_coord(col, side ? y : max_row - y)] != pwn && y < max_row)
+        y++;
+    pawn_min[col][side] = y;
 
-        y = max_row - pawn_default_row;
-        while(b[get_coord(col, y)] != white_pawn && y > 0)
-            y--;
-        pawn_max[col][white] = y;
-    }
+    y = max_row - pawn_default_row;
+    while(b[get_coord(col, side ? y : max_row - y)] != pwn && y > 0)
+        y--;
+    pawn_max[col][side] = y;
 }
 
 
@@ -550,21 +536,19 @@ void k2eval::SetPawnStruct(const coord_t col)
 
 
 //-----------------------------
-void k2eval::MovePawnStruct(const piece_t moved_piece, const move_c move)
+void k2eval::MovePawnStruct(const bool side, const move_c move,
+                            const piece_t moved_piece,
+                            const piece_t captured_piece)
 {
     if(get_type(moved_piece) == pawn || (move.flag & is_promotion))
     {
-        SetPawnStruct(get_col(move.to_coord));
+        SetPawnStruct(side, get_col(move.to_coord));
         if(move.flag)
-            SetPawnStruct(get_col(move.from_coord));
+            SetPawnStruct(side, get_col(move.from_coord));
     }
-    if(get_type(k2chess::state[ply].captured_piece) == pawn
-            || (move.flag & is_en_passant))  // is_en_passant not needed
-    {
-        wtm ^= white;
-        SetPawnStruct(get_col(move.to_coord));
-        wtm ^= white;
-    }
+    if(get_type(captured_piece) == pawn || (move.flag & is_en_passant))
+        SetPawnStruct(!side, get_col(move.to_coord));
+
 #ifndef NDEBUG
     rank_t copy_max[8][2], copy_min[8][2];
     memcpy(copy_max, pawn_max, sizeof(copy_max));
@@ -584,51 +568,15 @@ void k2eval::InitPawnStruct()
 {
     pawn_max = &p_max[1];
     pawn_min = &p_min[1];
-    for(auto col: {0, 9})
-        for(auto color: {black, white})
+    for(auto col: {-1, static_cast<int>(board_width)})
+        for(auto side: {black, white})
         {
-            p_max[col][color] = 0;
-            p_min[col][color] = 7;
+            pawn_max[col][side] = 0;
+            pawn_min[col][side] = max_row;
         }
-    for(auto col = 0; col <= max_col; col++)
-    {
-        pawn_max[col][black] = 0;
-        pawn_max[col][white] = 0;
-        pawn_min[col][black] = max_row;
-        pawn_min[col][white] = max_row;
-        for(auto row = pawn_default_row;
-            row <= max_row - pawn_default_row;
-            row++)
-            if(b[get_coord(col, row)] == white_pawn)
-            {
-                pawn_min[col][white] = row;
-                break;
-            }
-        for(auto row = max_row - pawn_default_row;
-            row >= pawn_default_row;
-            row--)
-            if(b[get_coord(col, row)] == white_pawn)
-            {
-                pawn_max[col][white] = row;
-                break;
-            }
-        for(auto row = max_row - pawn_default_row;
-            row >= pawn_default_row;
-            row--)
-            if(b[get_coord(col, row)] == black_pawn)
-            {
-                pawn_min[col][0] = max_row - row;
-                break;
-            }
-        for(auto row = pawn_default_row;
-            row <= max_row - pawn_default_row;
-            row++)
-            if(b[get_coord(col, row)] == black_pawn)
-            {
-                pawn_max[col][0] = max_row - row;
-                break;
-            }
-    }
+    for(auto col = 0; col < board_height; col++)
+        for(auto side: {black, white})
+            SetPawnStruct(side, col);
 }
 
 
@@ -639,7 +587,8 @@ void k2eval::InitPawnStruct()
 bool k2eval::MakeMove(const move_c move)
 {
     bool is_special_move = k2chess::MakeMove(move);
-    MovePawnStruct(b[move.to_coord], move);
+    MovePawnStruct(!wtm, move, b[move.to_coord],
+                   k2chess::state[ply].captured_piece);
     return is_special_move;
 }
 
@@ -651,12 +600,8 @@ bool k2eval::MakeMove(const move_c move)
 void k2eval::TakebackMove(const move_c move)
 {
     k2chess::TakebackMove(move);
-
-    ply++;
-    wtm ^= white;
-    MovePawnStruct(b[move.from_coord], move);
-    wtm ^= white;
-    ply--;
+    MovePawnStruct(wtm, move, b[move.from_coord],
+                   k2chess::state[ply + 1].captured_piece);
 }
 
 

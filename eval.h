@@ -162,9 +162,8 @@ public:
     eval_vect SetupPosition(const char *p)
     {
         k2chess::SetupPosition(p);
-        InitPawnStruct();
-        eval_vect cur_eval = InitEvalOfMaterial() + InitEvalOfPST();
-        return cur_eval;
+        InitPawnStruct();;
+        return InitEvalOfMaterial() + InitEvalOfPST();
     }
 
 
@@ -176,7 +175,7 @@ protected:
     eval_vect InitEvalOfMaterial();
     eval_vect InitEvalOfPST();
     void InitPawnStruct();
-    void SetPawnStruct(const coord_t col);
+    void SetPawnStruct(const bool side, const coord_t col);
     bool IsPasser(const coord_t col, const bool stm) const;
     bool MakeMove(const move_c move);
     void TakebackMove(const move_c move);
@@ -247,7 +246,9 @@ private:
     bool IsUnstoppablePawn(const coord_t col, const bool side,
                            const bool stm) const;
     eval_vect EvalImbalances(const bool stm, eval_vect val);
-    void MovePawnStruct(const piece_t movedPiece, const move_c move);
+    void MovePawnStruct(const bool side, const move_c move,
+                        const piece_t moved_piece,
+                        const piece_t captured_piece);
     eval_vect EvalMobility(bool stm);
     eval_vect EvalKingSafety(const bool king_color);
     bool KingHasNoShelter(coord_t k_col, coord_t k_row, const bool stm) const;

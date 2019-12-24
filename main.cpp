@@ -146,8 +146,7 @@ bool k2main::ExecuteCommand(const std::string in)
     };
 
     std::string command_str, args;
-
-    GetFirstArg(in, &command_str, &args);
+    command_str = GetFirstArg(in, &args);
 
     for(size_t i = 0; i < sizeof(commands) / sizeof(command_s); ++i)
     {
@@ -167,28 +166,27 @@ bool k2main::ExecuteCommand(const std::string in)
 
 
 //--------------------------------
-void k2main::GetFirstArg(const std::string in,
-                         std::string * const first_word,
-                         std::string * const all_the_rest) const
+std::string k2main::GetFirstArg(const std::string in,
+                                std::string * const all_the_rest) const
 {
-    if(in.empty())
-        return;
     const std::string delimiters = " ;,\t\r\n=";
-    *first_word = in;
-    int first_symbol = first_word->find_first_not_of(delimiters);
+    std::string first_word = in;
+    int first_symbol = first_word.find_first_not_of(delimiters);
     if(first_symbol == -1)
         first_symbol = 0;
-    *first_word = first_word->substr(first_symbol, (int)first_word->size());
-    int second_symbol = first_word->find_first_of(delimiters);
+    first_word = first_word.substr(first_symbol, (int)first_word.size());
+    int second_symbol = first_word.find_first_of(delimiters);
     if(second_symbol == -1)
-        second_symbol = (int)first_word->size();
+        second_symbol = (int)first_word.size();
 
-    auto tmp_str = first_word->substr(second_symbol, (int)first_word->size());
+    auto tmp_str = first_word.substr(second_symbol, (int)first_word.size());
     int third_symbol = tmp_str.find_first_not_of(delimiters);
     if(third_symbol == -1)
         third_symbol = 0;
     *all_the_rest = tmp_str.substr(third_symbol, (int)tmp_str.size());
-    *first_word = first_word->substr(0, second_symbol);
+    first_word = first_word.substr(0, second_symbol);
+
+    return first_word;
 }
 
 
@@ -362,8 +360,8 @@ void k2main::LevelCommand(const std::string in)
     if(busy)
         return;
     std::string arg1, arg2, arg3;
-    GetFirstArg(in, &arg1, &arg2);
-    GetFirstArg(arg2, &arg2, &arg3);
+    arg1 = GetFirstArg(in, &arg2);
+    arg2 = GetFirstArg(arg2, &arg3);
     double base, mps, inc;
     mps = atoi(arg1.c_str());
 
@@ -712,29 +710,29 @@ void k2main::UciCommand(const std::string in)
 void k2main::SetOptionCommand(const std::string in)
 {
     std::string arg1, arg2;
-    GetFirstArg(in, &arg1, &arg2);
+    arg1 = GetFirstArg(in, &arg2);
     if(arg1 != "name")
     {
         std::cout << "Error: incorrect command options\n";
         return;
     }
-    GetFirstArg(arg2, &arg1, &arg2);
+    arg1 = GetFirstArg(arg2, &arg2);
 
     if(arg1 == "Hash" || arg1 == "hash")
     {
-        GetFirstArg(arg2, &arg1, &arg2);
+        arg1 =  GetFirstArg(arg2, &arg2);
         if(arg1 != "value")
             return;
-        GetFirstArg(arg2, &arg1, &arg2);
+        arg1 = GetFirstArg(arg2, &arg2);
         auto size_MB = atoi(arg1.c_str());
         ReHash(size_MB);
     }
     else if(arg1 == "Randomness" || arg1 == "rand")
     {
-        GetFirstArg(arg2, &arg1, &arg2);
+        arg1 = GetFirstArg(arg2, &arg2);
         if(arg1 != "value")
             return;
-        GetFirstArg(arg2, &arg1, &arg2);
+        arg1 = GetFirstArg(arg2, &arg2);
         if(arg1 == "true")
             randomness = true;
         else
@@ -742,10 +740,10 @@ void k2main::SetOptionCommand(const std::string in)
     }
     else if(arg1 == "Separate_thread_for_input" || arg1 == "thread")
     {
-        GetFirstArg(arg2, &arg1, &arg2);
+        arg1 = GetFirstArg(arg2, &arg2);
         if(arg1 != "value")
             return;
-        GetFirstArg(arg2, &arg1, &arg2);
+        arg1 = GetFirstArg(arg2, &arg2);
         if(arg1 == "true")
             use_thread = true;
         else
@@ -777,7 +775,7 @@ void k2main::PositionCommand(const std::string in)
 {
     busy = true;
     std::string arg1, arg2;
-    GetFirstArg(in, &arg1, &arg2);
+    arg1 = GetFirstArg(in, &arg2);
 
     if(arg1 == "fen")
     {
@@ -819,7 +817,7 @@ void k2main::ProcessMoveSequence(const std::string in)
     arg1 = in;
     while(true)
     {
-        GetFirstArg(arg1, &arg1, &arg2);
+        arg1 = GetFirstArg(arg1, &arg2);
         if(arg1.empty())
             break;
         if(!MakeMove(const_cast<char *>(arg1.c_str())))
@@ -842,7 +840,7 @@ void k2main::UciGoCommand(const std::string in)
     root_moves_to_search.clear();
     while(true)
     {
-        GetFirstArg(arg1, &arg1, &arg2);
+        arg1 = GetFirstArg(arg1, &arg2);
         if(arg1.empty())
             break;
         if(arg1 == "infinite")
@@ -854,7 +852,7 @@ void k2main::UciGoCommand(const std::string in)
         else if(arg1 == "wtime" || arg1 == "btime")
         {
             char clr = arg1[0];
-            GetFirstArg(arg2, &arg1, &arg2);
+            arg1 = GetFirstArg(arg2, &arg2);
             if((clr == 'w' && WhiteIsOnMove())
                     || (clr == 'b' && !WhiteIsOnMove()))
             {
@@ -871,7 +869,7 @@ void k2main::UciGoCommand(const std::string in)
         else if(arg1 == "winc" || arg1 == "binc")
         {
             char clr = arg1[0];
-            GetFirstArg(arg2, &arg1, &arg2);
+            arg1 = GetFirstArg(arg2, &arg2);
             if((clr == 'w' && WhiteIsOnMove())
                     || (clr == 'b' && !WhiteIsOnMove()))
                 time_control.time_inc = 1000.*atof(arg1.c_str());
@@ -879,14 +877,14 @@ void k2main::UciGoCommand(const std::string in)
         }
         else if(arg1 == "movestogo")
         {
-            GetFirstArg(arg2, &arg1, &arg2);
+            arg1 = GetFirstArg(arg2, &arg2);
             time_control.moves_per_session = atoi(arg1.c_str());
             arg1 = arg2;
             no_movestogo_arg = false;
         }
         else if(arg1 == "movetime")
         {
-            GetFirstArg(arg2, &arg1, &arg2);
+            arg1 = GetFirstArg(arg2, &arg2);
             time_control.time_base = 0;
             time_control.moves_per_session = 1;
             time_control.time_inc = 1000.*atof(arg1.c_str());
@@ -898,7 +896,7 @@ void k2main::UciGoCommand(const std::string in)
         }
         else if(arg1 == "depth")
         {
-            GetFirstArg(arg2, &arg1, &arg2);
+            arg1 = GetFirstArg(arg2, &arg2);
             time_control.max_search_depth = atoi(arg1.c_str());
             time_control.time_base = INFINITY;
             time_control.time_remains = time_control.time_base;
@@ -908,7 +906,7 @@ void k2main::UciGoCommand(const std::string in)
         }
         else if(arg1 == "nodes")
         {
-            GetFirstArg(arg2, &arg1, &arg2);
+            arg1 = GetFirstArg(arg2, &arg2);
             time_control.time_base = INFINITY;
             time_control.time_remains = time_control.time_base;
             time_control.max_nodes_to_search = atoi(arg1.c_str());
@@ -925,7 +923,7 @@ void k2main::UciGoCommand(const std::string in)
         {
             while(true)
             {
-                GetFirstArg(arg2, &arg1, &arg2);
+                arg1 = GetFirstArg(arg2, &arg2);
                 if(!LooksLikeMove(arg1))
                     break;
                 auto move = MoveFromStr(arg1.c_str());
@@ -966,7 +964,7 @@ void k2main::MemoryCommand(const std::string in)
 {
     std::string arg1, arg2;
     arg1 = in;
-    GetFirstArg(arg2, &arg1, &arg2);
+    arg1 = GetFirstArg(arg2, &arg2);
     auto size_MB = atoi(arg1.c_str());
     ReHash(size_MB);
 }
@@ -1075,8 +1073,8 @@ bool k2main::SetParamValue(const std::string param, const eval_t val,
 void k2main::SetvalueCommand(const std::string in)
 {
     std::string arg1, arg2, arg3;
-    GetFirstArg(in, &arg1, &arg2);
-    GetFirstArg(arg2, &arg2, &arg3);
+    arg1 = GetFirstArg(in, &arg2);
+    arg2 = GetFirstArg(arg2, &arg3);
     const auto val_mid = atof(arg2.c_str());
     const auto val_end = atof(arg3.c_str());
     if(!SetParamValue(arg1, val_mid, true) ||
@@ -1260,7 +1258,7 @@ bool k2main::TuneOneParam(const std::string param, const bool is_mid,
     }
     std::cout << " value: [" << left_arg << " .. " << right_arg <<
                  "]"", err: [" << left_err << ", " << right_err << "]";
-    if(right_arg - left_arg == 1)
+    if(right_arg == left_arg)
         return false;
     eval_t delta = round((right_arg - left_arg)/1.618);
     if(delta <= 2)
@@ -1287,10 +1285,9 @@ void k2main::TuneParamCommand(const std::string in)
 {
     using namespace std;
     std::string param, arg1, arg2, arg3;
-    GetFirstArg(in, &param, &arg1);
-    GetFirstArg(arg1, &arg1, &arg2);
-    GetFirstArg(arg2, &arg2, &arg3);
-
+    param = GetFirstArg(in, &arg1);
+    arg1 = GetFirstArg(arg1, &arg2);
+    arg2 = GetFirstArg(arg2, &arg3);
     eval_t left_arg = atoi(arg2.c_str());
     eval_t right_arg = atoi(arg3.c_str());
     if(arg1 != "mid" && arg1 != "end")
@@ -1315,7 +1312,7 @@ void k2main::TuneParamCommand(const std::string in)
             break;
         cout << endl;
     }
-    const auto x = (left_err < right_err) ? left_arg : right_arg;
+    const auto x = (left_arg + right_arg)/2;
     SetParamValue(param, x, is_mid);
     cout << ", finaly: " << x << endl;
 }
@@ -1328,7 +1325,7 @@ void k2main::TuneParamCommand(const std::string in)
 void k2main::OptionCommand(const std::string in)
 {
     std::string arg1, arg2;
-    GetFirstArg(in, &arg1, &arg2);
+    arg1 = GetFirstArg(in, &arg2);
 
     if(arg1 == "Randomness" || arg1 == "rand")
     {
@@ -1381,6 +1378,6 @@ void k2main::SeedCommand(const std::string in)
 {
     std::string arg1, arg2;
     arg1 = in;
-    GetFirstArg(arg2, &arg1, &arg2);
+    arg1 = GetFirstArg(arg2, &arg2);
     seed = atoi(arg1.c_str());
 }

@@ -120,7 +120,7 @@ protected:
     void SetTimeCommand(const std::string in);
     void SetDepthCommand(const std::string in);
     void Unsupported(const std::string in);
-    void GetFirstArg(const std::string in, std::string * const first_word,
+    std::string GetFirstArg(const std::string in,
                      std::string * const all_the_rest) const;
     void ProtoverCommand(const std::string in);
     void StopEngine();
