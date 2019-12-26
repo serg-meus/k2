@@ -143,6 +143,7 @@ bool k2main::ExecuteCommand(const std::string in)
         {"tuningload",  &k2main::TuningLoadCommand},
         {"tuningresult",&k2main::TuningResultCommand},
         {"tuneparam",   &k2main::TuneParamCommand},
+        {"tune",        &k2main::TuneCommand},
     };
 
     std::string command_str, args;
@@ -1070,6 +1071,46 @@ bool k2main::SetParamValue(const std::string param, const eval_t val,
 
 
 //--------------------------------
+bool k2main::GetParamValue(const std::string param, eval_t * const val,
+                           const bool is_mid)
+{
+    if(param.rfind("pst_", 0) == 0)
+        return GetPstValue(param, val, is_mid);
+    else
+        for(auto p : eval_params)
+        {
+            if(param != p.first)
+                continue;
+            *val = is_mid ? p.second->mid : p.second->end;
+            return true;
+        }
+    return false;
+}
+
+
+
+
+
+//--------------------------------
+bool k2main::GetPstValue(const std::string param, eval_t * const val,
+                           const bool is_mid)
+{
+    if(param.size() != 7)
+        return false;
+    const coord_t col = param[5] - 'a', row = param[6] - '1';
+    const auto type = GetTypeForPst(param[4]);
+    if(type >= piece_types || col > max_col || row > max_row)
+        return false;
+    if(is_mid)
+        *val = pst[type][max_row - row][col].mid;
+    else
+        *val = pst[type][max_row - row][col].end;
+    return true;
+}
+
+
+
+//--------------------------------
 void k2main::SetvalueCommand(const std::string in)
 {
     std::string arg1, arg2, arg3;
@@ -1246,32 +1287,50 @@ bool k2main::TuneOneParam(const std::string param, const bool is_mid,
                           eval_t &left_arg, eval_t &right_arg,
                           double &left_err, double &right_err, int &flag)
 {
+    const bool last_iter = right_arg - left_arg <= 2;
+    eval_t delta = last_iter ? 0 : round((right_arg - left_arg)*.382);
+    if(delta == 2)
+        delta = 1;
+    const auto new_left_arg = left_arg + delta;
+    const auto new_right_arg = right_arg - delta;
     if(flag != 1)
     {
-        SetParamValue(param, left_arg, is_mid);
+        SetParamValue(param, new_left_arg, is_mid);
         left_err = GetEvalError();
     }
     if(flag != 2)
     {
-        SetParamValue(param, right_arg, is_mid);
+        SetParamValue(param, new_right_arg, is_mid);
         right_err = GetEvalError();
     }
-    std::cout << " value: [" << left_arg << " .. " << right_arg <<
-                 "]"", err: [" << left_err << ", " << right_err << "]";
-    if(right_arg == left_arg)
+    std::cout << " value: [" << left_arg << " .. " << right_arg << "] => [" <<
+                 new_left_arg << " .. " << new_right_arg <<
+                 "], err: [" << left_err << ", " << right_err << "]";
+    if(last_iter)
+    {
+        SetParamValue(param, left_arg + 1, is_mid);
+        const auto new_err = GetEvalError();
+        if(new_err < left_err && new_err < right_err)
+            left_arg = right_arg = left_arg + 1;
+        else if(left_err < new_err && left_err < right_err)
+            right_arg = left_arg;
+        else
+            left_arg = right_arg;
         return false;
-    eval_t delta = round((right_arg - left_arg)/1.618);
-    if(delta <= 2)
-        delta = right_arg - left_arg - 1;
-    if(left_err >= right_err)
-    {
-        left_arg = right_arg - delta;
-        flag = 2;
     }
+    if(left_err >= right_err)
+        left_arg = new_left_arg;
     else
+        right_arg = new_right_arg;
+    if(flag != 0 && left_err >= right_err)
     {
-        right_arg = left_arg + delta;
+        left_err = right_err;
         flag = 1;
+    }
+    else if(flag != 0 && left_err < right_err)
+    {
+        right_err = left_err;
+        flag = 2;
     }
     return true;
 }
@@ -1284,7 +1343,7 @@ bool k2main::TuneOneParam(const std::string param, const bool is_mid,
 void k2main::TuneParamCommand(const std::string in)
 {
     using namespace std;
-    std::string param, arg1, arg2, arg3;
+    string param, arg1, arg2, arg3;
     param = GetFirstArg(in, &arg1);
     arg1 = GetFirstArg(arg1, &arg2);
     arg2 = GetFirstArg(arg2, &arg3);
@@ -1314,7 +1373,74 @@ void k2main::TuneParamCommand(const std::string in)
     }
     const auto x = (left_arg + right_arg)/2;
     SetParamValue(param, x, is_mid);
-    cout << ", finaly: " << x << endl;
+    cout << endl << "Finaly: " << x << endl;
+}
+
+
+
+
+
+//--------------------------------
+void k2main::TuneCommand(const std::string in)
+{
+    using namespace std;
+    auto param_vect = TuneFillParamVect(in);
+    int it = 0;
+    bool finish = false;
+    while(!finish)
+    {
+        finish = true;
+        for(auto &p : param_vect)
+        {
+            if(p.left_arg != p.right_arg)
+                cout << endl << it++ << ". " << p.name << " " <<
+                        (p.is_mid ? "mid" : "end");
+            int flag = 0;
+            if(TuneOneParam(p.name, p.is_mid, p.left_arg, p.right_arg,
+                            p.left_err, p.right_err, flag))
+                finish = false;
+            SetParamValue(p.name, (p.left_arg + p.right_arg)/2, p.is_mid);
+        }
+    }
+    cout << endl << endl;
+    for(auto p : param_vect)
+        cout << p.name << " " << (p.is_mid ? "mid" : "end") << " " <<
+                (p.left_arg + p.right_arg)/2 << endl;
+}
+
+
+
+
+
+//--------------------------------
+std::vector<k2main::tune_param_s> k2main::TuneFillParamVect(std::string in)
+{
+    using namespace std;
+    vector<k2main::tune_param_s> param_vect;
+    auto arg1 = GetFirstArg(in, &in);
+    const eval_t margin = atoi(arg1.c_str());
+    if(margin == 0 && arg1 != "0")
+    {
+        cout << "Error: first input must be a number with eval margin" << endl;
+        return param_vect;
+    }
+    while(!in.empty())
+    {
+        auto param = GetFirstArg(in, &in);
+        eval_t cur_val = 0;
+        if(!GetParamValue(param, &cur_val, true))
+        {
+            cout << "Error: wrong param name" << " " << param << endl;
+            param_vect.clear();
+            return param_vect;
+        }
+        param_vect.push_back({param, true, AddEval(cur_val, -margin),
+                              AddEval(cur_val, margin), 0, 0});
+        GetParamValue(param, &cur_val, false);
+        param_vect.push_back({param, false, AddEval(cur_val, -margin),
+                              AddEval(cur_val, margin), 0, 0});
+    }
+    return param_vect;
 }
 
 

@@ -43,6 +43,16 @@ protected:
         method_ptr mptr;
     };
 
+    struct tune_param_s
+    {
+        std::string name;
+        bool is_mid;
+        eval_t left_arg;
+        eval_t right_arg;
+        double left_err;
+        double right_err;
+    };
+
     struct parsed_pos_s
     {
         bool wtm;
@@ -60,7 +70,6 @@ protected:
         double result;
 
     };
-
     std::vector<parsed_pos_s> training_positions;
     vec2<eval_t> tuning_factor = {13000, 13000};
 
@@ -148,6 +157,7 @@ protected:
     void TuningLoadCommand(const std::string in);
     void TuningResultCommand(const std::string in);
     void TuneParamCommand(const std::string in);
+    void TuneCommand(const std::string in);
 
     bool SetParamValue(const std::string param, const eval_t val,
                        const bool is_mid);
@@ -160,6 +170,11 @@ protected:
     bool TuneOneParam(const std::string param, const bool is_mid,
                       eval_t &left_arg, eval_t &right_arg,
                       double &left_err, double &right_err, int &flag);
+    bool GetParamValue(const std::string param, eval_t * const val,
+                       const bool is_mid);
+    bool GetPstValue(const std::string param, eval_t * const val,
+                     const bool is_mid);
+    std::vector<tune_param_s> TuneFillParamVect(std::string in);
 
     bool test_perft(const char *pos, const depth_t depth, const node_t node_cr)
     {
