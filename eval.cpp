@@ -5,7 +5,7 @@
 
 
 //-----------------------------
-k2chess::eval_t k2eval::Eval(const bool stm, eval_vect cur_eval)
+k2chess::eval_t k2eval::Eval(const bool stm, vec2<eval_t> cur_eval)
 {
     for(auto side: {black, white})
     {
@@ -25,9 +25,10 @@ k2chess::eval_t k2eval::Eval(const bool stm, eval_vect cur_eval)
 
 
 //-----------------------------
-k2eval::eval_vect k2eval::FastEval(const bool stm, const move_c move) const
+k2eval::vec2<k2chess::eval_t> k2eval::FastEval(const bool stm,
+                                               const move_c move) const
 {
-    eval_vect ans = {0, 0};
+    vec2<eval_t> ans = {0, 0};
 
     auto x = get_col(move.to_coord);
     auto y = get_row(move.to_coord);
@@ -83,9 +84,9 @@ k2eval::eval_vect k2eval::FastEval(const bool stm, const move_c move) const
 
 
 //-----------------------------
-k2eval::eval_vect k2eval::InitEvalOfMaterial()
+k2eval::vec2<k2chess::eval_t> k2eval::InitEvalOfMaterial()
 {
-    eval_vect ans = {0, 0};
+    vec2<eval_t> ans = {0, 0};
     for(auto col = 0; col <= max_col; ++col)
         for(auto row = 0; row <= max_row; ++row)
         {
@@ -103,9 +104,9 @@ k2eval::eval_vect k2eval::InitEvalOfMaterial()
 
 
 //-----------------------------
-k2eval::eval_vect k2eval::InitEvalOfPST()
+k2eval::vec2<k2chess::eval_t> k2eval::InitEvalOfPST()
 {
-    eval_vect ans = {0, 0};
+    vec2<eval_t> ans = {0, 0};
     for(auto col = 0; col <= max_col; ++col)
         for(auto row = 0; row <= max_row; ++row)
         {
@@ -142,9 +143,9 @@ bool k2eval::IsPasser(const coord_t col, const bool stm) const
 
 
 //--------------------------------
-k2eval::eval_vect k2eval::EvalPawns(const bool side, const bool stm)
+k2eval::vec2<k2chess::eval_t> k2eval::EvalPawns(const bool side, const bool stm)
 {
-    eval_vect ans = {0, 0};
+    vec2<eval_t> ans = {0, 0};
     bool passer, prev_passer = false;
     bool opp_only_pawns = material[!side]/centipawn == pieces[!side] - 1;
 
@@ -232,10 +233,8 @@ k2eval::eval_vect k2eval::EvalPawns(const bool side, const bool stm)
         // unstoppable
         if(opp_only_pawns && IsUnstoppablePawn(col, side, stm))
         {
-            ans.real(ans.real() + pawn_unstoppable.imag() +
-                     mx*pawn_unstoppable.real());
-            ans.imag(ans.imag() + pawn_unstoppable.imag() +
-                     mx*pawn_unstoppable.real());
+            ans.mid += pawn_unstoppable.end + mx*pawn_unstoppable.mid;
+            ans.end += pawn_unstoppable.end + mx*pawn_unstoppable.mid;
         }
     }
     return side ? ans : -ans;
@@ -266,14 +265,14 @@ bool k2eval::IsUnstoppablePawn(const coord_t col, const bool side,
 
 
 //-----------------------------
-k2eval::eval_vect k2eval::EvalMobility(bool stm)
+k2eval::vec2<k2chess::eval_t> k2eval::EvalMobility(bool stm)
 {
-    eval_vect f_type[] = {{0, 0}, {0, 0}, mob_queen, mob_rook, mob_bishop,
+    vec2<eval_t> f_type[] = {{0, 0}, {0, 0}, mob_queen, mob_rook, mob_bishop,
                           mob_knight};
     eval_t f_num[] = {-15, -15, -15, -10, -5, 5, 10, 15, 18, 20,
                       21, 21, 21, 22, 22};
 
-    eval_vect ans = {0, 0};
+    vec2<eval_t> ans = {0, 0};
     auto mask = exist_mask[stm] & slider_mask[stm];
     while(mask)
     {
@@ -296,7 +295,8 @@ k2eval::eval_vect k2eval::EvalMobility(bool stm)
 
 
 //-----------------------------
-k2eval::eval_vect k2eval::EvalImbalances(const bool stm, eval_vect val)
+k2eval::vec2<k2chess::eval_t> k2eval::EvalImbalances(const bool stm,
+                                                     vec2<eval_t> val)
 {
     const auto X = material[black]/centipawn + 1 + material[white]/centipawn
             + 1 - pieces[black] - pieces[white];
@@ -312,7 +312,7 @@ k2eval::eval_vect k2eval::EvalImbalances(const bool stm, eval_vect val)
                  material[black]/centipawn == 4) ||
                 (material[black]/centipawn == 1 &&
                  material[white]/centipawn == 4))
-            return vect_div(val, imbalance_draw_divider);
+            return val / imbalance_draw_divider;
     }
     // KNNk, KBNk, KBBk, etc
     else if(X == 6 && (material[black] == 0 || material[white] == 0))
@@ -370,7 +370,7 @@ k2eval::eval_vect k2eval::EvalImbalances(const bool stm, eval_vect val)
 
         if(king_dist(king_coord(!stm), telestop) <= 1 && (!king_in_front
                 || king_dist(king_coord(stm), pawn_coord) > 2))
-            return vect_div(val, imbalance_draw_divider);
+            return val / imbalance_draw_divider;
     }
     // KBPk(p) with pawn at first(last) file and bishop with 'good' color
     else if(X == 3)
@@ -425,7 +425,7 @@ k2eval::eval_vect k2eval::EvalImbalances(const bool stm, eval_vect val)
     {
         const bool stm = material[white] < material[black];
         if(!is_king_near_corner(stm))
-            val = vect_mul(val, imbalance_no_pawns)/static_cast<eval_t>(64);
+            val = val*imbalance_no_pawns / 64;
     }
 
     // two bishops
@@ -438,8 +438,8 @@ k2eval::eval_vect k2eval::EvalImbalances(const bool stm, eval_vect val)
     if(!quantity[white][pawn] && !quantity[black][pawn] &&
             material[white] != 0 && material[black] != 0)
         {
-            val.real(val.real()*imbalance_no_pawns.real()/64);
-            val.imag(val.imag()*imbalance_no_pawns.real()/64);
+            val.mid = val.mid*imbalance_no_pawns.mid/64;
+            val.end = val.end*imbalance_no_pawns.end/64;
         }
 
     // multicolored bishops
@@ -455,10 +455,10 @@ k2eval::eval_vect k2eval::EvalImbalances(const bool stm, eval_vect val)
                 material[white]/centipawn - pieces[white] == 4 - 2 &&
                 material[black]/centipawn - pieces[black] == 4 - 2;
         if(only_pawns && quantity[white][pawn] + quantity[black][pawn] == 1)
-            return vect_div(val, imbalance_draw_divider);
-        auto Ki = only_pawns ? imbalance_multicolor.real() :
-                               imbalance_multicolor.imag();
-        val.imag(val.imag()*Ki/64);
+            return val / imbalance_draw_divider;
+        auto Ki = only_pawns ? imbalance_multicolor.mid :
+                               imbalance_multicolor.end;
+        val.end = val.end*Ki / 64;
     }
     return val;
 }
@@ -468,10 +468,10 @@ k2eval::eval_vect k2eval::EvalImbalances(const bool stm, eval_vect val)
 
 
 //-----------------------------
-void k2eval::DbgOut(const char *str, eval_vect val, eval_vect &sum) const
+void k2eval::DbgOut(const char *str, vec2<eval_t> val, vec2<eval_t> &sum) const
 {
     std::cout << str << '\t';
-    std::cout << val.real() << '\t' << val.imag() << '\t' <<
+    std::cout << val.mid << '\t' << val.end << '\t' <<
                  GetEvalScore(white, val) << std::endl;
     sum += val;
 }
@@ -484,7 +484,7 @@ void k2eval::DbgOut(const char *str, eval_vect val, eval_vect &sum) const
 void k2eval::EvalDebug(const bool stm)
 {
     std::cout << "\t\t\tMidgame\tEndgame\tTotal" << std::endl;
-    eval_vect sum = {0, 0}, zeros = {0, 0};
+    vec2<eval_t> sum = {0, 0}, zeros = {0, 0};
     DbgOut("Material both sides", InitEvalOfMaterial(), sum);
     DbgOut("PST both sides\t", InitEvalOfPST(), sum);
     DbgOut("White pawns\t", EvalPawns(white, stm), sum);
@@ -498,15 +498,15 @@ void k2eval::EvalDebug(const bool stm)
     DbgOut("Bonus for side to move", EvalSideToMove(stm), sum);
     DbgOut("Imbalances both sides", EvalImbalances(stm, sum) - sum, zeros);
     sum = EvalImbalances(stm, sum);
-    eval_vect tmp = InitEvalOfMaterial() + InitEvalOfPST();
+    vec2<eval_t> tmp = InitEvalOfMaterial() + InitEvalOfPST();
     if(Eval(wtm, tmp) != GetEvalScore(wtm, sum))
     {
         assert(true);
         std::cout << "\nInternal error, please contact with developer\n";
         return;
     }
-    std::cout << std::endl << "Grand Total:\t\t" << sum.real() << '\t' <<
-                 sum.imag() << '\t' << GetEvalScore(white, sum) << std::endl;
+    std::cout << std::endl << "Grand Total:\t\t" << sum.mid << '\t' <<
+                 sum.end << '\t' << GetEvalScore(white, sum) << std::endl;
     std::cout << "(positive values mean advantage for white)\n\n";
 }
 
@@ -609,9 +609,9 @@ void k2eval::TakebackMove(const move_c move)
 
 
 //-----------------------------
-k2eval::eval_vect k2eval::EvalRooks(const bool stm)
+k2eval::vec2<k2chess::eval_t> k2eval::EvalRooks(const bool stm)
 {
-    eval_vect ans = 0;
+    vec2<eval_t> ans(0, 0);
     eval_t rooks_on_last_cr = 0;
     auto mask = exist_mask[stm] & type_mask[stm][rook];
     while(mask)
@@ -785,9 +785,9 @@ size_t k2eval::CountAttacksOnKing(const bool stm, const coord_t k_col,
 
 
 //-----------------------------
-k2eval::eval_vect k2eval::EvalKingSafety(const bool stm)
+k2eval::vec2<k2chess::eval_t> k2eval::EvalKingSafety(const bool stm)
 {
-    eval_vect zeros = {0, 0};
+    vec2<eval_t> zeros = {0, 0};
     if(quantity[!stm][queen] < 1 && quantity[!stm][rook] < 2)
         return zeros;
     const auto k_col = get_col(king_coord(stm));
@@ -796,18 +796,18 @@ k2eval::eval_vect k2eval::EvalKingSafety(const bool stm)
     const eval_t attacks = CountAttacksOnKing(stm, k_col, k_row);
     const eval_t no_shelter = KingHasNoShelter(k_col, k_row, stm);
     const eval_t div = 10;
-    const eval_vect f_saf = no_shelter ?
-                vect_mul(king_saf_attack1, king_saf_attack2)/div :
+    const vec2<eval_t> f_saf = no_shelter ?
+                king_saf_attack1*king_saf_attack2 / div :
                 king_saf_attack2;
-    eval_vect f_queen = {10, 10};
+    vec2<eval_t> f_queen = {10, 10};
     if(!quantity[!stm][queen])
         f_queen = king_saf_no_queen;
-    const eval_vect center = (std::abs(2*k_col - max_col) <= 1 &&
+    const vec2<eval_t> center = (std::abs(2*k_col - max_col) <= 1 &&
                               quantity[!stm][queen]) ? king_saf_central_files :
                                                        zeros;
     const eval_t att2 = attacks*attacks;
-    const eval_vect ans = center + king_saf_no_shelter*no_shelter +
-            vect_div(att2*f_saf, f_queen);
+    const auto ans = center + king_saf_no_shelter*no_shelter +
+            att2*f_saf / f_queen;
 
     return stm ? -ans : ans;
 }
@@ -845,7 +845,7 @@ void k2eval::RunUnitTests()
     assert(!IsPasser(7, white));
     assert(!IsPasser(1, black));
 
-    eval_vect val, zeros = {0, 0};
+    vec2<eval_t> val, zeros = {0, 0};
     SetupPosition("4k3/1p6/8/8/1P6/8/1P6/4K3 w - -");
     val = EvalPawns(white, wtm);
     assert(val == -pawn_dbl_iso);
@@ -875,28 +875,28 @@ void k2eval::RunUnitTests()
     // endings
     val = SetupPosition("5k2/8/8/N7/8/8/8/4K3 w - -");  // KNk
     val = EvalImbalances(wtm, val);
-    assert(val.imag() < pawn_val.imag()/4);
+    assert(val.end < pawn_val.end/4);
     val = SetupPosition("5k2/8/8/n7/8/8/8/4K3 w - -");  // Kkn
     val = EvalImbalances(wtm, val);
-    assert(val.imag() > -pawn_val.imag()/4);
+    assert(val.end > -pawn_val.end/4);
     val = SetupPosition("5k2/8/8/B7/8/8/8/4K3 w - -");  // KBk
     val = EvalImbalances(wtm, val);
-    assert(val.imag() < pawn_val.imag()/4);
+    assert(val.end < pawn_val.end/4);
     val = SetupPosition("5k2/8/8/b7/8/8/8/4K3 w - -");  // Kkb
     val = EvalImbalances(wtm, val);
-    assert(val.imag() > -pawn_val.imag()/4);
+    assert(val.end > -pawn_val.end/4);
     val = SetupPosition("5k2/p7/8/b7/8/8/P7/4K3 w - -");  // KPkbp
     val = EvalImbalances(wtm, val);
-    assert(val.imag() < bishop_val.imag());
+    assert(val.end < bishop_val.end);
     val = SetupPosition("5k2/8/8/n7/8/8/P7/4K3 w - -");  // KPkn
     val = EvalImbalances(wtm, val);
-    assert(val.imag() < pawn_val.imag()/4);
+    assert(val.end < pawn_val.end/4);
     val = SetupPosition("5k2/p7/8/B7/8/8/8/4K3 w - -");  // KBkp
     val = EvalImbalances(wtm, val);
-    assert(val.imag() > -pawn_val.imag()/4);
+    assert(val.end > -pawn_val.end/4);
     val = SetupPosition("5k2/p6p/8/B7/8/8/7P/4K3 w - -");  // KBPkpp
     val = EvalImbalances(wtm, val);
-    assert(val.imag() > 3*pawn_val.imag()/2);
+    assert(val.end > 3*pawn_val.end/2);
     val = SetupPosition("5k2/8/8/NN6/8/8/8/4K3 w - -");  // KNNk
     val = EvalImbalances(wtm, val);
     assert(val == zeros);
@@ -905,14 +905,14 @@ void k2eval::RunUnitTests()
     assert(val == zeros);
     val = SetupPosition("5k2/p7/8/nn6/8/8/P7/4K3 w - -");  // KPknnp
     val = EvalImbalances(wtm, val);
-    assert(val.imag() < -2*knight_val.imag() + pawn_val.imag());
+    assert(val.end < -2*knight_val.end + pawn_val.end);
     val = SetupPosition("5k2/8/8/nb6/8/8/8/4K3 w - -");  // Kknb
     val = EvalImbalances(wtm, val);
-    assert(val.imag() < -knight_val.imag() - bishop_val.imag() +
-           pawn_val.imag());
+    assert(val.end < -knight_val.end - bishop_val.end +
+           pawn_val.end);
     val = SetupPosition("5k2/8/8/1b6/8/7p/8/7K w - -");  // Kkbp not drawn
     val = EvalImbalances(wtm, val);
-    assert(val.imag() < -bishop_val.imag()- pawn_val.imag()/2);
+    assert(val.end < -bishop_val.end- pawn_val.end/2);
     val = SetupPosition("7k/8/7P/1B6/8/8/8/6K1 w - -");  // KBPk drawn
     val = EvalImbalances(wtm, val);
     assert(val == zeros);
@@ -921,32 +921,32 @@ void k2eval::RunUnitTests()
     assert(val == zeros);
     val = SetupPosition("7k/8/P7/1B6/8/8/8/6K1 w - -");  // KBPk not drawn
     val = EvalImbalances(wtm, val);
-    assert(val.imag() > bishop_val.imag() + pawn_val.imag()/2);
+    assert(val.end > bishop_val.end + pawn_val.end/2);
     val = SetupPosition("2k5/8/P7/1B6/8/8/8/6K1 w - -");  // KBPk not drawn
     val = EvalImbalances(wtm, val);
-    assert(val.imag() > bishop_val.imag() + pawn_val.imag()/2);
+    assert(val.end > bishop_val.end + pawn_val.end/2);
     val = SetupPosition("1K6/8/P7/1B6/8/8/8/6k1 w - -");  // KBPk not drawn
     val = EvalImbalances(wtm, val);
-    assert(val.imag() > bishop_val.imag() + pawn_val.imag()/2);
+    assert(val.end > bishop_val.end + pawn_val.end/2);
     val = SetupPosition("1k6/8/1P6/1B6/8/8/8/6K1 w - -");  // KBPk not drawn
     val = EvalImbalances(wtm, val);
-    assert(val.imag() > bishop_val.imag() + pawn_val.imag()/2);
+    assert(val.end > bishop_val.end + pawn_val.end/2);
     val = SetupPosition("5k2/8/8/3b4/p4P2/8/K7/8 w - -");  // KPkbp drawn
     val = EvalImbalances(wtm, val);
     assert(val == zeros);
     val = SetupPosition("5k2/8/8/3b4/p4P2/8/8/2K5 w - -");  // KPkbp not drawn
     val = EvalImbalances(wtm, val);
-    assert(val.imag() < -bishop_val.imag());
+    assert(val.end < -bishop_val.end);
 
     val = SetupPosition("1k6/8/8/P7/8/4N3/8/6K1 w - -");  // KNPk
     val = EvalImbalances(wtm, val);
-    assert(val.imag() > knight_val.imag() + pawn_val.imag()/2);
+    assert(val.end > knight_val.end + pawn_val.end/2);
     val = SetupPosition("8/8/8/5K2/2k5/8/2P5/8 b - -");  // KPk
     val = EvalImbalances(wtm, val);
     assert(val == zeros);
     val = SetupPosition("8/8/8/5K2/2k5/8/2P5/8 w - -");  // KPk
     val = EvalImbalances(wtm, val);
-    assert(val.imag() > pawn_val.imag()/2);
+    assert(val.end > pawn_val.end/2);
     val = SetupPosition("k7/2K5/8/P7/8/8/8/8 w - -");  // KPk
     val = EvalImbalances(wtm, val);
     assert(val == zeros);
@@ -955,80 +955,80 @@ void k2eval::RunUnitTests()
     assert(val == zeros);
     val = SetupPosition("8/8/8/p7/8/1k6/8/2K5 w - -");  // Kkp
     val = EvalImbalances(wtm, val);
-    assert(val.imag() < -pawn_val.imag()/2);
+    assert(val.end < -pawn_val.end/2);
     val = SetupPosition("8/8/8/pk6/8/K7/8/8 w - -");  // Kkp
     val = EvalImbalances(wtm, val);
-    assert(val.imag() < -pawn_val.imag()/2);
+    assert(val.end < -pawn_val.end/2);
     val = SetupPosition("8/8/8/1k5p/8/8/8/K7 w - -");  // Kkp
     val = EvalImbalances(wtm, val);
-    assert(val.imag() < -pawn_val.imag()/2);
+    assert(val.end < -pawn_val.end/2);
 
     SetupPosition("7k/5B2/5K2/8/3N4/8/8/8 w - -");  // KBNk
     val = zeros;
     val = EvalImbalances(wtm, val);
-    assert(val.imag() == 0);
+    assert(val.end == 0);
     SetupPosition("7k/4B3/5K2/8/3N4/8/8/8 w - -");  // KBNk
     val = zeros;
     val = EvalImbalances(wtm, val);
-    assert(val.imag() == imbalance_king_in_corner.imag());
+    assert(val.end == imbalance_king_in_corner.end);
     SetupPosition("k7/5n2/8/8/8/b7/8/7K w - -");  // Kkbn
     val = zeros;
     val = EvalImbalances(wtm, val);
-    assert(val.imag() == 0);
+    assert(val.end == 0);
     SetupPosition("k7/5n2/8/8/8/b7/8/K7 w - -");  // Kkbn
     val = zeros;
     val = EvalImbalances(wtm, val);
-    assert(val.imag() == -imbalance_king_in_corner.imag());
+    assert(val.end == -imbalance_king_in_corner.end);
     SetupPosition("8/8/8/8/8/2k2n2/4b3/1K6 b - -");  // Kkbn
     val = zeros;
     val = EvalImbalances(wtm, val);
-    assert(val.imag() == 0);
+    assert(val.end == 0);
     SetupPosition("8/1K6/8/8/8/2k2n2/4b3/8 b - -");  // Kkbn
     val = zeros;
     val = EvalImbalances(wtm, val);
-    assert(val.imag() == 0);
+    assert(val.end == 0);
 
     // imbalances with opponent king near telestop
     val = SetupPosition("6k1/4R3/8/8/5KP1/8/3r4/8 b - -");  // KRPkr
     val = EvalImbalances(wtm, val);
-    assert(val.imag() < pawn_val.imag()/4);
+    assert(val.end < pawn_val.end/4);
     val = SetupPosition("6k1/4Q3/8/8/5KP1/8/3q4/8 b - -");  // KQPkq
     val = EvalImbalances(wtm, val);
-    assert(val.imag() < pawn_val.imag()/4);
+    assert(val.end < pawn_val.end/4);
     val = SetupPosition("8/4B2k/8/8/5KP1/8/3n4/8 b - -");  // KBPkn
     val = EvalImbalances(wtm, val);
-    assert(val.imag() < pawn_val.imag()/4);
+    assert(val.end < pawn_val.end/4);
     val = SetupPosition("8/2n1B3/8/8/6k1/1p6/8/1K6 b - -");  // KBknp
     val = EvalImbalances(wtm, val);
-    assert(val.imag() > -pawn_val.imag()/4);
+    assert(val.end > -pawn_val.end/4);
     val = SetupPosition("8/2n1B3/8/8/6K1/1p6/8/1k6 b - -");  // KBknp
     val = EvalImbalances(wtm, val);
-    assert(val.imag() < -pawn_val.imag()/4);
+    assert(val.end < -pawn_val.end/4);
     val = SetupPosition("1r6/8/6k1/8/8/1p6/1K6/1R6 b - -");  // KRkrp
     val = EvalImbalances(wtm, val);
-    assert(val.imag() > -pawn_val.imag()/4);
+    assert(val.end > -pawn_val.end/4);
     val = SetupPosition("6k1/4R3/8/5K2/6P1/8/3r4/8 b - -");  // KRPkr
     val = EvalImbalances(wtm, val);
-    assert(val.imag() > pawn_val.imag()/4);
+    assert(val.end > pawn_val.end/4);
     val = SetupPosition("2r5/4R3/8/8/3p4/4k3/8/3K4 b - -");  // KRkrp
     val = EvalImbalances(wtm, val);
-    assert(val.imag() < -pawn_val.imag()/4);
+    assert(val.end < -pawn_val.end/4);
     val = SetupPosition("2r5/4R3/8/8/3p4/8/8/3K2k1 b - -");  // KRkrp
     val = EvalImbalances(wtm, val);
-    assert(val.imag() > -pawn_val.imag()/4);
+    assert(val.end > -pawn_val.end/4);
     val = SetupPosition("8/3k4/6K1/4R3/8/6p1/7r/8 w - -");  // KRkrp
     val = EvalImbalances(wtm, val);
-    assert(val.imag() < -pawn_val.imag()/4);
+    assert(val.end < -pawn_val.end/4);
 
     val = SetupPosition("8/4R3/3n1K2/8/1k6/8/8/6r1 b - -");  // KRkrn
     val = EvalImbalances(wtm, val);
-    assert(val.imag() > -pawn_val.imag());
+    assert(val.end > -pawn_val.end);
     val = SetupPosition("4R3/8/1K6/8/8/2B2k2/8/3r4 b - -");  // KRBkr
     val = EvalImbalances(wtm, val);
-    assert(val.imag() > -pawn_val.imag());
+    assert(val.end > -pawn_val.end);
     val = SetupPosition("8/4R2K/3n4/8/1k6/8/8/6r1 b - -");  // KRkrn
     val = EvalImbalances(wtm, val);
-    assert(val.imag() < -pawn_val.imag());
+    assert(val.end < -pawn_val.end);
 
     // bishop pairs
     SetupPosition("rn1qkbnr/pppppppp/8/8/8/8/PPPPPPPP/R1BQKBNR w KQkq -");
@@ -1050,28 +1050,28 @@ void k2eval::RunUnitTests()
 
     val = SetupPosition("4kr2/8/8/8/8/8/8/1BBNK3 w - -"); // pawn absense
     val = EvalImbalances(wtm, val);
-    assert(val.imag() < rook_val.imag()/2);
+    assert(val.end < rook_val.end/2);
 
     // multicolored bishops
     val = SetupPosition("rn1qkbnr/p1pppppp/8/8/8/8/PPPPPPPP/RN1QKBNR w KQkq -");
     auto tmp = val;
     val = EvalImbalances(wtm, val);
-    assert(val.imag() < pawn_val.imag() && val.imag() < tmp.imag());
+    assert(val.end < pawn_val.end && val.end < tmp.end);
     val = SetupPosition("rnbqk1nr/p1pppppp/8/8/8/8/PPPPPPPP/RNBQK1NR w KQkq -");
     tmp = val;
     val = EvalImbalances(wtm, val);
-    assert(val.imag() < pawn_val.imag() && val.imag() < tmp.imag());
+    assert(val.end < pawn_val.end && val.end < tmp.end);
     val = SetupPosition("rnbqk1nr/p1pppppp/8/8/8/8/PPPPPPPP/RN1QKBNR w KQkq -");
     tmp = val;
     val = EvalImbalances(wtm, val);
-    assert(val.imag() == tmp.imag());
+    assert(val.end == tmp.end);
     val = SetupPosition("rn1qkbnr/p1pppppp/8/8/8/8/PPPPPPPP/RNBQK1NR w KQkq -");
     tmp = val;
     val = EvalImbalances(wtm, val);
-    assert(val.imag() == tmp.imag());
+    assert(val.end == tmp.end);
     val = SetupPosition("4kb2/pppp4/8/8/8/8/PPPPPPPP/4KB2 w - -");
     val = EvalImbalances(wtm, val);
-    assert(val.imag() < 5*pawn_val.imag()/2);
+    assert(val.end < 5*pawn_val.end/2);
 
     //king safety
     SetupPosition("4k3/4p3/8/8/8/4P3/5P2/4K3 w - -");

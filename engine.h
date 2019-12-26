@@ -111,7 +111,7 @@ protected:
     struct state_s
     {
         bool in_check;
-        eval_vect eval;
+        vec2<eval_t> eval;
     };
 
     const char *debug_variation;

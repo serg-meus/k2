@@ -332,8 +332,7 @@ size_t k2movegen::AppriceSilentMoves(const piece_type_t type,
         y = max_row - y;
         y0 = max_row - y0;
     }
-    const auto pstVal = pst[type - 1][y][x].real() -
-            pst[type - 1][y0][x0].real();
+    const auto pstVal = pst[type - 1][y][x].mid - pst[type - 1][y0][x0].mid;
     return 96 + pstVal/2;
 }
 

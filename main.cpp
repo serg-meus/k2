@@ -1033,9 +1033,9 @@ bool k2main::SetPstValue(const std::string param, const eval_t val,
         return false;
 
     if(is_mid)
-        pst[type][max_row - row][col].real(val);
+        pst[type][max_row - row][col].mid = val;
     else
-        pst[type][max_row - row][col].imag(val);
+        pst[type][max_row - row][col].end = val;
     return true;
 }
 
@@ -1056,9 +1056,9 @@ bool k2main::SetParamValue(const std::string param, const eval_t val,
             if(param == p.first)
             {
                 if(is_mid)
-                    p.second->real(val);
+                    p.second->mid = val;
                 else
-                    p.second->imag(val);
+                    p.second->end = val;
                 found = true;
                 break;
             }

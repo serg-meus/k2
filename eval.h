@@ -1,5 +1,4 @@
 #include "chess.h"
-#include <complex>
 
 
 //--------------------------------
@@ -93,8 +92,33 @@ protected:
     typedef u8 rank_t;
     typedef u8 dist_t;
 
-    // type for storing mid- (real) and endgame (imag) part of eval terms
-    typedef std::complex<eval_t> eval_vect;
+    template <class T>
+    class vec2
+    {
+    public:
+
+        T mid, end;
+
+        vec2() : mid(0), end(0) {}
+        vec2(const T m, const T e) : mid(m), end(e) {}
+        vec2(const vec2& v) : mid(v.mid), end(v.end) {}
+        vec2& operator =(const vec2& v) {mid=v.mid; end=v.end; return *this;}
+        bool operator ==(const vec2& v) const {return mid==v.mid && end==v.end;}
+        bool operator !=(const vec2& v) const {return mid!=v.mid || end!=v.end;}
+        vec2 operator +(const vec2& v) const {return vec2(mid+v.mid,end+v.end);}
+        vec2 operator -(const vec2& v) const {return vec2(mid-v.mid,end-v.end);}
+        vec2 operator -() const {return vec2(-mid, -end);}
+        vec2 operator *(const vec2& v) const {return vec2(mid*v.mid,end*v.end);}
+        vec2 operator /(const vec2& v) const {return vec2(mid/v.mid,end/v.end);}
+        vec2 operator *(const T x) const {return vec2(mid*x, end*x);}
+        vec2 operator /(const T x) const {return vec2(mid / x, end / x);}
+        friend vec2 operator *(const T x, const vec2& v)
+        {
+            return vec2(v.mid*x, v.end*x);
+        }
+        void operator +=(const vec2 v) {mid += v.mid; end += v.end;}
+        void operator -=(const vec2 v) {mid -= v.mid; end -= v.end;}
+    };
 
     const eval_t
     centipawn = 100,
@@ -103,7 +127,7 @@ protected:
     material_total = 80,
     rook_max_pawns_for_open_file = 2;
 
-    eval_vect
+    vec2<eval_t>
     pawn_val = {100, 128},
     knight_val = {395, 369},
     bishop_val = {405, 405},
@@ -149,9 +173,9 @@ protected:
     eval_t initial_score;
     rank_t p_max[board_width + 2][sides], p_min[board_width + 2][sides];
     rank_t (*pawn_max)[sides], (*pawn_min)[sides];
-    eval_vect material_values[piece_types + 1];
+    vec2<eval_t> material_values[piece_types + 1];
 
-    eval_vect pst[piece_types][board_height][board_width];
+    vec2<eval_t> pst[piece_types][board_height][board_width];
 
 
 public:
@@ -159,7 +183,7 @@ public:
 
     void EvalDebug(const bool stm);
 
-    eval_vect SetupPosition(const char *p)
+    vec2<eval_t> SetupPosition(const char *p)
     {
         k2chess::SetupPosition(p);
         InitPawnStruct();;
@@ -170,23 +194,22 @@ public:
 protected:
 
 
-    eval_vect FastEval(const bool stm, const move_c m) const;
-    eval_t Eval(const bool stm, eval_vect cur_eval);
-    eval_vect InitEvalOfMaterial();
-    eval_vect InitEvalOfPST();
+    vec2<eval_t> FastEval(const bool stm, const move_c m) const;
+    eval_t Eval(const bool stm, vec2<eval_t> cur_eval);
+    vec2<eval_t> InitEvalOfMaterial();
+    vec2<eval_t> InitEvalOfPST();
     void InitPawnStruct();
     void SetPawnStruct(const bool side, const coord_t col);
     bool IsPasser(const coord_t col, const bool stm) const;
     bool MakeMove(const move_c move);
     void TakebackMove(const move_c move);
 
-    eval_t GetEvalScore(const bool stm, const eval_vect cur_eval) const
+    eval_t GetEvalScore(const bool stm, const vec2<eval_t> val) const
     {
         i32 X, Y;
         X = material[0]/centipawn + 1 + material[1]/centipawn +
                 1 - pieces[0] - pieces[1];
-        Y = ((cur_eval.real() - cur_eval.imag())*X +
-             material_total*cur_eval.imag())/material_total;
+        Y = ((val.mid - val.end)*X + material_total*val.end)/material_total;
         eval_t ans = Y;
         return stm ? ans : -ans;
     }
@@ -217,23 +240,8 @@ protected:
                  get_col(k) == max_col || get_row(k) == max_row);
     }
 
-    eval_vect vect_mul(eval_vect a, eval_vect b)
-    {
-        eval_vect ans;
-        ans.real(a.real()*b.real());
-        ans.imag(a.imag()*b.imag());
-        return ans;
-    }
 
-    eval_vect vect_div(eval_vect a, eval_vect b)
-    {
-        eval_vect ans;
-        ans.real(a.real()/b.real());
-        ans.imag(a.imag()/b.imag());
-        return ans;
-    }
-
-    eval_vect EvalSideToMove(const bool stm)
+    vec2<eval_t> EvalSideToMove(const bool stm)
     {
         return stm ? side_to_move_bonus : -side_to_move_bonus;
     }
@@ -242,21 +250,21 @@ protected:
 private:
 
 
-    eval_vect EvalPawns(const bool side, const bool stm);
+    vec2<eval_t> EvalPawns(const bool side, const bool stm);
     bool IsUnstoppablePawn(const coord_t col, const bool side,
                            const bool stm) const;
-    eval_vect EvalImbalances(const bool stm, eval_vect val);
+    vec2<eval_t> EvalImbalances(const bool stm, vec2<eval_t> val);
     void MovePawnStruct(const bool side, const move_c move,
                         const piece_t moved_piece,
                         const piece_t captured_piece);
-    eval_vect EvalMobility(bool stm);
-    eval_vect EvalKingSafety(const bool king_color);
+    vec2<eval_t> EvalMobility(bool stm);
+    vec2<eval_t> EvalKingSafety(const bool king_color);
     bool KingHasNoShelter(coord_t k_col, coord_t k_row, const bool stm) const;
     bool Sheltered(const coord_t k_col, coord_t k_row, const bool stm) const;
     attack_t KingSafetyBatteries(const coord_t targ_coord, const attack_t att,
                                  const bool stm) const;
-    eval_vect EvalRooks(const bool stm);
+    vec2<eval_t> EvalRooks(const bool stm);
     size_t CountAttacksOnKing(const bool stm, const coord_t k_col,
                               const coord_t k_row) const;
-    void DbgOut(const char *str, eval_vect val, eval_vect &sum) const;
+    void DbgOut(const char *str, vec2<eval_t> val, vec2<eval_t> &sum) const;
 };

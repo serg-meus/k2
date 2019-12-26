@@ -62,9 +62,9 @@ protected:
     };
 
     std::vector<parsed_pos_s> training_positions;
-    eval_vect tuning_factor = {13000, 13000};
+    vec2<eval_t> tuning_factor = {13000, 13000};
 
-    std::vector<std::pair<std::string, eval_vect *> > eval_params =
+    std::vector<std::pair<std::string, vec2<eval_t> *> > eval_params =
     {
         {"pawn_val", &material_values[pawn]},
         {"knight_val", &material_values[knight]},
@@ -195,7 +195,7 @@ protected:
 
     double sigmoid(const double eval) const
     {
-        const double K = tuning_factor.real()/10000.;
+        const double K = tuning_factor.mid/10000.;
         return 1/(1 + pow(10, -K*eval/400));
     }
 };
