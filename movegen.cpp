@@ -343,8 +343,8 @@ size_t k2movegen::AppriceSilentMoves(const piece_type_t type,
 //-----------------------------
 size_t k2movegen::AppriceCaptures(const move_c move) const
 {
-    auto src = values[get_type(b[move.from_coord])]/10;
-    auto dst = values[get_type(b[move.to_coord])]/10;
+    eval_t src = values[get_type(b[move.from_coord])]/10;
+    eval_t dst = values[get_type(b[move.to_coord])]/10;
     if(move.flag & is_en_passant)
         dst = values[pawn]/10;
     else if(!(move.flag & is_capture))
@@ -358,8 +358,9 @@ size_t k2movegen::AppriceCaptures(const move_c move) const
     if(dst <= 120 && (move.flag & is_promotion))
         dst += prms[move.flag & is_promotion];
 
-    auto ans = dst >= src ? dst - src/16 : dst - src;
-    return dst >= src ? 200 + ans/8 : -ans/2;
+    size_t ans = dst >= src ? first_killer + 1 + (dst - src/4)/8 :
+                              bad_captures + (dst - src)/2;
+    return ans;
 }
 
 
