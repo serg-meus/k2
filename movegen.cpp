@@ -9,7 +9,6 @@ size_t k2movegen::GenMoves(move_c * const move_array,
                            const bool only_captures) const
 {
     size_t move_cr = 0;
-    
     if(!only_captures)
         GenCastles(move_array, &move_cr);
     auto mask = exist_mask[wtm];
@@ -19,7 +18,7 @@ size_t k2movegen::GenMoves(move_c * const move_array,
         mask ^= (1 << piece_id);
         const auto from_coord = coords[wtm][piece_id];
         const auto type = get_type(b[from_coord]);
-        
+
         if(type == pawn)
         {
             GenPawnNonSilent(piece_id, move_array, &move_cr);
@@ -333,7 +332,7 @@ size_t k2movegen::AppriceSilentMoves(const piece_type_t type,
         y0 = max_row - y0;
     }
     const auto pstVal = pst[type - 1][y][x].mid - pst[type - 1][y0][x0].mid;
-    return 96 + pstVal/2;
+    return 96 + pstVal/3;
 }
 
 
