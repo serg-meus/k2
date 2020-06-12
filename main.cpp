@@ -1110,16 +1110,37 @@ bool k2main::GetPstValue(const std::string param, eval_t * const val,
 
 
 
+
+
+//--------------------------------
+bool k2main::ParamNameAndStage(std::string * const arg, bool * const is_mid)
+{
+    int comma_pos = (*arg).find_first_of('.');
+    const auto mid_end = (*arg).substr(comma_pos + 1, 3);
+    if(comma_pos == -1 || (mid_end != "mid" && mid_end != "end"))
+    {
+        std::cout << "error: param name must contain stage (.mid or .end)\n";
+        return false;
+    }
+    *arg = (*arg).substr(0, comma_pos);
+    *is_mid = mid_end == "mid";
+    return true;
+}
+
+
+
+
+
 //--------------------------------
 void k2main::SetvalueCommand(const std::string in)
 {
-    std::string arg1, arg2, arg3;
+    std::string arg1, arg2, tmp;
     arg1 = GetFirstArg(in, &arg2);
-    arg2 = GetFirstArg(arg2, &arg3);
-    const auto val_mid = atof(arg2.c_str());
-    const auto val_end = atof(arg3.c_str());
-    if(!SetParamValue(arg1, val_mid, true) ||
-            !SetParamValue(arg1, val_end, false))
+    bool is_mid;
+    if(!ParamNameAndStage(&arg1, &is_mid))
+        return;
+    arg2 = GetFirstArg(arg2, &tmp);
+    if(!SetParamValue(arg1, atoi(arg2.c_str()), is_mid))
         std::cout << "error: wrong parameter name" << std ::endl;
 }
 
@@ -1285,27 +1306,28 @@ void k2main::TuningResultCommand(const std::string in)
 //--------------------------------
 bool k2main::TuneOneParam(const std::string param, const bool is_mid,
                           eval_t &left_arg, eval_t &right_arg,
-                          double &left_err, double &right_err, int &flag)
+                          double &left_err, double &right_err,
+                          tune_flag &flag, const double ratio)
 {
     const bool last_iter = right_arg - left_arg <= 2;
-    eval_t delta = last_iter ? 0 : round((right_arg - left_arg)*.382);
+    eval_t delta = last_iter ? 0 : round((right_arg - left_arg)*ratio);
     if(delta == 2)
         delta = 1;
     const auto new_left_arg = left_arg + delta;
     const auto new_right_arg = right_arg - delta;
-    if(flag != 1)
+    if(flag != tune_flag::calc_left)
     {
         SetParamValue(param, new_left_arg, is_mid);
         left_err = GetEvalError();
     }
-    if(flag != 2)
+    if(flag != tune_flag::calc_right)
     {
         SetParamValue(param, new_right_arg, is_mid);
         right_err = GetEvalError();
     }
     std::cout << " value: [" << left_arg << " .. " << right_arg << "] => [" <<
                  new_left_arg << " .. " << new_right_arg <<
-                 "], err: [" << left_err << ", " << right_err << "]";
+                 "], err: [" << 100*left_err << ", " << 100*right_err << "]";
     if(last_iter)
     {
         SetParamValue(param, left_arg + 1, is_mid);
@@ -1318,19 +1340,21 @@ bool k2main::TuneOneParam(const std::string param, const bool is_mid,
             left_arg = right_arg;
         return false;
     }
+
     if(left_err >= right_err)
         left_arg = new_left_arg;
     else
         right_arg = new_right_arg;
-    if(flag != 0 && left_err >= right_err)
+
+    if(flag != tune_flag::calc_both && left_err >= right_err)
     {
         left_err = right_err;
-        flag = 1;
+        flag = tune_flag::calc_left;
     }
-    else if(flag != 0 && left_err < right_err)
+    else if(flag != tune_flag::calc_both && left_err < right_err)
     {
         right_err = left_err;
-        flag = 2;
+        flag = tune_flag::calc_right;
     }
     return true;
 }
@@ -1343,31 +1367,29 @@ bool k2main::TuneOneParam(const std::string param, const bool is_mid,
 void k2main::TuneParamCommand(const std::string in)
 {
     using namespace std;
-    string param, arg1, arg2, arg3;
+    string param, arg1, arg2;
     param = GetFirstArg(in, &arg1);
-    arg1 = GetFirstArg(arg1, &arg2);
-    arg2 = GetFirstArg(arg2, &arg3);
-    eval_t left_arg = atoi(arg2.c_str());
-    eval_t right_arg = atoi(arg3.c_str());
-    if(arg1 != "mid" && arg1 != "end")
-    {
-        cout << "Error: 'mid' or 'end' after param name not defined" << endl;
+    bool is_mid;
+    if(!ParamNameAndStage(&param, &is_mid))
         return;
-    }
-    const bool is_mid = arg1 == "mid";
+    arg1 = GetFirstArg(arg1, &arg2);
+    eval_t left_arg = atoi(arg1.c_str());
+    arg1 = GetFirstArg(arg2, &arg2);
+    eval_t right_arg = atoi(arg1.c_str());
+
     if(!SetParamValue(param, 0, is_mid))
     {
         cout << "Error: wrong param name" << endl;
         return;
     }
-    int flag = 0;
+    tune_flag flag = tune_flag::calc_both;
     double left_err = 0, right_err = 0;
 
     for(auto it = 0; it < 100; ++it)
     {
         cout << it << ". ";
         if(!TuneOneParam(param, is_mid, left_arg, right_arg,
-                         left_err, right_err, flag))
+                         left_err, right_err, flag, golden_ratio))
             break;
         cout << endl;
     }
@@ -1395,17 +1417,22 @@ void k2main::TuneCommand(const std::string in)
             if(p.left_arg != p.right_arg)
                 cout << endl << it++ << ". " << p.name << " " <<
                         (p.is_mid ? "mid" : "end");
-            int flag = 0;
+            tune_flag flag = tune_flag::calc_both;
             if(TuneOneParam(p.name, p.is_mid, p.left_arg, p.right_arg,
-                            p.left_err, p.right_err, flag))
+                            p.left_err, p.right_err, flag, silver_ratio))
                 finish = false;
             SetParamValue(p.name, (p.left_arg + p.right_arg)/2, p.is_mid);
         }
     }
     cout << endl << endl;
     for(auto p : param_vect)
-        cout << p.name << " " << (p.is_mid ? "mid" : "end") << " " <<
-                (p.left_arg + p.right_arg)/2 << endl;
+    {
+        const auto val = (p.left_arg + p.right_arg)/2;
+        if(p.is_mid)
+            cout << p.name << " = {" << val << ", ";
+        else
+            cout << val << "}," << endl;
+    }
 }
 
 

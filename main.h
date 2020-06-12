@@ -53,6 +53,8 @@ protected:
         double right_err;
     };
 
+    enum class tune_flag {calc_both, calc_left, calc_right};
+
     struct parsed_pos_s
     {
         bool wtm;
@@ -72,6 +74,7 @@ protected:
     };
     std::vector<parsed_pos_s> training_positions;
     vec2<eval_t> tuning_factor = {13000, 13000};
+    double golden_ratio = .382, silver_ratio = .2;
 
     std::vector<std::pair<std::string, vec2<eval_t> *> > eval_params =
     {
@@ -169,12 +172,14 @@ protected:
     piece_type_t GetTypeForPst(const char char_type);
     bool TuneOneParam(const std::string param, const bool is_mid,
                       eval_t &left_arg, eval_t &right_arg,
-                      double &left_err, double &right_err, int &flag);
+                      double &left_err, double &right_err, tune_flag &flag,
+                      const double golden_section);
     bool GetParamValue(const std::string param, eval_t * const val,
                        const bool is_mid);
     bool GetPstValue(const std::string param, eval_t * const val,
                      const bool is_mid);
     std::vector<tune_param_s> TuneFillParamVect(std::string in);
+    bool ParamNameAndStage(std::string * const arg, bool * const is_mid);
 
     bool test_perft(const char *pos, const depth_t depth, const node_t node_cr)
     {
