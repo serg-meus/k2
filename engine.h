@@ -18,7 +18,7 @@ protected:
 
 
     typedef u64 count_t;
-    typedef i8 node_type_t;
+    typedef int node_type_t;
 
     const node_type_t all_node = -1, pv_node = 0, cut_node = 1;
 
@@ -27,7 +27,7 @@ protected:
     const bool captures_only = true;
     const node_t nodes_to_check_stop = 7;
     const size_t init_max_moves = 2;  // any number greater than 1
-    const static size_t move_array_size = 256;
+    const static size_t move_capacity = 256;
     const coord_t is_null_move = 0xFF;
 
     const depth_t null_move_min_depth = 2;
@@ -173,7 +173,7 @@ protected:
     void GenerateRootMoves();
     void InitSearch();
     void PrintFinalSearchResult();
-    void PrintCurrentSearchResult(eval_t sc, const u8 exclimation);
+    void PrintCurrentSearchResult(eval_t sc, const bound type);
     void InitTime();
     bool DrawDetect(const bool in_check);
     bool CheckForInterrupt();
@@ -181,40 +181,25 @@ protected:
     void UnMakeNullMove();
     bool NullMovePruning(depth_t depth, eval_t beta, bool ic);
     bool DrawByRepetition() const;
-    bool HashProbe(const depth_t depth, eval_t * const alpha,
+    bool HashProbe(const depth_t depth, eval_t &alpha,
                    const eval_t beta, hash_entry_s **entry);
-    move_c GetNextMove(move_c * const move_array, const size_t cur_move_cr,
-                       size_t * const max_moves, move_c hash_best_move,
-                       const bool hash_one_reply, const bool captures_only,
-                       const move_c prev_move) const;
     void StoreInHash(const depth_t depth, eval_t score,
-                     const move_c best_move, const hbound_t bound,
+                     const move_c best_move, bound bound_type,
                      const bool one_reply);
     void ShowCurrentUciInfo();
-    void ShowPVfailHighOrLow(move_c m, eval_t x, const u8 exclimation);
-    bool GetFirstMove(move_c * const move_array,
-                      size_t * const max_moves,
-                      const move_c hash_best_move,
-                      const bool hash_one_reply,
-                      const bool only_captures,
-                      move_c * const ans) const;
-    bool GetSecondMove(move_c * const move_array, size_t * const max_moves,
-                       move_c prev_move, move_c * const ans) const;
-    size_t FindMaxMoveIndex(move_c * const move_array,
-                            const size_t max_moves,
-                            const size_t cur_move) const;
+    void ShowPVfailHighOrLow(move_c m, eval_t x, const bound type);
     bool CanFinishMainSearch(const eval_t x, const eval_t prev_x);
     void CheckForResign(const eval_t x);
     bool IsInCheck() const;
     bool GetRootSearchBounds(const eval_t x,
-                             eval_t *alpha, eval_t *beta) const;
+                             eval_t &alpha, eval_t &beta) const;
 
-    void CorrectHashScore(eval_t * const x, const depth_t depth) const
+    void CorrectHashScore(eval_t &x, const depth_t depth) const
     {
-        if(*x > mate_score && *x != infinite_score)
-            *x += ply - depth - 1;
-        else if(*x < -mate_score && *x != -infinite_score)
-            *x -= ply - depth - 1;
+        if(x > mate_score && x != infinite_score)
+            x += ply - depth - 1;
+        else if(x < -mate_score && x != -infinite_score)
+            x -= ply - depth - 1;
     }
 
     void MakeMove(const move_c move)

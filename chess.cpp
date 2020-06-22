@@ -437,11 +437,11 @@ void k2chess::ClearPieceAttacks(const bool stm, piece_id_t piece_id)
 //--------------------------------
 bool k2chess::InitPieceLists(bool stm)
 {
-    typedef std::pair<eval_t, piece_id_t> the_pair;
+    typedef std::pair<piece_val_t, piece_id_t> the_pair;
     exist_mask[stm] = 0;
     memset(coords[stm], 0, sizeof(coords[0]));
 
-    std::vector<std::pair<eval_t, coord_t>> tmp_vect;
+    std::vector<std::pair<piece_val_t, coord_t>> tmp_vect;
     tmp_vect.reserve(max_pieces_one_side);
     for(size_t coord = 0; coord < sizeof(b)/sizeof(*b); ++coord)
     {

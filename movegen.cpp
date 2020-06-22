@@ -5,12 +5,161 @@
 
 
 //--------------------------------
-size_t k2movegen::GenMoves(move_c * const move_array,
+k2chess::move_c k2movegen::GetNextMove(move_c (&move_array)[move_capacity],
+                                       size_t &max_moves,
+                                       const size_t cur_move_cr,
+                                       const move_c hash_best_move,
+                                       const bool hash_one_reply,
+                                       const bool only_captures,
+                                       const move_c prev_move) const
+{
+    move_c ans;
+    if(cur_move_cr == 0)
+    {
+        if(GetFirstMove(move_array, max_moves, ans,
+                        hash_best_move, hash_one_reply, only_captures))
+            return ans;
+    }
+    else if(cur_move_cr == 1 && hash_best_move.flag != not_a_move)
+    {
+        if(GetSecondMove(move_array, max_moves, ans, prev_move))
+            return ans;
+    }
+    auto max_index = FindMaxMoveIndex(move_array, max_moves, cur_move_cr);
+    std::swap(move_array[max_index], move_array[cur_move_cr]);
+    assert(max_moves == 0 || IsPseudoLegal(move_array[cur_move_cr]));
+    return move_array[cur_move_cr];
+}
+
+
+
+
+
+//--------------------------------
+bool k2movegen::GetFirstMove(move_c  (&move_array)[move_capacity],
+                             size_t &max_moves,
+                             move_c &first_move,
+                             const move_c hash_best_move,
+                             const bool hash_one_reply,
+                             const bool only_captures) const
+{
+    if(hash_best_move.flag == not_a_move)
+    {
+        if(!only_captures)
+            max_moves = GenMoves(move_array, false);
+        else
+            max_moves = GenMoves(move_array, true);
+
+        AppriceMoves(move_array, max_moves, hash_best_move);
+
+        if(max_moves > 1
+                && move_array[0].priority > bad_captures
+                && move_array[0].priority == move_array[1].priority)
+        {
+            if(StaticExchangeEval(move_array[0]) <
+                    StaticExchangeEval(move_array[1]))
+                std::swap(move_array[0], move_array[1]);
+        }
+    }
+    else
+    {
+        first_move = hash_best_move;
+        const bool legal = IsPseudoLegal(first_move) && IsLegal(first_move);
+#ifndef NDEBUG
+        const auto mx_ = GenMoves(move_array, false);
+        size_t i = 0;
+        for(; i < mx_; ++i)
+            if(move_array[i] == first_move)
+                break;
+        const bool tt_move_found = i < mx_;
+        if(tt_move_found != legal)
+        {
+            IsPseudoLegal(first_move);
+            IsLegal(first_move);
+            GenMoves(move_array, false);
+        }
+        assert(tt_move_found == legal);
+#endif
+        if(legal)
+        {
+            first_move.priority = move_from_hash;
+            if(hash_one_reply)
+                max_moves = 1;
+            return true;
+        }
+        else
+        {
+            max_moves = GenMoves(move_array, false);
+            AppriceMoves(move_array, max_moves, hash_best_move);
+        }
+    }
+    return false;
+}
+
+
+
+
+//--------------------------------
+bool k2movegen::GetSecondMove(move_c (&move_array)[move_capacity],
+                              size_t &max_moves,
+                              move_c &second_move,
+                              const move_c prev_move) const
+{
+    max_moves = GenMoves(move_array, false);
+    AppriceMoves(move_array, max_moves, prev_move);
+
+    if(max_moves <= 1)
+    {
+        max_moves = 0;
+        second_move = move_array[0];
+        assert(IsPseudoLegal(second_move));
+        return true;
+    }
+    size_t i = 0;
+    for(; i < max_moves; i++)
+        if(move_array[i].priority == move_from_hash)
+        {
+            std::swap(move_array[0], move_array[i]);
+            break;
+        }
+    assert(i < max_moves);
+    return false;
+}
+
+
+
+
+
+//--------------------------------
+size_t k2movegen::FindMaxMoveIndex(move_c (&move_array)[move_capacity],
+                                   const size_t max_moves,
+                                   const size_t cur_move) const
+{
+    auto max_score = 0;
+    auto max_index = cur_move;
+    for(auto i = cur_move; i < max_moves; i++)
+    {
+        const auto score = move_array[i].priority;
+        if(score > max_score)
+        {
+            max_score = score;
+            max_index = i;
+        }
+    }
+    return max_index;
+}
+
+
+
+
+
+//--------------------------------
+size_t k2movegen::GenMoves(move_c (&move_array)[move_capacity],
                            const bool only_captures) const
 {
     size_t move_cr = 0;
     if(!only_captures)
-        GenCastles(move_array, &move_cr);
+        GenCastles(move_array, move_cr);
     auto mask = exist_mask[wtm];
     while(mask)
     {
@@ -21,16 +170,16 @@ size_t k2movegen::GenMoves(move_c * const move_array,
 
         if(type == pawn)
         {
-            GenPawnNonSilent(piece_id, move_array, &move_cr);
+            GenPawnNonSilent(piece_id, move_array, move_cr);
             if(!only_captures)
-                GenPawnSilent(piece_id, move_array, &move_cr);
+                GenPawnSilent(piece_id, move_array, move_cr);
         }
         else if(is_slider[type])
-            GenSliderMoves(only_captures, piece_id, from_coord, type,
-                           move_array, &move_cr);
+            GenSliderMoves(move_array, move_cr, only_captures, piece_id,
+                           from_coord, type);
         else
-            GenNonSliderMoves(only_captures, piece_id, from_coord, type,
-                              move_array, &move_cr);
+            GenNonSliderMoves(move_array, move_cr, only_captures, piece_id,
+                              from_coord, type);
     }
     return KeepLegalMoves(move_array, move_cr);
 }
@@ -41,12 +190,12 @@ size_t k2movegen::GenMoves(move_c * const move_array,
 
 
 //--------------------------------
-void k2movegen::GenSliderMoves(const bool only_captures,
+void k2movegen::GenSliderMoves(move_c (&move_array)[move_capacity],
+                               size_t &move_cr,
+                               const bool only_captures,
                                const piece_id_t piece_id,
                                const coord_t from_coord,
-                               const piece_type_t type,
-                               move_c * const move_array,
-                               size_t * const move_cr) const
+                               const piece_type_t type) const
 {
     const auto col0 = get_col(from_coord); 
     const auto row0 = get_row(from_coord);
@@ -84,12 +233,12 @@ void k2movegen::GenSliderMoves(const bool only_captures,
 
 
 //--------------------------------
-void k2movegen::GenNonSliderMoves(const bool only_captures,
+void k2movegen::GenNonSliderMoves(move_c (&move_array)[move_capacity],
+                                  size_t &move_cr,
+                                  const bool only_captures,
                                   const piece_id_t piece_id,
                                   const coord_t from_coord,
-                                  const piece_type_t type,
-                                  move_c * const move_array,
-                                  size_t * const move_cr) const
+                                  const piece_type_t type) const
 {
     const auto col0 = get_col(from_coord);
     const auto row0 = get_row(from_coord);
@@ -117,7 +266,7 @@ void k2movegen::GenNonSliderMoves(const bool only_captures,
 
 
 //--------------------------------
-size_t k2movegen::KeepLegalMoves(move_c * const move_array,
+size_t k2movegen::KeepLegalMoves(move_c (&move_array)[move_capacity],
                                  const size_t move_cr) const
 {
     size_t new_move_cr = 0;
@@ -133,8 +282,8 @@ size_t k2movegen::KeepLegalMoves(move_c * const move_array,
 
 //--------------------------------
 void k2movegen::GenPawnSilent(const piece_id_t piece_id,
-                              move_c * const move_array,
-                              size_t * const moveCr) const
+                              move_c (&move_array)[move_capacity],
+                              size_t &moveCr) const
 {
     const auto from_coord = coords[wtm][piece_id];
     const auto col = get_col(from_coord);
@@ -160,8 +309,8 @@ void k2movegen::GenPawnSilent(const piece_id_t piece_id,
 
 //--------------------------------
 void k2movegen::GenPawnNonSilent(const piece_id_t piece_id,
-                                 move_c * const move_array,
-                                 size_t * const moveCr) const
+                                 move_c (&move_array)[move_capacity],
+                                 size_t &moveCr) const
 {
     const auto from_coord = coords[wtm][piece_id];
     const auto col = get_col(from_coord);
@@ -208,8 +357,8 @@ void k2movegen::GenPawnNonSilent(const piece_id_t piece_id,
 
 
 //--------------------------------
-void k2movegen::GenCastles(move_c * const move_array,
-                           size_t * const moveCr) const
+void k2movegen::GenCastles(move_c (&move_array)[move_capacity],
+                           size_t &move_cr) const
 {
     const castle_t msk = wtm ? 0x03 : 0x0C;
     const auto shft = wtm ? 0 : 2;
@@ -241,7 +390,7 @@ void k2movegen::GenCastles(move_c * const move_array,
            b[get_coord(default_king_col - 3, row)] != empty_square)
             occupied_or_attacked = true;
         if(!occupied_or_attacked)
-            PushMove(move_array, moveCr, k_coord, k_coord + delta[i], flag[i]);
+            PushMove(move_array, move_cr, k_coord, k_coord + delta[i], flag[i]);
     }
 }
 
@@ -250,7 +399,8 @@ void k2movegen::GenCastles(move_c * const move_array,
 
 
 //--------------------------------
-void k2movegen::AppriceMoves(move_c * const move_array, const size_t move_cr,
+void k2movegen::AppriceMoves(move_c (&move_array)[move_capacity],
+                             const size_t move_cr,
                              const move_c best_move) const
 {
     history_t min_history = std::numeric_limits<history_t>::max();
@@ -292,9 +442,10 @@ void k2movegen::AppriceMoves(move_c * const move_array, const size_t move_cr,
 
 
 //-----------------------------
-void k2movegen::AppriceHistory(move_c * const move_array, size_t move_cr,
-                               history_t min_history,
-                               history_t max_history) const
+void k2movegen::AppriceHistory(move_c (&move_array)[move_capacity],
+                               const size_t move_cr,
+                               const history_t min_history,
+                               const history_t max_history) const
 {
     for(size_t i = 0; i < move_cr; ++i)
     {
@@ -370,7 +521,7 @@ size_t k2movegen::AppriceCaptures(const move_c move) const
 void k2movegen::ProcessSeeBatteries(const coord_t to_coord,
                                     const coord_t attacker_coord,
                                     const bool stm,
-                                    attack_t *att) const
+                                    attack_t (&att)[sides]) const
 {
     auto mask = attacks[stm][attacker_coord] & slider_mask[stm];
     while(mask)
@@ -392,8 +543,10 @@ void k2movegen::ProcessSeeBatteries(const coord_t to_coord,
 
 
 //-----------------------------
-k2chess::eval_t k2movegen::SEE(const coord_t to_coord, const eval_t fr_value,
-                               eval_t val, bool stm, attack_t *att) const
+k2chess::piece_val_t k2movegen::SEE(const coord_t to_coord,
+                                    const piece_val_t fr_value,
+                                    piece_val_t val,
+                                    bool stm, attack_t (&att)[sides]) const
 {
     const auto piece_id = SeeMinAttacker(att[stm]);
     if(piece_id == -1U)
@@ -429,7 +582,7 @@ size_t k2movegen::SeeMinAttacker(const attack_t att) const
 
 
 //-----------------------------
-k2chess::eval_t k2movegen::StaticExchangeEval(const move_c move) const
+k2chess::piece_val_t k2movegen::StaticExchangeEval(const move_c move) const
 {
     const auto fr_piece = b[move.from_coord];
     const auto to_piece = b[move.to_coord];
@@ -459,13 +612,13 @@ k2chess::eval_t k2movegen::StaticExchangeEval(const move_c move) const
 size_t k2movegen::test_gen_pawn(const char* str_coord,
                                 bool only_captures) const
 {
-    move_c move_array[move_array_size];
+    move_c move_array[move_capacity];
     size_t move_cr = 0;
 
     size_t piece_id = find_piece_id[get_coord(str_coord)];
-    GenPawnNonSilent(piece_id, move_array, &move_cr);
+    GenPawnNonSilent(piece_id, move_array, move_cr);
     if(!only_captures)
-        GenPawnSilent(piece_id, move_array, &move_cr);
+        GenPawnSilent(piece_id, move_array, move_cr);
     for(size_t i = 0; i < move_cr; ++i)
         if(!IsLegal(move_array[i]))
             return -1U;
@@ -479,10 +632,10 @@ size_t k2movegen::test_gen_pawn(const char* str_coord,
 //--------------------------------
 size_t k2movegen::test_gen_castles() const
 {
-    move_c move_array[move_array_size];
+    move_c move_array[move_capacity];
     size_t move_cr = 0;
 
-    GenCastles(move_array, &move_cr);
+    GenCastles(move_array, move_cr);
     for(size_t i = 0; i < move_cr; ++i)
         if(!IsLegal(move_array[i]))
             return -1U;
@@ -496,7 +649,7 @@ size_t k2movegen::test_gen_castles() const
 //--------------------------------
 size_t k2movegen::test_gen_moves(const bool only_captures) const
 {
-    move_c move_array[move_array_size];
+    move_c move_array[move_capacity];
     size_t move_cr = GenMoves(move_array, only_captures);
     for(size_t i = 0; i < move_cr; ++i)
         if(!IsPseudoLegal(move_array[i]))

@@ -16,7 +16,6 @@ public:
 protected:
 
 
-    typedef u8 hbound_t;
     typedef u8 hdepth_t;
     typedef u32 short_key_t;
     typedef u64 hash_key_t;
@@ -24,10 +23,7 @@ protected:
 
     const static depth_t fifty_moves = 100;
     const hash_key_t key_for_side_to_move = -1ULL;
-    const hbound_t
-    exact_value = 1,
-    upper_bound = 2,
-    lower_bound = 3;
+    enum class bound {exact = 0, lower = 1, upper = 2};
 
     struct hash_entry_s
     {
@@ -41,11 +37,11 @@ protected:
         move_c best_move;
 
         hdepth_t depth;
-        hbound_t bound_type : 2;
-        hbound_t age : 2;
-        hbound_t one_reply : 1;
-        hbound_t in_check : 1;
-        hbound_t avoid_null_move : 1;
+        unsigned bound_type : 2;
+        unsigned age : 2;
+        unsigned one_reply : 1;
+        unsigned in_check : 1;
+        unsigned avoid_null_move : 1;
     };
 
     class hash_table_c
@@ -62,7 +58,7 @@ protected:
         bool set_size(size_t size_mb);
         hash_entry_s* count(hash_key_t key) const;
         void add(hash_key_t key, eval_t value, move_c best_move, depth_t depth,
-                 hbound_t bound_type, depth_t half_mov_cr, bool one_reply,
+                 bound bound_type, depth_t half_mov_cr, bool one_reply,
                  node_t nodes);
         void clear();
         hash_entry_s& operator [](const hash_key_t key) const;

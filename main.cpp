@@ -89,9 +89,9 @@ void k2main::start()
 
 
 //--------------------------------
-bool k2main::ExecuteCommand(const std::string in)
+bool k2main::ExecuteCommand(const std::string &in)
 {
-    command_s commands[] =
+    std::unordered_map<std::string, method_ptr> commands =
     {
 //      Command         Method
         {"new",         &k2main::NewCommand},
@@ -149,17 +149,13 @@ bool k2main::ExecuteCommand(const std::string in)
     std::string command_str, args;
     command_str = GetFirstArg(in, &args);
 
-    for(size_t i = 0; i < sizeof(commands) / sizeof(command_s); ++i)
-    {
-        if(command_str != commands[i].command)
-            continue;
+    const auto command = commands.find(command_str);
+    if(command == commands.end())
+        return false;
 
-        auto command = commands[i];
-        method_ptr method = command.mptr;
-        ((*this).*method)(args);
-        return true;
-    }
-    return false;
+    method_ptr method = command->second;
+    ((*this).*method)(args);
+    return true;
 }
 
 
@@ -167,7 +163,7 @@ bool k2main::ExecuteCommand(const std::string in)
 
 
 //--------------------------------
-std::string k2main::GetFirstArg(const std::string in,
+std::string k2main::GetFirstArg(const std::string &in,
                                 std::string * const all_the_rest) const
 {
     const std::string delimiters = " ;,\t\r\n=";
@@ -195,7 +191,7 @@ std::string k2main::GetFirstArg(const std::string in,
 
 
 //--------------------------------
-bool k2main::LooksLikeMove(const std::string in) const
+bool k2main::LooksLikeMove(const std::string &in) const
 {
     if(in.size() < 4 || in.size() > 5)
         return false;
@@ -230,7 +226,7 @@ void k2main::StopEngine()
 
 
 //--------------------------------
-void k2main::NewCommand(const std::string in)
+void k2main::NewCommand(const std::string &in)
 {
     (void)(in);
 
@@ -265,7 +261,7 @@ void k2main::NewCommand(const std::string in)
 
 
 //-------------------------------
-void k2main::SetboardCommand(const std::string in)
+void k2main::SetboardCommand(const std::string &in)
 {
     if(busy)
         return;
@@ -286,7 +282,7 @@ void k2main::SetboardCommand(const std::string in)
 
 
 //--------------------------------
-void k2main::QuitCommand(const std::string in)
+void k2main::QuitCommand(const std::string &in)
 {
     (void)(in);
 
@@ -300,7 +296,7 @@ void k2main::QuitCommand(const std::string in)
 
 
 //--------------------------------
-void k2main::PerftCommand(const std::string in)
+void k2main::PerftCommand(const std::string &in)
 {
     if(busy)
         return;
@@ -320,7 +316,7 @@ void k2main::PerftCommand(const std::string in)
     const auto deltaTick = tick2 - tick1;
 
     std::cout << std::endl << "nodes = " << stats.nodes << std::endl
-              << "dt = " << deltaTick / 1000000. << std::endl
+              << "time = " << deltaTick / 1000000. << std::endl
               << "Mnps = " << stats.nodes / (deltaTick + 1)
               << std::endl << std::endl;
     busy = false;
@@ -331,7 +327,7 @@ void k2main::PerftCommand(const std::string in)
 
 
 //--------------------------------
-void k2main::GoCommand(const std::string in)
+void k2main::GoCommand(const std::string &in)
 {
     if(busy)
         return;
@@ -356,7 +352,7 @@ void k2main::GoCommand(const std::string in)
 
 
 //--------------------------------
-void k2main::LevelCommand(const std::string in)
+void k2main::LevelCommand(const std::string &in)
 {
     if(busy)
         return;
@@ -397,7 +393,7 @@ void k2main::LevelCommand(const std::string in)
 
 
 //--------------------------------
-void k2main::ForceCommand(const std::string in)
+void k2main::ForceCommand(const std::string &in)
 {
     (void)(in);
 
@@ -412,7 +408,7 @@ void k2main::ForceCommand(const std::string in)
 
 
 //--------------------------------
-void k2main::SetNodesCommand(const std::string in)
+void k2main::SetNodesCommand(const std::string &in)
 {
     if(busy)
         return;
@@ -428,7 +424,7 @@ void k2main::SetNodesCommand(const std::string in)
 
 
 //--------------------------------
-void k2main::SetTimeCommand(const std::string in)
+void k2main::SetTimeCommand(const std::string &in)
 {
     if(busy)
         return;
@@ -445,7 +441,7 @@ void k2main::SetTimeCommand(const std::string in)
 
 
 //--------------------------------
-void k2main::SetDepthCommand(const std::string in)
+void k2main::SetDepthCommand(const std::string &in)
 {
     if(busy)
         return;
@@ -457,7 +453,7 @@ void k2main::SetDepthCommand(const std::string in)
 
 
 //--------------------------------
-void k2main::ProtoverCommand(const std::string in)
+void k2main::ProtoverCommand(const std::string &in)
 {
     using namespace std;
 
@@ -492,7 +488,7 @@ void k2main::ProtoverCommand(const std::string in)
 
 
 //--------------------------------
-void k2main::StopCommand(const std::string in)
+void k2main::StopCommand(const std::string &in)
 {
     (void)(in);
 
@@ -508,7 +504,7 @@ void k2main::StopCommand(const std::string in)
 
 
 //--------------------------------
-void k2main::ResultCommand(const std::string in)
+void k2main::ResultCommand(const std::string &in)
 {
     (void)(in);
 
@@ -521,7 +517,7 @@ void k2main::ResultCommand(const std::string in)
 
 
 //--------------------------------
-void k2main::TimeCommand(const std::string in)
+void k2main::TimeCommand(const std::string &in)
 {
     if(busy)
     {
@@ -539,7 +535,7 @@ void k2main::TimeCommand(const std::string in)
 
 
 //--------------------------------
-void k2main::EvalCommand(const std::string in)
+void k2main::EvalCommand(const std::string &in)
 {
     (void)(in);
 
@@ -556,7 +552,7 @@ void k2main::EvalCommand(const std::string in)
 
 
 //--------------------------------
-void k2main::TestCommand(const std::string in)
+void k2main::TestCommand(const std::string &in)
 {
     (void)(in);
 
@@ -587,8 +583,8 @@ void k2main::TestCommand(const std::string in)
 
         auto tick2 = clock.getElapsedTimeInMicroSec();
         auto delta_tick = tick2 - tick1;
-        std::cout << "Perft: total nodes = " << stats.total_nodes
-                  << ", dt = " << delta_tick / 1000000.
+        std::cout << "Perft: OK, total nodes = " << stats.total_nodes
+                  << ", time = " << delta_tick / 1000000.
                   << ", Mnps = " << stats.total_nodes / (delta_tick + 1)
                   << std::endl;
 
@@ -619,8 +615,8 @@ void k2main::TestCommand(const std::string in)
 
         tick2 = clock.getElapsedTimeInMicroSec();
         delta_tick = tick2 - tick1;
-        std::cout << "Search: total nodes = " << stats.total_nodes
-                  << ", dt = " << delta_tick / 1000000.
+        std::cout << "Search: OK, total nodes = " << stats.total_nodes
+                  << ", time " << delta_tick / 1000000.
                   << ", Mnps = " << stats.total_nodes / (delta_tick + 1)
                   << std::endl;
         stats.total_nodes = 0;
@@ -645,7 +641,7 @@ void k2main::TestCommand(const std::string in)
 
 
 //--------------------------------
-void k2main::FenCommand(const std::string in)
+void k2main::FenCommand(const std::string &in)
 {
     (void)(in);
 
@@ -657,7 +653,7 @@ void k2main::FenCommand(const std::string in)
 
 
 //--------------------------------
-void k2main::XboardCommand(const std::string in)
+void k2main::XboardCommand(const std::string &in)
 {
     (void)(in);
 
@@ -674,7 +670,7 @@ void k2main::XboardCommand(const std::string in)
 
 
 //--------------------------------
-void k2main::Unsupported(const std::string in)
+void k2main::Unsupported(const std::string &in)
 {
     (void)(in);
 }
@@ -684,7 +680,7 @@ void k2main::Unsupported(const std::string in)
 
 
 //--------------------------------
-void k2main::UciCommand(const std::string in)
+void k2main::UciCommand(const std::string &in)
 {
     using namespace std;
 
@@ -708,7 +704,7 @@ void k2main::UciCommand(const std::string in)
 
 
 //--------------------------------
-void k2main::SetOptionCommand(const std::string in)
+void k2main::SetOptionCommand(const std::string &in)
 {
     std::string arg1, arg2;
     arg1 = GetFirstArg(in, &arg2);
@@ -759,7 +755,7 @@ void k2main::SetOptionCommand(const std::string in)
 
 
 //--------------------------------
-void k2main::IsReadyCommand(const std::string in)
+void k2main::IsReadyCommand(const std::string &in)
 {
     (void)(in);
     if(busy)
@@ -772,7 +768,7 @@ void k2main::IsReadyCommand(const std::string in)
 
 
 //--------------------------------
-void k2main::PositionCommand(const std::string in)
+void k2main::PositionCommand(const std::string &in)
 {
     busy = true;
     std::string arg1, arg2;
@@ -812,7 +808,7 @@ void k2main::PositionCommand(const std::string in)
 
 
 //--------------------------------
-void k2main::ProcessMoveSequence(const std::string in)
+void k2main::ProcessMoveSequence(const std::string &in)
 {
     std::string arg1, arg2;
     arg1 = in;
@@ -832,7 +828,7 @@ void k2main::ProcessMoveSequence(const std::string in)
 
 
 //--------------------------------
-void k2main::UciGoCommand(const std::string in)
+void k2main::UciGoCommand(const std::string &in)
 {
     pondering_in_process = false;
     bool no_movestogo_arg = true;
@@ -949,7 +945,7 @@ void k2main::UciGoCommand(const std::string in)
 
 
 //--------------------------------
-void k2main::PonderhitCommand(const std::string in)
+void k2main::PonderhitCommand(const std::string &in)
 {
     (void)(in);
 
@@ -961,7 +957,7 @@ void k2main::PonderhitCommand(const std::string in)
 
 
 //--------------------------------
-void k2main::MemoryCommand(const std::string in)
+void k2main::MemoryCommand(const std::string &in)
 {
     std::string arg1, arg2;
     arg1 = in;
@@ -975,7 +971,7 @@ void k2main::MemoryCommand(const std::string in)
 
 
 //--------------------------------
-void k2main::AnalyzeCommand(const std::string in)
+void k2main::AnalyzeCommand(const std::string &in)
 {
     (void)(in);
 
@@ -997,7 +993,7 @@ void k2main::AnalyzeCommand(const std::string in)
 
 
 //--------------------------------
-void k2main::ExitCommand(const std::string in)
+void k2main::ExitCommand(const std::string &in)
 {
     StopCommand(in);
     time_control.infinite_analyze = false;
@@ -1023,7 +1019,7 @@ k2chess::piece_type_t k2main::GetTypeForPst(const char char_type)
 
 
 //--------------------------------
-bool k2main::SetPstValue(const std::string param, const eval_t val,
+bool k2main::SetPstValue(const std::string &param, const eval_t val,
                          const bool is_mid)
 {
     if(param.size() != 7)
@@ -1045,25 +1041,21 @@ bool k2main::SetPstValue(const std::string param, const eval_t val,
 
 
 //--------------------------------
-bool k2main::SetParamValue(const std::string param, const eval_t val,
+bool k2main::SetParamValue(const std::string &param, const eval_t val,
                            const bool is_mid)
 {
-    bool found = false;
-
     if(param.rfind("pst_", 0) == 0)
         return SetPstValue(param, val, is_mid);
+
+    auto p = eval_params.find(param);
+    if(p == eval_params.end())
+        return false;
+
+    if(is_mid)
+        p->second->mid = val;
     else
-        for(auto p : eval_params)
-            if(param == p.first)
-            {
-                if(is_mid)
-                    p.second->mid = val;
-                else
-                    p.second->end = val;
-                found = true;
-                break;
-            }
-    return found;
+        p->second->end = val;
+    return true;
 }
 
 
@@ -1071,7 +1063,7 @@ bool k2main::SetParamValue(const std::string param, const eval_t val,
 
 
 //--------------------------------
-bool k2main::GetParamValue(const std::string param, eval_t * const val,
+bool k2main::GetParamValue(const std::string &param, eval_t * const val,
                            const bool is_mid)
 {
     if(param.rfind("pst_", 0) == 0)
@@ -1092,7 +1084,7 @@ bool k2main::GetParamValue(const std::string param, eval_t * const val,
 
 
 //--------------------------------
-bool k2main::GetPstValue(const std::string param, eval_t * const val,
+bool k2main::GetPstValue(const std::string &param, eval_t * const val,
                            const bool is_mid)
 {
     if(param.size() != 7)
@@ -1113,17 +1105,17 @@ bool k2main::GetPstValue(const std::string param, eval_t * const val,
 
 
 //--------------------------------
-bool k2main::ParamNameAndStage(std::string * const arg, bool * const is_mid)
+bool k2main::ParamNameAndStage(std::string &arg, bool &is_mid)
 {
-    int comma_pos = (*arg).find_first_of('.');
-    const auto mid_end = (*arg).substr(comma_pos + 1, 3);
+    int comma_pos = arg.find_first_of('.');
+    const auto mid_end = arg.substr(comma_pos + 1, 3);
     if(comma_pos == -1 || (mid_end != "mid" && mid_end != "end"))
     {
         std::cout << "error: param name must contain stage (.mid or .end)\n";
         return false;
     }
-    *arg = (*arg).substr(0, comma_pos);
-    *is_mid = mid_end == "mid";
+    arg = arg.substr(0, comma_pos);
+    is_mid = mid_end == "mid";
     return true;
 }
 
@@ -1132,15 +1124,15 @@ bool k2main::ParamNameAndStage(std::string * const arg, bool * const is_mid)
 
 
 //--------------------------------
-void k2main::SetvalueCommand(const std::string in)
+void k2main::SetvalueCommand(const std::string &in)
 {
     std::string arg1, arg2, tmp;
     arg1 = GetFirstArg(in, &arg2);
     bool is_mid;
-    if(!ParamNameAndStage(&arg1, &is_mid))
+    if(!ParamNameAndStage(arg1, is_mid))
         return;
     arg2 = GetFirstArg(arg2, &tmp);
-    if(!SetParamValue(arg1, atoi(arg2.c_str()), is_mid))
+    if(!SetParamValue(arg1, atof(arg2.c_str()), is_mid))
         std::cout << "error: wrong parameter name" << std ::endl;
 }
 
@@ -1149,27 +1141,29 @@ void k2main::SetvalueCommand(const std::string in)
 
 
 //--------------------------------
-void k2main::TuningParsePos(std::string fen, parsed_pos_s *pos, double result)
+k2main::parsed_pos_s k2main::TuningParsePos(std::string &fen,
+                                            const double result)
 {
     SetupPosition(fen.c_str());
-    pos->wtm = wtm;
-    memcpy(pos->b, b, sizeof(b));
-    memcpy(pos->coords, coords, sizeof(coords));
-    memcpy(pos->attacks, attacks, sizeof(attacks));
-    memcpy(pos->exist_mask, exist_mask, sizeof(exist_mask));
-    memcpy(pos->type_mask, type_mask, sizeof(type_mask));
-    memcpy(pos->slider_mask, slider_mask, sizeof(slider_mask));
-    memcpy(pos->directions, directions, sizeof(directions));
-    memcpy(pos->sum_directions, sum_directions, sizeof(sum_directions));
-    memcpy(pos->material, material, sizeof(material));
-    memcpy(pos->pieces, pieces, sizeof(pieces));
-    memcpy(pos->quantity, quantity, sizeof(quantity));
-    memcpy(pos->p_max, p_max, sizeof(p_max));
-    memcpy(pos->p_min, p_min, sizeof(p_min));
-    pos->castling_rights = k2chess::state[0].castling_rights;
+    parsed_pos_s pos;
+    pos.wtm = wtm;
+    memcpy(pos.b, b, sizeof(b));
+    memcpy(pos.coords, coords, sizeof(coords));
+    memcpy(pos.attacks, attacks, sizeof(attacks));
+    memcpy(pos.exist_mask, exist_mask, sizeof(exist_mask));
+    memcpy(pos.type_mask, type_mask, sizeof(type_mask));
+    memcpy(pos.slider_mask, slider_mask, sizeof(slider_mask));
+    memcpy(pos.directions, directions, sizeof(directions));
+    memcpy(pos.sum_directions, sum_directions, sizeof(sum_directions));
+    memcpy(pos.material, material, sizeof(material));
+    memcpy(pos.pieces, pieces, sizeof(pieces));
+    memcpy(pos.quantity, quantity, sizeof(quantity));
+    memcpy(pos.p_max, p_max, sizeof(p_max));
+    memcpy(pos.p_min, p_min, sizeof(p_min));
+    pos.castling_rights = k2chess::state[0].castling_rights;
 
-
-    pos->result = result;
+    pos.result = result;
+    return pos;
 }
 
 
@@ -1202,7 +1196,7 @@ void k2main::TuningApplyPosData(parsed_pos_s *pos)
 
 
 //--------------------------------
-void k2main::TuningLoadCommand(const std::string in)
+void k2main::TuningLoadCommand(const std::string &in)
 {
     using namespace std;
     Timer clock;
@@ -1243,8 +1237,7 @@ void k2main::TuningLoadCommand(const std::string in)
             cout << "Error: epd file labeled incorrectly" << endl;
             return;
         }
-        parsed_pos_s parsed_pos;
-        TuningParsePos(line, &parsed_pos, result);
+        const auto parsed_pos = TuningParsePos(line, result);
         training_positions.push_back(parsed_pos);
     }
     const auto tick2 = clock.getElapsedTimeInMicroSec();
@@ -1281,7 +1274,7 @@ double k2main::GetEvalError()
 
 
 //--------------------------------
-void k2main::TuningResultCommand(const std::string in)
+void k2main::TuningResultCommand(const std::string &in)
 {
     (void)(in);
     using namespace std;
@@ -1304,7 +1297,7 @@ void k2main::TuningResultCommand(const std::string in)
 
 
 //--------------------------------
-bool k2main::TuneOneParam(const std::string param, const bool is_mid,
+bool k2main::TuneOneParam(const std::string &param, const bool is_mid,
                           eval_t &left_arg, eval_t &right_arg,
                           double &left_err, double &right_err,
                           tune_flag &flag, const double ratio)
@@ -1364,18 +1357,18 @@ bool k2main::TuneOneParam(const std::string param, const bool is_mid,
 
 
 //--------------------------------
-void k2main::TuneParamCommand(const std::string in)
+void k2main::TuneParamCommand(const std::string &in)
 {
     using namespace std;
     string param, arg1, arg2;
     param = GetFirstArg(in, &arg1);
     bool is_mid;
-    if(!ParamNameAndStage(&param, &is_mid))
+    if(!ParamNameAndStage(param, is_mid))
         return;
     arg1 = GetFirstArg(arg1, &arg2);
-    eval_t left_arg = atoi(arg1.c_str());
+    eval_t left_arg = atof(arg1.c_str());
     arg1 = GetFirstArg(arg2, &arg2);
-    eval_t right_arg = atoi(arg1.c_str());
+    eval_t right_arg = atof(arg1.c_str());
 
     if(!SetParamValue(param, 0, is_mid))
     {
@@ -1403,7 +1396,7 @@ void k2main::TuneParamCommand(const std::string in)
 
 
 //--------------------------------
-void k2main::TuneCommand(const std::string in)
+void k2main::TuneCommand(const std::string &in)
 {
     using namespace std;
     auto param_vect = TuneFillParamVect(in);
@@ -1440,20 +1433,23 @@ void k2main::TuneCommand(const std::string in)
 
 
 //--------------------------------
-std::vector<k2main::tune_param_s> k2main::TuneFillParamVect(std::string in)
+std::vector<k2main::tune_param_s>
+k2main::TuneFillParamVect(const std::string &in)
 {
     using namespace std;
     vector<k2main::tune_param_s> param_vect;
-    auto arg1 = GetFirstArg(in, &in);
-    const eval_t margin = atoi(arg1.c_str());
+    std::string all_the_rest;
+    auto arg1 = GetFirstArg(in, &all_the_rest);
+    const eval_t margin = atof(arg1.c_str());
     if(margin == 0 && arg1 != "0")
     {
         cout << "Error: first input must be a number with eval margin" << endl;
         return param_vect;
     }
-    while(!in.empty())
+    while(!all_the_rest.empty())
     {
-        auto param = GetFirstArg(in, &in);
+        auto param = GetFirstArg(all_the_rest, &arg1);
+        all_the_rest = arg1;
         eval_t cur_val = 0;
         if(!GetParamValue(param, &cur_val, true))
         {
@@ -1475,7 +1471,7 @@ std::vector<k2main::tune_param_s> k2main::TuneFillParamVect(std::string in)
 
 
 //--------------------------------
-void k2main::OptionCommand(const std::string in)
+void k2main::OptionCommand(const std::string &in)
 {
     std::string arg1, arg2;
     arg1 = GetFirstArg(in, &arg2);
@@ -1503,7 +1499,7 @@ void k2main::OptionCommand(const std::string in)
 
 
 //--------------------------------
-void k2main::PostCommand(const std::string in)
+void k2main::PostCommand(const std::string &in)
 {
     (void)(in);
 
@@ -1515,7 +1511,7 @@ void k2main::PostCommand(const std::string in)
 
 
 //--------------------------------
-void k2main::NopostCommand(const std::string in)
+void k2main::NopostCommand(const std::string &in)
 {
     (void)(in);
 
@@ -1527,7 +1523,7 @@ void k2main::NopostCommand(const std::string in)
 
 
 //--------------------------------
-void k2main::SeedCommand(const std::string in)
+void k2main::SeedCommand(const std::string &in)
 {
     std::string arg1, arg2;
     arg1 = in;

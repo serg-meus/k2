@@ -56,7 +56,7 @@ k2engine::k2engine() :
 
 
 //--------------------------------
-k2chess::eval_t k2engine::Search(depth_t depth, eval_t alpha, eval_t beta,
+k2eval::eval_t k2engine::Search(depth_t depth, eval_t alpha, eval_t beta,
                                  const node_type_t node_type)
 {
     bool in_check = IsInCheck();
@@ -82,7 +82,7 @@ k2chess::eval_t k2engine::Search(depth_t depth, eval_t alpha, eval_t beta,
 
     eval_t x, orig_alpha = alpha;
     hash_entry_s *entry = nullptr;
-    if(HashProbe(orig_depth, &alpha, beta, &entry))
+    if(HashProbe(orig_depth, alpha, beta, &entry))
         return -alpha;
 
     move_c hash_best_move;
@@ -105,11 +105,11 @@ k2chess::eval_t k2engine::Search(depth_t depth, eval_t alpha, eval_t beta,
             CheckForInterrupt())
         return alpha;
 
-    move_c move_array[move_array_size], cur_move;
+    move_c move_array[move_capacity], cur_move;
     size_t move_cr = 0, max_moves = init_max_moves;
     for(; move_cr < max_moves; move_cr++)
     {
-        cur_move = GetNextMove(move_array, move_cr, &max_moves,
+        cur_move = GetNextMove(move_array, max_moves, move_cr,
                                hash_best_move, hash_one_reply,
                                all_moves, cur_move);
         if(max_moves <= 0)
@@ -156,7 +156,7 @@ k2chess::eval_t k2engine::Search(depth_t depth, eval_t alpha, eval_t beta,
 
         if(x >= beta)
         {
-            StoreInHash(orig_depth, beta, cur_move, lower_bound,
+            StoreInHash(orig_depth, beta, cur_move, bound::lower,
                         max_moves == 1);
             UpdateStatistics(cur_move, depth, move_cr, entry);
             return beta;
@@ -165,7 +165,7 @@ k2chess::eval_t k2engine::Search(depth_t depth, eval_t alpha, eval_t beta,
         {
             alpha = x;
             StorePV(cur_move);
-            StoreInHash(orig_depth, alpha, cur_move, exact_value,
+            StoreInHash(orig_depth, alpha, cur_move, bound::exact,
                         max_moves == 1);
         }
     }
@@ -177,7 +177,7 @@ k2chess::eval_t k2engine::Search(depth_t depth, eval_t alpha, eval_t beta,
     else if(alpha == orig_alpha)
         StoreInHash(orig_depth, orig_alpha,
                     max_moves == 1 ? cur_move : move_array[0],
-                    upper_bound, max_moves == 1);
+                    bound::upper, max_moves == 1);
 
     return alpha;
 }
@@ -187,7 +187,7 @@ k2chess::eval_t k2engine::Search(depth_t depth, eval_t alpha, eval_t beta,
 
 
 //-----------------------------
-k2chess::eval_t k2engine::QSearch(eval_t alpha, const eval_t beta)
+k2eval::eval_t k2engine::QSearch(eval_t alpha, const eval_t beta)
 {
     if(ply >= max_ply - 1)
         return 0;
@@ -199,7 +199,7 @@ k2chess::eval_t k2engine::QSearch(eval_t alpha, const eval_t beta)
         return beta;
 
     hash_entry_s *entry = nullptr;
-    if(HashProbe(0, &alpha, beta, &entry))
+    if(HashProbe(0, alpha, beta, &entry))
         return -alpha;
 
     UpdateAttackTables();
@@ -214,12 +214,12 @@ k2chess::eval_t k2engine::QSearch(eval_t alpha, const eval_t beta)
             CheckForInterrupt())
         return alpha;
 
-    move_c move_array[move_array_size], no_move;
+    move_c move_array[move_capacity], no_move;
     no_move.flag = not_a_move;
     size_t move_cr = 0, max_moves = init_max_moves;
     for(; move_cr < max_moves; move_cr++)
     {
-        move_c cur_move = GetNextMove(move_array, move_cr, &max_moves,
+        move_c cur_move = GetNextMove(move_array, max_moves, move_cr,
                                       no_move, false, captures_only, cur_move);
         if(max_moves <= 0 || cur_move.priority <= bad_captures ||
                 DeltaPruning(alpha, cur_move))
@@ -240,7 +240,7 @@ k2chess::eval_t k2engine::QSearch(eval_t alpha, const eval_t beta)
 
         if(x >= beta)
         {
-            StoreInHash(0, beta, cur_move, lower_bound, false);
+            StoreInHash(0, beta, cur_move, bound::lower, false);
             stats.q_cut_cr++;
             if(move_cr <
                     sizeof(stats.q_cut_num_cr)/sizeof(*(stats.q_cut_num_cr)))
@@ -249,7 +249,7 @@ k2chess::eval_t k2engine::QSearch(eval_t alpha, const eval_t beta)
         }
         else if(x > alpha)
         {
-            StoreInHash(0, alpha, cur_move, exact_value, false);
+            StoreInHash(0, alpha, cur_move, bound::exact, false);
             alpha = x;
             StorePV(cur_move);
         }
@@ -264,7 +264,7 @@ k2chess::eval_t k2engine::QSearch(eval_t alpha, const eval_t beta)
 //--------------------------------
 void k2engine::Perft(const depth_t depth)
 {
-    move_c move_array[move_array_size];
+    move_c move_array[move_capacity];
     auto max_moves = GenMoves(move_array, false);
     for(size_t move_cr = 0; move_cr < max_moves; move_cr++)
     {
@@ -302,30 +302,30 @@ void k2engine::Perft(const depth_t depth)
 
 //--------------------------------
 bool k2engine::GetRootSearchBounds(const eval_t x,
-                                   eval_t *alpha, eval_t *beta) const
+                                   eval_t &alpha, eval_t &beta) const
 {
     if(stop)
         return false;
 
-    if(*alpha == *beta)
+    if(alpha == beta)
     {
-        *alpha = AddEval(x, -aspiration_margin);
-        *beta = AddEval(x, aspiration_margin);
+        alpha = AddEval(x, -aspiration_margin);
+        beta = AddEval(x, aspiration_margin);
     }
-    else if(x <= *alpha)
+    else if(x <= alpha)
     {
-        *alpha = AddEval(*alpha, 2*(*alpha - *beta));
-        *beta = AddEval(*beta, aspiration_margin);
+        alpha = AddEval(alpha, 2*(alpha - beta));
+        beta = AddEval(beta, aspiration_margin);
     }
-    else if(x >= *beta)
+    else if(x >= beta)
     {
-        *alpha = AddEval(*alpha, -aspiration_margin);
-        *beta = AddEval(*beta, 2*(*beta - *alpha));
+        alpha = AddEval(alpha, -aspiration_margin);
+        beta = AddEval(beta, 2*(beta - alpha));
     }
     else
         return false;
 
-    assert(*alpha < *beta);
+    assert(alpha < beta);
     return true;
 }
 
@@ -353,7 +353,7 @@ void k2engine::MainSearch()
     {
         const auto prev_x = x;
         eval_t alpha = 0, beta = 0;
-        while(GetRootSearchBounds(x, &alpha, &beta))
+        while(GetRootSearchBounds(x, alpha, beta))
             x = RootSearch(root_ply, alpha, beta);
         if(stop)
             x = prev_x;
@@ -392,7 +392,7 @@ void k2engine::MainSearch()
 
 
 //--------------------------------
-k2chess::eval_t k2engine::RootSearch(const depth_t depth, eval_t alpha,
+k2eval::eval_t k2engine::RootSearch(const depth_t depth, eval_t alpha,
                                      const eval_t beta)
 {
     const bool in_check = attacks[!wtm][king_coord(wtm)];
@@ -420,7 +420,7 @@ k2chess::eval_t k2engine::RootSearch(const depth_t depth, eval_t alpha,
             if(uci && root_ply > min_depth_to_show_uci_info)
                 ShowCurrentUciInfo();
             if(!stop && x <= alpha)
-                ShowPVfailHighOrLow(cur_move, x, '?');
+                ShowPVfailHighOrLow(cur_move, x, bound::lower);
         }
         else
         {
@@ -432,7 +432,7 @@ k2chess::eval_t k2engine::RootSearch(const depth_t depth, eval_t alpha,
             if(!stop && x > alpha)
             {
                 fail_high = true;
-                ShowPVfailHighOrLow(cur_move, x, '!');
+                ShowPVfailHighOrLow(cur_move, x, bound::upper);
 
                 const auto x_ = -Search(depth - 1, -beta, -alpha, pv_node);
                 if(uci && root_ply > min_depth_to_show_uci_info)
@@ -459,7 +459,7 @@ k2chess::eval_t k2engine::RootSearch(const depth_t depth, eval_t alpha,
 
         if(x >= beta)
         {
-            ShowPVfailHighOrLow(cur_move, x, '!');
+            ShowPVfailHighOrLow(cur_move, x, bound::upper);
             beta_cutoff = true;
             std::swap(root_moves.at(root_move_cr), root_moves.at(0));
             TakebackMove(cur_move);
@@ -471,7 +471,7 @@ k2chess::eval_t k2engine::RootSearch(const depth_t depth, eval_t alpha,
             TakebackMove(cur_move);
             StorePV(cur_move);
             if(x != -infinite_score && !stop)
-                PrintCurrentSearchResult(x, ' ');
+                PrintCurrentSearchResult(x, bound::exact);
             std::swap(root_moves.at(root_move_cr), root_moves.at(0));
         }
         else
@@ -555,7 +555,7 @@ void k2engine::UpdateStatistics(const move_c move, const depth_t depth,
 
 //--------------------------------
 void k2engine::ShowPVfailHighOrLow(const move_c move, const eval_t val,
-                                   const u8 type_of_bound)
+                                   const bound bound_type)
 {
     TakebackMove(move);
     char mstr[6];
@@ -566,7 +566,7 @@ void k2engine::ShowPVfailHighOrLow(const move_c move, const eval_t val,
     pv[ply].length = 1;
     pv[0].moves[0] = move;
 
-    PrintCurrentSearchResult(val, type_of_bound);
+    PrintCurrentSearchResult(val, bound_type);
     pv[ply].length = tmp_length;
     pv[0].moves[0] = tmp_move;
 
@@ -581,7 +581,7 @@ void k2engine::ShowPVfailHighOrLow(const move_c move, const eval_t val,
 //--------------------------------
 void k2engine::GenerateRootMoves()
 {
-    move_c move_array[move_array_size], cur_move, no_move;
+    move_c move_array[move_capacity], cur_move, no_move;
     no_move.flag = not_a_move;
     auto max_moves = init_max_moves;
 
@@ -589,11 +589,11 @@ void k2engine::GenerateRootMoves()
     cur_move.flag = not_a_move;
 
     hash_entry_s *entry = nullptr;
-    HashProbe(max_ply, &alpha, beta, &entry);
+    HashProbe(max_ply, alpha, beta, &entry);
 
     for(size_t move_cr = 0; move_cr < max_moves; move_cr++)
     {
-        cur_move = GetNextMove(move_array, move_cr, &max_moves,
+        cur_move = GetNextMove(move_array, max_moves, move_cr,
                                no_move, false, all_moves, cur_move);
     }
     root_moves.clear();
@@ -753,7 +753,7 @@ void k2engine::PrintFinalSearchResult()
                     MoveToCoordinateNotation(entry->best_move, pndr);
                 else
                 {
-                    move_c move_array[move_array_size];
+                    move_c move_array[move_capacity];
                     auto max_moves = GenMoves(move_array, true);
                     if(max_moves)
                         MoveToCoordinateNotation(move_array[0], pndr);
@@ -852,7 +852,7 @@ void k2engine::PrintFinalSearchResult()
 
 //--------------------------------
 void k2engine::PrintCurrentSearchResult(const eval_t max_value,
-                                        const u8 type_of_bound)
+                                        const bound type)
 {
     using namespace std;
 
@@ -875,9 +875,9 @@ void k2engine::PrintCurrentSearchResult(const eval_t max_value,
             else
                 cout << " score mate -" << (king_value + max_value + 1) / 2;
         }
-        if(type_of_bound == '!')
+        if(type == bound::upper)
             cout << " upperbound";
-        else if(type_of_bound == '?')
+        else if(type == bound::lower)
             cout << " lowerbound";
 
         cout << " time " << spent_time
@@ -893,8 +893,8 @@ void k2engine::PrintCurrentSearchResult(const eval_t max_value,
     }
     if(enable_output)
         PrintMoveSequence(pv[0].moves, pv[0].length, uci);
-    if(!uci && type_of_bound != ' ')
-        cout << type_of_bound;
+    if(!uci && type != bound::exact)
+        cout << (type == bound::upper ? '!' : '?');
     cout << endl;
 }
 
@@ -1306,7 +1306,7 @@ void k2engine::ReHash(size_t size_mb)
 
 
 //--------------------------------
-bool k2engine::HashProbe(const depth_t depth, eval_t * const alpha,
+bool k2engine::HashProbe(const depth_t depth, eval_t &alpha,
                          const eval_t beta, hash_entry_s **entry)
 {
     *entry = hash_table.count(hash_key);
@@ -1318,7 +1318,7 @@ bool k2engine::HashProbe(const depth_t depth, eval_t * const alpha,
     if((*entry)->best_move.flag != not_a_move)
         stats.hash_hit_cr++;
 
-    const auto hbnd = (*entry)->bound_type;
+    const auto hbound = static_cast<bound>((*entry)->bound_type);
     if((*entry)->depth < depth)
         return false;
 
@@ -1328,165 +1328,16 @@ bool k2engine::HashProbe(const depth_t depth, eval_t * const alpha,
     else if(hval < -mate_score && hval != -infinite_score)
         hval -= (*entry)->depth - ply;
 
-    if(hbnd == exact_value
-            || (hbnd == upper_bound && hval >= -*alpha)
-            || (hbnd == lower_bound && hval <= -beta) )
+    if(hbound == bound::exact
+            || (hbound == bound::upper && hval >= -alpha)
+            || (hbound == bound::lower && hval <= -beta) )
     {
         stats.hash_cut_cr++;
         pv[ply].length = 0;
-        *alpha = hval;
+        alpha = hval;
         return true;
     }
     return false;
-}
-
-
-
-
-
-//--------------------------------
-bool k2engine::GetFirstMove(move_c * const move_array,
-                            size_t * const max_moves,
-                            const move_c hash_best_move,
-                            const bool hash_one_reply,
-                            const bool only_captures,
-                            move_c * const ans) const
-{
-    if(hash_best_move.flag == not_a_move)
-    {
-        if(!only_captures)
-            *max_moves = GenMoves(move_array, false);
-        else
-            *max_moves = GenMoves(move_array, true);
-
-        AppriceMoves(move_array, *max_moves, hash_best_move);
-
-        if(*max_moves > 1
-                && move_array[0].priority > bad_captures
-                && move_array[0].priority == move_array[1].priority)
-        {
-            if(StaticExchangeEval(move_array[0]) <
-                    StaticExchangeEval(move_array[1]))
-                std::swap(move_array[0], move_array[1]);
-        }
-    }
-    else
-    {
-        *ans = hash_best_move;
-        const bool legal = IsPseudoLegal(*ans) && IsLegal(*ans);
-#ifndef NDEBUG
-        const auto mx_ = GenMoves(move_array, false);
-        size_t i = 0;
-        for(; i < mx_; ++i)
-            if(move_array[i] == *ans)
-                break;
-        const bool tt_move_found = i < mx_;
-        if(tt_move_found != legal)
-        {
-            IsPseudoLegal(*ans);
-            IsLegal(*ans);
-            GenMoves(move_array, false);
-        }
-        assert(tt_move_found == legal);
-#endif
-        if(legal)
-        {
-            ans->priority = move_from_hash;
-            if(hash_one_reply)
-                *max_moves = 1;
-            return true;
-        }
-        else
-        {
-            *max_moves = GenMoves(move_array, false);
-            AppriceMoves(move_array, *max_moves, hash_best_move);
-        }
-    }
-    return false;
-}
-
-
-
-
-//--------------------------------
-bool k2engine::GetSecondMove(move_c * const move_array,
-                             size_t * const max_moves,
-                             const move_c prev_move,
-                             move_c * const ans) const
-{
-    *max_moves = GenMoves(move_array, false);
-    AppriceMoves(move_array, *max_moves, prev_move);
-
-    if(*max_moves <= 1)
-    {
-        *max_moves = 0;
-        *ans = move_array[0];
-        assert(IsPseudoLegal(*ans));
-        return true;
-    }
-    size_t i = 0;
-    for(; i < *max_moves; i++)
-        if(move_array[i].priority == move_from_hash)
-        {
-            std::swap(move_array[0], move_array[i]);
-            break;
-        }
-    assert(i < *max_moves);
-    return false;
-}
-
-
-
-
-
-//--------------------------------
-size_t k2engine::FindMaxMoveIndex(move_c * const move_array,
-                                  const size_t max_moves,
-                                  const size_t cur_move) const
-{
-    auto max_score = 0;
-    auto max_index = cur_move;
-    for(auto i = cur_move; i < max_moves; i++)
-    {
-        const auto score = move_array[i].priority;
-        if(score > max_score)
-        {
-            max_score = score;
-            max_index = i;
-        }
-    }
-    return max_index;
-}
-
-
-
-
-
-//--------------------------------
-k2chess::move_c k2engine::GetNextMove(move_c * const move_array,
-                                      const size_t cur_move_cr,
-                                      size_t * const max_moves,
-                                      move_c hash_best_move,
-                                      const bool hash_one_reply,
-                                      const bool only_captures,
-                                      const move_c prev_move) const
-{
-    move_c ans;
-    if(cur_move_cr == 0)
-    {
-        if(GetFirstMove(move_array, max_moves, hash_best_move,
-                        hash_one_reply, only_captures, &ans))
-            return ans;
-    }
-    else if(cur_move_cr == 1 && hash_best_move.flag != not_a_move)
-    {
-        if(GetSecondMove(move_array, max_moves, prev_move, &ans))
-            return ans;
-    }
-    auto max_index = FindMaxMoveIndex(move_array, *max_moves, cur_move_cr);
-    std::swap(move_array[max_index], move_array[cur_move_cr]);
-    assert(*max_moves == 0 || IsPseudoLegal(move_array[cur_move_cr]));
-    return move_array[cur_move_cr];
 }
 
 
@@ -1496,12 +1347,12 @@ k2chess::move_c k2engine::GetNextMove(move_c * const move_array,
 //-----------------------------
 void k2engine::StoreInHash(const depth_t depth, eval_t score,
                            const move_c best_move,
-                           const hbound_t bound_type,
+                           bound bound_type,
                            const bool one_reply)
 {
     if(stop)
         return;
-    CorrectHashScore(&score, depth);
+    CorrectHashScore(score, depth);
     hash_table.add(hash_key, -score, best_move, depth,
                    bound_type, halfmoves_made/2, one_reply, stats.nodes);
     assert(IsPseudoLegal(best_move));

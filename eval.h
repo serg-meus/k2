@@ -86,12 +86,9 @@ public:
         InitPawnStruct();
     }
 
+public:
 
-protected:
-
-
-    typedef u8 rank_t;
-    typedef u8 dist_t;
+    typedef i16 eval_t;
 
     template <class T>
     class vec2
@@ -121,7 +118,14 @@ protected:
         void operator -=(const vec2 v) {mid -= v.mid; end -= v.end;}
     };
 
-    const eval_t
+
+protected:
+
+
+    typedef u8 rank_t;
+    typedef u8 dist_t;
+
+    const piece_val_t
     centipawn = 100,
     infinite_score = 32760,
     king_value = 32000,

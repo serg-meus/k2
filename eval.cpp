@@ -1,11 +1,15 @@
 #include "eval.h"
 
 
+using eval_t = k2eval::eval_t;
+using vec2 = k2eval::vec2<k2eval::eval_t>;
+
+
 
 
 
 //-----------------------------
-k2chess::eval_t k2eval::Eval(const bool stm, vec2<eval_t> cur_eval)
+eval_t k2eval::Eval(const bool stm, vec2<eval_t> cur_eval)
 {
     for(auto side: {black, white})
     {
@@ -25,8 +29,7 @@ k2chess::eval_t k2eval::Eval(const bool stm, vec2<eval_t> cur_eval)
 
 
 //-----------------------------
-k2eval::vec2<k2chess::eval_t> k2eval::FastEval(const bool stm,
-                                               const move_c move) const
+vec2 k2eval::FastEval(const bool stm, const move_c move) const
 {
     vec2<eval_t> ans = {0, 0};
 
@@ -84,7 +87,7 @@ k2eval::vec2<k2chess::eval_t> k2eval::FastEval(const bool stm,
 
 
 //-----------------------------
-k2eval::vec2<k2chess::eval_t> k2eval::InitEvalOfMaterial()
+vec2 k2eval::InitEvalOfMaterial()
 {
     vec2<eval_t> ans = {0, 0};
     for(auto col = 0; col <= max_col; ++col)
@@ -104,7 +107,7 @@ k2eval::vec2<k2chess::eval_t> k2eval::InitEvalOfMaterial()
 
 
 //-----------------------------
-k2eval::vec2<k2chess::eval_t> k2eval::InitEvalOfPST()
+vec2 k2eval::InitEvalOfPST()
 {
     vec2<eval_t> ans = {0, 0};
     for(auto col = 0; col <= max_col; ++col)
@@ -143,7 +146,7 @@ bool k2eval::IsPasser(const coord_t col, const bool stm) const
 
 
 //--------------------------------
-k2eval::vec2<k2chess::eval_t> k2eval::EvalPawns(const bool side, const bool stm)
+vec2 k2eval::EvalPawns(const bool side, const bool stm)
 {
     vec2<eval_t> ans = {0, 0};
     bool passer, prev_passer = false;
@@ -265,7 +268,7 @@ bool k2eval::IsUnstoppablePawn(const coord_t col, const bool side,
 
 
 //-----------------------------
-k2eval::vec2<k2chess::eval_t> k2eval::EvalMobility(bool stm)
+vec2 k2eval::EvalMobility(bool stm)
 {
     vec2<eval_t> f_type[] = {{0, 0}, {0, 0}, mob_queen, mob_rook, mob_bishop,
                           mob_knight};
@@ -295,10 +298,9 @@ k2eval::vec2<k2chess::eval_t> k2eval::EvalMobility(bool stm)
 
 
 //-----------------------------
-k2eval::vec2<k2chess::eval_t> k2eval::EvalImbalances(const bool stm,
-                                                     vec2<eval_t> val)
+vec2 k2eval::EvalImbalances(const bool stm, vec2<eval_t> val)
 {
-    const auto X = material[black]/centipawn + 1 + material[white]/centipawn
+    const int X = material[black]/centipawn + 1 + material[white]/centipawn
             + 1 - pieces[black] - pieces[white];
 
     if(X == 3 && (material[black]/centipawn == 4 ||
@@ -609,7 +611,7 @@ void k2eval::TakebackMove(const move_c move)
 
 
 //-----------------------------
-k2eval::vec2<k2chess::eval_t> k2eval::EvalRooks(const bool stm)
+vec2 k2eval::EvalRooks(const bool stm)
 {
     vec2<eval_t> ans(0, 0);
     eval_t rooks_on_last_cr = 0;
@@ -785,7 +787,7 @@ size_t k2eval::CountAttacksOnKing(const bool stm, const coord_t k_col,
 
 
 //-----------------------------
-k2eval::vec2<k2chess::eval_t> k2eval::EvalKingSafety(const bool stm)
+vec2 k2eval::EvalKingSafety(const bool stm)
 {
     vec2<eval_t> zeros = {0, 0};
     if(quantity[!stm][queen] < 1 && quantity[!stm][rook] < 2)

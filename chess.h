@@ -12,6 +12,7 @@
 class k2chess
 {
 
+
 public:
 
 
@@ -37,7 +38,7 @@ protected:
     typedef u8 piece_t;
     typedef u8 piece_type_t;
     typedef u8 coord_t;
-    typedef i16 eval_t;
+    typedef i16 piece_val_t;
     typedef u8 move_flag_t;
     typedef u8 castle_t;
     typedef u8 enpass_t;
@@ -46,21 +47,23 @@ protected:
     typedef u8 priority_t;
     typedef u16 ray_mask_t;
     typedef u8 piece_id_t;
+    typedef u8 tiny_count_t;
 
     const static depth_t max_ply = 100;  // maximum search depth
     const static coord_t board_width = 8;
     const static coord_t board_height = 8;
     const static coord_t board_size = board_height*board_width;
-    const static u8 sides = 2;  // black and white
-    const static u8 piece_types = 6;  // pawns, knights, ...
+    const static tiny_count_t sides = 2;  // black and white
+    const static tiny_count_t piece_types = 6;  // pawns, knights, ...
     const static bool white = true;
     const static bool black = false;
-    const static depth_t prev_states = 4;
+    const static tiny_count_t prev_states = 4;
     const static coord_t max_col = board_width - 1;
     const static coord_t max_row = board_height - 1;
-    const static u8 max_pieces_one_side = 16;
-    const static u8 max_rays = 16;
+    const static tiny_count_t max_pieces_one_side = 16;
+    const static tiny_count_t max_rays = 16;
     const static coord_t piece_not_found = -1;
+
     coord_t max_ray_length;
 
     const static piece_t
@@ -102,7 +105,7 @@ protected:
     cstl_move_length = 2,
     pawn_default_row = 1,
     pawn_long_move_length = 2;
-    static const size_t move_max_display_length = 5;
+    static const tiny_count_t move_max_display_length = 5;
     static const attack_t attack_digits = sizeof(attack_t)*CHAR_BIT;
 
     static const piece_type_t
@@ -199,10 +202,10 @@ protected:
     attack_t update_mask[sides];
 
     // counters of attacks for each ray of each piece
-    coord_t directions[sides][max_pieces_one_side][max_rays];
+    tiny_count_t directions[sides][max_pieces_one_side][max_rays];
 
     // counters of attacks for each piece
-    coord_t sum_directions[sides][max_pieces_one_side];
+    tiny_count_t sum_directions[sides][max_pieces_one_side];
 
     // ray masks for all types of pieces
     ray_mask_t ray_mask_all[piece_types + 1];
@@ -216,16 +219,16 @@ protected:
 
     // piece values for material counters,
     // move priorities and sorting piece lists
-    eval_t values[piece_types + 1];
+    piece_val_t values[piece_types + 1];
 
-    eval_t material[sides];  // material counters
-    eval_t pieces[sides];  // piece counters, including kings
-    coord_t quantity[sides][piece_types + 1];
+    piece_val_t material[sides];  // material counters
+    tiny_count_t pieces[sides];  // piece counters, including kings
+    tiny_count_t quantity[sides][piece_types + 1];
 
     state_s b_state[prev_states + max_ply]; // board state for each ply depth
     state_s *state;  // pointer to board state, state[0] = b_state[prev_states];
-    depth_t ply;  // current ply depth
-    depth_t reversible_moves;
+    tiny_count_t ply;  // current ply depth
+    tiny_count_t reversible_moves;
 
     // current variation (for debug mode only)
     char cur_moves[move_max_display_length*max_ply];
@@ -234,8 +237,8 @@ protected:
     attack_t done_attacks[max_ply][sides][board_size];
     std::vector<std::vector<coord_t>> store_coords;
     std::vector<std::vector<attack_t>> store_type_mask;
-    coord_t done_directions[max_ply][sides][max_pieces_one_side][max_rays];
-    coord_t done_sum_directions[max_ply][sides][max_pieces_one_side];
+    tiny_count_t done_directions[max_ply][sides][max_pieces_one_side][max_rays];
+    tiny_count_t done_sum_directions[max_ply][sides][max_pieces_one_side];
 
     bool MakeMove(const move_c m);
     move_flag_t InitMoveFlag(const move_c move, const char promo_to) const;

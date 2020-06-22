@@ -228,7 +228,7 @@ void k2hash::hash_table_c::clear()
 //--------------------------------
 void k2hash::hash_table_c::add(const hash_key_t key, const eval_t value,
                                const move_c best_move, const depth_t depth,
-                               const hbound_t bound_type, const depth_t age,
+                               bound bound_type, const depth_t age,
                                const bool one_reply, const node_t nodes)
 {
     size_t i;
@@ -256,7 +256,8 @@ void k2hash::hash_table_c::add(const hash_key_t key, const eval_t value,
                 auto bckt_age = bucket[i].age;
                 if(bckt_age > (age & 0x03))
                     bckt_age -= 3;
-                if(bucket[i].depth + bckt_age < depth + age)
+                if(bucket[i].depth + bckt_age <
+                        static_cast<unsigned>(depth + age))
                     break;
             }
             // if not found anything, rewrite random entry in a bucket
@@ -268,7 +269,7 @@ void k2hash::hash_table_c::add(const hash_key_t key, const eval_t value,
     bucket[i].key = key >> 32;
     bucket[i].best_move = best_move;
     bucket[i].depth = depth;
-    bucket[i].bound_type = bound_type;
+    bucket[i].bound_type = static_cast<unsigned>(bound_type);
     bucket[i].value = value;
     bucket[i].one_reply = one_reply;
     bucket[i].age = age & 0x03;
