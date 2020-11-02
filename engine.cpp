@@ -148,7 +148,7 @@ k2eval::eval_t k2engine::Search(depth_t depth, eval_t alpha, eval_t beta,
         {
             x = -Search(depth - 1 - lmr, -beta, -alpha, -node_type);
             if(lmr && x > alpha && !stop)
-                x = -Search(depth - 1, -beta, -alpha, pv_node);
+                x = -Search(depth - 1, -alpha - 1, -alpha, cut_node);
         }
         TakebackMove(cur_move);
         if(stop)
