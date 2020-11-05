@@ -116,7 +116,7 @@ k2eval::eval_t k2engine::Search(depth_t depth, eval_t alpha, eval_t beta,
             break;
 
         // one reply extension
-        if(max_moves == 1 && depth >= one_reply_min_depth)
+        if(max_moves == 1)
             depth++;
 
         // late move pruning

@@ -45,7 +45,6 @@ protected:
     const eval_t futility_marg0 = 185;
     const eval_t futility_marg1 = 220;
     const eval_t futility_marg2 = 255;
-    const depth_t one_reply_min_depth = 2;
     const eval_t qs_min_material_to_drop = 2400;
     const depth_t qs_beta_exceed_to_drop = 250;
     const eval_t aspiration_margin = 32;
