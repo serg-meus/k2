@@ -54,7 +54,7 @@ protected:
     const eval_t eval_to_resign = 1300;
     const depth_t moves_to_resign = 3;
 
-    const size_t moves_for_time_exact_mode = 8;
+    const size_t moves_for_time_exact_mode = 4;
     const depth_t default_moves_to_go = 32;
     const depth_t exact_time_base_divider = 4;
     const size_t min_moves_for_exact_time = 5;
