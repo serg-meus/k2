@@ -36,8 +36,8 @@ protected:
     const depth_t null_move_max_r = 4;
     const depth_t null_move_min_r = 3;
     const depth_t lmr_min_depth = 3;
-    const size_t lmr_max_move = 4;
-    const size_t lmr_big_max_move = 7;
+    const size_t lmr_max_move = 3;
+    const size_t lmr_big_max_move = 6;
     const depth_t lmp_min_depth = 2;
     const size_t lmp_max_move = 6;
     const eval_t delta_pruning_margin = 100;
