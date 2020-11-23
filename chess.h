@@ -150,7 +150,7 @@ protected:
 
         bool operator < (const move_c m) const
         {
-            return priority < m.priority;
+            return priority > m.priority;
         }
     };
 

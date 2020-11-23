@@ -23,11 +23,9 @@ protected:
     const node_type_t all_node = -1, pv_node = 0, cut_node = 1;
 
     const eval_t mate_score = king_value - (depth_t)max_ply;
-    const bool all_moves = false;
-    const bool captures_only = true;
+    const bool get_all_moves = false;
+    const bool get_only_captures = true;
     const node_t nodes_to_check_stop = 7;
-    const size_t init_max_moves = 2;  // any number greater than 1
-    const static size_t move_capacity = 256;
     const coord_t is_null_move = 0xFF;
 
     const depth_t null_move_min_depth = 2;
@@ -120,6 +118,7 @@ protected:
 
     std::vector<std::pair<node_t, move_c> > root_moves;
     std::vector<move_c> root_moves_to_search;
+    std::array<std::vector<move_c>, max_ply> moves_pool;
     hash_table_c hash_table;
 
     state_s eng_state[prev_states + max_ply]; // engine state for each ply

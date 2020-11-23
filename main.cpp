@@ -603,7 +603,7 @@ void k2main::TestCommand(const std::string &in)
                 " bm Rxb7", 10, "b1b7", false))
             break;
         if(!test_search("8/k7/3p4/p2P1p2/P2P1P2/8/8/K7 w - - bm Kb1",
-                        22, "a1b1", false))
+                        24, "a1b1", false))
             break;
         if(!test_search(
                 "3q2k1/3r1ppp/4nP2/1Q1pp1P1/4P2P/1P3R2/P1r1N3/1R4K1 w - -"

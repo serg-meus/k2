@@ -1,6 +1,6 @@
 #include "eval.h"
 #include <limits>
-
+#include <array>
 
 
 
@@ -10,6 +10,12 @@ class k2movegen : public k2eval
 
 
 public:
+
+    k2movegen()
+    {
+        for(auto &v: pseudo_legal_pool)
+            v.reserve(move_capacity);
+    }
 
     void RunUnitTests();
 
@@ -31,13 +37,15 @@ protected:
     typedef u32 history_t;
 
     const static size_t move_capacity = 256;
-
     const static priority_t
     second_killer = 198,
     first_killer = 199,
-    move_from_hash = std::numeric_limits<priority_t>::max(),
+    move_from_hash = 255,
+    move_one_reply = 254,
     bad_captures = 63;
-    
+
+    const static size_t one_reply = 10000;
+
     struct principal_variation_s
     {
         size_t length;
@@ -48,45 +56,25 @@ protected:
     move_c killers[max_ply][sides];
     history_t history[sides][piece_types][board_size];
 
-    size_t GenMoves(move_c (&move_array)[move_capacity],
-                    const bool only_captures) const;
-    piece_val_t StaticExchangeEval(const move_c m) const;
-    void AppriceMoves(move_c (&move_array)[move_capacity],
-                      const size_t moveCr,
-                      const move_c best_move) const;
-    size_t KeepLegalMoves(move_c (&move_array)[move_capacity],
-                          const size_t move_cr) const;
-    move_c GetNextMove(move_c (&move_array)[move_capacity],
-                       size_t &max_moves,
-                       const size_t cur_move_cr,
-                       const move_c hash_best_move,
-                       const bool hash_one_reply,
-                       const bool captures_only,
-                       const move_c prev_move) const;
-    bool GetFirstMove(move_c (&move_array)[move_capacity],
-                      size_t  &max_moves,
-                      move_c &first_move,
-                      const move_c hash_best_move,
-                      const bool hash_one_reply,
-                      const bool only_captures) const;
-    bool GetSecondMove(move_c (&move_array)[move_capacity],
-                       size_t &max_moves, move_c &second_move,
-                       move_c prev_move) const;
-    size_t FindMaxMoveIndex(move_c (&move_array)[move_capacity],
-                            const size_t max_moves,
-                            const size_t cur_move) const;
+    std::array<std::vector<move_c>, max_ply> pseudo_legal_pool;
+    std::array<unsigned, max_ply> pseudo_legal_cr;
+
+    bool GetNextMove(std::vector<move_c> &moves,
+                     move_c tt_best_move,
+                     const bool captures_only);
+    void GenLegalMoves(std::vector<move_c> &moves, 
+                       std::vector<move_c> &pseudo_legal_moves,
+                       const bool only_captures) const;
+
 
 private:
 
 
-    void GenPawnSilent(const piece_id_t piece_id,
-                       move_c (&move_array)[move_capacity],
-                       size_t &movCr) const;
-    void GenPawnNonSilent(const piece_id_t piece_id,
-                          move_c (&move_array)[move_capacity],
-                          size_t &movCr) const;
-    void GenCastles(move_c (&move_array)[move_capacity],
-                    size_t &move_cr) const;
+    void GenPawnSilent(std::vector<move_c> &moves,
+                       const piece_id_t piece_id) const;
+    void GenPawnNonSilent(std::vector<move_c> &moves,
+                          const piece_id_t piece_id) const;
+    void GenCastles(std::vector<move_c> &moves) const;
     piece_val_t SEE(const coord_t to_coord, const piece_val_t fr_value,
                piece_val_t val, bool stm, attack_t (&att)[sides]) const;
     size_t SeeMinAttacker(const attack_t att) const;
@@ -97,35 +85,30 @@ private:
     size_t test_gen_pawn(const char* str_coord, bool only_captures) const;
     size_t test_gen_castles() const;
     size_t test_gen_moves(bool only_captures) const;
-    void GenSliderMoves(move_c (&move_array)[move_capacity],
-                        size_t &move_cr, const bool only_captures,
+    void GenSliderMoves(std::vector<move_c> &moves,
+                        const bool only_captures,
                         const piece_id_t piece_id,
                         const coord_t from_coord,
                         const piece_type_t type) const;
-    void GenNonSliderMoves(move_c (&move_array)[move_capacity],
-                           size_t &move_cr, const bool only_captures,
-                           const piece_id_t piece_id, const coord_t from_coord,
+    void GenNonSliderMoves(std::vector<move_c> &moves,
+                           const bool only_captures,
+                           const piece_id_t piece_id,
+                           const coord_t from_coord,
                            const piece_type_t type) const;
-    size_t AppriceCaptures(const move_c move) const;
-    size_t AppriceSilentMoves(const piece_type_t type, const coord_t fr_coord,
+    size_t AppriceCapture(const move_c move) const;
+    size_t AppriceSilentMove(const piece_type_t type, const coord_t fr_coord,
                               const coord_t to_coord) const;
-    void AppriceHistory(move_c (&move_array)[move_capacity],
-                        const size_t move_cr,
+    void AppriceHistory(std::vector<move_c> &moves,
                         const history_t min_history,
                         const history_t max_history) const;
-
-    void PushMove(move_c (&move_array)[move_capacity],
-                  size_t &move_cr,
-                  const coord_t from_coord, const coord_t to_coord,
-                  const move_flag_t flag) const
-    {
-        move_c move;
-        move.from_coord = from_coord;
-        move.to_coord = to_coord;
-        move.flag = flag;
-        move.priority = 0;
-
-        assert(IsPseudoLegal(move));
-        move_array[move_cr++] = move;
-    }
+    void GenPseudoLegalMoves(std::vector<move_c> &moves,
+                             const bool only_captures) const;
+    bool GenHashMove(std::vector<move_c> &moves,
+                     move_c &tt_move) const;
+    piece_val_t StaticExchangeEval(const move_c m) const;
+    void AppriceMoves(std::vector<move_c> &moves,
+                      const bool only_captures) const;
+    bool GetNextLegalMove();
+    void GenerateAndAppriceAllMoves(const move_c tt_best_move,
+                                    const bool only_captures);
 };
