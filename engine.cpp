@@ -538,7 +538,8 @@ void k2engine::UpdateStatistics(const move_c move, const depth_t depth,
         killers[ply][1] = killers[ply][0];
         killers[ply][0] = move;
     }
-
+    if(depth <= 1)
+        return;
     auto &h = history[wtm][get_type(b[move.from_coord]) - 1][move.to_coord];
     h += depth*depth + 1;
 }
