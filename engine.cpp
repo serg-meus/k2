@@ -727,22 +727,18 @@ void k2engine::PrintFinalSearchResult()
         cout << "bestmove " << move_str;
         if(!time_control.infinite_analyze)
         {
-            char pndr[6] = "a1a1";
-            if(pv[0].length > 1)
+            char pndr[7] = "(none)";
+            if(pv[0].length > 1 && IsPseudoLegal(pv[0].moves[1]) &&
+               IsLegal(pv[0].moves[1]))
                 MoveToCoordinateNotation(pv[0].moves[1], pndr);
             else
             {
                 MakeMove(pv[0].moves[0]);
                 hash_entry_s *entry = hash_table.count(hash_key);
-                if(entry != nullptr)
+                if(entry != nullptr && IsPseudoLegal(entry->best_move)
+                   && IsLegal(entry->best_move))
                     MoveToCoordinateNotation(entry->best_move, pndr);
-                else
-                {
-                    std::vector<move_c> moves, tmp;
-                    GenLegalMoves(moves, tmp, get_all_moves);
-                    if(moves.size())
-                        MoveToCoordinateNotation(moves[0], pndr);
-                }
+
                 TakebackMove(pv[0].moves[0]);
             }
             cout << " ponder " << pndr;
