@@ -1703,6 +1703,49 @@ void k2chess::InitPossibleAttacksArray()
 
 
 
+
+//--------------------------------
+void k2chess::PrintBoard()
+{
+    using namespace std;
+    const char chars[] = " KQRBNP";
+    cout << "      --";
+    for(auto row = 0; row < 8; ++row)
+    {
+        for(auto i = 0; i < 31; ++i)
+            cout << '-';
+        if(row)
+            cout << '|';
+        cout << endl << "    " << 8 - row << ' ';
+        for(auto col = 0; col < 8; ++col)
+        {
+            cout << "| ";
+            const auto piece = b[get_coord(col, 7 - row)];
+            if(piece == empty_square)
+                cout << "  ";
+            else if(get_color(piece) == black)
+                cout << '*' << chars[get_type(piece)];
+            else
+                cout << chars[get_type(piece)] << ' ';
+
+        }
+        cout << '|' << endl;
+        if(row < 7)
+            cout << "      |";
+    }
+    cout << "      ";
+    for(auto i = 0; i < 33; i++)
+        cout << '-';
+    cout << endl << "     ";
+    for(char i = 'a'; i <= 'h'; i++)
+        cout << "   " << i;
+    cout << endl << endl;
+}
+
+
+
+
+
 #ifndef NDEBUG
 //--------------------------------
 size_t k2chess::test_attack_tables(const bool stm) const

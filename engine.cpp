@@ -825,6 +825,7 @@ void k2engine::PrintFinalSearchResult()
               << "% )" << endl;
     cout << "( time spent = " << time_control.time_spent/1.e6
               << "s )" << endl;
+    PrintBoard();
 }
 
 
@@ -988,6 +989,9 @@ bool k2engine::MakeMove(const char *move_str)
             done_hash_keys[j] = done_hash_keys[j + 1];
 
         halfmoves_made++;
+        
+        if(!xboard && !uci && enable_output)
+            PrintBoard();
         return true;
     }
     return false;
@@ -1010,6 +1014,9 @@ bool k2engine::SetupPosition(const char *fen)
     initial_score = infinite_score;
     resign_cr = 0;
     memset(eng_state, 0, sizeof(eng_state));
+    
+    if(!uci && !xboard && enable_output)
+        PrintBoard();
 
     return true;
 }

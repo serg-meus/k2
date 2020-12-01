@@ -259,6 +259,7 @@ protected:
     bool IsDiscoveredEnPassant(const bool stm, const move_c move,
                                const depth_t _ply_) const;
     bool InitPieceLists(bool stm);
+    void PrintBoard();
 
     coord_t get_coord(const coord_t col, const coord_t row) const
     {
