@@ -336,9 +336,9 @@ vec2 k2eval::EvalImbalances(const bool stm, vec2<eval_t> val)
             const auto bishop_coord = coords[stm][bishop_id];
             const bool is_light_b = (get_col(bishop_coord) +
                                      get_row(bishop_coord)) & 1;
-            const auto corner1 = is_light_b ? get_coord(0, max_row) : 0;
-            const auto corner2 = is_light_b ? get_coord(max_col, 0) :
-                                              get_coord(max_col, max_row);
+            const auto corner1 = is_light_b ? 0 : get_coord(0, max_row);
+            const auto corner2 = is_light_b ? get_coord(max_col, max_row) :
+                                              get_coord(max_col, 0);
             const auto opp_k = king_coord(!stm);
             if(king_dist(corner1, opp_k) > 1 && king_dist(corner2, opp_k) > 1)
                 return val;
@@ -968,23 +968,23 @@ void k2eval::RunUnitTests()
     SetupPosition("7k/5B2/5K2/8/3N4/8/8/8 w - -");  // KBNk
     val = zeros;
     val = EvalImbalances(wtm, val);
-    assert(val.end == 0);
+    assert(val.end <= knight_val.end);
     SetupPosition("7k/4B3/5K2/8/3N4/8/8/8 w - -");  // KBNk
     val = zeros;
     val = EvalImbalances(wtm, val);
-    assert(val.end == imbalance_king_in_corner.end);
+    assert(val.end == 0);
     SetupPosition("k7/5n2/8/8/8/b7/8/7K w - -");  // Kkbn
     val = zeros;
     val = EvalImbalances(wtm, val);
-    assert(val.end == 0);
+    assert(val.end >= -knight_val.end);
     SetupPosition("k7/5n2/8/8/8/b7/8/K7 w - -");  // Kkbn
     val = zeros;
     val = EvalImbalances(wtm, val);
-    assert(val.end == -imbalance_king_in_corner.end);
+    assert(val.end == 0);
     SetupPosition("8/8/8/8/8/2k2n2/4b3/1K6 b - -");  // Kkbn
     val = zeros;
     val = EvalImbalances(wtm, val);
-    assert(val.end == 0);
+    assert(val.end >= -knight_val.end);
     SetupPosition("8/1K6/8/8/8/2k2n2/4b3/8 b - -");  // Kkbn
     val = zeros;
     val = EvalImbalances(wtm, val);
