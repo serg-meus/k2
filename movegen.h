@@ -111,4 +111,6 @@ private:
     bool GetNextLegalMove();
     void GenerateAndAppriceAllMoves(const move_c tt_best_move,
                                     const bool only_captures);
+    size_t GetMaxPriorityMoveIndex(const std::vector<move_c> &moves,
+                                   const size_t &cr);
 };

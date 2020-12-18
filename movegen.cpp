@@ -17,10 +17,12 @@ bool k2movegen::GetNextMove(std::vector<move_c> &moves,
         return false;
     if(moves.size() == 0 || tt_move_probed)
         GenerateAndAppriceAllMoves(tt_move, only_captures);
+
     if(GetNextLegalMove())
         moves.push_back(pseudo_legal_pool[ply][pseudo_legal_cr[ply] - 1]);
     else
         return false;
+
     const auto tmp = pseudo_legal_cr[ply];
     if(!only_captures && moves.size() == 1 && !GetNextLegalMove())
         moves[0].priority = move_one_reply;
@@ -41,9 +43,11 @@ void k2movegen::GenerateAndAppriceAllMoves(const move_c tt_move,
     GenPseudoLegalMoves(moves, only_captures);
     AppriceMoves(moves, only_captures);
     if(tt_move.flag != not_a_move)
-        moves.erase(std::remove(moves.begin(), moves.end(), tt_move),
-                    moves.end());
-    std::sort(moves.begin(), moves.end());
+    {
+        const auto it = std::find(moves.begin(), moves.end(), tt_move);
+        std::swap(*it, moves.back());
+        moves.pop_back();
+    }
     pseudo_legal_cr[ply] = 0;
 }
 
@@ -56,15 +60,39 @@ bool k2movegen::GetNextLegalMove()
 {
     auto &cr = pseudo_legal_cr[ply];
     auto &moves = pseudo_legal_pool[ply];
-    const auto sz = moves.size();
-    bool is_legal = false;
-    while(cr < sz)
-        if(IsLegal(moves[cr++]))
+    while(true)
+    {
+        size_t max_priority_index = GetMaxPriorityMoveIndex(moves, cr);
+        if(max_priority_index == moves.size())
+            return false;
+        if(IsLegal(moves[max_priority_index]))
         {
-            is_legal = true;
-            break;
+            std::swap(moves[max_priority_index], moves[cr++]);
+            return true;
         }
-    return is_legal;
+        std::swap(moves[max_priority_index], moves.back());
+        moves.pop_back();
+    }
+    return false;
+}
+
+
+
+
+
+//--------------------------------
+size_t k2movegen::GetMaxPriorityMoveIndex(const std::vector<move_c> & moves,
+                                          const size_t &cr)
+{
+    priority_t max_priority = 0;
+    size_t max_index = cr;
+    for(size_t i = cr; i < moves.size(); ++i)
+        if(moves[i].priority > max_priority)
+        {
+            max_priority = moves[i].priority;
+            max_index = i;
+        }
+    return max_index;
 }
 
 
@@ -191,7 +219,7 @@ void k2movegen::GenNonSliderMoves(std::vector<move_c> &moves,
         rmask ^= (1 << ray_id);
         const auto ray_len = directions[wtm][piece_id][ray_id];
         if(!ray_len)
-        	continue;
+            continue;
         const auto col = col0 + delta_col[ray_id];
         const auto row = row0 + delta_row[ray_id];
         const auto to_coord = get_coord(col, row);

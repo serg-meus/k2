@@ -260,9 +260,15 @@ k2eval::eval_t k2engine::QSearch(eval_t alpha, const eval_t beta)
 void k2engine::Perft(const depth_t depth)
 {
     moves_pool[ply].clear();
+#ifndef NDEBUG
+    while(GetNextMove(moves_pool[ply], {0, 0, not_a_move, 0}, get_all_moves))
+    {
+        const auto cur_move = moves_pool[ply].back();
+#else
     GenLegalMoves(moves_pool[ply], pseudo_legal_pool[ply], get_all_moves);
     for(auto cur_move: moves_pool[ply])
     {
+#endif
 #ifndef NDEBUG
         node_t tmpCr;
         if(depth == time_control.max_search_depth)
