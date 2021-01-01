@@ -4,7 +4,7 @@
 // K2, the chess engine
 // Author: Sergey Meus (serg_meus@mail.ru)
 // Krasnoyarsk Krai, Russia
-// 2012-2018
+// 2012-2021
 //--------------------------------
 
 

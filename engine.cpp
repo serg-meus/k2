@@ -5,7 +5,7 @@
 
 
 k2engine::k2engine() :
-    engine_version{"0.96dev"},
+    engine_version{"0.99"},
     debug_variation{""},
     debug_ply{}
 {
@@ -723,9 +723,11 @@ void k2engine::PrintFinalSearchResult()
     char move_str[6];
     MoveToCoordinateNotation(pv[0].moves[0], move_str);
 
+    enable_output = false;
     if(!uci && !MakeMove(move_str))
         cout << "tellusererror err01"
                   << endl << "resign" << endl;
+    enable_output = true;
     if(!uci)
         cout << "move " << move_str << endl;
     else
