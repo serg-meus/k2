@@ -961,7 +961,7 @@ void k2main::MemoryCommand(const std::string &in)
 {
     std::string arg1, arg2;
     arg1 = in;
-    arg1 = GetFirstArg(arg2, &arg2);
+    arg1 = GetFirstArg(arg1, &arg2);
     auto size_MB = atoi(arg1.c_str());
     ReHash(size_MB);
 }
