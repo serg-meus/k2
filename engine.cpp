@@ -5,7 +5,7 @@
 
 
 k2engine::k2engine() :
-    engine_version{"0.99"},
+    engine_version{"0.992dev"},
     debug_variation{""},
     debug_ply{},
     tt(64*Mb)
