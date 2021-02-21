@@ -1,4 +1,5 @@
 #include "movegen.h"
+#include "transposition_table.h"
 #include <random>
 
 
@@ -25,72 +26,53 @@ protected:
     const hash_key_t key_for_side_to_move = -1ULL;
     enum class bound {exact = 0, lower = 1, upper = 2};
 
-    struct hash_entry_s
+    class hash_entry_c
     {
 
-
     public:
-
 
         short_key_t key;
         eval_t value;
         move_c best_move;
-
         hdepth_t depth;
         unsigned bound_type : 2;
-        unsigned age : 2;
         unsigned one_reply : 1;
-        unsigned in_check : 1;
-        unsigned avoid_null_move : 1;
-    };
 
-    class hash_table_c
-    {
+        hash_entry_c() {}
 
-
-    public:
-
-
-        hash_table_c();
-        hash_table_c(const size_t size_mb);
-        ~hash_table_c();
-
-        bool set_size(size_t size_mb);
-        hash_entry_s* count(hash_key_t key) const;
-        void add(hash_key_t key, eval_t value, move_c best_move, depth_t depth,
-                 bound bound_type, depth_t half_mov_cr, bool one_reply,
-                 node_t nodes);
-        void clear();
-        hash_entry_s& operator [](const hash_key_t key) const;
-        bool resize(size_t size_mb);
-
-        size_t size() const
+        hash_entry_c(hash_key_t key)
         {
-            return _size;
+            this->key = static_cast<short_key_t>(key);
         }
 
-        size_t max_size() const
+        hash_entry_c(const hash_key_t &key, const eval_t &value,
+                     const move_c &best_move, const depth_t &depth,
+                     const k2hash::bound &bound_type, const bool &one_reply)
         {
-            return sizeof(hash_entry_s)*buckets*entries_in_a_bucket;
+            this->key = static_cast<short_key_t>(key);
+            this->value = value;
+            this->best_move = best_move;
+            this->depth = depth;
+            this->bound_type = static_cast<unsigned>(bound_type);
+            this->one_reply = one_reply;
         }
 
+        operator ==(const hash_entry_c &x)
+        {
+            return key == x.key;
+        }
 
-    protected:
+        short_key_t hash() const {return 0;}
 
-
-        hash_entry_s *data;
-
-        const size_t entries_in_a_bucket;
-        size_t buckets;
-        hash_key_t mask;
-        size_t _size;
     };
 
     hash_key_t hash_key;
-    hash_key_t zorb[2*piece_types][board_width][board_height];
-    hash_key_t zorb_en_passant[board_width + 1];
-    hash_key_t zorb_castling[16];
+    hash_key_t zobrist[2*piece_types][board_width][board_height];
+    hash_key_t zobrist_en_passant[board_width + 1];
+    hash_key_t zobrist_castling[16];
     hash_key_t done_hash_keys[fifty_moves + max_ply];
+
+    void RunUnitTests();
 
 
 protected:
@@ -109,10 +91,6 @@ protected:
         k2eval::TakebackMove(m);
         hash_key = done_hash_keys[fifty_moves + ply];
     }
-
-
-private:
-
 
     void MoveHashKey(const move_c move, const bool special);
 

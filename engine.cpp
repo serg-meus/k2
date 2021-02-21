@@ -7,7 +7,8 @@
 k2engine::k2engine() :
     engine_version{"0.99"},
     debug_variation{""},
-    debug_ply{}
+    debug_ply{},
+    tt(64*Mb)
 {
     busy = false;
     uci = false;
@@ -84,7 +85,7 @@ k2eval::eval_t k2engine::Search(depth_t depth, eval_t alpha, eval_t beta,
         return beta;
 
     eval_t x, orig_alpha = alpha;
-    hash_entry_s *entry = nullptr;
+    hash_entry_c *entry = nullptr;
     if(HashProbe(orig_depth, alpha, beta, &entry))
         return -alpha;
 
@@ -195,7 +196,7 @@ k2eval::eval_t k2engine::QSearch(eval_t alpha, const eval_t beta)
             beta + qs_beta_exceed_to_drop)
         return beta;
 
-    hash_entry_s *entry = nullptr;
+    hash_entry_c *entry = nullptr;
     if(HashProbe(0, alpha, beta, &entry))
         return -alpha;
 
@@ -516,7 +517,7 @@ void k2engine::StorePV(const move_c move)
 //-----------------------------
 void k2engine::UpdateStatistics(const move_c move, const depth_t depth,
                                 const size_t move_cr,
-                                const hash_entry_s *entry)
+                                const hash_entry_c *entry)
 {
     if(entry != nullptr && entry->best_move.flag != not_a_move)
         stats.hash_best_move_cr++;
@@ -582,7 +583,7 @@ void k2engine::ShowPVfailHighOrLow(const move_c move, const eval_t val,
 //--------------------------------
 void k2engine::GenerateRootMoves()
 {
-    hash_entry_s *entry = nullptr;
+    hash_entry_c *entry = nullptr;
     eval_t alpha = -infinite_score, beta = infinite_score;
     HashProbe(max_ply, alpha, beta, &entry);
 
@@ -742,7 +743,7 @@ void k2engine::PrintFinalSearchResult()
             else
             {
                 MakeMove(pv[0].moves[0]);
-                hash_entry_s *entry = hash_table.count(hash_key);
+                hash_entry_c *entry = tt.find(hash_key, hash_key >> 32);
                 if(entry != nullptr && IsPseudoLegal(entry->best_move)
                    && IsLegal(entry->best_move))
                     MoveToCoordinateNotation(entry->best_move, pndr);
@@ -799,9 +800,8 @@ void k2engine::PrintFinalSearchResult()
                  stats.hash_best_move_cr << "% )"
               << endl
               << "( hash full = "
-              << (i32)100*hash_table.size()/hash_table.max_size()
-              << "% (" << hash_table.size()/sizeof(hash_entry_s)
-              << "/" << hash_table.max_size()/sizeof(hash_entry_s)
+              << (i32)100*tt.size()/tt.max_size()
+              << "% (" << tt.size() << "/" << tt.max_size()
               << " entries )" << endl;
 
     if(stats.null_probe_cr == 0)
@@ -1293,7 +1293,7 @@ void k2engine::ShowFen() const
 void k2engine::ReHash(size_t size_mb)
 {
     busy = true;
-    hash_table.resize(size_mb);
+    tt.resize(size_mb*Mb);
     busy = false;
 }
 
@@ -1303,9 +1303,9 @@ void k2engine::ReHash(size_t size_mb)
 
 //--------------------------------
 bool k2engine::HashProbe(const depth_t depth, eval_t &alpha,
-                         const eval_t beta, hash_entry_s **entry)
+                         const eval_t beta, hash_entry_c **entry)
 {
-    *entry = hash_table.count(hash_key);
+    *entry = tt.find(hash_key, hash_key >> 32);
     if(*entry == nullptr || stop)
         return false;
 
@@ -1349,8 +1349,8 @@ void k2engine::StoreInHash(const depth_t depth, eval_t score,
     if(stop)
         return;
     CorrectHashScore(score, depth);
-    hash_table.add(hash_key, -score, best_move, depth,
-                   bound_type, halfmoves_made/2, one_reply, stats.nodes);
+    hash_entry_c entry(hash_key, -score, best_move, depth, bound_type, one_reply);
+    tt.add(entry, hash_key >> 32);
     assert(best_move.flag == not_a_move || IsPseudoLegal(best_move));
 }
 
@@ -1378,7 +1378,7 @@ void k2engine::ShowCurrentUciInfo()
     cout << " currmovenumber " << root_move_cr + 1;
     cout << " hashfull ";
 
-    size_t hash_size = 1000.*hash_table.size() / hash_table.max_size();
+    size_t hash_size = 1000.*tt.size() / tt.max_size();
     cout << hash_size << endl;
 }
 
@@ -1414,7 +1414,7 @@ void k2engine::PonderHit()
 //-----------------------------
 void k2engine::ClearHash()
 {
-    hash_table.clear();
+    tt.clear();
 }
 
 

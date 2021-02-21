@@ -21,7 +21,7 @@ public:
 
     void RunUnitTests()
     {
-        k2movegen::RunUnitTests();
+        k2hash::RunUnitTests();
         SetupPosition(start_position);
     }
 

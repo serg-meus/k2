@@ -1,6 +1,6 @@
-#include "hash.h"
 #include <iomanip>
 #include <ctime>
+#include "hash.h"
 #include "Timer.h"
 
 
@@ -62,6 +62,7 @@ protected:
     const depth_t min_depth_to_show_uci_info = 6;
     const double search_stop_time_margin = 20000; //0.02s
     const depth_t ponder_time_factor = 5;
+    const size_t Mb = 1000000/sizeof(hash_entry_c);
 
 
 public:
@@ -119,7 +120,7 @@ protected:
     std::vector<std::pair<node_t, move_c> > root_moves;
     std::vector<move_c> root_moves_to_search;
     std::array<std::vector<move_c>, max_ply> moves_pool;
-    hash_table_c hash_table;
+    transposition_table_c<hash_entry_c, u32, 8> tt;
 
     state_s eng_state[prev_states + max_ply]; // engine state for each ply
     state_s *state;  // pointer to engine state
@@ -166,7 +167,7 @@ protected:
     eval_t QSearch(eval_t alpha, const eval_t beta);
     void StorePV(const move_c m);
     void UpdateStatistics(move_c m, depth_t dpt, size_t move_cr,
-                          const hash_entry_s *entry);
+                          const hash_entry_c *entry);
     eval_t RootSearch(const depth_t depth, eval_t alpha, const eval_t beta);
     void GenerateRootMoves();
     void InitSearch();
@@ -180,7 +181,7 @@ protected:
     bool NullMovePruning(depth_t depth, eval_t beta, bool ic);
     bool DrawByRepetition() const;
     bool HashProbe(const depth_t depth, eval_t &alpha,
-                   const eval_t beta, hash_entry_s **entry);
+                   const eval_t beta, hash_entry_c **entry);
     void StoreInHash(const depth_t depth, eval_t score,
                      const move_c best_move, bound bound_type,
                      const bool one_reply);
