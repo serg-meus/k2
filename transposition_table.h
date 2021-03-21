@@ -22,7 +22,8 @@ public:
     transposition_table_c(const transposition_table_c<Tdata, Tkey,
                           entries_in_bucket> &t) = delete;
 
-    operator = (const transposition_table_c<Tdata, Tkey,
+    transposition_table_c<Tdata, Tkey,
+        entries_in_bucket> operator = (const transposition_table_c<Tdata, Tkey,
                 entries_in_bucket> &x) = delete;
 
     transposition_table_c(const size_t entries)

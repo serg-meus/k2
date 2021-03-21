@@ -57,7 +57,7 @@ protected:
             this->one_reply = one_reply;
         }
 
-        operator ==(const hash_entry_c &x)
+        bool operator ==(const hash_entry_c &x)
         {
             return key == x.key;
         }
