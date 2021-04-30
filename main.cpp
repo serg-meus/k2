@@ -572,6 +572,7 @@ void k2main::TestCommand(const std::string &in)
 
     while(true)
     {
+        enable_output = false;
         if(!test_perft("rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ -",
                    4, 2103487))
             break;
@@ -589,7 +590,6 @@ void k2main::TestCommand(const std::string &in)
                   << std::endl;
 
         stats.total_nodes = 0;
-        enable_output = false;
         uci = true;
         randomness = false;
         clock.start();
@@ -626,11 +626,11 @@ void k2main::TestCommand(const std::string &in)
         break;
     }
     time_control.max_search_depth = store_max_depth;
-    enable_output = store_enable_output;
     uci = store_uci;
     randomness = store_randomness;
     time_control.infinite_analyze = store_inf_analyze;
     SetupPosition(start_position);
+    enable_output = store_enable_output;
     if(!ans)
         std::cout << "Integration testing FAILED\n";
     busy = false;

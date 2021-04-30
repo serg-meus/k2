@@ -192,8 +192,7 @@ k2eval::eval_t k2engine::QSearch(eval_t alpha, const eval_t beta)
     pv[ply].length = 0;
 
     if(material[0] + material[1] > qs_min_material_to_drop &&
-            GetEvalScore(wtm, state[ply].eval) >
-            beta + qs_beta_exceed_to_drop)
+            state[ply].eval_score > beta + qs_beta_exceed_to_drop)
         return beta;
 
     hash_entry_c *entry = nullptr;
@@ -997,7 +996,7 @@ bool k2engine::MakeMove(const char *move_str)
             done_hash_keys[j] = done_hash_keys[j + 1];
 
         halfmoves_made++;
-        
+
         if(!xboard && !uci && enable_output)
             PrintBoard();
         return true;
@@ -1013,6 +1012,7 @@ bool k2engine::MakeMove(const char *move_str)
 bool k2engine::SetupPosition(const char *fen)
 {
     state[0].eval = k2eval::SetupPosition(fen);
+    state[0].eval_score = GetEvalScore(wtm, state[0].eval);
 
     time_control.time_spent = 0;
     time_control.time_remains = time_control.time_base;
@@ -1021,8 +1021,7 @@ bool k2engine::SetupPosition(const char *fen)
 
     initial_score = infinite_score;
     resign_cr = 0;
-    memset(eng_state, 0, sizeof(eng_state));
-    
+
     if(!uci && !xboard && enable_output)
         PrintBoard();
 
@@ -1133,6 +1132,7 @@ void k2engine::MakeNullMove()
 
     hash_key ^= key_for_side_to_move;
     done_hash_keys[fifty_moves + ply - 1] = hash_key;
+    k2engine::state[ply].eval_score = -k2engine::state[ply].eval_score;
 
     wtm ^= white;
 }

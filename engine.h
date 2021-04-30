@@ -110,6 +110,7 @@ protected:
     {
         bool in_check;
         vec2<eval_t> eval;
+        eval_t eval_score;
     };
 
     const char *debug_variation;
@@ -205,6 +206,7 @@ protected:
     {
         k2hash::MakeMove(move);
         state[ply].eval = state[ply - 1].eval + FastEval(wtm, move);
+        state[ply].eval_score = GetEvalScore(wtm, state[ply].eval);
     }
 
     void TakebackMove(const move_c move)
@@ -245,10 +247,9 @@ protected:
                 (cur_move.flag & is_promotion))
             return false;
 
-        const auto cur_eval = GetEvalScore(wtm, state[ply].eval);
         const auto capture = values[get_type(b[cur_move.to_coord])];
         const auto margin = delta_pruning_margin;
-        return cur_eval + capture + margin < alpha;
+        return state[ply].eval_score + capture + margin < alpha;
     }
 
     bool FutilityPruning(const depth_t depth, const eval_t beta,
@@ -268,8 +269,7 @@ protected:
             return false;
         }
         stats.futility_probes++;
-        auto score = GetEvalScore(wtm, state[ply].eval);
-        if(score <= margin[depth] + beta)
+        if(state[ply].eval_score <= margin[depth] + beta)
             return false;
 
         stats.futility_hits++;
