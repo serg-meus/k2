@@ -118,8 +118,7 @@ k2eval::eval_t k2engine::Search(depth_t depth, eval_t alpha, eval_t beta,
             depth++;
 
         // late move pruning
-        if(depth <= lmp_min_depth && !cur_move.flag &&
-                !in_check && !state[ply - 1].in_check &&
+        if(depth <= lmp_min_depth && !cur_move.flag && !in_check &&
                 node_type != pv_node && move_cr > lmp_max_move)
             break;
 
