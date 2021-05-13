@@ -243,8 +243,8 @@ k2eval::eval_t k2engine::QSearch(eval_t alpha, const eval_t beta)
         }
         else if(x > alpha)
         {
-            StoreInHash(0, alpha, cur_move, bound::exact, false);
             alpha = x;
+            StoreInHash(0, alpha, cur_move, bound::exact, false);
             StorePV(cur_move);
         }
     }
