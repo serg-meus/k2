@@ -122,6 +122,9 @@ k2eval::eval_t k2engine::Search(depth_t depth, eval_t alpha, eval_t beta,
                 node_type != pv_node && move_cr > lmp_max_move)
             break;
 
+        if(PruneLosingMoves(cur_move, depth, move_cr, in_check, node_type))
+            continue;
+
         MakeMove(cur_move);
         stats.nodes++;
 

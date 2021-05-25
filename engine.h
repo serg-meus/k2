@@ -38,6 +38,7 @@ protected:
     const size_t lmr_big_max_move = 6;
     const depth_t lmp_min_depth = 2;
     const size_t lmp_max_move = 6;
+    const depth_t pruning_los_min_depth = 4;
     const eval_t delta_pruning_margin = 100;
     const depth_t futility_max_depth = 3;
     const eval_t futility_marg0 = 185;
@@ -305,5 +306,23 @@ protected:
         if(delta == 1)
             wtm = !wtm;
         ply += delta;
+    }
+
+    bool PruneLosingMoves(move_c cur_move, depth_t depth, unsigned move_cr,
+                          bool in_check, node_type_t node_type)
+    {
+        if(depth > pruning_los_min_depth || move_cr <= 0 || cur_move.flag ||
+                in_check || node_type == pv_node)
+            return false;
+        const auto att = attacks[!wtm][cur_move.to_coord];
+        if(att == 0)
+            return false;
+        {
+            const auto att_type = get_type(b[coords[!wtm][lower_bit_num(att)]]);
+            const auto movin_type = get_type(b[cur_move.from_coord]);
+            if(att_type > movin_type)
+                return true;
+        }
+        return false;
     }
 };
