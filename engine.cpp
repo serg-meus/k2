@@ -5,7 +5,7 @@
 
 
 k2engine::k2engine() :
-    engine_version{"0.992dev"},
+    engine_version{"nn_dev"},
     debug_variation{""},
     debug_ply{},
     tt(64*Mb)
@@ -80,7 +80,6 @@ k2eval::eval_t k2engine::Search(depth_t depth, eval_t alpha, eval_t beta,
         depth++;
 
     if(MateDistancePruning(alpha, &beta) ||
-            FutilityPruning(depth, beta, in_check) ||
             NullMovePruning(depth, beta, in_check))
         return beta;
 
@@ -193,17 +192,13 @@ k2eval::eval_t k2engine::QSearch(eval_t alpha, const eval_t beta)
         return 0;
     pv[ply].length = 0;
 
-    if(material[0] + material[1] > qs_min_material_to_drop &&
-            state[ply].eval_score > beta + qs_beta_exceed_to_drop)
-        return beta;
-
     hash_entry_c *entry = nullptr;
     if(HashProbe(0, alpha, beta, &entry))
         return -alpha;
 
     UpdateAttackTables();
 
-    auto x = Eval(wtm, state[ply].eval);
+    auto x = Eval(wtm);
     if(x >= beta)
         return beta;
     else if(x > alpha)
@@ -218,7 +213,7 @@ k2eval::eval_t k2engine::QSearch(eval_t alpha, const eval_t beta)
           get_only_captures))
     {
         move_c cur_move = moves_pool[ply].back();
-        if(cur_move.priority <= bad_captures || DeltaPruning(alpha, cur_move))
+        if(cur_move.priority <= bad_captures)
             break;
         MakeMove(cur_move);
         stats.nodes++;
@@ -669,7 +664,6 @@ void k2engine::InitSearch()
 
     memset(history, 0, sizeof(history));
     k2chess::state[ply].attacks_updated = true;
-    state[0].eval = InitEvalOfMaterial() + InitEvalOfPST();
 }
 
 
@@ -1013,9 +1007,7 @@ bool k2engine::MakeMove(const char *move_str)
 //--------------------------------
 bool k2engine::SetupPosition(const char *fen)
 {
-    state[0].eval = k2eval::SetupPosition(fen);
-    state[0].eval_score = GetEvalScore(wtm, state[0].eval);
-
+    k2chess::SetupPosition(fen);
     time_control.time_spent = 0;
     time_control.time_remains = time_control.time_base;
     halfmoves_made = 0;
@@ -1134,7 +1126,6 @@ void k2engine::MakeNullMove()
 
     hash_key ^= key_for_side_to_move;
     done_hash_keys[fifty_moves + ply - 1] = hash_key;
-    k2engine::state[ply].eval_score = -k2engine::state[ply].eval_score;
 
     wtm ^= white;
 }

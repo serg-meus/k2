@@ -68,54 +68,6 @@ protected:
         double result;
 
     };
-    std::vector<parsed_pos_s> training_positions;
-    vec2<eval_t> tuning_factor = {13000, 13000};
-    double golden_ratio = .382, silver_ratio = .2;
-
-    std::unordered_map<std::string, vec2<eval_t> *> eval_params =
-    {
-        {"pawn_val", &material_values[pawn]},
-        {"knight_val", &material_values[knight]},
-        {"bishop_val", &material_values[bishop]},
-        {"rook_val", &material_values[rook]},
-        {"queen_val", &material_values[queen]},
-        {"pawn_dbl_iso", &pawn_dbl_iso},
-        {"pawn_iso", &pawn_iso},
-        {"pawn_dbl", &pawn_dbl},
-        {"pawn_hole", &pawn_hole},
-        {"pawn_gap", &pawn_gap},
-        {"pawn_king_tropism1", &pawn_king_tropism1},
-        {"pawn_king_tropism2", &pawn_king_tropism2},
-        {"pawn_king_tropism3", &pawn_king_tropism3},
-        {"pawn_pass0", &pawn_pass0},
-        {"pawn_pass1", &pawn_pass1},
-        {"pawn_pass2", &pawn_pass2},
-        {"pawn_blk_pass0", &pawn_blk_pass0},
-        {"pawn_blk_pass1", &pawn_blk_pass1},
-        {"pawn_blk_pass2", &pawn_blk_pass2},
-        {"pawn_pass_connected", &pawn_pass_connected},
-        {"pawn_unstoppable", &pawn_unstoppable},
-        {"king_saf_no_shelter", &king_saf_no_shelter},
-        {"king_saf_no_queen", &king_saf_no_queen},
-        {"king_saf_attack1", &king_saf_attack1},
-        {"king_saf_attack2", &king_saf_attack2},
-        {"king_saf_central_files", &king_saf_central_files},
-        {"rook_last_rank", &rook_last_rank},
-        {"rook_semi_open_file", &rook_semi_open_file},
-        {"rook_open_file", &rook_open_file},
-        {"bishop_pair", &bishop_pair},
-        {"mob_queen", &mob_queen},
-        {"mob_rook", &mob_rook},
-        {"mob_bishop", &mob_bishop},
-        {"mob_knight", &mob_knight},
-        {"imbalance_king_in_corner", &imbalance_king_in_corner},
-        {"imbalance_draw_divider", &imbalance_draw_divider},
-        {"imbalance_multicolor", &imbalance_multicolor},
-        {"imbalance_no_pawns", &imbalance_no_pawns},
-        {"side_to_move_bonus", &side_to_move_bonus},
-        {"tuning_factor", &tuning_factor},
-    };
-
     bool ExecuteCommand(const std::string &in);
     bool LooksLikeMove(const std::string &in) const;
     void NewCommand(const std::string &in);
@@ -129,7 +81,7 @@ protected:
     void SetDepthCommand(const std::string &in);
     void Unsupported(const std::string &in);
     std::string GetFirstArg(const std::string &in,
-                     std::string * const all_the_rest) const;
+                            std::string * const all_the_rest) const;
     void ProtoverCommand(const std::string &in);
     void StopEngine();
     void StopCommand(const std::string &in);
@@ -153,29 +105,6 @@ protected:
     void PostCommand(const std::string &in);
     void NopostCommand(const std::string &in);
     void SeedCommand(const std::string &in);
-    void TuningLoadCommand(const std::string &in);
-    void TuningResultCommand(const std::string &in);
-    void TuneParamCommand(const std::string &in);
-    void TuneCommand(const std::string &in);
-
-    bool SetParamValue(const std::string &param, const eval_t val,
-                       const bool is_mid);
-    bool SetPstValue(const std::string &param, const eval_t val,
-                     const bool is_mid);
-    double GetEvalError();
-    parsed_pos_s TuningParsePos(std::string &fen, const double result);
-    void TuningApplyPosData(parsed_pos_s *pos_struct);
-    piece_type_t GetTypeForPst(const char char_type);
-    bool TuneOneParam(const std::string &param, const bool is_mid,
-                      eval_t &left_arg, eval_t &right_arg,
-                      double &left_err, double &right_err, tune_flag &flag,
-                      const double golden_section);
-    bool GetParamValue(const std::string &param, eval_t * const val,
-                       const bool is_mid);
-    bool GetPstValue(const std::string &param, eval_t * const val,
-                     const bool is_mid);
-    std::vector<tune_param_s> TuneFillParamVect(const std::string &in);
-    bool ParamNameAndStage(std::string &arg, bool &is_mid);
 
     bool test_perft(const char *pos, const depth_t depth, const node_t node_cr)
     {
@@ -207,11 +136,5 @@ protected:
         if(!ans)
             std::cout << "failed at " << pos << std::endl;
         return ans;
-    }
-
-    double sigmoid(const double eval) const
-    {
-        const double K = tuning_factor.mid/10000.;
-        return 1/(1 + pow(10, -K*eval/400));
     }
 };

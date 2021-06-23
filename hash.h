@@ -82,13 +82,13 @@ protected:
 
     void MakeMove(const move_c m)
     {
-        bool special_move = k2eval::MakeMove(m);
+        bool special_move = k2chess::MakeMove(m);
         MoveHashKey(m, special_move);
     }
 
     void TakebackMove(const move_c m)
     {
-        k2eval::TakebackMove(m);
+        k2chess::TakebackMove(m);
         hash_key = done_hash_keys[fifty_moves + ply];
     }
 

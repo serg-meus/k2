@@ -39,13 +39,7 @@ protected:
     const depth_t lmp_min_depth = 2;
     const size_t lmp_max_move = 6;
     const depth_t pruning_los_min_depth = 4;
-    const eval_t delta_pruning_margin = 100;
     const depth_t futility_max_depth = 3;
-    const eval_t futility_marg0 = 185;
-    const eval_t futility_marg1 = 220;
-    const eval_t futility_marg2 = 255;
-    const eval_t qs_min_material_to_drop = 2400;
-    const depth_t qs_beta_exceed_to_drop = 250;
     const eval_t aspiration_margin = 32;
     const depth_t max_depth_for_single_move = 8;
 
@@ -110,8 +104,6 @@ protected:
     struct state_s
     {
         bool in_check;
-        vec2<eval_t> eval;
-        eval_t eval_score;
     };
 
     const char *debug_variation;
@@ -140,11 +132,6 @@ public:
     void ReHash(size_t size_mb);
     void ClearHash();
     void PonderHit();
-
-    void EvalDebug()
-    {
-        k2eval::EvalDebug(wtm);
-    }
 
     bool WhiteIsOnMove() const
     {
@@ -206,8 +193,6 @@ protected:
     void MakeMove(const move_c move)
     {
         k2hash::MakeMove(move);
-        state[ply].eval = state[ply - 1].eval + FastEval(wtm, move);
-        state[ply].eval_score = GetEvalScore(wtm, state[ply].eval);
     }
 
     void TakebackMove(const move_c move)
@@ -233,48 +218,7 @@ protected:
         if(depth < lmr_min_depth || cur_move.flag ||
                 in_check || move_cr < lmr_max_move)
             return 0;
-        if(get_type(b[cur_move.to_coord]) == pawn &&
-                IsPasser(get_col(cur_move.to_coord), !wtm))
-            return 0;
         return 1 + (node_type != pv_node && move_cr > lmr_big_max_move);
-    }
-
-    bool DeltaPruning(const eval_t alpha, const move_c cur_move) const
-    {
-        if(quantity[black][rook] == 0 && quantity[white][rook] == 0 &&
-                quantity[black][queen] == 0 && quantity[white][queen] == 0)
-            return false;
-        if(get_type(b[cur_move.to_coord]) == king ||
-                (cur_move.flag & is_promotion))
-            return false;
-
-        const auto capture = values[get_type(b[cur_move.to_coord])];
-        const auto margin = delta_pruning_margin;
-        return state[ply].eval_score + capture + margin < alpha;
-    }
-
-    bool FutilityPruning(const depth_t depth, const eval_t beta,
-                         const bool in_check)
-    {
-        const eval_t margin[] = {futility_marg0, futility_marg1,
-                                  futility_marg2, futility_marg2};
-        if(depth > futility_max_depth || in_check || beta >= mate_score)
-            return false;
-        if(k2chess::state[ply].captured_piece != empty_square ||
-                k2chess::state[ply - 1].move.to_coord == is_null_move)
-            return false;
-        if((material[black] == 0 || material[white] == 0))
-        {
-            if(material[black] + material[white] != 1 ||
-                    quantity[black][pawn] + quantity[white][pawn] == 0)
-            return false;
-        }
-        stats.futility_probes++;
-        if(state[ply].eval_score <= margin[depth] + beta)
-            return false;
-
-        stats.futility_hits++;
-        return true;
     }
 
     bool MateDistancePruning(const eval_t alpha, eval_t * const beta) const

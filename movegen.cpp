@@ -377,7 +377,7 @@ void k2movegen::AppriceMoves(std::vector<move_c> &moves,
                     max_history = h;
                 if(h < min_history)
                     min_history = h;
-                move.priority = AppriceSilentMove(type, fr_coord, to_coord);
+                move.priority = AppriceSilentMove(type, to_coord);
             }
         }
         else
@@ -420,20 +420,13 @@ void k2movegen::AppriceHistory(std::vector<move_c> &moves,
 
 //-----------------------------
 size_t k2movegen::AppriceSilentMove(const piece_type_t type,
-                                     const coord_t from_coord,
                                      const coord_t to_coord) const
 {
-    auto y = get_row(to_coord);
-    const auto x = get_col(to_coord);
-    auto y0 = get_row(from_coord);
-    const auto x0 = get_col(from_coord);
-    if(wtm)
-    {
-        y = max_row - y;
-        y0 = max_row - y0;
-    }
-    const auto pstVal = pst[type - 1][y][x].mid - pst[type - 1][y0][x0].mid;
-    return 96 + pstVal/3;
+    const auto to_col = get_col(to_coord);
+    const auto to_row = get_row(to_coord);
+    const auto ans = 128 - std::max(dist(to_col), dist(to_row));
+    assert(ans > bad_captures && ans < 128);
+    return ans;
 }
 
 

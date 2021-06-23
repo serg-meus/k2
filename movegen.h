@@ -65,11 +65,6 @@ protected:
     void GenLegalMoves(std::vector<move_c> &moves, 
                        std::vector<move_c> &pseudo_legal_moves,
                        const bool only_captures) const;
-
-
-private:
-
-
     void GenPawnSilent(std::vector<move_c> &moves,
                        const piece_id_t piece_id) const;
     void GenPawnNonSilent(std::vector<move_c> &moves,
@@ -96,7 +91,7 @@ private:
                            const coord_t from_coord,
                            const piece_type_t type) const;
     size_t AppriceCapture(const move_c move) const;
-    size_t AppriceSilentMove(const piece_type_t type, const coord_t fr_coord,
+    size_t AppriceSilentMove(const piece_type_t type,
                               const coord_t to_coord) const;
     void AppriceHistory(std::vector<move_c> &moves,
                         const history_t min_history,
