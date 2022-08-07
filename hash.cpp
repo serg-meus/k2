@@ -154,7 +154,7 @@ void k2hash::RunUnitTests()
         num(int nmb){n = nmb;}
         num(int nmb, char chr) {n = nmb; c = chr;}
         unsigned char hash() const {return static_cast<unsigned char>(n % 10);}
-        operator ==(const num x) {return n == x.n;}
+        bool operator ==(const num x) {return n == x.n;}
     };
 
     transposition_table_c<num, unsigned char, 4> tt(16);
