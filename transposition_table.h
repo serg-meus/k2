@@ -26,7 +26,7 @@ public:
         entries_in_bucket> operator = (const transposition_table_c<Tdata, Tkey,
                 entries_in_bucket> &x) = delete;
 
-    transposition_table_c(const size_t entries)
+    transposition_table_c(const unsigned entries)
     {
         set_size(entries);
     }
@@ -72,7 +72,7 @@ public:
         bucket_ptr[0] = entry_data;
     }
 
-    void set_size(const size_t entries)
+    void set_size(const unsigned entries)
     {
         _size = 0;
         buckets = 0;
@@ -81,14 +81,14 @@ public:
         unsigned MSB_count = 0;
         while(sz >>= 1)
             MSB_count++;
-        sz = static_cast<unsigned>(1 << MSB_count);
+        sz = unsigned(1 << MSB_count);
 
         if((table = new Tdata[entries_in_bucket*sz]) == nullptr ||
                 (occupancy = new unsigned char[sz]) == nullptr)
             throw std::invalid_argument("Out of memory");
 
         buckets = sz;
-        key_mask = static_cast<Tkey>(sz - 1);
+        key_mask = Tkey(sz - 1);
         clear();
     }
 
@@ -108,7 +108,7 @@ public:
         return buckets*entries_in_bucket;
     }
 
-    void resize(size_t entries)
+    void resize(unsigned entries)
     {
         delete[] table;
         delete[] occupancy;

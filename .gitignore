@@ -1,21 +1,7 @@
-
-# Compiled Object files
-*.slo
-*.lo
-*.o
-
-# Compiled Dynamic libraries
-*.so
-*.dylib
-
-# Compiled Static libraries
-*.lai
-*.la
-*.a
-
+/__pycache__
 /bin
+/obj
 *.depend
 *.layout
 *.out
-*.pro.user*
-k2_*
+*.txt
