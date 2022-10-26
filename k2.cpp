@@ -10,7 +10,7 @@ int main(int argc, char* argv[])
 {
     (void)(argc);
     (void)(argv);
-    
+
     std::unique_ptr<k2> eng(new k2);
     std::cout << "K2, the chess engine by Sergey Meus" << std::endl;
     std::cout << "Type 'help' for help" << std::endl;
@@ -73,9 +73,9 @@ bool k2::execute_command(const std::string &in) {
     if (el == commands.end())
         return false;
     std::string args;
-    u64 first_pos = in.find_first_of(" ");
-    if (first_pos != u64(-1))
-        args = in.substr(first_pos + 1, in.size());
+    int first_pos = int(in.find_first_of(" "));
+    if (first_pos != -1)
+        args = in.substr(size_t(first_pos + 1), in.size());
     ((*this).*(el->second))(args);
     return true;
 }
