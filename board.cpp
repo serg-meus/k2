@@ -18,9 +18,9 @@ void board::init() {
 board::board() : side(true),
                  state_storage(0),
                  is_reversible(false),
-                 rnd{{{{0}}}},
-                 rnd_castling{{0}},
-                 rnd_en_passant{{0}} {
+                 rnd({{{{{0}}}}}),
+                 rnd_castling({{0}}),
+                 rnd_en_passant({{0}}) {
     std::uniform_int_distribution<u64> rnd_distr(0, u64(-1));
     std::mt19937 rnd_gen;
     for(auto color : {black, white})

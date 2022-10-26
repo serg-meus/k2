@@ -27,8 +27,8 @@ struct board_state {
         en_passant_bitboard(0),
         hash_key(0),
         cur_move({0, 0, 0, 0}),
-        bb{{{0}}},
-        castling_rights{0},
+        bb({{{0}}}),
+        castling_rights({0}),
         reversible_halfmoves(0) {}
 
     u64 en_passant_bitboard;
