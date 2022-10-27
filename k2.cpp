@@ -17,7 +17,7 @@ int main(int argc, char* argv[])
     eng->start();
 }
 
-k2::k2() : force(false), quit(false)
+k2::k2() : force(false), quit(false), silent_mode(false)
 {
 }
 
@@ -41,6 +41,8 @@ void k2::start()
         {
             if (!enter_move(in_str))
                 std::cout << "Illegal move" << std::endl;
+            if(!silent_mode)
+                std::cout << board_to_ascii() << std::endl;
             else if (!force)
             {
                 //auto nodes = perft(4, false);
@@ -116,6 +118,8 @@ void k2::setboard_command(const std::string &in) {
         std::cout << "Wrong position" << std::endl;
         return;
     }
+    if(!silent_mode)
+        std::cout << board_to_ascii() << std::endl;
 }
 
 void k2::memory_command(const std::string &in) {
@@ -129,10 +133,21 @@ void k2::memory_command(const std::string &in) {
 
 void k2::help_command(const std::string &in) {
     (void)(in);
-    std::cout << "\nAvailable commands:\n";
+    std::cout <<
+        "\nType in move (e.g. e2e4) or one of the following commands:\n\n";
     for (auto cmd: commands)
         std::cout << cmd.first << '\n';
     std::cout << std::endl;
+}
+
+void k2::post_command(const std::string &in) {
+    (void)(in);
+    silent_mode = false;
+}
+
+void k2::nopost_command(const std::string &in) {
+    (void)(in);
+    silent_mode = true;
 }
 
 void k2::unsupported_command(const std::string &in) {

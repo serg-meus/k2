@@ -14,6 +14,7 @@ protected:
 
     bool force;
     bool quit;
+    bool silent_mode;
 
     bool looks_like_move(const std::string &in) const;
     bool execute_command(const std::string &in);
@@ -25,6 +26,8 @@ protected:
     void setboard_command(const std::string &in);
     void memory_command(const std::string &in);
     void help_command(const std::string &in);
+    void post_command(const std::string &in);
+    void nopost_command(const std::string &in);
     void unsupported_command(const std::string &in);
 
     typedef void(k2::*method_ptr)(const std::string &);
@@ -39,6 +42,8 @@ protected:
         {"q",           &k2::quit_command},
         {"perft",       &k2::perft_command},
         {"memory",      &k2::memory_command},
+        {"post",        &k2::post_command},
+        {"nopost",      &k2::nopost_command},
 //        {"go",          &k2::go_command},
     };
 };
