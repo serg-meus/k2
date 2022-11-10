@@ -150,6 +150,14 @@ void k2::nopost_command(const std::string &in) {
     silent_mode = true;
 }
 
+void k2::eval_command(const std::string &in) {
+    (void)(in);
+    std::cout << "(Eval of current position in centipawns. " <<
+        "Positive means advantage for white)\n";
+    auto E = Eval();
+    std::cout << (side ? E : -E) << std::endl;
+}
+
 void k2::unsupported_command(const std::string &in) {
     (void)(in);
 }

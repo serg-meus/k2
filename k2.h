@@ -28,6 +28,7 @@ protected:
     void help_command(const std::string &in);
     void post_command(const std::string &in);
     void nopost_command(const std::string &in);
+    void eval_command(const std::string &in);
     void unsupported_command(const std::string &in);
 
     typedef void(k2::*method_ptr)(const std::string &);
@@ -44,6 +45,7 @@ protected:
         {"memory",      &k2::memory_command},
         {"post",        &k2::post_command},
         {"nopost",      &k2::nopost_command},
+        {"eval",       &k2::eval_command},
 //        {"go",          &k2::go_command},
     };
 };
