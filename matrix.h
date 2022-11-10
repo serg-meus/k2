@@ -7,7 +7,7 @@ class matrix
 {
 
 private:
-    std::array<T, rows*cols> data;
+    std::array<T, unsigned(rows*cols)> data;
 
     size_t index(const int row, const int col) const
     {
@@ -20,7 +20,7 @@ public:
     matrix() : data({{0}})
     {}
 
-    matrix(const std::array<T, rows*cols> &m) : data({{0}})
+    matrix(const std::array<T, unsigned(rows*cols)> &m) : data({{0}})
     {
         data = m;
     }

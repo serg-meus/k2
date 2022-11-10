@@ -5,7 +5,7 @@ class eval : public chess {
 
     public:
 
-	typedef double nn_t;
+    typedef double nn_t;
     typedef i16 eval_t;
 
     protected:
