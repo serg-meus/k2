@@ -14,7 +14,7 @@ eval_t eval::Eval() {
 nn_t eval::calc_nn_out(const bool color) {
     in2 = calc_first_nn_layer(color);
     auto in3 = A2*in2 + B2;
-    in3.transform_each(tanh);
+    in3.transform_each(foo(tanh));
     auto in4 = A3*in3 + B3;
     return in4.at(0, 0);
 }
@@ -24,7 +24,7 @@ matrix<nn_t, eval::first_layer_size, 1> &
 eval::calc_first_nn_layer(bool color) {
     sparce_multiply(color);
     in2 = in2 + B1;
-    in2.transform_each(tanh);
+    in2.transform_each(foo(tanh));
     return in2;
 }
 

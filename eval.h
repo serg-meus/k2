@@ -10,6 +10,7 @@ class eval : public chess {
 
     protected:
 
+    using foo = nn_t(*)(nn_t);
     static const unsigned
     input_vector_size = 384,
     first_layer_size = 4,
