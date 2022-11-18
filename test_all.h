@@ -1,5 +1,5 @@
 #include "engine.h"
-
+#include <memory>
 
 using move_s = board::move_s;
 
@@ -37,6 +37,18 @@ class chess_tst: public chess {
     using board_state::reversible_halfmoves;
 };
 
+class eval_tst: public eval {
+    public:
+};
+
+class engine_tst: public engine {
+    public:
+    using engine::engine;
+    using engine::static_exchange_eval;
+    using engine::min_attacker;
+    using engine::bb;
+    using engine::material;
+};
 
 class test_all : public bitboards {
 
@@ -67,6 +79,8 @@ public :
     void test_legality();
     void test_utils();
     void test_game_over();
-    void test_perft(const u8 depth, const std::string &pos,
-                    const bool verbose, const u64 estimate);
+    void test_perft();
+    void test_engine();
+    void test_eval();
+    void test_see();
 };

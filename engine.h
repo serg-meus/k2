@@ -8,6 +8,7 @@ class engine : public eval {
     public:
 
     engine();
+    engine(const engine&);
     u64 perft(const u8 depth, const bool verbose);
 
     protected:
@@ -53,4 +54,7 @@ class engine : public eval {
     static const unsigned megabyte = 1000000/sizeof(tt_entry_c);
     
     u64 tt_probe_perft(const u8 depth);
+    eval_t static_exchange_eval(const move_s move);
+    u8 min_attacker(const u8 to_coord, const u64 occ, const bool color,
+                    u64 &attacker_bb);
 };

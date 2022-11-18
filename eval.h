@@ -8,9 +8,11 @@ class eval : public chess {
     typedef double nn_t;
     typedef i16 eval_t;
 
+    eval_t Eval();
+
     protected:
 
-    using foo = nn_t(*)(nn_t);
+    using fptr = nn_t(*)(nn_t);
     static const unsigned
     input_vector_size = 384,
     first_layer_size = 4,
@@ -23,7 +25,8 @@ class eval : public chess {
     matrix<nn_t, 1, 1> B3;
     matrix<nn_t, first_layer_size, 1> in2;
 
-    eval_t Eval();
+    std::array<eval_t, king_ix + 1> material;
+
     nn_t calc_nn_out(const bool color);
     void sparce_multiply(const bool color);
     matrix<nn_t, first_layer_size, 1> & calc_first_nn_layer(bool color);
@@ -32,7 +35,8 @@ class eval : public chess {
 
     eval() :
     #include "nn_data.h"
-    in2({0})
+    in2({0}),
+    material({{100, 390, 410, 600, 800, 16000}})
     {
     }
 };

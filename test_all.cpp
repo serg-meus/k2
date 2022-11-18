@@ -9,23 +9,15 @@ int main() {
 
 
 void test_all::test_main() {
-#ifndef NDEBUG
     test_utils();
     test_bitboards();
     test_board();
     test_chess();
-#endif
-    const std::string fen =
-        "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq -";
-    u8 depth = 3;
-    bool verbose = false;
-    std::vector<u64> estimate = {0, 48, 2039, 97862, 4085603, 193690690,
-                                 8031647685, 374190009323};
-    test_perft(depth, fen, verbose, estimate.at(depth));
+    test_engine();
+    test_eval();
 }
 
 
-#ifndef NDEBUG
 void test_all::test_utils() {
     test_str_to_coord();
 
@@ -831,24 +823,130 @@ void test_all::test_game_over() {
     assert(C.is_draw());
     assert(C.game_over());
 }
-#endif
 
 
-void test_all::test_perft(const u8 depth, const std::string &position,
-                          const bool verbose, const u64 estimate) {
-    auto *eng = new engine();
-    eng->setup_position(position.size() ? position : eng->start_pos);
+void test_all::test_eval() {
+}
+
+
+void test_all::test_engine() {
+    test_perft();
+    test_see();
+}
+
+
+void test_all::test_perft() {
+    const std::string fen =
+        "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq -";
+    u8 depth = 3;
+    bool verbose = false;
+    std::vector<u64> estimate = {0, 48, 2039, 97862, 4085603, 193690690,
+                                 8031647685, 374190009323};
+
+    auto E = engine();
+    E.setup_position(fen.size() ? fen : E.start_pos);
     auto t0 = std::chrono::high_resolution_clock::now();
-    u64 nodes = eng->perft(depth, verbose);
+
+    u64 nodes = E.perft(depth, verbose);
+
     auto t1 = std::chrono::high_resolution_clock::now();
-    delete eng;
-    if (!verbose && nodes == estimate)
+    if (!verbose && nodes == estimate.at(depth))
         return;
     std::chrono::duration<double> elapsed = t1 - t0;
     std::cout << "\nNodes searched:  " << nodes << std::endl;
-    std::cout << "Nodes estimated: " << estimate << std::endl;
+    std::cout << "Nodes estimated: " << estimate.at(depth) << std::endl;
     std::cout << "Time spent: " << elapsed.count() << std::endl;
     std::cout << "Nodes per second = " <<
         double(nodes)/(elapsed.count() + 1e-6) << std::endl;
-    assert(nodes == estimate);
+    assert(nodes == estimate.at(depth));
+}
+
+
+void test_all::test_see() {
+    auto E = engine_tst();
+    E.setup_position("3k4/3b4/2P5/1Q5p/6B1/1r4N1/4p1nR/4K3 w - -");
+    auto occ = E.bb[0][E.occupancy_ix] | E.bb[1][E.occupancy_ix];
+    auto to_coord = str_to_coord("d7");
+    u64 ans_bb;
+    E.min_attacker(to_coord, occ, E.white, ans_bb);
+    assert (ans_bb == one_nth_bit(str_to_coord("c6")));
+    to_coord = str_to_coord("e2");
+    E.min_attacker(to_coord, occ, E.white, ans_bb);
+    assert (ans_bb == one_nth_bit(str_to_coord("g3")));
+    to_coord = str_to_coord("h5");
+    E.min_attacker(to_coord, occ, E.white, ans_bb);
+    assert (ans_bb == one_nth_bit(str_to_coord("g3")));
+    to_coord = str_to_coord("b3");
+    E.min_attacker(to_coord, occ, E.white, ans_bb);
+    assert (ans_bb == one_nth_bit(str_to_coord("b5")));
+    to_coord = str_to_coord("g2");
+    E.min_attacker(to_coord, occ, E.white, ans_bb);
+    assert (ans_bb == one_nth_bit(str_to_coord("h2")));
+    to_coord = str_to_coord("b5");
+    E.min_attacker(to_coord, occ, E.black, ans_bb);
+    assert (ans_bb == one_nth_bit(str_to_coord("b3")));
+    to_coord = str_to_coord("e1");
+    E.min_attacker(to_coord, occ, E.black, ans_bb);
+    assert (ans_bb == one_nth_bit(str_to_coord("g2")));
+    to_coord = str_to_coord("g4");
+    E.min_attacker(to_coord, occ, E.black, ans_bb);
+    assert (ans_bb == one_nth_bit(str_to_coord("h5")));
+    E.setup_position("1b3rk1/4n2p/6p1/5p2/6P1/3B2N1/6PP/5RK1 w - -");
+    auto move = E.move_from_str("g4f5");
+    assert(E.static_exchange_eval(move) == E.material.at(E.pawn_ix));
+    E.setup_position("2b2rk1/4n2p/6p1/5p2/6P1/3B2N1/6PP/5RK1 w - -");
+    move = E.move_from_str("g4f5");
+    assert(E.static_exchange_eval(move) == 0);
+    E.setup_position("B2r2k1/4nb2/1N3n2/3R4/8/2N5/8/3R2K1 b - -");
+    move = E.move_from_str("e7d5");
+    assert(E.static_exchange_eval(move) ==
+        E.material.at(E.rook_ix) - E.material.at(E.knight_ix));
+    move = E.move_from_str("f6d5");
+    assert(E.static_exchange_eval(move) ==
+        E.material.at(E.rook_ix) - E.material.at(E.knight_ix));
+    move = E.move_from_str("f7d5");
+    assert(E.static_exchange_eval(move) ==
+        E.material.at(E.rook_ix) - E.material.at(E.bishop_ix));
+    move = E.move_from_str("d8d5");
+    assert(E.static_exchange_eval(move) == 0);
+    E.setup_position("3rk3/8/8/8/8/8/8/3QK3 w - -");
+    move = E.move_from_str("d1d8");
+    assert(E.static_exchange_eval(move) ==
+        E.material.at(E.rook_ix) - E.material.at(E.queen_ix));
+    E.setup_position("q2b1rk1/5pp1/n6p/8/2Q5/7P/3P2P1/2R2BK1 w - -");
+    move = E.move_from_str("c4a6");
+    assert(E.static_exchange_eval(move) == E.material.at(E.knight_ix));
+    E.enter_move("d2d3");
+    E.enter_move("h6h5");
+    assert(E.static_exchange_eval(move) ==
+        E.material.at(E.knight_ix) - E.material.at(E.queen_ix));
+    E.setup_position("r1b3k1/4nr1p/5qp1/5p2/6P1/3B1RN1/5RPP/5QK1 w - -");
+    move = E.move_from_str("g4f5");
+    assert(E.static_exchange_eval(move) == E.material.at(E.pawn_ix));
+    E.setup_position("r1b3k1/4nr1p/5qp1/5p2/6P1/3R1RN1/5BPP/5QK1 w - -");
+    move = E.move_from_str("g4f5");
+    assert(E.static_exchange_eval(move) == 0);
+    E.setup_position("5rk1/5q2/5r2/8/8/5R2/5R2/5QK1 w - -");
+    move = E.move_from_str("f3f6");
+    assert(E.static_exchange_eval(move) == E.material.at(E.rook_ix));
+    E.setup_position("5rk1/5q2/5r2/8/8/5R2/5B2/5QK1 w - -");
+    move = E.move_from_str("f3f6");
+    assert(E.static_exchange_eval(move) == 0);
+    E.setup_position("3bn1k1/3np1p1/rpqr1p2/4P1PN/6NB/5R2/5RPP/5QK1 w - -");
+    move = E.move_from_str("e5f6");
+    assert(E.static_exchange_eval(move) == E.material.at(E.pawn_ix));
+    move = E.move_from_str("g5f6");
+    assert(E.static_exchange_eval(move) == E.material.at(E.pawn_ix));
+    move = E.move_from_str("h5f6");
+    assert(E.static_exchange_eval(move) ==
+        2*E.material.at(E.pawn_ix) - E.material.at(E.knight_ix));
+    E.setup_position("5b2/8/8/2k5/1p6/2P5/3B4/4K3 w - -");
+    move = E.move_from_str("c3b4");
+    assert(E.static_exchange_eval(move) == E.material.at(E.pawn_ix));
+    E.setup_position("5b2/8/8/k7/1p6/2P5/3B4/4K3 w - -");
+    move = E.move_from_str("c3b4");
+    assert(E.static_exchange_eval(move) == 0);
+    E.setup_position("3r2k1/6p1/2q2r1p/pp1p1p2/3P4/1QN1PBP1/PP3P1P/6K1 w - -");
+    move = E.move_from_str("c3d5");
+    assert(E.static_exchange_eval(move) == E.material.at(E.pawn_ix));
 }
