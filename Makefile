@@ -59,4 +59,4 @@ clean:
 
 wclean:
 	del /q *.o *.exe gmon.* *.depend *.layout
-	del /q bin\ obj\ >nul
+	rmdir /s /q bin obj

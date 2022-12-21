@@ -2,22 +2,58 @@
 #include <array>
 #include <limits>
 #include <random>
+#include <iostream>
 
 
 struct board_state {
 
     struct move_s {
-        u8 index;
-        u8 from_coord;
-        u8 to_coord;
-        u8 promo;
+        u8 priority;
+        u8 from_coord : 6;
+        u8 to_coord : 6;
+        u8 index : 3;
+        u8 promo : 3;
+        u8 is_capture : 1;
 
-        bool operator == (move_s m) const
-        {
+        move_s() : priority(0), from_coord(0),
+            to_coord(0), index(0), promo(0), is_capture(0) {}
+
+        move_s(u8 ix, u8 fr, u8 to, u8 pr) : priority(0), from_coord(0),
+            to_coord(0), index(0), promo(0), is_capture(0) {
+            index = ix & 7;
+            from_coord = fr & 63;
+            to_coord = to & 63;
+            promo = pr & 7;
+        }
+
+        bool operator == (move_s m) const {
             return index == m.index && from_coord == m.from_coord &&
                 to_coord == m.to_coord && promo == m.promo;
         }
+
+        bool operator != (move_s m) const {
+            return index != m.index || from_coord != m.from_coord ||
+                to_coord != m.to_coord || promo != m.promo;
+        }
+
+        bool operator < (move_s m) const {
+            return m.priority < priority;
+        }
+
+        friend std::ostream& operator << (std::ostream &os, const move_s m) {
+            os << "index: " << int(m.index) <<
+                "\nfrom: " << char('a' + get_col(u8(m.from_coord))) <<
+                char('1' + get_row(u8(m.from_coord))) <<
+                "\nto: " << char('a' + get_col(u8(m.to_coord))) <<
+                char('1' + get_row(u8(m.to_coord))) <<
+                "\npromo: " << int(m.promo) <<
+                "\npriority: " << int(m.priority) <<
+                "\nis_capture:" << bool(m.is_capture) << "\n";
+            return os;
+        }
     };
+
+    static_assert(sizeof(move_s) == 4, "Wrong size of move struct");
 
     static const bool black = false, white = true;
     static const u8 pawn_ix = 0, knight_ix = 1, bishop_ix = 2, rook_ix = 3,
@@ -26,14 +62,12 @@ struct board_state {
     board_state() :
         en_passant_bitboard(0),
         hash_key(0),
-        cur_move({0, 0, 0, 0}),
         bb({{{0}}}),
         castling_rights({0}),
         reversible_halfmoves(0) {}
 
     u64 en_passant_bitboard;
     u64 hash_key;
-    move_s cur_move;
     std::array<std::array<u64, occupancy_ix + 1>, 2> bb;
     std::array<u8, 2> castling_rights = {0};
     int reversible_halfmoves;
@@ -104,4 +138,19 @@ class board : public board_state, protected bitboards {
     u8 enps_ix(const u8 coord) const {
         return coord == u8(-1) ? 0 : u8(1 + get_col(coord));
     }
+
+    bool is_silent(const move_s move) const {
+        u64 to_bb = one_nth_bit(move.to_coord);
+        if (bb[!side][occupancy_ix] & to_bb)
+            return true;
+        if (move.index != pawn_ix)
+            return false;
+        auto row = get_row(move.to_coord);
+        if (row == 0 || row == 7)
+            return true;
+        if (to_bb & en_passant_bitboard)
+            return true;
+        return false;
+    }
+
 };

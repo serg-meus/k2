@@ -48,6 +48,9 @@ class engine_tst: public engine {
     using engine::min_attacker;
     using engine::bb;
     using engine::material;
+    using engine::not_a_move;
+    using engine::gen_stage;
+    using engine::next_move;
 };
 
 class test_all : public bitboards {
@@ -83,4 +86,5 @@ public :
     void test_engine();
     void test_eval();
     void test_see();
+    void test_next_move();
 };

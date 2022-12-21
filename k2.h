@@ -15,6 +15,8 @@ protected:
     bool force;
     bool quit;
     bool silent_mode;
+    bool xboard;
+    i8 max_depth;
 
     bool looks_like_move(const std::string &in) const;
     bool execute_command(const std::string &in);
@@ -29,7 +31,11 @@ protected:
     void post_command(const std::string &in);
     void nopost_command(const std::string &in);
     void eval_command(const std::string &in);
+    void sd_command(const std::string &in);
+    void protover_command(const std::string &in);
     void unsupported_command(const std::string &in);
+    move_s root_search(i8 depth_max);
+    std::string pv_string(move_s &move_out, int dpt);
 
     typedef void(k2::*method_ptr)(const std::string &);
     std::map<std::string, method_ptr> commands =
@@ -45,7 +51,9 @@ protected:
         {"memory",      &k2::memory_command},
         {"post",        &k2::post_command},
         {"nopost",      &k2::nopost_command},
-        {"eval",       &k2::eval_command},
-//        {"go",          &k2::go_command},
+        {"eval",        &k2::eval_command},
+        {"go",          &k2::go_command},
+        {"sd",          &k2::sd_command},
+        {"protover",    &k2::protover_command},
     };
 };

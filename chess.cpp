@@ -45,7 +45,6 @@ std::vector<board::move_s> chess::gen_moves(size_t max_moves) {
     return moves;
 }
 
-
 void chess::gen_pseudo_legal_moves(std::vector<move_s> &moves,
                                    const gen_mode mode) const {
     const u64 occupancy = bb[0][occupancy_ix] | bb[1][occupancy_ix];
@@ -58,14 +57,6 @@ void chess::gen_pseudo_legal_moves(std::vector<move_s> &moves,
     gen_non_pawns(moves, king_ix, occupancy, opp_occupancy, mode);
     if (mode != gen_mode::only_captures)
         gen_castles(moves, occupancy);
-}
-
-
-bool chess::was_legal(const move_s &move) const {
-    if(move.index == king_ix && std::abs(i8(move.from_coord) -
-            i8(move.to_coord)) == 2)
-       return castling_was_legal(side, move.from_coord, move.to_coord);
-    return !is_in_check(!side);
 }
 
 
@@ -196,7 +187,8 @@ void chess::push_pawn_moves(std::vector<move_s> &moves, u64 bitboard,
         const u8 beg = (row == 0 || row == 7) ? 1 : 0;
         const u8 end = (row == 0 || row == 7) ? sizeof(promos) : 1;
         for(u8 promo = beg; promo < end; ++promo)
-            moves.push_back({pawn_ix, u8(to_coord - shift), to_coord, promo});
+            moves.push_back({pawn_ix, u8(to_coord - shift),
+                               to_coord, promo});
         bitboard ^= lowbit;
     }
 }
@@ -219,7 +211,7 @@ void chess::gen_non_pawns(std::vector<move_s> &moves, const u8 piece_index,
         while(to_bitboard) {
             const u64 to_lowbit = lower_bit(to_bitboard);
             moves.push_back({piece_index, from_coord,
-                             trail_zeros(to_lowbit), 0});
+                     trail_zeros(to_lowbit), 0});
             to_bitboard ^= to_lowbit;
         }
         from_bitboard ^= from_lowbit;
@@ -232,10 +224,12 @@ void chess::gen_castles(std::vector<move_s> &moves, const u64 occupancy) const{
     const auto &cstl = castling_rights[side];
     if(cstl & castle_kingside &&
             !(occupancy & castle_masks[side][0]))
-        moves.push_back({king_ix, fr_coord[side], u8(fr_coord[side] + 2), 0});
+        moves.push_back({king_ix, fr_coord[side],
+                           u8(fr_coord[side] + 2), 0});
     if(cstl & castle_queenside &&
             !(occupancy & castle_masks[side][1]))
-        moves.push_back({king_ix, fr_coord[side], u8(fr_coord[side] - 2), 0});
+        moves.push_back({king_ix, fr_coord[side],
+                           u8(fr_coord[side] - 2), 0});
 }
 
 

@@ -832,6 +832,7 @@ void test_all::test_eval() {
 void test_all::test_engine() {
     test_perft();
     test_see();
+    test_next_move();
 }
 
 
@@ -949,4 +950,23 @@ void test_all::test_see() {
     E.setup_position("3r2k1/6p1/2q2r1p/pp1p1p2/3P4/1QN1PBP1/PP3P1P/6K1 w - -");
     move = E.move_from_str("c3d5");
     assert(E.static_exchange_eval(move) == E.material.at(E.pawn_ix));
+}
+
+
+void test_all::test_next_move() {
+    auto E = engine_tst();
+    move_s ans;
+
+    E.setup_position("4k3/3p2p1/1b5b/n7/8/8/p2Q4/3K4 w - -");
+    std::vector<move_s> moves;
+    move_s tt_move = E.not_a_move;
+    auto stage = E.gen_stage::init;
+    unsigned move_num = unsigned(-1);
+    ans = E.next_move(moves, tt_move, move_num, stage, 1);
+    assert(ans == E.move_from_str("d2a2"));
+    ans = E.next_move(moves, tt_move, move_num, stage, 1);
+    assert(ans == E.move_from_str("d2h6"));
+    ans = E.next_move(moves, tt_move, move_num, stage, 1);
+    assert(ans == E.move_from_str("d2a5"));
+
 }

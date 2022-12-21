@@ -20,7 +20,6 @@ class chess : public board {
                                 const gen_mode mode) const;
     bool setup_position(const std::string &fen);
     bool enter_move(const std::string &str);
-    bool was_legal(const move_s &move) const;
     bool is_mate() const;
     bool is_draw();
     bool is_stalemate();
@@ -38,9 +37,16 @@ class chess : public board {
     bool is_draw_by_N_move_rule(const int N) const {
         return reversible_halfmoves == 2*N && !is_mate();
     }
-    
+
     void gen_pseudo_legal_moves(std::vector<move_s> &moves) {
         gen_pseudo_legal_moves(moves, gen_mode::all_moves);
+    }
+
+    bool was_legal(const move_s &move) const {
+        if(move.index == king_ix && std::abs(i8(move.from_coord) -
+                i8(move.to_coord)) == 2)
+           return castling_was_legal(side, move.from_coord, move.to_coord);
+        return !is_in_check(!side);
     }
 
     protected:
@@ -71,7 +77,6 @@ class chess : public board {
     bool is_pseudo_legal_king(const u8 from_coord, const u8 to_coord) const;
     bool slider_maybe_attacks(const u8 coord, const bool att_side) const;
     bool king_cant_move(const bool color) const;
-
 
     u64 all_non_pawn_attacks(const u8 index, const u8 from_coord,
                              const u64 occupancy) const {

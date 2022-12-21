@@ -9,7 +9,6 @@ void board::init() {
     castling_rights = {0, 0};
     reversible_halfmoves = 0;
     hash_key = 0;
-    is_reversible = true;
     state_storage.clear();
     state_storage.reserve(64);
 }
@@ -56,7 +55,6 @@ void board::enter_move(const std::string &str) {
 
 
 void board::make_move(const move_s &move) {
-    cur_move = move;
     state_storage.push_back(static_cast<board_state &>(*this));
     is_reversible = true;
     make_castling(move);
@@ -81,12 +79,12 @@ bool board::unmake_move() {
 board::move_s board::move_from_str(const std::string &str) const {
     move_s ans;
     const u8 from_coord = str_to_coord(str.substr(0, 2));
-    ans.index = find_index(side, one_nth_bit(from_coord));
-    ans.promo = queen_ix;
-    if(str.size() == 5)
-        ans.promo = char_to_bb_index(str.at(4));
-    ans.from_coord = from_coord;
-    ans.to_coord = str_to_coord(str.substr(2, 2));
+    ans.index = find_index(side, one_nth_bit(from_coord)) & 7;
+    ans.from_coord = from_coord & 63;
+    ans.to_coord = str_to_coord(str.substr(2, 2)) & 63;
+    if (ans.index == pawn_ix && get_row(ans.to_coord) ==
+        (side == white ? 7 : 0))
+        ans.promo = char_to_bb_index(str.size() > 4 ? str.at(4) : 'q') & 7;
     return ans;
 }
 
@@ -95,8 +93,8 @@ std::string board::move_to_str(const move_s &move) const {
     std::string ans;
     ans.append(coord_to_str(move.from_coord));
     ans.append(coord_to_str(move.to_coord));
-    if(move.index == pawn_ix && get_row(move.to_coord) ==
-            (side == white ? 7 : 0))
+    if (move.index == pawn_ix && get_row(move.to_coord) ==
+        (side == white ? 7 : 0))
         ans.push_back(bb_index_to_char(black, move.index));
     return ans;
 }

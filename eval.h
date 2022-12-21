@@ -36,7 +36,7 @@ class eval : public chess {
     eval() :
     #include "nn_data.h"
     in2({0}),
-    material({{100, 390, 410, 600, 800, 16000}})
+    material({{100, 390, 410, 600, 800, 32000}})
     {
     }
 };
