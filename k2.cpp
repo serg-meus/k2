@@ -175,8 +175,7 @@ void k2::go_command(const std::string &in) {
     (void)(in);
     force = false;
     move_s best_move = root_search(max_depth);
-    if (!silent_mode)
-        cout << "move " << move_to_str(best_move) << '\n' << endl;
+    cout << "move " << move_to_str(best_move) << '\n' << endl;
     make_move(best_move);
     if (!silent_mode && !xboard)
         cout << board_to_ascii() << endl;
@@ -224,21 +223,19 @@ k2::move_s k2::root_search(i8 depth_max) {
         int val = search(dpt, -material[king_ix], material[king_ix], pv_node);
         if (!silent_mode)
             cout << int(dpt + 1) << ' ' << val << " 0 " << nodes << ' '
-                << pv_string(best_move, dpt + 1) << endl;
+                << pv_string(dpt + 1) << endl;
     }
-    return best_move;
+    return tt.find(hash_key, u32(hash_key >> 32))->result.best_move;
 }
 
 
-std::string k2::pv_string(move_s &best_move, int dpt) {
+std::string k2::pv_string(int dpt) {
     std::string str_out;
     int ply = 0;
     for(;ply < dpt; ++ply) {
         const tt_entry_c *entry = tt.find(hash_key, u32(hash_key >> 32));
         if (entry == nullptr || entry->result.best_move == not_a_move)
             break;
-        if (ply == 0)
-            best_move = entry->result.best_move;
         str_out += move_to_str(entry->result.best_move) + " ";
         make_move(entry->result.best_move);
     }

@@ -35,7 +35,7 @@ protected:
     void protover_command(const std::string &in);
     void unsupported_command(const std::string &in);
     move_s root_search(i8 depth_max);
-    std::string pv_string(move_s &move_out, int dpt);
+    std::string pv_string(int dpt);
 
     typedef void(k2::*method_ptr)(const std::string &);
     std::map<std::string, method_ptr> commands =
