@@ -164,7 +164,7 @@ void engine::apprice_and_sort_moves(std::vector<move_s> &moves,
                                     unsigned first_move_num) const {
     for (auto i = first_move_num; i < moves.size(); ++i)
         apprice_move(moves.at(i));
-    std::sort(moves.begin() + first_move_num, moves.end());
+    std::sort(moves.begin() + int(first_move_num), moves.end());
 }
 
 
