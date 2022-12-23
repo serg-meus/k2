@@ -105,7 +105,7 @@ int engine::search_result(const int val, const int alpha_orig,
     int x;
     tt_bound bound_type;
     if (!legal_moves && depth >= 0) {
-        x = in_check ? -material[king_ix] : 0;
+        x = in_check ? -material[king_ix] + 1 : 0;
         bound_type = tt_bound::exact;
         best_move = not_a_move;
     }
