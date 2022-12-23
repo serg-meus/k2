@@ -313,3 +313,15 @@ bool chess::is_pseudo_legal_king(const u8 from_coord, const u8 to_coord) const {
         return false;
     return !(occ & castle_masks[side][size_t(mask - 1)]);
 }
+
+
+bool chess::is_draw_by_material() const {
+    for (auto ix : {pawn_ix, rook_ix, queen_ix})
+        if (bb[0][ix] || bb[1][ix])
+            return false;
+    auto white_bishops = __builtin_popcountll(bb[white][bishop_ix]);
+    auto black_bishops = __builtin_popcountll(bb[black][bishop_ix]);
+    auto white_knights = __builtin_popcountll(bb[white][knight_ix]);
+    auto black_knights = __builtin_popcountll(bb[black][knight_ix]);
+    return white_bishops + white_knights <= 1 && black_bishops + black_knights <= 1;
+}

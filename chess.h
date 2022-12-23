@@ -25,6 +25,7 @@ class chess : public board {
     bool is_stalemate();
     bool is_in_check(const bool king_side) const;
     bool is_N_fold_repetition(const unsigned N) const;
+    bool is_draw_by_material() const;
 
     bool game_over() {
         return is_mate() || is_draw();

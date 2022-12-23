@@ -4,7 +4,7 @@ using eval_t = eval::eval_t;
 using move_s = chess::move_s;
 
 
-engine::engine() : nodes(0), tt(64*megabyte) {
+engine::engine() : nodes(0), tt(64*megabyte), hash_keys({0}) {
 }
 
 
@@ -57,6 +57,8 @@ int engine::search(int depth, int const alpha_orig, const int beta,
 int engine::search_cur_pos(const int depth, const int alpha, const int beta,
                            const move_s cur_move, const unsigned move_num,
                            const int node_type, const bool in_check) {
+    if (search_draw() || hash_keys.find(hash_key) != hash_keys.end())
+        return search_result(0, 0, 0, 0, depth, not_a_move, 1, false);
     int val;
     const int lmr = late_move_reduction(depth, cur_move, in_check,
                                          move_num, node_type);

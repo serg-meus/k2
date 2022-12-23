@@ -822,6 +822,21 @@ void test_all::test_game_over() {
     assert(C.is_N_fold_repetition(3));
     assert(C.is_draw());
     assert(C.game_over());
+    C.setup_position("4k3/8/8/8/8/8/8/3K4 w - -");
+    assert(C.is_draw());
+    assert(C.game_over());
+    C.setup_position("44k3/8/6N1/8/8/8/1b6/3K4 w - -");
+    assert(C.is_draw());
+    assert(C.game_over());
+    C.setup_position("4k3/8/6NN/8/8/8/8/3K4 w - -");
+    assert(!C.is_draw());
+    assert(!C.game_over());
+    C.setup_position("4k3/8/4p2B/8/n7/8/8/3K4 w - -");
+    assert(!C.is_draw());
+    assert(!C.game_over());
+    C.setup_position("4k3/8/7B/8/n7/8/1R6/3K4 w - -");
+    assert(!C.is_draw());
+    assert(!C.game_over());
 }
 
 

@@ -1,6 +1,7 @@
 #include "eval.h"
 #include "transposition_table.h"
 #include <chrono>
+#include <set>
 
 class engine : public eval {
 
@@ -72,6 +73,7 @@ class engine : public eval {
     };
 
     transposition_table_c<tt_entry_c, u32, 8> tt;
+    std::set<u64> hash_keys;
     static const unsigned megabyte = 1000000/sizeof(tt_entry_c);
 
     u64 tt_probe_perft(const int depth);
@@ -96,6 +98,36 @@ class engine : public eval {
         nodes++;
         board::make_move(move);
     }
+
+    bool setup_position(const std::string &fen) {
+        hash_keys.clear();
+        bool ans = chess::setup_position(fen);
+        hash_keys.insert(hash_key);
+        return ans;
+    }
+
+bool enter_move(const std::string &str) {
+    return chess::enter_move(str);
+}
+
+bool enter_move(const move_s &move) {
+    if (!is_pseudo_legal(move))
+        return false;
+    make_move(move);
+    if (!was_legal(move)) {
+        unmake_move();
+        return false;
+    }
+    if (move.index == pawn_ix || !is_silent(move))
+        hash_keys.clear();
+    hash_keys.insert(hash_key);
+    return true;
+}
+
+bool search_draw() {
+    return is_N_fold_repetition(1) || is_draw_by_N_move_rule(50) ||
+        is_stalemate() || is_draw_by_material();
+}
 
     int late_move_reduction(const int depth, const move_s cur_move,
                             const bool in_check, unsigned int move_num,
