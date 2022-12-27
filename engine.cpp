@@ -4,7 +4,8 @@ using eval_t = eval::eval_t;
 using move_s = chess::move_s;
 
 
-engine::engine() : nodes(0), tt(64*megabyte), hash_keys({0}) {
+engine::engine() : nodes(0), max_nodes(0), stop(false), tt(64*megabyte),
+    hash_keys({0}) {
 }
 
 
@@ -27,8 +28,8 @@ int engine::search(int depth, int const alpha_orig, const int beta,
     else if(val > alpha)
         alpha = val;
     }
-    while ((cur_move = next_move(moves, tt_move, move_num,
-                                 stage, depth)) != not_a_move) {
+    while (!stop && (cur_move = next_move(moves, tt_move, move_num,
+                                          stage, depth)) != not_a_move) {
         make_move(cur_move);
         if (!was_legal(cur_move)) {
             unmake_move();
@@ -57,6 +58,10 @@ int engine::search(int depth, int const alpha_orig, const int beta,
 int engine::search_cur_pos(const int depth, const int alpha, const int beta,
                            const move_s cur_move, const unsigned move_num,
                            const int node_type, const bool in_check) {
+    if (max_nodes != 0 && nodes >= max_nodes) {
+        stop = true;
+        return 0;
+    }
     if (search_draw() || hash_keys.find(hash_key) != hash_keys.end())
         return search_result(0, 0, 0, 0, depth, not_a_move, 1, false);
     int val;
@@ -104,6 +109,8 @@ int engine::search_result(const int val, const int alpha_orig,
                             const int alpha, const int beta,
                             int depth, move_s best_move,
                             const unsigned legal_moves, const bool in_check) {
+    if (stop)
+        return 0;
     int x;
     tt_bound bound_type;
     if (!legal_moves && depth >= 0) {

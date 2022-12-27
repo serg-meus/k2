@@ -211,6 +211,11 @@ void k2::protover_command(const std::string &in) {
 }
 
 
+void k2::sn_command(const std::string &in) {
+    max_nodes = std::stoull(in.c_str());
+}
+
+
 void k2::unsupported_command(const std::string &in) {
     (void)(in);
 }
@@ -218,14 +223,18 @@ void k2::unsupported_command(const std::string &in) {
 
 k2::move_s k2::root_search(i8 depth_max) {
     nodes = 0;
+    stop = false;
     move_s best_move;
     for (i8 dpt = 0; dpt < depth_max; ++dpt) {
         int val = search(dpt, -material[king_ix], material[king_ix], pv_node);
-        if (!silent_mode)
-            cout << int(dpt + 1) << ' ' << val << " 0 " << nodes << ' '
-                << pv_string(dpt + 1) << endl;
+        if (!stop) {
+            best_move = tt.find(hash_key, u32(hash_key >> 32))->result.best_move;
+            if (!silent_mode)
+                cout << int(dpt + 1) << ' ' << val << " 0 " << nodes << ' '
+                    << pv_string(dpt + 1) << endl;
+        }
     }
-    return tt.find(hash_key, u32(hash_key >> 32))->result.best_move;
+    return best_move;
 }
 
 

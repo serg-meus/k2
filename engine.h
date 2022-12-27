@@ -11,7 +11,8 @@ class engine : public eval {
     enum class gen_stage {init, tt, captures, killer1, killer2, bad_captures, silent};
     const i8 max_depth = 127;
 
-    u64 nodes;
+    u64 nodes, max_nodes;
+    bool stop;
 
     engine();
     engine(const engine&);
