@@ -4,11 +4,6 @@ using eval_t = eval::eval_t;
 using move_s = chess::move_s;
 
 
-engine::engine() : nodes(0), max_nodes(0), stop(false), tt(64*megabyte),
-    hash_keys({0}) {
-}
-
-
 int engine::search(int depth, int const alpha_orig, const int beta,
                    const int node_type) {
     move_s cur_move, tt_move = not_a_move;
@@ -58,7 +53,7 @@ int engine::search(int depth, int const alpha_orig, const int beta,
 int engine::search_cur_pos(const int depth, const int alpha, const int beta,
                            const move_s cur_move, const unsigned move_num,
                            const int node_type, const bool in_check) {
-    if (max_nodes != 0 && nodes >= max_nodes) {
+    if ((max_nodes != 0 && nodes >= max_nodes) || time_over()) {
         stop = true;
         return 0;
     }

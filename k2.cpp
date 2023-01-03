@@ -22,8 +22,9 @@ int main(int argc, char* argv[])
 
 
 k2::k2() : force(false), quit(false), silent_mode(false), xboard(false),
-    max_depth(4)
+    max_depth(99)
 {
+    max_time = 1;
 }
 
 
@@ -110,14 +111,13 @@ void k2::perft_command(const std::string &in) {
         cout << "Wrong depth" << endl;
         return;
     }
-    auto t0 = std::chrono::high_resolution_clock::now();
+    timer_start();
     u64 perft_nodes = perft(depth, true);
-    auto t1 = std::chrono::high_resolution_clock::now();
-    std::chrono::duration<double> elapsed = t1 - t0;
-    cout << "\nNodes searched:  " << perft_nodes << endl;
-    cout << "Time spent: " << elapsed.count() << endl;
+    cout << "\nNodes searched:  " << perft_nodes << '\n';
+    auto t1 = time_elapsed();
+    cout << "Time spent: " << t1 << '\n';
     cout << "Nodes per second = " <<
-        double(perft_nodes)/(elapsed.count() + 1e-6) << endl;
+        double(perft_nodes)/(t1 + 1e-6) << endl;
 }
 
 
@@ -216,6 +216,11 @@ void k2::sn_command(const std::string &in) {
 }
 
 
+void k2::st_command(const std::string &in) {
+    max_time = std::stod(in.c_str());
+}
+
+
 void k2::unsupported_command(const std::string &in) {
     (void)(in);
 }
@@ -225,12 +230,13 @@ k2::move_s k2::root_search(i8 depth_max) {
     nodes = 0;
     stop = false;
     move_s best_move;
+    timer_start();
     for (i8 dpt = 0; dpt < depth_max; ++dpt) {
         int val = search(dpt, -material[king_ix], material[king_ix], pv_node);
         if (!stop) {
             best_move = tt.find(hash_key, u32(hash_key >> 32))->result.best_move;
             if (!silent_mode)
-                cout << int(dpt + 1) << ' ' << val << " 0 " << nodes << ' '
+                cout << int(dpt + 1) << ' ' << val << ' ' << int(100*time_elapsed()) << ' '  << nodes << ' '
                     << pv_string(dpt + 1) << endl;
         }
     }

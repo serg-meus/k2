@@ -12,10 +12,13 @@ class engine : public eval {
     const i8 max_depth = 127;
 
     u64 nodes, max_nodes;
+    double max_time;
     bool stop;
 
-    engine();
+    engine() : nodes(0), max_nodes(0), max_time(0), stop(false),
+        tt(64*megabyte), hash_keys({0}) {}
     engine(const engine&);
+
     int search(int depth, const int alpha, const int beta, const int node_typ);
     u64 perft(const int depth, const bool verbose);
 
@@ -25,6 +28,7 @@ class engine : public eval {
 
     enum class tt_bound {exact = 0, lower = 1, upper = 2};
 
+    typedef std::chrono::time_point<std::chrono::high_resolution_clock> time_point_t;
     struct tt_entry_result_c {
         move_s best_move;
         i16 value;
@@ -73,6 +77,7 @@ class engine : public eval {
         }
     };
 
+    time_point_t t_beg;
     transposition_table_c<tt_entry_c, u32, 8> tt;
     std::set<u64> hash_keys;
     static const unsigned megabyte = 1000000/sizeof(tt_entry_c);
@@ -107,38 +112,51 @@ class engine : public eval {
         return ans;
     }
 
-bool enter_move(const std::string &str) {
-    return chess::enter_move(str);
-}
-
-bool enter_move(const move_s &move) {
-    if (!is_pseudo_legal(move))
-        return false;
-    make_move(move);
-    if (!was_legal(move)) {
-        unmake_move();
-        return false;
+    bool enter_move(const std::string &str) {
+        return chess::enter_move(str);
     }
-    if (move.index == pawn_ix || !is_silent(move))
-        hash_keys.clear();
-    hash_keys.insert(hash_key);
-    return true;
-}
 
-bool search_draw() {
-    return is_N_fold_repetition(1) || is_draw_by_N_move_rule(50) ||
-        is_stalemate() || is_draw_by_material();
-}
+    bool enter_move(const move_s &move) {
+        if (!is_pseudo_legal(move))
+            return false;
+        make_move(move);
+        if (!was_legal(move)) {
+            unmake_move();
+            return false;
+        }
+        if (move.index == pawn_ix || !is_silent(move))
+            hash_keys.clear();
+        hash_keys.insert(hash_key);
+        return true;
+    }
+
+    bool search_draw() {
+        return is_N_fold_repetition(1) || is_draw_by_N_move_rule(50) ||
+            is_stalemate() || is_draw_by_material();
+    }
 
     int late_move_reduction(const int depth, const move_s cur_move,
                             const bool in_check, unsigned int move_num,
-                            const int node_type) const
-    {
+                            const int node_type) const {
         if(depth < 3 || !is_silent(cur_move) || in_check || move_num < 3)
             return 0;
         if(cur_move.index == pawn_ix /*&& is_passer*/)
             return 0;
         return 1 + int(node_type != pv_node && move_num > 6);
+    }
+
+    void timer_start() {
+        t_beg = std::chrono::high_resolution_clock::now();
+    }
+
+    double time_elapsed() {
+        auto t_end = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double> elapsed = t_end - t_beg;
+        return elapsed.count();
+    }
+
+    bool time_over() {
+        return time_elapsed() > max_time;
     }
 
 };
