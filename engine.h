@@ -16,7 +16,7 @@ class engine : public eval {
     bool stop;
 
     engine() : nodes(0), max_nodes(0), max_time(0), stop(false),
-        tt(64*megabyte), hash_keys({0}) {}
+        t_beg(), tt(64*megabyte), hash_keys({0}) {}
     engine(const engine&);
 
     int search(int depth, const int alpha, const int beta, const int node_typ);
@@ -105,6 +105,8 @@ class engine : public eval {
         board::make_move(move);
     }
 
+public:
+
     bool setup_position(const std::string &fen) {
         hash_keys.clear();
         bool ans = chess::setup_position(fen);
@@ -129,6 +131,8 @@ class engine : public eval {
         hash_keys.insert(hash_key);
         return true;
     }
+
+protected:
 
     bool search_draw() {
         return is_N_fold_repetition(1) || is_draw_by_N_move_rule(50) ||
