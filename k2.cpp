@@ -24,7 +24,7 @@ int main(int argc, char* argv[])
 k2::k2() : force(false), quit(false), silent_mode(false), xboard(false),
     max_depth(99)
 {
-    max_time = 1;
+    max_time_for_move = 1;
 }
 
 
@@ -217,7 +217,7 @@ void k2::sn_command(const std::string &in) {
 
 
 void k2::st_command(const std::string &in) {
-    max_time = std::stod(in.c_str());
+    max_time_for_move = std::stod(in.c_str());
 }
 
 

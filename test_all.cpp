@@ -630,7 +630,8 @@ void test_all::test_legality() {
         "c1a1 a5b4 ~e3d2";
     assert(test_sequence_of_moves(moves, C));
 
-    C.setup_position("rnbq1k1r/1p1Pbppp/2p5/p7/1PB5/8/P1P1NnPP/RNBQK2R w KQ a6");
+    C.setup_position(
+		"rnbq1k1r/1p1Pbppp/2p5/p7/1PB5/8/P1P1NnPP/RNBQK2R w KQ a6");
     assert(C.enter_move("b4b5"));
 
     C.setup_position("4k3/3ppp2/4b3/1n5Q/B7/8/4R3/4K3 b - -");
@@ -732,7 +733,8 @@ void test_all::test_legality() {
         "UNMOVE d2e3 UNMOVE d2e2";
     assert(test_sequence_of_moves(moves, C));
 
-    C.setup_position("r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq -");
+    C.setup_position(
+		"r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq -");
     moves = "d2d4 b2a1q h6f7";
     assert(test_sequence_of_moves(moves, C));
 

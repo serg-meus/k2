@@ -8,14 +8,17 @@ class engine : public eval {
     public:
 
     const int all_node = -1, pv_node = 0, cut_node = 1;
-    enum class gen_stage {init, tt, captures, killer1, killer2, bad_captures, silent};
+    enum class gen_stage {init, tt, captures, killer1, killer2, bad_captures,
+		silent};
     const i8 max_depth = 127;
 
     u64 nodes, max_nodes;
-    double max_time;
+    double time_for_move, max_time_for_move, time_inc, current_clock;
+    int moves_per_time_control;
     bool stop;
 
-    engine() : nodes(0), max_nodes(0), max_time(0), stop(false),
+    engine() : nodes(0), max_nodes(0), time_for_move(0), max_time_for_move(0),
+		time_inc(0), current_clock(0), moves_per_time_control(0), stop(false),
         t_beg(), tt(64*megabyte), hash_keys({0}) {}
     engine(const engine&);
 
@@ -28,7 +31,9 @@ class engine : public eval {
 
     enum class tt_bound {exact = 0, lower = 1, upper = 2};
 
-    typedef std::chrono::time_point<std::chrono::high_resolution_clock> time_point_t;
+    typedef std::chrono::time_point<std::chrono::high_resolution_clock>
+		time_point_t;
+
     struct tt_entry_result_c {
         move_s best_move;
         i16 value;
@@ -87,7 +92,8 @@ class engine : public eval {
     u8 min_attacker(const u8 to_coord, const u64 occ, const bool color,
                     u64 &attacker_bb) const;
     move_s next_move(std::vector<move_s> &moves, move_s &tt_move,
-                     unsigned &move_num, gen_stage &stage, const int depth) const;
+                     unsigned &move_num, gen_stage &stage,
+                     const int depth) const;
     bool tt_probe(const int depth, int &alpha, const int beta, move_s &tt_move);
     int search_cur_pos(const int depth, const int alpha, const int beta,
                        const move_s cur_move, unsigned int move_num,
@@ -160,7 +166,7 @@ protected:
     }
 
     bool time_over() {
-        return time_elapsed() > max_time;
+        return time_elapsed() > max_time_for_move;
     }
 
 };

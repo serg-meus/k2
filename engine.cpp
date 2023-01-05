@@ -237,7 +237,8 @@ eval_t engine::static_exchange_eval(const move_s move) const {
     eval_t mat = 0, new_mat = material.at(move.index);
     for (; depth < 30; ++depth) {
         color = !color;
-        const u8 attacker_ix = min_attacker(move.to_coord, occ, color, attacker_bb);
+        const u8 attacker_ix = min_attacker(move.to_coord, occ, color,
+										    attacker_bb);
         if (attacker_ix == u8(-1))
             break;
         mat = new_mat;
