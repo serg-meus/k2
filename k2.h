@@ -35,6 +35,7 @@ protected:
     void protover_command(const std::string &in);
     void sn_command(const std::string &in);
     void st_command(const std::string &in);
+    void level_command(const std::string &in);
     void unsupported_command(const std::string &in);
     move_s root_search(i8 depth_max);
     std::string pv_string(int dpt);
@@ -59,5 +60,6 @@ protected:
         {"sn",          &k2::sn_command},
         {"st",          &k2::st_command},
         {"protover",    &k2::protover_command},
+        {"level",       &k2::level_command},
     };
 };

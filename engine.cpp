@@ -53,7 +53,8 @@ int engine::search(int depth, int const alpha_orig, const int beta,
 int engine::search_cur_pos(const int depth, const int alpha, const int beta,
                            const move_s cur_move, const unsigned move_num,
                            const int node_type, const bool in_check) {
-    if ((max_nodes != 0 && nodes >= max_nodes) || time_over()) {
+    if ((max_nodes != 0 && nodes >= max_nodes) ||
+            time_elapsed() > max_time_for_move) {
         stop = true;
         return 0;
     }
@@ -238,7 +239,7 @@ eval_t engine::static_exchange_eval(const move_s move) const {
     for (; depth < 30; ++depth) {
         color = !color;
         const u8 attacker_ix = min_attacker(move.to_coord, occ, color,
-										    attacker_bb);
+                                            attacker_bb);
         if (attacker_ix == u8(-1))
             break;
         mat = new_mat;
@@ -279,4 +280,24 @@ u8 engine::min_attacker(const u8 to_coord, const u64 occ, const bool color,
     if (attacker_bb)
         return king_ix;
     return u8(-1);
+}
+
+
+void engine::set_time_for_move() {
+    int mov_tc = moves_per_time_control;
+    int movestogo = mov_tc ? mov_tc - move_cr : 30;
+    double k_branch = movestogo <= 4 ? 1 : 2;
+    time_for_move = current_clock/movestogo/k_branch + time_inc;
+    double k_max = (mov_tc && movestogo <= 4) ? 1 : 3;
+    max_time_for_move = k_max*time_for_move - time_margin;
+}
+
+
+void engine::update_clock() {
+    current_clock += time_inc - time_elapsed();
+    move_cr++;
+    if (moves_per_time_control && move_cr >= moves_per_time_control) {
+        move_cr = 0;
+        current_clock += time_per_time_control;
+    }
 }

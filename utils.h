@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <algorithm>
 #include <cctype>
+#include <cmath>
 
 
 typedef uint8_t u8;
@@ -105,4 +106,9 @@ inline constexpr u64 signed_shift(const u64 x, const int shift) {
 
 inline constexpr u64 get_nth_bit(const u64 inp, const u8 bit_num) {
     return inp >> u64(bit_num) & u64(1);
+}
+
+
+inline constexpr bool is_close(const double x, const double y) {
+    return std::abs(x - y) <= 1e-8;
 }

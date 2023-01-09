@@ -850,6 +850,8 @@ void test_all::test_engine() {
     test_perft();
     test_see();
     test_next_move();
+    test_set_time_for_move();
+    test_update_clock();
 }
 
 
@@ -986,4 +988,64 @@ void test_all::test_next_move() {
     ans = E.next_move(moves, tt_move, move_num, stage, 1);
     assert(ans == E.move_from_str("d2a5"));
 
+}
+
+
+void test_all::test_set_time_for_move() {
+    auto E = engine_tst();
+
+    E.move_cr = 0;
+    E.current_clock = 1;
+    E.time_inc = 0;
+    E.moves_per_time_control = 0;
+    E.set_time_for_move();
+    assert(is_close(E.time_for_move,  1./60));
+    assert(is_close(E.max_time_for_move, 3./60 - E.time_margin));
+
+    E.moves_per_time_control = 10;
+    E.set_time_for_move();
+    assert(is_close(E.time_for_move,  1./20));
+    assert(is_close(E.max_time_for_move, 3./20 - E.time_margin));
+
+    E.moves_per_time_control = 2;
+    E.set_time_for_move();
+    assert(is_close(E.time_for_move,  1./2));
+    assert(is_close(E.max_time_for_move, 1./2 - E.time_margin));
+
+    E.moves_per_time_control = 0;
+    E.time_inc = .1;
+    E.set_time_for_move();
+    assert(is_close(E.time_for_move,  1./60 + .1));
+    assert(is_close(E.max_time_for_move, 3./60 + .3 - E.time_margin));
+
+    E.move_cr = 6;
+    E.time_inc = 0;
+    E.set_time_for_move();
+    assert(is_close(E.time_for_move,  1./60));
+    assert(is_close(E.max_time_for_move, 3./60 - E.time_margin));
+
+    E.moves_per_time_control = 10;
+    E.set_time_for_move();
+    assert(is_close(E.time_for_move,  1./4));
+    assert(is_close(E.max_time_for_move, 1./4 - E.time_margin));
+
+    E.moves_per_time_control = 0;
+    E.time_inc = .1;
+    E.set_time_for_move();
+    assert(is_close(E.time_for_move,  1./60 + .1));
+    assert(is_close(E.max_time_for_move, 3./60 + .3 - E.time_margin));
+}
+
+
+void test_all::test_update_clock() {
+    auto E = engine_tst();
+
+    E.move_cr = 0;
+    E.moves_per_time_control = 1;
+    E.time_per_time_control = 2;
+    E.current_clock = 1;
+    E.timer_start();
+    E.update_clock();
+    assert(E.move_cr == 0);
+    assert(E.current_clock >= 2.8);
 }

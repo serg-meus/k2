@@ -174,11 +174,14 @@ void k2::eval_command(const std::string &in) {
 void k2::go_command(const std::string &in) {
     (void)(in);
     force = false;
+    set_time_for_move();
+    timer_start();
     move_s best_move = root_search(max_depth);
     cout << "move " << move_to_str(best_move) << '\n' << endl;
     make_move(best_move);
     if (!silent_mode && !xboard)
         cout << board_to_ascii() << endl;
+    update_clock();
 }
 
 
@@ -208,6 +211,7 @@ void k2::protover_command(const std::string &in) {
     cout << feat << "sigterm=0" << endl;
     cout << feat << "sigint=0" << endl;
     cout << feat << "memory=1" << endl;
+    cout << feat << "done=1" << endl;
 }
 
 
@@ -217,7 +221,24 @@ void k2::sn_command(const std::string &in) {
 
 
 void k2::st_command(const std::string &in) {
-    max_time_for_move = std::stod(in.c_str());
+    moves_per_time_control = 1;
+    time_per_time_control = std::stod(in.c_str());
+    time_inc = 0;
+    current_clock = time_per_time_control;
+}
+
+
+void k2::level_command(const std::string &in) {
+    auto params = split(in);
+    if (params.size() != 3)
+        cout << "Wrong number of params" << endl;
+    moves_per_time_control = std::stoi(params.at(0).c_str());
+    auto time_params = split(params.at(1), ':');
+    time_per_time_control = 60*std::stod(time_params.at(0).c_str());
+    if (time_params.size() > 1)
+        time_per_time_control += std::stod(time_params.at(1).c_str());
+    time_inc = std::stod(params.at(2).c_str());
+    current_clock = time_per_time_control;
 }
 
 
@@ -230,15 +251,17 @@ k2::move_s k2::root_search(i8 depth_max) {
     nodes = 0;
     stop = false;
     move_s best_move;
-    timer_start();
     for (i8 dpt = 0; dpt < depth_max; ++dpt) {
         int val = search(dpt, -material[king_ix], material[king_ix], pv_node);
-        if (!stop) {
-            best_move = tt.find(hash_key, u32(hash_key >> 32))->result.best_move;
-            if (!silent_mode)
-                cout << int(dpt + 1) << ' ' << val << ' ' << int(100*time_elapsed()) << ' '  << nodes << ' '
-                    << pv_string(dpt + 1) << endl;
-        }
+        if (stop)
+            break;
+        best_move = tt.find(hash_key, u32(hash_key>> 32))->result.best_move;
+        if (!silent_mode)
+            cout << int(dpt + 1) << ' ' << val << ' '
+                << int(100*time_elapsed()) << ' '  << nodes << ' '
+                << pv_string(dpt + 1) << endl;
+        if (time_elapsed() > time_for_move)
+            break;
     }
     return best_move;
 }

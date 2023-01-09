@@ -9,17 +9,19 @@ class engine : public eval {
 
     const int all_node = -1, pv_node = 0, cut_node = 1;
     enum class gen_stage {init, tt, captures, killer1, killer2, bad_captures,
-		silent};
+        silent};
     const i8 max_depth = 127;
 
     u64 nodes, max_nodes;
-    double time_for_move, max_time_for_move, time_inc, current_clock;
-    int moves_per_time_control;
+    double time_for_move, max_time_for_move, time_per_time_control, time_inc,
+        current_clock;
+    int moves_per_time_control, move_cr;
     bool stop;
 
     engine() : nodes(0), max_nodes(0), time_for_move(0), max_time_for_move(0),
-		time_inc(0), current_clock(0), moves_per_time_control(0), stop(false),
-        t_beg(), tt(64*megabyte), hash_keys({0}) {}
+        time_per_time_control(0), time_inc(0), current_clock(60),
+        moves_per_time_control(0), move_cr(0),
+        stop(false), t_beg(), tt(64*megabyte), hash_keys({0}) {}
     engine(const engine&);
 
     int search(int depth, const int alpha, const int beta, const int node_typ);
@@ -28,11 +30,12 @@ class engine : public eval {
     protected:
 
     const move_s not_a_move = {0, 0, 0, 0};
+    const double time_margin = 0.02;
 
     enum class tt_bound {exact = 0, lower = 1, upper = 2};
 
     typedef std::chrono::time_point<std::chrono::high_resolution_clock>
-		time_point_t;
+        time_point_t;
 
     struct tt_entry_result_c {
         move_s best_move;
@@ -105,6 +108,8 @@ class engine : public eval {
     void apprice_and_sort_moves(std::vector<move_s> &moves,
                                 unsigned first_move_num) const;
     void apprice_move(move_s &move) const;
+    void set_time_for_move();
+    void update_clock();
 
     void make_move(const move_s &move) {
         nodes++;
@@ -117,6 +122,7 @@ public:
         hash_keys.clear();
         bool ans = chess::setup_position(fen);
         hash_keys.insert(hash_key);
+        move_cr = 0;
         return ans;
     }
 
@@ -163,10 +169,6 @@ protected:
         auto t_end = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double> elapsed = t_end - t_beg;
         return elapsed.count();
-    }
-
-    bool time_over() {
-        return time_elapsed() > max_time_for_move;
     }
 
 };

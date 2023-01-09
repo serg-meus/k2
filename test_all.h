@@ -51,6 +51,10 @@ class engine_tst: public engine {
     using engine::not_a_move;
     using engine::gen_stage;
     using engine::next_move;
+    using engine::set_time_for_move;
+    using engine::time_margin;
+    using engine::update_clock;
+    using engine::timer_start;
 };
 
 class test_all : public bitboards {
@@ -87,4 +91,6 @@ public :
     void test_eval();
     void test_see();
     void test_next_move();
+    void test_set_time_for_move();
+    void test_update_clock();
 };
