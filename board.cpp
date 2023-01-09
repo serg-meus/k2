@@ -95,7 +95,7 @@ std::string board::move_to_str(const move_s &move) const {
     ans.append(coord_to_str(move.to_coord));
     if (move.index == pawn_ix && get_row(move.to_coord) ==
         (side == white ? 7 : 0))
-        ans.push_back(bb_index_to_char(black, move.index));
+        ans.push_back(bb_index_to_char(black, move.promo));
     return ans;
 }
 
