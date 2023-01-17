@@ -6,3 +6,5 @@
 *.out
 *.txt
 *.dat
+*.bat
+*.sh

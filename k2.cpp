@@ -21,13 +21,6 @@ int main(int argc, char* argv[])
 }
 
 
-k2::k2() : force(false), quit(false), silent_mode(false), xboard(false),
-    max_depth(99)
-{
-    max_time_for_move = 1;
-}
-
-
 void k2::start()
 {
     std::string in_str;
@@ -44,7 +37,7 @@ void k2::start()
             if (!enter_move(in_str))
                 cout << "Illegal move" << endl;
             else {
-                if (!silent_mode && !xboard)
+                if (!silent_mode && !xboard && !uci)
                     cout << board_to_ascii() << endl;
                 if (!force)
                     go_command("");
@@ -89,6 +82,7 @@ bool k2::execute_command(const std::string &in) {
 void k2::new_command(const std::string &in) {
     (void)(in);
     tt.clear();
+    force = false;
     setup_position(start_pos);
 }
 
@@ -126,7 +120,7 @@ void k2::setboard_command(const std::string &in) {
         cout << "Wrong position" << endl;
         return;
     }
-    if(!silent_mode && !xboard)
+    if(!silent_mode && !xboard && !uci)
         cout << board_to_ascii() << endl;
 }
 
@@ -172,14 +166,18 @@ void k2::eval_command(const std::string &in) {
 
 
 void k2::go_command(const std::string &in) {
-    (void)(in);
+    if (uci)
+        uci_go_command(in);
     force = false;
     set_time_for_move();
     timer_start();
     move_s best_move = root_search(max_depth);
+    if(uci)
+        cout << "best";
     cout << "move " << move_to_str(best_move) << '\n' << endl;
-    make_move(best_move);
-    if (!silent_mode && !xboard)
+    if (!uci)
+        make_move(best_move);
+    if (!silent_mode && !xboard && !uci)
         cout << board_to_ascii() << endl;
     update_clock();
 }
@@ -230,8 +228,10 @@ void k2::st_command(const std::string &in) {
 
 void k2::level_command(const std::string &in) {
     auto params = split(in);
-    if (params.size() != 3)
+    if (params.size() != 3) {
         cout << "Wrong number of params" << endl;
+        return;
+    }
     moves_per_time_control = std::stoi(params.at(0).c_str());
     auto time_params = split(params.at(1), ':');
     time_per_time_control = 60*std::stod(time_params.at(0).c_str());
@@ -239,6 +239,141 @@ void k2::level_command(const std::string &in) {
         time_per_time_control += std::stod(time_params.at(1).c_str());
     time_inc = std::stod(params.at(2).c_str());
     current_clock = time_per_time_control;
+}
+
+
+void k2::uci_command(const std::string &in) {
+    (void)(in);
+    uci = true;
+    cout << "id name K2 v1.0 alpha" << endl;
+    cout << "id author Sergey Meus" << endl;
+    cout << "option name Hash type spin default 64 min 0 max 2048" << endl;
+    cout << "uciok" << endl;
+}
+
+
+void k2::isready_command(const std::string &in) {
+    (void)(in);
+    cout << "readyok\n";
+}
+
+
+void k2::position_command(const std::string &in) {
+    auto args = split(in, ' ', 1);
+    if (args.at(0) == "fen")
+        setup_position(args.at(1));
+    else if (args.at(0) == "startpos")
+        setup_position(start_pos);
+    else
+        cout << "Wrong args" << endl;
+    args = split(in);
+    bool state = false;
+    for (auto arg: args) {
+        if (arg == "moves") {
+            state = true;
+            continue;
+        }
+        if (state)
+            enter_move(arg);
+    }
+}
+
+
+void k2::setoption_command(const std::string &in) {
+    auto args = split(in);
+    if (args.size() != 4 || args.at(0) != "name" || args.at(2) != "value") {
+        cout << "Wron args" << endl;
+        return;
+    }
+    if (to_lower(args.at(1)) == "hash")
+        memory_command(args.at(3));
+}
+
+
+void k2::uci_go_command(const std::string &in) {
+    moves_per_time_control = 0;
+    search_moves.clear();
+    std::map<std::string, method_ptr> states = {
+        {"infinite", uci_go_infinite}, {"ponder", uci_go_ponder},
+        {"wtime", uci_go_wtime}, {"btime", uci_go_btime}, {"winc", uci_go_winc}, 
+        {"binc", uci_go_binc}, {"depth", sd_command}, {"nodes", sn_command},
+        {"movetime", uci_go_movetime}, {"movestogo", uci_go_movestogo},
+        {"searchmoves", uci_go_searchmoves}
+    };
+    method_ptr foo = nullptr;
+    auto args = split(in);
+    for (auto arg: args) {
+        auto record = states.find(arg);
+        if (record != states.end()) {
+            foo = (*record).second;
+            if (foo != &this->uci_go_infinite && foo != &this->uci_go_ponder)
+                continue;
+        }
+        ((*this).*(foo))(arg);
+    }
+}
+
+
+void k2::uci_go_infinite(const std::string &in) {
+    (void)(in);
+    max_depth = 127;
+    current_clock = time_per_time_control = infinity;
+    max_nodes = 0;
+}
+
+
+void k2::uci_go_ponder(const std::string &in) {
+    (void)(in);
+}
+
+
+void k2::uci_go_wtime(const std::string &in) {
+    if (side != white)
+        return;
+    current_clock = std::stod(in.c_str())/1000;
+    max_depth = 127;
+    max_nodes = 0;
+}
+
+
+void k2::uci_go_btime(const std::string &in) {
+    if (side != black)
+        return;
+    current_clock = std::stod(in.c_str())/1000;
+    max_depth = 127;
+    max_nodes = 0;
+}
+
+
+void k2::uci_go_winc(const std::string &in) {
+    if (side != white)
+        return;
+    time_inc = std::stod(in.c_str())/1000;
+}
+
+
+void k2::uci_go_binc(const std::string &in) {
+    if (side != black)
+        return;
+    time_inc = std::stod(in.c_str())/1000;
+}
+
+
+void k2::uci_go_movetime(const std::string &in) {
+    moves_per_time_control = 1;
+    time_per_time_control = std::stod(in.c_str())/1000;
+    time_inc = 0;
+    current_clock = time_per_time_control;
+}
+
+
+void k2::uci_go_movestogo(const std::string &in) {
+    moves_to_go = std::atoi(in.c_str());
+}
+
+
+void k2::uci_go_searchmoves(const std::string &in) {
+    search_moves.insert(move_from_str(in));
 }
 
 
@@ -256,14 +391,26 @@ k2::move_s k2::root_search(i8 depth_max) {
         if (stop)
             break;
         best_move = tt.find(hash_key, u32(hash_key>> 32))->result.best_move;
-        if (!silent_mode)
-            cout << int(dpt + 1) << ' ' << val << ' '
-                << int(100*time_elapsed()) << ' '  << nodes << ' '
-                << pv_string(dpt + 1) << endl;
+        print_search_iteration_result(dpt, val);
         if (time_elapsed() > time_for_move)
             break;
     }
     return best_move;
+}
+
+
+void k2::print_search_iteration_result(i8 dpt, int val) {
+    if (silent_mode)
+        return;
+    if (!uci) {
+        cout << int(dpt + 1) << ' ' << val << ' '
+            << int(100*time_elapsed()) << ' '  << nodes << ' '
+            << pv_string(dpt + 1) << endl;
+        return;
+    }
+    cout << "info depth " << int(dpt + 1) << " score cp " << val
+        << " time " << int(1000*time_elapsed()) << " nodes " << nodes
+        << " pv " << pv_string(dpt + 1) << endl;
 }
 
 
@@ -280,4 +427,30 @@ std::string k2::pv_string(int dpt) {
     for(int i = 0; i < ply; ++i)
         unmake_move();
     return str_out;
+}
+
+
+void k2::set_time_for_move() {
+    if (!uci)
+        moves_to_go = moves_per_time_control ?
+            moves_per_time_control - move_cr : 0;
+    int mov2go = moves_to_go ? moves_to_go : 30;
+    double k_branch = mov2go <= 4 ? 1 : 2;
+    time_for_move = current_clock/mov2go/k_branch + time_inc;
+    double k_max = mov2go <= 4 ? 1 : 3;
+    max_time_for_move = k_max*time_for_move - time_margin;
+    if (max_time_for_move >= current_clock)
+        max_time_for_move = current_clock - time_margin;
+}
+
+
+void k2::update_clock() {
+    if (uci)
+        return;
+    current_clock += time_inc - time_elapsed();
+    move_cr++;
+    if (moves_per_time_control && move_cr >= moves_per_time_control) {
+        move_cr = 0;
+        current_clock += time_per_time_control;
+    }
 }

@@ -11,23 +11,26 @@ class engine : public eval {
     enum class gen_stage {init, tt, captures, killer1, killer2, bad_captures,
         silent};
     const i8 max_depth = 127;
+    
+    const double infinity = std::numeric_limits<double>::infinity();
 
     u64 nodes, max_nodes;
-    double time_for_move, max_time_for_move, time_per_time_control, time_inc,
-        current_clock;
-    int moves_per_time_control, move_cr;
+    double time_for_move, max_time_for_move, time_per_time_control, time_inc, current_clock;
+    int moves_per_time_control, moves_to_go, move_cr;
     bool stop;
 
     engine() : nodes(0), max_nodes(0), time_for_move(0), max_time_for_move(0),
         time_per_time_control(0), time_inc(0), current_clock(60),
-        moves_per_time_control(0), move_cr(0),
-        stop(false), t_beg(), tt(64*megabyte), hash_keys({0}) {}
+        moves_per_time_control(0), moves_to_go(0), move_cr(0), stop(false),
+        search_moves(), t_beg(), tt(64*megabyte), hash_keys({0}) {}
     engine(const engine&);
 
     int search(int depth, const int alpha, const int beta, const int node_typ);
     u64 perft(const int depth, const bool verbose);
 
     protected:
+
+    std::set<move_s> search_moves;
 
     const move_s not_a_move = {0, 0, 0, 0};
     const double time_margin = 0.02;
@@ -108,8 +111,6 @@ class engine : public eval {
     void apprice_and_sort_moves(std::vector<move_s> &moves,
                                 unsigned first_move_num) const;
     void apprice_move(move_s &move) const;
-    void set_time_for_move();
-    void update_clock();
 
     void make_move(const move_s &move) {
         nodes++;
