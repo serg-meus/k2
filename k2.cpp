@@ -294,11 +294,12 @@ void k2::uci_go_command(const std::string &in) {
     moves_per_time_control = 0;
     search_moves.clear();
     std::map<std::string, method_ptr> states = {
-        {"infinite", uci_go_infinite}, {"ponder", uci_go_ponder},
-        {"wtime", uci_go_wtime}, {"btime", uci_go_btime}, {"winc", uci_go_winc}, 
-        {"binc", uci_go_binc}, {"depth", sd_command}, {"nodes", sn_command},
-        {"movetime", uci_go_movetime}, {"movestogo", uci_go_movestogo},
-        {"searchmoves", uci_go_searchmoves}
+        {"infinite", &k2::uci_go_infinite}, {"ponder", &k2::uci_go_ponder},
+        {"wtime", &k2::uci_go_wtime}, {"btime", &k2::uci_go_btime},
+        {"winc", &k2::uci_go_winc}, {"binc", &k2::uci_go_binc},
+        {"depth", &k2::sd_command}, {"nodes", &k2::sn_command},
+        {"movetime", &k2::uci_go_movetime}, {"movestogo", &k2::uci_go_movestogo},
+        {"searchmoves", &k2::uci_go_searchmoves}
     };
     method_ptr foo = nullptr;
     auto args = split(in);
@@ -306,7 +307,7 @@ void k2::uci_go_command(const std::string &in) {
         auto record = states.find(arg);
         if (record != states.end()) {
             foo = (*record).second;
-            if (foo != &this->uci_go_infinite && foo != &this->uci_go_ponder)
+            if (foo != &k2::uci_go_infinite && foo != &k2::uci_go_ponder)
                 continue;
         }
         ((*this).*(foo))(arg);
