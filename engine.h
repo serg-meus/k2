@@ -15,7 +15,8 @@ class engine : public eval {
     const double infinity = std::numeric_limits<double>::infinity();
 
     u64 nodes, max_nodes;
-    double time_for_move, max_time_for_move, time_per_time_control, time_inc, current_clock;
+    double time_for_move, max_time_for_move, time_per_time_control,
+        time_inc, current_clock;
     int moves_per_time_control, moves_to_go, move_cr;
     bool stop;
 
@@ -25,7 +26,6 @@ class engine : public eval {
         search_moves(), t_beg(), tt(64*megabyte), hash_keys({0}) {}
     engine(const engine&);
 
-    int search(int depth, const int alpha, const int beta, const int node_typ);
     u64 perft(const int depth, const bool verbose);
 
     protected:
@@ -93,6 +93,8 @@ class engine : public eval {
     std::set<u64> hash_keys;
     static const unsigned megabyte = 1000000/sizeof(tt_entry_c);
 
+    int search(int depth, const int alpha, const int beta,
+               const int node_typ);
     u64 tt_probe_perft(const int depth);
     eval_t static_exchange_eval(const move_s move) const;
     u8 min_attacker(const u8 to_coord, const u64 occ, const bool color,
@@ -100,7 +102,8 @@ class engine : public eval {
     move_s next_move(std::vector<move_s> &moves, move_s &tt_move,
                      unsigned &move_num, gen_stage &stage,
                      const int depth) const;
-    bool tt_probe(const int depth, int &alpha, const int beta, move_s &tt_move);
+    bool tt_probe(const int depth, int &alpha, const int beta,
+                  move_s &tt_move);
     int search_cur_pos(const int depth, const int alpha, const int beta,
                        const move_s cur_move, unsigned int move_num,
                        const int node_type, const bool in_check);

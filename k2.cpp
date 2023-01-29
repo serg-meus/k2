@@ -34,12 +34,15 @@ void k2::start()
         if (execute_command(in_str)) {
         }
         else if (looks_like_move(in_str)) {
-            if (!enter_move(in_str))
+            if (game_over() || !enter_move(in_str))
                 cout << "Illegal move" << endl;
             else {
-                if (!silent_mode && !xboard && !uci)
+                if (!silent_mode && !xboard && !uci) {
                     cout << board_to_ascii() << endl;
-                if (!force)
+                    if (game_over())
+                        cout << game_text_result() << endl;
+                }
+                if (!force && !game_over())
                     go_command("");
             }
         }
@@ -171,12 +174,15 @@ void k2::go_command(const std::string &in) {
     force = false;
     set_time_for_move();
     timer_start();
-    move_s best_move = root_search(max_depth);
+    move_s best_move = search();
     if(uci)
         cout << "best";
     cout << "move " << move_to_str(best_move) << '\n' << endl;
-    if (!uci)
+    if (!uci) {
         make_move(best_move);
+        if (game_over())
+            cout << game_text_result() << endl;
+    }
     if (!silent_mode && !xboard && !uci)
         cout << board_to_ascii() << endl;
     update_clock();
@@ -185,7 +191,7 @@ void k2::go_command(const std::string &in) {
 
 void k2::sd_command(const std::string &in) {
     auto depth = i8(std::atoi(in.c_str()));
-    if (depth == 0)
+    if (depth < 0 || (depth == 0 && in != "0"))
         cout << "Wrong depth" << endl;
     max_depth = depth;
 }
@@ -383,16 +389,15 @@ void k2::unsupported_command(const std::string &in) {
 }
 
 
-k2::move_s k2::root_search(i8 depth_max) {
-    nodes = 0;
+k2::move_s k2::search() {
     stop = false;
-    move_s best_move;
-    for (i8 dpt = 0; dpt < depth_max; ++dpt) {
-        int val = search(dpt, -material[king_ix], material[king_ix], pv_node);
-        if (stop)
-            break;
-        best_move = tt.find(hash_key, u32(hash_key>> 32))->result.best_move;
-        print_search_iteration_result(dpt, val);
+    auto moves = gen_moves();
+    std::srand(unsigned(time(0)));
+    std::random_shuffle(moves.begin(), moves.end());
+    move_s best_move = moves.at(0);
+    for (i8 depth = 0; !stop && depth < max_depth; ++depth) {
+        best_move = root_search(depth, -material[king_ix], material[king_ix],
+                                moves);
         if (time_elapsed() > time_for_move)
             break;
     }
@@ -400,8 +405,41 @@ k2::move_s k2::root_search(i8 depth_max) {
 }
 
 
+k2::move_s k2::root_search(i8 depth, const int alpha_orig, const int beta,
+                           std::vector<move_s> &moves) {
+    const bool in_check = is_in_check(side);
+    move_s best_move = moves.at(0);
+    int alpha = alpha_orig, val = 0;
+    for (unsigned i = 0; !stop && i < moves.size(); ++i) {
+        if (search_moves.size() &&
+                search_moves.find(moves.at(i)) != search_moves.end())
+            continue;
+        make_move(moves.at(i));
+        val = search_cur_pos(depth, alpha, beta, moves.at(i), i,
+                             i ? cut_node : pv_node, in_check);
+        unmake_move();
+        if (!stop && (val >= beta || val > alpha)) {
+            best_move = moves.at(i);
+            if (val >= beta)
+                break;
+            else {
+                alpha = val;
+                std::rotate(moves.rbegin() + int(moves.size()) - i - 1,
+                            moves.rbegin() + int(moves.size()) - i,
+                            moves.rend());
+                assert(moves.at(0) == best_move);
+            }
+        }
+    }
+    search_result(val, alpha_orig, alpha, beta, depth,
+                  best_move, unsigned(moves.size()), in_check);
+    print_search_iteration_result(depth, val >= beta ? beta : alpha);
+    return best_move;
+}
+
+
 void k2::print_search_iteration_result(i8 dpt, int val) {
-    if (silent_mode)
+    if (stop || silent_mode)
         return;
     if (!uci) {
         cout << int(dpt + 1) << ' ' << val << ' '
@@ -454,4 +492,23 @@ void k2::update_clock() {
         move_cr = 0;
         current_clock += time_per_time_control;
     }
+}
+
+
+std::string k2::game_text_result() {
+    std::string ans;
+    if (is_mate())
+        ans = !side ? "1-0 {White mates}" : "0-1 {Black mates";
+    else if (is_stalemate())
+        ans = "1/2 - 1/2 {Stalemate}";
+    else {
+        ans = "1/2 - 1/2 {Draw by ";
+        if (is_draw_by_material())
+        ans += "insufficient mating material}";
+        else if (is_repetition())
+            ans += "3-fold repetition}";
+        else
+            ans += "fifty moves rule";
+    }
+    return ans;
 }

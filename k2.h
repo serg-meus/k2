@@ -11,14 +11,11 @@ public:
            uci(false), max_depth(99) {
         }
     void start();
+    move_s search();
 
 protected:
 
-    bool force;
-    bool quit;
-    bool silent_mode;
-    bool xboard;
-    bool uci;
+    bool force, quit, silent_mode, xboard, uci;
     i8 max_depth;
 
     bool execute_command(const std::string &in);
@@ -55,11 +52,13 @@ protected:
     void unsupported_command(const std::string &in);
 
     bool looks_like_move(const std::string &in) const;
-    move_s root_search(i8 depth_max);
+    move_s root_search(const i8 depth, const int alpha_orig, const int beta,
+                       std::vector<move_s> &moves);
     std::string pv_string(int dpt);
     void print_search_iteration_result(i8 dpt, int val);
     void set_time_for_move();
     void update_clock();
+    std::string game_text_result();
 
     typedef void(k2::*method_ptr)(const std::string &);
     std::map<std::string, method_ptr> commands =
@@ -86,6 +85,6 @@ protected:
         {"isready",     &k2::isready_command},
         {"ucinewgame",  &k2::new_command},
         {"position",    &k2::position_command},
-        {"setoption",   &k2::setoption_command}, 
+        {"setoption",   &k2::setoption_command},
     };
 };
