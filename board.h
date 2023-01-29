@@ -26,6 +26,15 @@ struct board_state {
             promo = pr & 7;
         }
 
+        move_s(u8 ix, u8 fr, u8 to, u8 pr, bool ic) : priority(0),
+            from_coord(0), to_coord(0), index(0), promo(0), is_capture(0) {
+            index = ix & 7;
+            from_coord = fr & 63;
+            to_coord = to & 63;
+            promo = pr & 7;
+            is_capture = ic;
+        }
+
         bool operator == (move_s m) const {
             return index == m.index && from_coord == m.from_coord &&
                 to_coord == m.to_coord && promo == m.promo;

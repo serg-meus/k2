@@ -4,7 +4,7 @@ using eval_t = eval::eval_t;
 using move_s = chess::move_s;
 
 
-int engine::search(int depth, int const alpha_orig, const int beta,
+int engine::search(int depth, const int alpha_orig, const int beta,
                    const int node_type) {
     move_s cur_move, tt_move = not_a_move;
     int val = 0, alpha = alpha_orig;
@@ -33,16 +33,14 @@ int engine::search(int depth, int const alpha_orig, const int beta,
         legal_moves++;
         val = search_cur_pos(depth, alpha, beta, cur_move,
                              move_num, node_type, in_check);
-        if (val >= beta) {
-            best_move_num = move_num;
-            unmake_move();
-            break;
-        }
-        else if (val > alpha) {
-            best_move_num = move_num;
-            alpha = val;
-        }
         unmake_move();
+        if (val >= beta || val > alpha) {
+            best_move_num = move_num;
+            if (val >= beta)
+                break;
+            else
+                alpha = val;
+        }
     }
     move_s best_move = moves.size() ? moves.at(best_move_num) : not_a_move;
     return search_result(val, alpha_orig, alpha, beta, depth,
@@ -172,8 +170,14 @@ void engine::apprice_and_sort_moves(std::vector<move_s> &moves,
 
 
 void engine::apprice_move(move_s &move) const {
+    if (!move.is_capture && !move.promo) {
+        move.priority = 64;
+        return;
+    }
     int see = static_exchange_eval(move);
     int ans = see/20 + (see > 0 ? 200 : 64);
+    if (see < -material[king_ix]/2)
+        ans = 0;
     assert(u8(ans) >= 200 || u8(ans) <= 64);
     move.priority = u8(ans);
 }

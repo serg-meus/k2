@@ -64,7 +64,7 @@ class chess : public board {
                                            const u64 occupancy,
                                            u64 opp_occupancy) const;
     void push_pawn_moves(std::vector<move_s> &moves, u64 bitboard,
-                         const int shift) const;
+                         const int shift, const bool is_capt) const;
     void gen_non_pawns(std::vector<move_s> &moves, const u8 piece_index,
                        const u64 occupancy, const u64 opp_occupancy,
                        const gen_mode mode) const;

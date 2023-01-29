@@ -150,10 +150,10 @@ void chess::gen_pawns_silent(std::vector<move_s> &moves, const u64 pawn_bb,
     const int shift = side == white ? 8 : -8;
     const u64 mask = rank_mask(side == white ? '7' : '2');
     const u64 pawn_pushes = all_pawn_pushes(pawn_bb & ~mask, side, occupancy);
-    push_pawn_moves(moves, pawn_pushes, shift);
+    push_pawn_moves(moves, pawn_pushes, shift, false);
     const u64 dbl_pushes = all_pawn_double_pushes(pawn_pushes, side,
                                                   occupancy);
-    push_pawn_moves(moves, dbl_pushes, 2*shift);
+    push_pawn_moves(moves, dbl_pushes, 2*shift, false);
 }
 
 
@@ -164,21 +164,21 @@ void chess::gen_pawns_captures_and_promotions(std::vector<move_s> &moves,
     const int shift = side == white ? 8 : -8;
     const u64 mask = rank_mask(side == white ? '7' : '2');
     const u64 pawn_pushes = all_pawn_pushes(pawn_bb & mask, side, occupancy);
-    push_pawn_moves(moves, pawn_pushes, shift);
+    push_pawn_moves(moves, pawn_pushes, shift, false);
     opp_occupancy |= en_passant_bitboard;
     const u64 capt_queenside =
         all_pawn_attacks_queenside(pawn_bb, side, opp_occupancy);
     const auto &shifts_q = pawn_attacks_queenside_shifts;
-    push_pawn_moves(moves, capt_queenside, -shifts_q[side]);
+    push_pawn_moves(moves, capt_queenside, -shifts_q[side], true);
     const u64 capt_kingside =
         all_pawn_attacks_kingside(pawn_bb, side, opp_occupancy);
     const auto &shifts_k = pawn_attacks_kingside_shifts;
-    push_pawn_moves(moves, capt_kingside, -shifts_k[side]);
+    push_pawn_moves(moves, capt_kingside, -shifts_k[side], true);
 }
 
 
 void chess::push_pawn_moves(std::vector<move_s> &moves, u64 bitboard,
-                            const int shift) const {
+                            const int shift, const bool is_capt) const {
     while (bitboard) {
         const u64 lowbit = lower_bit(bitboard);
         const u8 to_coord = trail_zeros(lowbit);
@@ -188,7 +188,7 @@ void chess::push_pawn_moves(std::vector<move_s> &moves, u64 bitboard,
         const u8 end = (row == 0 || row == 7) ? sizeof(promos) : 1;
         for (u8 promo = beg; promo < end; ++promo)
             moves.push_back({pawn_ix, u8(to_coord - shift),
-                               to_coord, promo});
+                               to_coord, promo, is_capt});
         bitboard ^= lowbit;
     }
 }
@@ -210,8 +210,8 @@ void chess::gen_non_pawns(std::vector<move_s> &moves, const u8 piece_index,
             to_bitboard &= ~opp_occupancy;
         while (to_bitboard) {
             const u64 to_lowbit = lower_bit(to_bitboard);
-            moves.push_back({piece_index, from_coord,
-                     trail_zeros(to_lowbit), 0});
+            moves.push_back({piece_index, from_coord, trail_zeros(to_lowbit),
+                            0, bool(to_lowbit & opp_occupancy)});
             to_bitboard ^= to_lowbit;
         }
         from_bitboard ^= from_lowbit;

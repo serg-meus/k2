@@ -16,8 +16,11 @@ prod: $(O_FILES)
 test:
 	$(CC) $(CFLAGS) -O2 utils.cpp bitboards.cpp board.cpp chess.cpp eval.cpp engine.cpp test_all.cpp -o test_all
 
+debug:
+	$(CC) $(CFLAGS) -O0 $(CPP_FILES) -o k2
+
 static:
-	$(CC) $(CFLAG) $(COPT) -s -static $(CPP_FILES) -o k2
+	$(CC) $(CFLAGS) $(COPT) -s -static $(CPP_FILES) -o k2
 
 utils.o: utils.cpp
 	$(CC) -c $(CFLAGS) $(COPT) utils.cpp
