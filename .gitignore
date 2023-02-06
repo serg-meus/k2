@@ -8,3 +8,8 @@
 *.dat
 *.bat
 *.sh
+*.o
+k2.exe
+test_all.exe
+k2
+test_all

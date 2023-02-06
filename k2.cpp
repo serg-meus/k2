@@ -37,11 +37,10 @@ void k2::start()
             if (game_over() || !enter_move(in_str))
                 cout << "Illegal move" << endl;
             else {
-                if (!silent_mode && !xboard && !uci) {
+                if (!silent_mode && !xboard && !uci)
                     cout << board_to_ascii() << endl;
-                    if (game_over())
-                        cout << game_text_result() << endl;
-                }
+                if (uci && game_over())
+                    cout << game_text_result() << endl;
                 if (!force && !game_over())
                     go_command("");
             }
@@ -86,6 +85,7 @@ void k2::new_command(const std::string &in) {
     (void)(in);
     tt.clear();
     force = false;
+    std::srand(unsigned(time(0)));
     setup_position(start_pos);
 }
 
@@ -151,6 +151,8 @@ void k2::help_command(const std::string &in) {
 void k2::post_command(const std::string &in) {
     (void)(in);
     silent_mode = false;
+    if (!xboard && !uci)
+        cout << board_to_ascii() << endl;
 }
 
 
@@ -177,7 +179,7 @@ void k2::go_command(const std::string &in) {
     move_s best_move = search();
     if(uci)
         cout << "best";
-    cout << "move " << move_to_str(best_move) << '\n' << endl;
+    cout << "move " << move_to_str(best_move) << endl;
     if (!uci) {
         make_move(best_move);
         if (game_over())
@@ -323,7 +325,7 @@ void k2::uci_go_command(const std::string &in) {
 
 void k2::uci_go_infinite(const std::string &in) {
     (void)(in);
-    max_depth = 127;
+    max_depth = max_ply;
     current_clock = time_per_time_control = infinity;
     max_nodes = 0;
 }
@@ -338,7 +340,7 @@ void k2::uci_go_wtime(const std::string &in) {
     if (side != white)
         return;
     current_clock = std::stod(in.c_str())/1000;
-    max_depth = 127;
+    max_depth = max_ply;
     max_nodes = 0;
 }
 
@@ -347,7 +349,7 @@ void k2::uci_go_btime(const std::string &in) {
     if (side != black)
         return;
     current_clock = std::stod(in.c_str())/1000;
-    max_depth = 127;
+    max_depth = max_ply;
     max_nodes = 0;
 }
 
@@ -390,9 +392,10 @@ void k2::unsupported_command(const std::string &in) {
 
 
 k2::move_s k2::search() {
+    nodes = 0;
+    ply = 0;
     stop = false;
     auto moves = gen_moves();
-    std::srand(unsigned(time(0)));
     std::random_shuffle(moves.begin(), moves.end());
     move_s best_move = moves.at(0);
     for (i8 depth = 0; !stop && depth < max_depth; ++depth) {
@@ -424,8 +427,8 @@ k2::move_s k2::root_search(i8 depth, const int alpha_orig, const int beta,
                 break;
             else {
                 alpha = val;
-                std::rotate(moves.rbegin() + int(moves.size()) - i - 1,
-                            moves.rbegin() + int(moves.size()) - i,
+                std::rotate(moves.rbegin() + int(moves.size() - i - 1),
+                            moves.rbegin() + int(moves.size() - i),
                             moves.rend());
                 assert(moves.at(0) == best_move);
             }
@@ -447,7 +450,7 @@ void k2::print_search_iteration_result(i8 dpt, int val) {
             << pv_string(dpt + 1) << endl;
         return;
     }
-    cout << "info depth " << int(dpt + 1) << " score cp " << val
+    cout << "info depth " << int(dpt + 1) << uci_score(val)
         << " time " << int(1000*time_elapsed()) << " nodes " << nodes
         << " pv " << pv_string(dpt + 1) << endl;
 }
@@ -455,17 +458,32 @@ void k2::print_search_iteration_result(i8 dpt, int val) {
 
 std::string k2::pv_string(int dpt) {
     std::string str_out;
-    int ply = 0;
-    for(;ply < dpt; ++ply) {
+    int i = 0;
+    for(;i < dpt; ++i) {
         const tt_entry_c *entry = tt.find(hash_key, u32(hash_key >> 32));
         if (entry == nullptr || entry->result.best_move == not_a_move)
             break;
         str_out += move_to_str(entry->result.best_move) + " ";
         make_move(entry->result.best_move);
     }
-    for(int i = 0; i < ply; ++i)
+    for(int j = 0; j < i; ++j)
         unmake_move();
     return str_out;
+}
+
+
+std::string k2::uci_score(int val) {
+    std::string ans = " score ";
+    if (std::abs(val) < material[king_ix] - max_ply) {
+        ans += "cp " + std::to_string(val);
+        return ans;
+    }
+    ans += "mate ";
+    int mate_depth = (material[king_ix] - std::abs(val) + 1)/2;
+    if (val < 0)
+        ans += "-";
+    ans += std::to_string(mate_depth);
+    return ans;
 }
 
 
@@ -505,7 +523,7 @@ std::string k2::game_text_result() {
         ans = "1/2 - 1/2 {Draw by ";
         if (is_draw_by_material())
         ans += "insufficient mating material}";
-        else if (is_repetition())
+        else if (is_N_fold_repetition(3))
             ans += "3-fold repetition}";
         else
             ans += "fifty moves rule";

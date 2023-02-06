@@ -30,7 +30,7 @@ bool chess::enter_move(const std::string &str) {
 }
 
 
-std::vector<board::move_s> chess::gen_moves(size_t max_moves) {
+std::vector<board::move_s> chess::gen_moves() {
     std::vector<move_s> moves, tmp_moves;
     tmp_moves.reserve(64);
     gen_pseudo_legal_moves(tmp_moves);
@@ -39,11 +39,10 @@ std::vector<board::move_s> chess::gen_moves(size_t max_moves) {
         if (was_legal(m))
             moves.push_back(m);
         unmake_move();
-        if (moves.size() >= max_moves)
-            break;
     }
     return moves;
 }
+
 
 void chess::gen_pseudo_legal_moves(std::vector<move_s> &moves,
                                    const gen_mode mode) const {
@@ -72,10 +71,10 @@ bool chess::is_in_check(const bool king_side) const {
 }
 
 
-bool chess::is_mate() const {
+bool chess::is_mate() {
     if (!is_in_check(side))
         return false;
-    return king_cant_move(side);
+    return gen_moves().size() == 0;
 }
 
 
@@ -86,9 +85,9 @@ bool chess::is_draw() {
 
 
 bool chess::is_stalemate() {
-    if (is_in_check(side) || !king_cant_move(side))
+    if (is_in_check(side))
         return false;
-    return gen_moves(1).size() == 0;
+    return gen_moves().size() == 0;
 }
 
 
@@ -106,21 +105,6 @@ bool chess::is_N_fold_repetition(const unsigned N) const {
         }
     }
     return false;
-}
-
-
-bool chess::king_cant_move(const bool color) const {
-    const u8 king_coord = trail_zeros(bb[color][king_ix]);
-    u64 k_squares = king_attacks(king_coord) & ~bb[color][occupancy_ix];
-    while (k_squares) {
-        const u64 lowbit = lower_bit(k_squares);
-        const u8 coord = trail_zeros(lowbit);
-        if (!is_attacked_by_non_slider(coord, !color) &&
-                !is_attacked_by_slider(coord, !color))
-            return false;
-        k_squares ^= lowbit;
-    }
-    return true;
 }
 
 

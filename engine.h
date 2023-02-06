@@ -10,20 +10,21 @@ class engine : public eval {
     const int all_node = -1, pv_node = 0, cut_node = 1;
     enum class gen_stage {init, tt, captures, killer1, killer2, bad_captures,
         silent};
-    const i8 max_depth = 127;
+    const i8 max_ply = 127;
     
     const double infinity = std::numeric_limits<double>::infinity();
 
     u64 nodes, max_nodes;
     double time_for_move, max_time_for_move, time_per_time_control,
         time_inc, current_clock;
-    int moves_per_time_control, moves_to_go, move_cr;
+    int moves_per_time_control, moves_to_go, move_cr, ply;
     bool stop;
 
     engine() : nodes(0), max_nodes(0), time_for_move(0), max_time_for_move(0),
         time_per_time_control(0), time_inc(0), current_clock(60),
-        moves_per_time_control(0), moves_to_go(0), move_cr(0), stop(false),
-        search_moves(), t_beg(), tt(64*megabyte), hash_keys({0}) {}
+        moves_per_time_control(0), moves_to_go(0), move_cr(0), ply(0),
+        stop(false), search_moves(), t_beg(), tt(64*megabyte),
+        hash_keys({0}) {}
     engine(const engine&);
 
     u64 perft(const int depth, const bool verbose);
@@ -117,7 +118,13 @@ class engine : public eval {
 
     void make_move(const move_s &move) {
         nodes++;
+        ply++;
         board::make_move(move);
+    }
+
+    void unmake_move() {
+        ply--;
+        board::unmake_move();
     }
 
 public:

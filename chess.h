@@ -15,12 +15,12 @@ class chess : public board {
         "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -";
 
     enum class gen_mode {all_moves, only_captures, only_silent};
-    std::vector<move_s> gen_moves() { return gen_moves(size_t(-1)); }
+    std::vector<board::move_s> gen_moves();
     void gen_pseudo_legal_moves(std::vector<move_s> &moves,
                                 const gen_mode mode) const;
     bool setup_position(const std::string &fen);
     bool enter_move(const std::string &str);
-    bool is_mate() const;
+    bool is_mate();
     bool is_draw();
     bool is_stalemate();
     bool is_in_check(const bool king_side) const;
@@ -35,7 +35,7 @@ class chess : public board {
         return is_N_fold_repetition(1);
     }
 
-    bool is_draw_by_N_move_rule(const int N) const {
+    bool is_draw_by_N_move_rule(const int N) {
         return reversible_halfmoves == 2*N && !is_mate();
     }
 
@@ -77,7 +77,6 @@ class chess : public board {
     bool is_pseudo_legal_pawn(const u8 from_coord, const u64 to_bb) const;
     bool is_pseudo_legal_king(const u8 from_coord, const u8 to_coord) const;
     bool slider_maybe_attacks(const u8 coord, const bool att_side) const;
-    bool king_cant_move(const bool color) const;
 
     u64 all_non_pawn_attacks(const u8 index, const u8 from_coord,
                              const u64 occupancy) const {

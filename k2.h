@@ -8,8 +8,9 @@ class k2 : public engine
 public:
 
     k2() : force(false), quit(false), silent_mode(false), xboard(false),
-           uci(false), max_depth(99) {
-        }
+           uci(false), max_depth(max_ply) {
+        std::srand(unsigned(time(0)));
+    }
     void start();
     move_s search();
 
@@ -59,6 +60,7 @@ protected:
     void set_time_for_move();
     void update_clock();
     std::string game_text_result();
+    std::string uci_score(int val);
 
     typedef void(k2::*method_ptr)(const std::string &);
     std::map<std::string, method_ptr> commands =
