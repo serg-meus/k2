@@ -10,7 +10,7 @@ class engine : public eval {
     const int all_node = -1, pv_node = 0, cut_node = 1;
     enum class gen_stage {init, tt, captures, killer1, killer2, bad_captures,
         silent};
-    const i8 max_ply = 127;
+    const i8 max_ply = 126;
     
     const double infinity = std::numeric_limits<double>::infinity();
 
