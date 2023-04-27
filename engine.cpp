@@ -11,12 +11,12 @@ int engine::search(int depth, const int alpha_orig, const int beta,
     if (tt_probe(depth, alpha, beta, tt_move))
         return alpha;
     const bool in_check = is_in_check(side);
-    if (in_check && depth >= -1)
+    if (in_check && depth >= 0)
         depth++;
     std::vector<move_s> moves;
     gen_stage stage = gen_stage::init;
     unsigned best_move_num = 0, move_num = unsigned(-1), legal_moves = 0;
-    if (depth < 0) {
+    if (depth <= 0) {
         val = Eval();
     if(val >= beta)
         return beta;
@@ -38,8 +38,7 @@ int engine::search(int depth, const int alpha_orig, const int beta,
             best_move_num = move_num;
             if (val >= beta)
                 break;
-            else
-                alpha = val;
+            alpha = val;
         }
     }
     move_s best_move = moves.size() ? moves.at(best_move_num) : not_a_move;
@@ -52,7 +51,7 @@ int engine::search_cur_pos(const int depth, const int alpha, const int beta,
                            const move_s cur_move, const unsigned move_num,
                            const int node_type, const bool in_check) {
     if ((max_nodes != 0 && nodes >= max_nodes) ||
-            time_elapsed() > max_time_for_move) {
+            (max_nodes == 0 && time_elapsed() > max_time_for_move)) {
         stop = true;
         return 0;
     }
@@ -90,8 +89,8 @@ bool engine::tt_probe(const int depth, int &alpha, const int beta,
     const auto bnd = tt_bound(entry->result.bound_type);
     const auto val = entry->result.value;
     if (bnd == tt_bound::exact ||
-            (bnd == tt_bound::lower && val <= -beta) ||
-            (bnd == tt_bound::upper && val >= -alpha) ) {
+            (bnd == tt_bound::lower && val <= alpha) ||
+            (bnd == tt_bound::upper && val >= beta) ) {
         alpha = val;
         return true;
     }
@@ -107,7 +106,7 @@ int engine::search_result(const int val, const int alpha_orig,
         return 0;
     int x;
     tt_bound bound_type;
-    if (!legal_moves && depth >= 0) {
+    if (!legal_moves && depth > 0) {
         x = in_check ? -material[king_ix] + ply : 0;
         bound_type = tt_bound::exact;
         best_move = not_a_move;
@@ -149,7 +148,7 @@ move_s engine::next_move(std::vector<move_s> &moves,
         if (move_num < moves.size()) {
             return moves.at(move_num);
         }
-        if (depth < 0)
+        if (depth <= 0)
             return not_a_move;
         stage = gen_stage::silent;
         gen_pseudo_legal_moves(moves, gen_mode::only_silent);
@@ -199,9 +198,9 @@ u64 engine::perft(const int depth, const bool verbose) {
         }
         u64 delta_nodes = (depth == 1) ? 1 : perft(depth - 1, false);
         perft_nodes += delta_nodes;
+        unmake_move();
         if(verbose)
             std::cout << move_to_str(move) << ": " << delta_nodes << std::endl;
-        unmake_move();
     }
     if (depth > 1 && tt_nodes != u64(-1)) {
         tt_entry_c entry(u32(hash_key), perft_nodes, i8(depth));

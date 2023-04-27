@@ -3,7 +3,7 @@
 /*
 K2, the chess engine
 Author: Sergey Meus (serg_meus@mail.ru), Krasnoyarsk Krai, Russia
-2012-2022
+2012-2023
 */
 
 using std::cout;
@@ -34,16 +34,16 @@ void k2::start()
         if (execute_command(in_str)) {
         }
         else if (looks_like_move(in_str)) {
-            if (game_over() || !enter_move(in_str))
+            if (game_over() || !enter_move(in_str)) {
                 cout << "Illegal move" << endl;
-            else {
-                if (!silent_mode && !xboard && !uci)
-                    cout << board_to_ascii() << endl;
-                if (uci && game_over())
-                    cout << game_text_result() << endl;
-                if (!force && !game_over())
-                    go_command("");
+                continue;
             }
+            if (!silent_mode && !xboard && !uci)
+                cout << board_to_ascii() << endl;
+            if (!uci && game_over())
+                cout << game_text_result() << endl;
+            if (!force && !game_over())
+                go_command("");
         }
         else
             cout << "Unknown command: " << in_str << endl;
@@ -85,7 +85,7 @@ void k2::new_command(const std::string &in) {
     (void)(in);
     tt.clear();
     force = false;
-    std::srand(unsigned(time(0)));
+    std::srand(unsigned(time(0)) & 0x0f);
     setup_position(start_pos);
 }
 
@@ -299,7 +299,7 @@ void k2::setoption_command(const std::string &in) {
 
 
 void k2::uci_go_command(const std::string &in) {
-    moves_per_time_control = 0;
+    moves_to_go = 0;
     search_moves.clear();
     std::map<std::string, method_ptr> states = {
         {"infinite", &k2::uci_go_infinite}, {"ponder", &k2::uci_go_ponder},
@@ -369,7 +369,7 @@ void k2::uci_go_binc(const std::string &in) {
 
 
 void k2::uci_go_movetime(const std::string &in) {
-    moves_per_time_control = 1;
+    moves_to_go = 1;
     time_per_time_control = std::stod(in.c_str())/1000;
     time_inc = 0;
     current_clock = time_per_time_control;
@@ -398,11 +398,12 @@ k2::move_s k2::search() {
     auto moves = gen_moves();
     std::random_shuffle(moves.begin(), moves.end());
     move_s best_move = moves.at(0);
-    for (i8 depth = 0; !stop && depth < max_depth; ++depth) {
-        best_move = root_search(depth, -material[king_ix], material[king_ix],
+    for (i8 depth = 1; !stop && depth <= max_depth; ++depth) {
+        auto move = root_search(depth, -material[king_ix], material[king_ix],
                                 moves);
-        if (time_elapsed() > time_for_move)
+        if (stop)
             break;
+        best_move = move;
     }
     return best_move;
 }
@@ -421,17 +422,17 @@ k2::move_s k2::root_search(i8 depth, const int alpha_orig, const int beta,
         val = search_cur_pos(depth, alpha, beta, moves.at(i), i,
                              i ? cut_node : pv_node, in_check);
         unmake_move();
-        if (!stop && (val >= beta || val > alpha)) {
+        if (stop)
+            break;
+        if (val >= beta || val > alpha) {
             best_move = moves.at(i);
             if (val >= beta)
                 break;
-            else {
-                alpha = val;
-                std::rotate(moves.rbegin() + int(moves.size() - i - 1),
-                            moves.rbegin() + int(moves.size() - i),
-                            moves.rend());
-                assert(moves.at(0) == best_move);
-            }
+            alpha = val;
+            std::rotate(moves.rbegin() + int(moves.size() - i - 1),
+                        moves.rbegin() + int(moves.size() - i),
+                        moves.rend());
+            assert(moves.at(0) == best_move);
         }
     }
     search_result(val, alpha_orig, alpha, beta, depth,
@@ -442,17 +443,28 @@ k2::move_s k2::root_search(i8 depth, const int alpha_orig, const int beta,
 
 
 void k2::print_search_iteration_result(i8 dpt, int val) {
-    if (stop || silent_mode)
+	std::string pv;
+	static int prev_val;
+	static std::string prev_pv;
+    if (silent_mode)
         return;
+    if (stop) {
+        --dpt;
+        val = prev_val;
+        pv = prev_pv;
+    }
+    else
+        pv = prev_pv = pv_string(dpt);
+    prev_val = val;
     if (!uci) {
-        cout << int(dpt + 1) << ' ' << val << ' '
+        cout << int(dpt) << ' ' << val << ' '
             << int(100*time_elapsed()) << ' '  << nodes << ' '
-            << pv_string(dpt + 1) << endl;
+            << pv << endl;
         return;
     }
-    cout << "info depth " << int(dpt + 1) << uci_score(val)
+    cout << "info depth " << int(dpt) << uci_score(val)
         << " time " << int(1000*time_elapsed()) << " nodes " << nodes
-        << " pv " << pv_string(dpt + 1) << endl;
+        << " pv " << pv << endl;
 }
 
 
@@ -461,10 +473,14 @@ std::string k2::pv_string(int dpt) {
     int i = 0;
     for(;i < dpt; ++i) {
         const tt_entry_c *entry = tt.find(hash_key, u32(hash_key >> 32));
-        if (entry == nullptr || entry->result.best_move == not_a_move)
+        const auto &bmov = entry->result.best_move;
+        if (entry == nullptr || bmov == not_a_move || !is_pseudo_legal(bmov))
             break;
-        str_out += move_to_str(entry->result.best_move) + " ";
-        make_move(entry->result.best_move);
+        auto move_str = move_to_str(bmov);
+        make_move(bmov);
+        if (!was_legal(bmov))
+            break;
+        str_out += move_str + " ";
     }
     for(int j = 0; j < i; ++j)
         unmake_move();
@@ -523,7 +539,7 @@ std::string k2::game_text_result() {
         ans = "1/2 - 1/2 {Draw by ";
         if (is_draw_by_material())
         ans += "insufficient mating material}";
-        else if (is_N_fold_repetition(3))
+        else if (is_N_fold_repetition(3 - 1))
             ans += "3-fold repetition}";
         else
             ans += "fifty moves rule";
