@@ -82,10 +82,12 @@ bool k2::execute_command(const std::string &in) {
 
 
 void k2::new_command(const std::string &in) {
-    (void)(in);
+    auto seed = unsigned(in == "" ? time(0) & 0x0f : std::atoi(in.c_str()));
+    std::srand(seed);
+    if (!silent_mode)
+        cout << "( seed set to " << seed << " )" << endl;
     tt.clear();
     force = false;
-    std::srand(unsigned(time(0)) & 0x0f);
     setup_position(start_pos);
 }
 
