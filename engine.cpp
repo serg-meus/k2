@@ -55,6 +55,8 @@ int engine::search_cur_pos(const int depth, const int alpha, const int beta,
         stop = true;
         return 0;
     }
+    if (depth <= 0)
+        return -search(depth - 1, -beta, -alpha, -node_type);
     if (search_draw() || hash_keys.find(hash_key) != hash_keys.end())
         return search_result(0, 0, 0, 0, depth, not_a_move, 1, false);
     int val;
