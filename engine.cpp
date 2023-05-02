@@ -138,7 +138,7 @@ move_s engine::next_move(std::vector<move_s> &moves,
     if (stage == gen_stage::tt) {
         stage = gen_stage::captures;
         gen_pseudo_legal_moves(moves, gen_mode::only_captures);
-        apprice_and_sort_moves(moves, tt_move != not_a_move);
+        apprice_and_sort_moves(moves, moves.size() && tt_move != not_a_move);
         if (move_num < moves.size()) {
             return moves.at(move_num);
         }
