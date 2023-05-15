@@ -471,3 +471,30 @@ u64 board::setup_hash_key() {
         ans ^= u64(-1);
     return ans;
 }
+
+
+u8 board::min_attacker(const u8 to_coord, const u64 occ, const bool color,
+                        u64 &attacker_bb) const {
+    attacker_bb = all_pawn_attacks(one_nth_bit(to_coord), !color, u64(-1))
+        & bb[color][pawn_ix] & occ;
+    if (attacker_bb)
+        return pawn_ix;
+    attacker_bb = knight_attacks(to_coord) & bb[color][knight_ix] & occ;
+    if (attacker_bb)
+        return knight_ix;
+    const u64 b_att = bishop_attacks(to_coord, occ);
+    attacker_bb = b_att & bb[color][bishop_ix] & occ;
+    if (attacker_bb)
+        return bishop_ix;
+    const u64 r_att = rook_attacks(to_coord, occ);
+    attacker_bb = r_att & bb[color][rook_ix] & occ;
+    if (attacker_bb)
+        return rook_ix;
+    attacker_bb = (b_att | r_att) & bb[color][queen_ix] & occ;
+    if (attacker_bb)
+        return queen_ix;
+    attacker_bb = king_attacks(to_coord) & bb[color][king_ix] & occ;
+    if (attacker_bb)
+        return king_ix;
+    return u8(-1);
+}

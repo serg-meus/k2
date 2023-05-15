@@ -98,8 +98,6 @@ class engine : public eval {
                const int node_typ);
     u64 tt_probe_perft(const int depth);
     eval_t static_exchange_eval(const move_s move) const;
-    u8 min_attacker(const u8 to_coord, const u64 occ, const bool color,
-                    u64 &attacker_bb) const;
     move_s next_move(std::vector<move_s> &moves, move_s &tt_move,
                      unsigned &move_num, gen_stage &stage,
                      const int depth) const;
@@ -115,6 +113,7 @@ class engine : public eval {
     void apprice_and_sort_moves(std::vector<move_s> &moves,
                                 unsigned first_move_num) const;
     void apprice_move(move_s &move) const;
+    std::string pv_string(int dpt);
 
     void make_move(const move_s &move) {
         nodes++;

@@ -51,6 +51,57 @@ void k2::start()
 }
 
 
+k2::move_s k2::search() {
+    nodes = 0;
+    ply = 0;
+    stop = false;
+    auto moves = gen_moves();
+    std::random_shuffle(moves.begin(), moves.end());
+    move_s best_move = moves.at(0);
+    for (i8 depth = 1; !stop && depth <= max_depth; ++depth) {
+        auto move = root_search(depth, -material[king_ix], material[king_ix],
+                                moves);
+        if (stop)
+            break;
+        best_move = move;
+    }
+    return best_move;
+}
+
+
+k2::move_s k2::root_search(i8 depth, const int alpha_orig, const int beta,
+                           std::vector<move_s> &moves) {
+    const bool in_check = is_in_check(side);
+    move_s best_move = moves.at(0);
+    int alpha = alpha_orig, val = 0;
+    for (unsigned i = 0; !stop && i < moves.size(); ++i) {
+        if (search_moves.size() &&
+                search_moves.find(moves.at(i)) != search_moves.end())
+            continue;
+        make_move(moves.at(i));
+        val = search_cur_pos(depth, alpha, beta, moves.at(i), i,
+                             i ? cut_node : pv_node, in_check);
+        unmake_move();
+        if (stop)
+            break;
+        if (val >= beta || val > alpha) {
+            best_move = moves.at(i);
+            if (val >= beta)
+                break;
+            alpha = val;
+            std::rotate(moves.rbegin() + int(moves.size() - i - 1),
+                        moves.rbegin() + int(moves.size() - i),
+                        moves.rend());
+            assert(moves.at(0) == best_move);
+        }
+    }
+    search_result(val, alpha_orig, alpha, beta, depth,
+                  best_move, unsigned(moves.size()), in_check);
+    print_search_iteration_result(depth, val >= beta ? beta : alpha);
+    return best_move;
+}
+
+
 bool k2::looks_like_move(const std::string &in) const {
     if (in.size() < 4 || in.size() > 5)
         return false;
@@ -393,57 +444,6 @@ void k2::unsupported_command(const std::string &in) {
 }
 
 
-k2::move_s k2::search() {
-    nodes = 0;
-    ply = 0;
-    stop = false;
-    auto moves = gen_moves();
-    std::random_shuffle(moves.begin(), moves.end());
-    move_s best_move = moves.at(0);
-    for (i8 depth = 1; !stop && depth <= max_depth; ++depth) {
-        auto move = root_search(depth, -material[king_ix], material[king_ix],
-                                moves);
-        if (stop)
-            break;
-        best_move = move;
-    }
-    return best_move;
-}
-
-
-k2::move_s k2::root_search(i8 depth, const int alpha_orig, const int beta,
-                           std::vector<move_s> &moves) {
-    const bool in_check = is_in_check(side);
-    move_s best_move = moves.at(0);
-    int alpha = alpha_orig, val = 0;
-    for (unsigned i = 0; !stop && i < moves.size(); ++i) {
-        if (search_moves.size() &&
-                search_moves.find(moves.at(i)) != search_moves.end())
-            continue;
-        make_move(moves.at(i));
-        val = search_cur_pos(depth, alpha, beta, moves.at(i), i,
-                             i ? cut_node : pv_node, in_check);
-        unmake_move();
-        if (stop)
-            break;
-        if (val >= beta || val > alpha) {
-            best_move = moves.at(i);
-            if (val >= beta)
-                break;
-            alpha = val;
-            std::rotate(moves.rbegin() + int(moves.size() - i - 1),
-                        moves.rbegin() + int(moves.size() - i),
-                        moves.rend());
-            assert(moves.at(0) == best_move);
-        }
-    }
-    search_result(val, alpha_orig, alpha, beta, depth,
-                  best_move, unsigned(moves.size()), in_check);
-    print_search_iteration_result(depth, val >= beta ? beta : alpha);
-    return best_move;
-}
-
-
 void k2::print_search_iteration_result(i8 dpt, int val) {
 	std::string pv;
 	static int prev_val;
@@ -467,26 +467,6 @@ void k2::print_search_iteration_result(i8 dpt, int val) {
     cout << "info depth " << int(dpt) << uci_score(val)
         << " time " << int(1000*time_elapsed()) << " nodes " << nodes
         << " pv " << pv << endl;
-}
-
-
-std::string k2::pv_string(int dpt) {
-    std::string str_out;
-    int i = 0;
-    for(;i < dpt; ++i) {
-        const tt_entry_c *entry = tt.find(hash_key, u32(hash_key >> 32));
-        const auto &bmov = entry->result.best_move;
-        if (entry == nullptr || bmov == not_a_move || !is_pseudo_legal(bmov))
-            break;
-        auto move_str = move_to_str(bmov);
-        make_move(bmov);
-        if (!was_legal(bmov))
-            break;
-        str_out += move_str + " ";
-    }
-    for(int j = 0; j < i; ++j)
-        unmake_move();
-    return str_out;
 }
 
 
@@ -528,23 +508,4 @@ void k2::update_clock() {
         move_cr = 0;
         current_clock += time_per_time_control;
     }
-}
-
-
-std::string k2::game_text_result() {
-    std::string ans;
-    if (is_mate())
-        ans = !side ? "1-0 {White mates}" : "0-1 {Black mates";
-    else if (is_stalemate())
-        ans = "1/2 - 1/2 {Stalemate}";
-    else {
-        ans = "1/2 - 1/2 {Draw by ";
-        if (is_draw_by_material())
-        ans += "insufficient mating material}";
-        else if (is_N_fold_repetition(3 - 1))
-            ans += "3-fold repetition}";
-        else
-            ans += "fifty moves rule";
-    }
-    return ans;
 }

@@ -309,3 +309,22 @@ bool chess::is_draw_by_material() const {
     auto black_knights = __builtin_popcountll(bb[black][knight_ix]);
     return white_bishops + white_knights <= 1 && black_bishops + black_knights <= 1;
 }
+
+
+std::string chess::game_text_result() {
+    std::string ans;
+    if (is_mate())
+        ans = !side ? "1-0 {White mates}" : "0-1 {Black mates";
+    else if (is_stalemate())
+        ans = "1/2 - 1/2 {Stalemate}";
+    else {
+        ans = "1/2 - 1/2 {Draw by ";
+        if (is_draw_by_material())
+        ans += "insufficient mating material}";
+        else if (is_N_fold_repetition(3 - 1))
+            ans += "3-fold repetition}";
+        else
+            ans += "fifty moves rule";
+    }
+    return ans;
+}

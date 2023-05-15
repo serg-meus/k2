@@ -55,11 +55,9 @@ protected:
     bool looks_like_move(const std::string &in) const;
     move_s root_search(const i8 depth, const int alpha_orig, const int beta,
                        std::vector<move_s> &moves);
-    std::string pv_string(int dpt);
     void print_search_iteration_result(i8 dpt, int val);
     void set_time_for_move();
     void update_clock();
-    std::string game_text_result();
     std::string uci_score(int val);
 
     typedef void(k2::*method_ptr)(const std::string &);

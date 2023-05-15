@@ -77,6 +77,7 @@ class chess : public board {
     bool is_pseudo_legal_pawn(const u8 from_coord, const u64 to_bb) const;
     bool is_pseudo_legal_king(const u8 from_coord, const u8 to_coord) const;
     bool slider_maybe_attacks(const u8 coord, const bool att_side) const;
+    std::string game_text_result();
 
     u64 all_non_pawn_attacks(const u8 index, const u8 from_coord,
                              const u64 occupancy) const {
