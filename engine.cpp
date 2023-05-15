@@ -271,8 +271,10 @@ std::string engine::pv_string(int dpt) {
             break;
         auto move_str = move_to_str(bmov);
         make_move(bmov);
-        if (!was_legal(bmov))
+        if (!was_legal(bmov)) {
+            unmake_move();
             break;
+        }
         str_out += move_str + " ";
     }
     for(int j = 0; j < i; ++j)
