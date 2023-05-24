@@ -9,7 +9,7 @@ class engine : public eval {
 
     const int all_node = -1, pv_node = 0, cut_node = 1;
     enum class gen_stage {init, tt, captures, killer1, killer2, bad_captures,
-        silent};
+        silent_gen, silent_probe};
     static const i8 max_ply = 126;
 
     const double infinity = std::numeric_limits<double>::infinity();
@@ -25,7 +25,7 @@ class engine : public eval {
         time_per_time_control(0), time_inc(0), current_clock(60),
         moves_per_time_control(0), moves_to_go(0), move_cr(0), ply(0),
         stop(false), search_moves(), t_beg(), tt(64*megabyte),
-        hash_keys({0}) {}
+        hash_keys({0}), killers{{{not_a_move}}} {}
     engine(const engine&);
 
     u64 perft(const int depth, const bool verbose);
@@ -93,6 +93,7 @@ class engine : public eval {
     time_point_t t_beg;
     transposition_table_c<tt_entry_c, u32, 8> tt;
     std::set<u64> hash_keys;
+    std::array<std::array<move_s, 2>, max_ply> killers;
     static const unsigned megabyte = 1000000/sizeof(tt_entry_c);
 
     int search(int depth, const int alpha, const int beta,
@@ -115,6 +116,9 @@ class engine : public eval {
                                 unsigned first_move_num) const;
     void apprice_move(move_s &move) const;
     std::string pv_string(int dpt);
+    void update_cutoff_stats(const int depth, const move_s move);
+    void erase_move(std::vector<move_s> &moves, const move_s move,
+                        const unsigned first_ix) const;
 
     void make_move(const move_s &move) {
         nodes++;
@@ -133,6 +137,8 @@ public:
         hash_keys.clear();
         bool ans = chess::setup_position(fen);
         hash_keys.insert(hash_key);
+        std::fill(killers.begin(), killers.end(),
+                  std::array<move_s, 2>({not_a_move, not_a_move}));
         move_cr = 0;
         return ans;
     }
@@ -165,7 +171,8 @@ protected:
     int late_move_reduction(const int depth, const move_s cur_move,
                             const bool in_check, unsigned int move_num,
                             const int node_type) const {
-        if(depth < 3 || !is_silent(cur_move) || in_check || move_num < 3)
+        if(depth < 3 || cur_move.is_capture || cur_move.promo ||
+                in_check || move_num < 3)
             return 0;
         if(cur_move.index == pawn_ix /*&& is_passer*/)
             return 0;

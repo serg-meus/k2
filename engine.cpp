@@ -35,8 +35,10 @@ int engine::search(const int depth_orig, const int alpha_orig, const int beta,
         unmake_move();
         if (val >= beta || val > alpha) {
             best_move_num = move_num;
-            if (val >= beta)
+            if (val >= beta) {
+                update_cutoff_stats(depth, cur_move);
                 break;
+            }
             alpha = val;
         }
     }
@@ -130,7 +132,8 @@ move_s engine::next_move(std::vector<move_s> &moves,
     ++move_num;
     if (stage == gen_stage::init) {
         stage = gen_stage::tt;
-        if (tt_move != not_a_move && is_pseudo_legal(tt_move)) {
+        if (tt_move != not_a_move && is_pseudo_legal(tt_move) &&
+                (depth > 0 || tt_move.is_capture)) {
             tt_move.priority = 255;
             moves.push_back(tt_move);
             return tt_move;
@@ -139,11 +142,13 @@ move_s engine::next_move(std::vector<move_s> &moves,
     if (stage == gen_stage::tt) {
         stage = gen_stage::captures;
         gen_pseudo_legal_moves(moves, gen_mode::only_captures);
-        apprice_and_sort_moves(moves, moves.size() && tt_move != not_a_move);
+        if (tt_move != not_a_move && (tt_move.is_capture || tt_move.promo) &&
+                move_num == 1)
+            erase_move(moves, tt_move, 1);
+        apprice_and_sort_moves(moves, move_num);
         if (move_num < moves.size()) {
             return moves.at(move_num);
         }
-        stage = gen_stage::captures;
     }
     if (stage == gen_stage::captures) {
         if (move_num < moves.size()) {
@@ -151,18 +156,55 @@ move_s engine::next_move(std::vector<move_s> &moves,
         }
         if (depth <= 0)
             return not_a_move;
-        stage = gen_stage::silent;
-        gen_pseudo_legal_moves(moves, gen_mode::only_silent);
+        stage = gen_stage::killer1;
     }
-    if (move_num < moves.size()) {
-        return moves.at(move_num);
+    if (stage == gen_stage::killer1) {
+        stage = gen_stage::killer2;
+        move_s k1 = killers.at(ply).at(0);
+        if (k1 != tt_move && is_pseudo_legal(k1)) {
+            k1.priority = 254;
+            moves.push_back(k1);
+            return k1;
+        }
+    }
+    if (stage == gen_stage::killer2) {
+        stage = gen_stage::silent_gen;
+        move_s k2 = killers.at(ply).at(1);
+        if (k2 != tt_move && is_pseudo_legal(k2)) {
+            k2.priority = 253;
+            moves.push_back(k2);
+            return k2;
+        }
+    }
+    if (stage == gen_stage::silent_gen) {
+        stage = gen_stage::silent_probe;
+        gen_pseudo_legal_moves(moves, gen_mode::only_silent);
+        if (tt_move != not_a_move && !tt_move.is_capture && !tt_move.promo)
+            erase_move(moves, tt_move, move_num);
+        erase_move(moves, killers.at(ply).at(0), move_num);
+        erase_move(moves, killers.at(ply).at(1), move_num);
+    }
+    if (stage == gen_stage::silent_probe) {
+        if (move_num < moves.size())
+            return moves.at(move_num);
     }
     return not_a_move;
 }
 
 
+void engine::erase_move(std::vector<move_s> &moves, const move_s move,
+                        const unsigned first_ix) const {
+    auto it = std::find(moves.begin() + first_ix, moves.end(), move);
+    if (it == moves.end())
+        return;
+    moves.erase(it);
+}
+
+
 void engine::apprice_and_sort_moves(std::vector<move_s> &moves,
                                     unsigned first_move_num) const {
+    if (moves.size() == 0)
+        return;
     for (auto i = first_move_num; i < moves.size(); ++i)
         apprice_move(moves.at(i));
     std::sort(moves.begin() + int(first_move_num), moves.end());
@@ -279,4 +321,18 @@ std::string engine::pv_string(int dpt) {
     for(int j = 0; j < i; ++j)
         unmake_move();
     return str_out;
+}
+
+
+void engine::update_cutoff_stats(const int depth, const move_s move) {
+    if (depth <= 0 || move.is_capture || move.promo ||
+            move == killers.at(ply).at(0))
+        return;
+    if (move == killers.at(ply).at(1))
+        std::swap(killers.at(ply).at(0), killers.at(ply).at(1));
+    else {
+        killers.at(ply).at(1) = killers.at(ply).at(0);
+        killers.at(ply).at(0) = move;
+    }
+    assert(killers.at(ply).at(0) != killers.at(ply).at(1));
 }
