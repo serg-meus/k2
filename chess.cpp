@@ -257,12 +257,17 @@ bool chess::castling_was_legal(const bool attacker_side,
 
 bool chess::is_pseudo_legal(const move_s move) const {
     const u8 index = find_index(side, one_nth_bit(move.from_coord));
-    if (index == u8(-1))
+    if (index == u8(-1) || index != move.index)
         return false;
     if (find_index(side, one_nth_bit(move.to_coord)) != u8(-1))
         return false;
     const u64 to_bb = one_nth_bit(move.to_coord);
     const u64 occ = bb[0][occupancy_ix] | bb[1][occupancy_ix];
+    u64 opp_occ = bb[!side][occupancy_ix];
+    if (index == pawn_ix)
+        opp_occ |= en_passant_bitboard;
+    if (bool(move.is_capture) != bool(get_nth_bit(opp_occ, move.to_coord)))
+        return false;
     if (index == pawn_ix)
         return is_pseudo_legal_pawn(move.from_coord, to_bb);
     else if (index == king_ix)

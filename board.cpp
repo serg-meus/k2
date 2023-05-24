@@ -85,6 +85,10 @@ board::move_s board::move_from_str(const std::string &str) const {
     if (ans.index == pawn_ix && get_row(ans.to_coord) ==
         (side == white ? 7 : 0))
         ans.promo = char_to_bb_index(str.size() > 4 ? str.at(4) : 'q') & 7;
+    u64 opp_occ = bb[!side][occupancy_ix];
+    if (ans.index == pawn_ix)
+        opp_occ |= en_passant_bitboard;
+    ans.is_capture = bool(get_nth_bit(opp_occ, ans.to_coord));
     return ans;
 }
 
