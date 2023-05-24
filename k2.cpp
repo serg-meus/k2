@@ -95,7 +95,7 @@ k2::move_s k2::root_search(i8 depth, const int alpha_orig, const int beta,
             assert(moves.at(0) == best_move);
         }
     }
-    search_result(val, alpha_orig, alpha, beta, depth,
+    search_result(val, alpha_orig, alpha, beta, depth, depth,
                   best_move, unsigned(moves.size()), in_check);
     print_search_iteration_result(depth, val >= beta ? beta : alpha);
     return best_move;
@@ -445,9 +445,9 @@ void k2::unsupported_command(const std::string &in) {
 
 
 void k2::print_search_iteration_result(i8 dpt, int val) {
-	std::string pv;
-	static int prev_val;
-	static std::string prev_pv;
+    std::string pv;
+    static int prev_val;
+    static std::string prev_pv;
     if (silent_mode)
         return;
     if (stop) {

@@ -10,14 +10,15 @@ class engine : public eval {
     const int all_node = -1, pv_node = 0, cut_node = 1;
     enum class gen_stage {init, tt, captures, killer1, killer2, bad_captures,
         silent};
-    const i8 max_ply = 126;
-    
+    static const i8 max_ply = 126;
+
     const double infinity = std::numeric_limits<double>::infinity();
 
     u64 nodes, max_nodes;
     double time_for_move, max_time_for_move, time_per_time_control,
         time_inc, current_clock;
-    int moves_per_time_control, moves_to_go, move_cr, ply;
+    int moves_per_time_control, moves_to_go, move_cr;
+    unsigned ply;
     bool stop;
 
     engine() : nodes(0), max_nodes(0), time_for_move(0), max_time_for_move(0),
@@ -102,14 +103,14 @@ class engine : public eval {
                      unsigned &move_num, gen_stage &stage,
                      const int depth) const;
     bool tt_probe(const int depth, int &alpha, const int beta,
-                  move_s &tt_move);
+                  move_s &tt_move, const int node_type);
     int search_cur_pos(const int depth, const int alpha, const int beta,
                        const move_s cur_move, unsigned int move_num,
                        const int node_type, const bool in_check);
     int search_result(const int val, const int alpha_orig,
-                        const int alpha, const int beta, int depth,
-                        move_s best_move, const unsigned legal_moves,
-                        const bool in_check);
+                      const int alpha, const int beta, const int depth,
+                      const int depth_orig, move_s best_move,
+                      const unsigned legal_moves, const bool in_check);
     void apprice_and_sort_moves(std::vector<move_s> &moves,
                                 unsigned first_move_num) const;
     void apprice_move(move_s &move) const;
