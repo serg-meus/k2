@@ -24,7 +24,7 @@ class engine : public eval {
     engine() : nodes(0), max_nodes(0), time_for_move(0), max_time_for_move(0),
         time_per_time_control(0), time_inc(0), current_clock(60),
         moves_per_time_control(0), moves_to_go(0), move_cr(0), ply(0),
-        stop(false), search_moves(), t_beg(), tt(64*megabyte),
+        stop(false), done_moves(), t_beg(), tt(64*megabyte),
         hash_keys({0}), killers{{{not_a_move}}} {}
     engine(const engine&);
 
@@ -32,8 +32,7 @@ class engine : public eval {
 
     protected:
 
-    std::set<move_s> search_moves;
-
+    std::vector<move_s> done_moves;
     const move_s not_a_move = {0, 0, 0, 0};
     const double time_margin = 0.02;
 
@@ -119,15 +118,18 @@ class engine : public eval {
     void update_cutoff_stats(const int depth, const move_s move);
     void erase_move(std::vector<move_s> &moves, const move_s move,
                         const unsigned first_ix) const;
+    bool null_move_pruning(const int dpt, const int beta,const bool in_check);
 
     void make_move(const move_s &move) {
         nodes++;
         ply++;
         board::make_move(move);
+        done_moves.push_back(move);
     }
 
     void unmake_move() {
         ply--;
+        done_moves.pop_back();
         board::unmake_move();
     }
 
@@ -135,6 +137,7 @@ public:
 
     bool setup_position(const std::string &fen) {
         hash_keys.clear();
+        done_moves.clear();
         bool ans = chess::setup_position(fen);
         hash_keys.insert(hash_key);
         std::fill(killers.begin(), killers.end(),

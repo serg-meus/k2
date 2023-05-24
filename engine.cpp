@@ -12,6 +12,8 @@ int engine::search(const int depth_orig, const int alpha_orig, const int beta,
         return alpha;
     const bool in_check = is_in_check(side);
     int depth = (in_check && depth_orig >= 0) ? depth_orig + 1 : depth_orig;
+    if (null_move_pruning(depth, beta, in_check))
+        return beta;
     std::vector<move_s> moves;
     gen_stage stage = gen_stage::init;
     unsigned best_move_num = 0, move_num = unsigned(-1), legal_moves = 0;
@@ -335,4 +337,23 @@ void engine::update_cutoff_stats(const int depth, const move_s move) {
         killers.at(ply).at(0) = move;
     }
     assert(killers.at(ply).at(0) != killers.at(ply).at(1));
+}
+
+
+bool engine::null_move_pruning(const int depth, const int beta,
+                               const bool in_check) {
+    if (in_check || depth < 2 || ply < 2)
+        return false;
+    if (done_moves.at(ply - 1).from_coord == done_moves.at(ply - 1).to_coord &&
+        done_moves.at(ply - 2).from_coord == done_moves.at(ply - 2).to_coord)
+        return false;
+    if (!(bb[side][knight_ix] | bb[side][bishop_ix] |
+            bb[side][rook_ix] | bb[side][queen_ix]))
+        return false;
+    const u8 king_coord = trail_zeros(bb[side][king_ix]);
+    make_move({king_ix, king_coord, king_coord, 0});
+    const int R = depth > 6 ? 4 : 3;
+    const int x = -search(depth - R - 1, -beta, -beta + 1, all_node);
+    unmake_move();
+    return x >= beta;
 }

@@ -8,7 +8,7 @@ class k2 : public engine
 public:
 
     k2() : force(false), quit(false), silent_mode(false), xboard(false),
-           uci(false), max_depth(max_ply) {
+           uci(false), max_depth(max_ply), search_moves() {
         std::srand(unsigned(time(0)));
     }
     void start();
@@ -18,6 +18,7 @@ protected:
 
     bool force, quit, silent_mode, xboard, uci;
     i8 max_depth;
+    std::set<move_s> search_moves;
 
     bool execute_command(const std::string &in);
     void new_command(const std::string &in);
