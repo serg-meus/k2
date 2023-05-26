@@ -10,8 +10,7 @@ public:
     k2() : commands(), force(false), quit(false), silent_mode(false),
            xboard(false), uci(false), max_depth(max_ply), search_moves(),
            time_for_move(0), time_per_time_control(0), time_inc(0),
-           current_clock(60), moves_per_time_control(0), moves_to_go(0),
-           move_cr(0) {
+           current_clock(60), moves_per_time_control(0), moves_to_go(0) {
         std::srand(unsigned(time(0)));
     }
     void start();
@@ -48,7 +47,7 @@ protected:
     std::set<move_s> search_moves;
     double time_for_move, time_per_time_control,
         time_inc, current_clock;
-    int moves_per_time_control, moves_to_go, move_cr;
+    int moves_per_time_control, moves_to_go;
 
     const double time_margin = 0.02;
 

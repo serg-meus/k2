@@ -19,12 +19,12 @@ class engine : public eval {
 
     u64 nodes, max_nodes;
     double max_time_for_move;
-    int moves_per_time_control, moves_to_go, move_cr;
+    int move_cr;
     unsigned ply;
     bool stop;
 
-    engine() : nodes(0), max_nodes(0), max_time_for_move(0), ply(0),
-        stop(false), done_moves(), t_beg(), tt(64*megabyte),
+    engine() : nodes(0), max_nodes(0), max_time_for_move(0), move_cr(0),
+        ply(0), stop(false), done_moves(), t_beg(), tt(64*megabyte),
         hash_keys({0}), killers{{{not_a_move}}} {}
     engine(const engine&);
 
