@@ -2,6 +2,9 @@
 #include <cassert>
 
 
+enum class gen_mode {all_moves, only_captures, only_silent};
+
+
 class chess : public board {
 
     public:
@@ -14,7 +17,6 @@ class chess : public board {
     static constexpr const char* start_pos =
         "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -";
 
-    enum class gen_mode {all_moves, only_captures, only_silent};
     std::vector<board::move_s> gen_moves();
     void gen_pseudo_legal_moves(std::vector<move_s> &moves,
                                 const gen_mode mode) const;

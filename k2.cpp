@@ -16,6 +16,32 @@ int main(int argc, char* argv[])
     (void)(argv);
 
     std::unique_ptr<k2> eng(new k2);
+    eng->commands =
+    {
+        {"help",        &k2::help_command},
+        {"new",         &k2::new_command},
+        {"force",       &k2::force_command},
+        {"setboard",    &k2::setboard_command},
+        {"set",         &k2::setboard_command},
+        {"quit",        &k2::quit_command},
+        {"q",           &k2::quit_command},
+        {"perft",       &k2::perft_command},
+        {"memory",      &k2::memory_command},
+        {"post",        &k2::post_command},
+        {"nopost",      &k2::nopost_command},
+        {"eval",        &k2::eval_command},
+        {"go",          &k2::go_command},
+        {"sd",          &k2::sd_command},
+        {"sn",          &k2::sn_command},
+        {"st",          &k2::st_command},
+        {"protover",    &k2::protover_command},
+        {"level",       &k2::level_command},
+        {"uci",         &k2::uci_command},
+        {"isready",     &k2::isready_command},
+        {"ucinewgame",  &k2::new_command},
+        {"position",    &k2::position_command},
+        {"setoption",   &k2::setoption_command},
+    };
     cout << "K2, the chess engine by Sergey Meus" << endl;
     eng->start();
 }
@@ -482,30 +508,4 @@ std::string k2::uci_score(int val) {
         ans += "-";
     ans += std::to_string(mate_depth);
     return ans;
-}
-
-
-void k2::set_time_for_move() {
-    if (!uci)
-        moves_to_go = moves_per_time_control ?
-            moves_per_time_control - move_cr : 0;
-    int mov2go = moves_to_go ? moves_to_go : 30;
-    double k_branch = mov2go <= 4 ? 1 : 2;
-    time_for_move = current_clock/mov2go/k_branch + time_inc;
-    double k_max = mov2go <= 4 ? 1 : 3;
-    max_time_for_move = k_max*time_for_move - time_margin;
-    if (max_time_for_move >= current_clock)
-        max_time_for_move = current_clock - time_margin;
-}
-
-
-void k2::update_clock() {
-    if (uci)
-        return;
-    current_clock += time_inc - time_elapsed();
-    move_cr++;
-    if (moves_per_time_control && move_cr >= moves_per_time_control) {
-        move_cr = 0;
-        current_clock += time_per_time_control;
-    }
 }

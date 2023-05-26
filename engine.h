@@ -3,27 +3,27 @@
 #include <chrono>
 #include <set>
 
+
+enum class gen_stage {init, tt, captures, killer1, killer2, bad_captures,
+    silent_gen, silent_probe};
+
+
 class engine : public eval {
 
     public:
 
     const int all_node = -1, pv_node = 0, cut_node = 1;
-    enum class gen_stage {init, tt, captures, killer1, killer2, bad_captures,
-        silent_gen, silent_probe};
     static const i8 max_ply = 126;
 
     const double infinity = std::numeric_limits<double>::infinity();
 
     u64 nodes, max_nodes;
-    double time_for_move, max_time_for_move, time_per_time_control,
-        time_inc, current_clock;
+    double max_time_for_move;
     int moves_per_time_control, moves_to_go, move_cr;
     unsigned ply;
     bool stop;
 
-    engine() : nodes(0), max_nodes(0), time_for_move(0), max_time_for_move(0),
-        time_per_time_control(0), time_inc(0), current_clock(60),
-        moves_per_time_control(0), moves_to_go(0), move_cr(0), ply(0),
+    engine() : nodes(0), max_nodes(0), max_time_for_move(0), ply(0),
         stop(false), done_moves(), t_beg(), tt(64*megabyte),
         hash_keys({0}), killers{{{not_a_move}}} {}
     engine(const engine&);
@@ -34,7 +34,6 @@ class engine : public eval {
 
     std::vector<move_s> done_moves;
     const move_s not_a_move = {0, 0, 0, 0};
-    const double time_margin = 0.02;
 
     enum class tt_bound {exact = 0, lower = 1, upper = 2};
 
@@ -180,10 +179,6 @@ protected:
         if(cur_move.index == pawn_ix /*&& is_passer*/)
             return 0;
         return 1 + int(node_type != pv_node && move_num > 6);
-    }
-
-    void timer_start() {
-        t_beg = std::chrono::high_resolution_clock::now();
     }
 
     double time_elapsed() {

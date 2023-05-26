@@ -7,20 +7,19 @@ class k2 : public engine
 
 public:
 
-    k2() : force(false), quit(false), silent_mode(false), xboard(false),
-           uci(false), max_depth(max_ply), search_moves() {
+    k2() : commands(), force(false), quit(false), silent_mode(false),
+           xboard(false), uci(false), max_depth(max_ply), search_moves(),
+           time_for_move(0), time_per_time_control(0), time_inc(0),
+           current_clock(60), moves_per_time_control(0), moves_to_go(0),
+           move_cr(0) {
         std::srand(unsigned(time(0)));
     }
     void start();
     move_s search();
 
-protected:
+    typedef void(k2::*method_ptr)(const std::string &);
+    std::map<std::string, method_ptr> commands;
 
-    bool force, quit, silent_mode, xboard, uci;
-    i8 max_depth;
-    std::set<move_s> search_moves;
-
-    bool execute_command(const std::string &in);
     void new_command(const std::string &in);
     void force_command(const std::string &in);
     void quit_command(const std::string &in);
@@ -41,6 +40,19 @@ protected:
     void isready_command(const std::string &in);
     void position_command(const std::string &in);
     void setoption_command(const std::string &in);
+
+protected:
+
+    bool force, quit, silent_mode, xboard, uci;
+    i8 max_depth;
+    std::set<move_s> search_moves;
+    double time_for_move, time_per_time_control,
+        time_inc, current_clock;
+    int moves_per_time_control, moves_to_go, move_cr;
+
+    const double time_margin = 0.02;
+
+    bool execute_command(const std::string &in);
     void uci_go_command(const std::string &in);
     void uci_go_infinite(const std::string &in);
     void uci_go_ponder(const std::string &in);
@@ -57,35 +69,34 @@ protected:
     move_s root_search(const i8 depth, const int alpha_orig, const int beta,
                        std::vector<move_s> &moves);
     void print_search_iteration_result(i8 dpt, int val);
-    void set_time_for_move();
-    void update_clock();
     std::string uci_score(int val);
 
-    typedef void(k2::*method_ptr)(const std::string &);
-    std::map<std::string, method_ptr> commands =
-    {
-        {"help",        &k2::help_command},
-        {"new",         &k2::new_command},
-        {"force",       &k2::force_command},
-        {"setboard",    &k2::setboard_command},
-        {"set",         &k2::setboard_command},
-        {"quit",        &k2::quit_command},
-        {"q",           &k2::quit_command},
-        {"perft",       &k2::perft_command},
-        {"memory",      &k2::memory_command},
-        {"post",        &k2::post_command},
-        {"nopost",      &k2::nopost_command},
-        {"eval",        &k2::eval_command},
-        {"go",          &k2::go_command},
-        {"sd",          &k2::sd_command},
-        {"sn",          &k2::sn_command},
-        {"st",          &k2::st_command},
-        {"protover",    &k2::protover_command},
-        {"level",       &k2::level_command},
-        {"uci",         &k2::uci_command},
-        {"isready",     &k2::isready_command},
-        {"ucinewgame",  &k2::new_command},
-        {"position",    &k2::position_command},
-        {"setoption",   &k2::setoption_command},
-    };
+
+    void timer_start() {
+        t_beg = std::chrono::high_resolution_clock::now();
+    }
+
+    void update_clock() {
+        if (uci)
+            return;
+        current_clock += time_inc - time_elapsed();
+        move_cr++;
+        if (moves_per_time_control && move_cr >= moves_per_time_control) {
+            move_cr = 0;
+            current_clock += time_per_time_control;
+        }
+    }
+
+    void set_time_for_move() {
+        if (!uci)
+            moves_to_go = moves_per_time_control ?
+                moves_per_time_control - move_cr : 0;
+        int mov2go = moves_to_go ? moves_to_go : 30;
+        double k_branch = mov2go <= 4 ? 1 : 2;
+        time_for_move = current_clock/mov2go/k_branch + time_inc;
+        double k_max = mov2go <= 4 ? 1 : 3;
+        max_time_for_move = k_max*time_for_move - time_margin;
+        if (max_time_for_move >= current_clock)
+            max_time_for_move = current_clock - time_margin;
+    }
 };

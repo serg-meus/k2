@@ -4,6 +4,7 @@
 int main() {
     auto T = test_all();
     T.test_main();
+    std::cout << "All tests passed" << std::endl;
     return 0;
 }
 
@@ -13,8 +14,9 @@ void test_all::test_main() {
     test_bitboards();
     test_board();
     test_chess();
-    test_engine();
     test_eval();
+    test_engine();
+    test_k2();
 }
 
 
@@ -65,6 +67,23 @@ void test_all::test_chess() {
     test_is_attacked_by();
     test_legality();
     test_game_over();
+}
+
+
+void test_all::test_eval() {
+}
+
+
+void test_all::test_engine() {
+    test_perft();
+    test_see();
+    test_next_move();
+}
+
+
+void test_all::test_k2() {
+    test_set_time_for_move();
+    test_update_clock();
 }
 
 
@@ -535,17 +554,17 @@ void test_all::test_gen_pseudo_legal_moves() {
         assert(std::find(moves.begin(), moves.end(), est) != moves.end());
     moves.clear();
     C.setup_position("4r2k/5P2/4N3/6pP/B7/8/8/1K6 w - g6");
-    C.gen_pseudo_legal_moves(moves, C.gen_mode::only_captures);
+    C.gen_pseudo_legal_moves(moves, gen_mode::only_captures);
     assert(moves.size() == 11);
     moves.clear();
-    C.gen_pseudo_legal_moves(moves, C.gen_mode::only_silent);
+    C.gen_pseudo_legal_moves(moves, gen_mode::only_silent);
     assert(moves.size() == 19);
     moves.clear();
     assert(C.enter_move("f7f8r"));
-    C.gen_pseudo_legal_moves(moves, C.gen_mode::only_captures);
+    C.gen_pseudo_legal_moves(moves, gen_mode::only_captures);
     assert(moves.size() == 2);
     moves.clear();
-    C.gen_pseudo_legal_moves(moves, C.gen_mode::only_silent);
+    C.gen_pseudo_legal_moves(moves, gen_mode::only_silent);
     assert(moves.size() == 9);
 }
 
@@ -631,7 +650,7 @@ void test_all::test_legality() {
     assert(test_sequence_of_moves(moves, C));
 
     C.setup_position(
-		"rnbq1k1r/1p1Pbppp/2p5/p7/1PB5/8/P1P1NnPP/RNBQK2R w KQ a6");
+        "rnbq1k1r/1p1Pbppp/2p5/p7/1PB5/8/P1P1NnPP/RNBQK2R w KQ a6");
     assert(C.enter_move("b4b5"));
 
     C.setup_position("4k3/3ppp2/4b3/1n5Q/B7/8/4R3/4K3 b - -");
@@ -734,7 +753,7 @@ void test_all::test_legality() {
     assert(test_sequence_of_moves(moves, C));
 
     C.setup_position(
-		"r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq -");
+        "r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq -");
     moves = "d2d4 b2a1q h6f7";
     assert(test_sequence_of_moves(moves, C));
 
@@ -839,19 +858,6 @@ void test_all::test_game_over() {
     C.setup_position("4k3/8/7B/8/n7/8/1R6/3K4 w - -");
     assert(!C.is_draw());
     assert(!C.game_over());
-}
-
-
-void test_all::test_eval() {
-}
-
-
-void test_all::test_engine() {
-    test_perft();
-    test_see();
-    test_next_move();
-    test_set_time_for_move();
-    test_update_clock();
 }
 
 
@@ -979,7 +985,7 @@ void test_all::test_next_move() {
     E.setup_position("4k3/3p2p1/1b5b/n7/8/8/p2Q4/3K4 w - -");
     std::vector<move_s> moves;
     move_s tt_move = E.not_a_move;
-    auto stage = E.gen_stage::init;
+    auto stage = gen_stage::init;
     unsigned move_num = unsigned(-1);
     ans = E.next_move(moves, tt_move, move_num, stage, 1);
     assert(ans == E.move_from_str("d2a2"));
@@ -992,60 +998,60 @@ void test_all::test_next_move() {
 
 
 void test_all::test_set_time_for_move() {
-    auto E = engine_tst();
+    auto K = k2_tst();
 
-    E.move_cr = 0;
-    E.current_clock = 1;
-    E.time_inc = 0;
-    E.moves_per_time_control = 0;
-    E.set_time_for_move();
-    assert(is_close(E.time_for_move,  1./60));
-    assert(is_close(E.max_time_for_move, 3./60 - E.time_margin));
+    K.move_cr = 0;
+    K.current_clock = 1;
+    K.time_inc = 0;
+    K.moves_per_time_control = 0;
+    K.set_time_for_move();
+    assert(is_close(K.time_for_move,  1./60));
+    assert(is_close(K.max_time_for_move, 3./60 - K.time_margin));
 
-    E.moves_per_time_control = 10;
-    E.set_time_for_move();
-    assert(is_close(E.time_for_move,  1./20));
-    assert(is_close(E.max_time_for_move, 3./20 - E.time_margin));
+    K.moves_per_time_control = 10;
+    K.set_time_for_move();
+    assert(is_close(K.time_for_move,  1./20));
+    assert(is_close(K.max_time_for_move, 3./20 - K.time_margin));
 
-    E.moves_per_time_control = 2;
-    E.set_time_for_move();
-    assert(is_close(E.time_for_move,  1./2));
-    assert(is_close(E.max_time_for_move, 1./2 - E.time_margin));
+    K.moves_per_time_control = 2;
+    K.set_time_for_move();
+    assert(is_close(K.time_for_move,  1./2));
+    assert(is_close(K.max_time_for_move, 1./2 - K.time_margin));
 
-    E.moves_per_time_control = 0;
-    E.time_inc = .1;
-    E.set_time_for_move();
-    assert(is_close(E.time_for_move,  1./60 + .1));
-    assert(is_close(E.max_time_for_move, 3./60 + .3 - E.time_margin));
+    K.moves_per_time_control = 0;
+    K.time_inc = .1;
+    K.set_time_for_move();
+    assert(is_close(K.time_for_move,  1./60 + .1));
+    assert(is_close(K.max_time_for_move, 3./60 + .3 - K.time_margin));
 
-    E.move_cr = 6;
-    E.time_inc = 0;
-    E.set_time_for_move();
-    assert(is_close(E.time_for_move,  1./60));
-    assert(is_close(E.max_time_for_move, 3./60 - E.time_margin));
+    K.move_cr = 6;
+    K.time_inc = 0;
+    K.set_time_for_move();
+    assert(is_close(K.time_for_move,  1./60));
+    assert(is_close(K.max_time_for_move, 3./60 - K.time_margin));
 
-    E.moves_per_time_control = 10;
-    E.set_time_for_move();
-    assert(is_close(E.time_for_move,  1./4));
-    assert(is_close(E.max_time_for_move, 1./4 - E.time_margin));
+    K.moves_per_time_control = 10;
+    K.set_time_for_move();
+    assert(is_close(K.time_for_move,  1./4));
+    assert(is_close(K.max_time_for_move, 1./4 - K.time_margin));
 
-    E.moves_per_time_control = 0;
-    E.time_inc = .1;
-    E.set_time_for_move();
-    assert(is_close(E.time_for_move,  1./60 + .1));
-    assert(is_close(E.max_time_for_move, 3./60 + .3 - E.time_margin));
+    K.moves_per_time_control = 0;
+    K.time_inc = .1;
+    K.set_time_for_move();
+    assert(is_close(K.time_for_move,  1./60 + .1));
+    assert(is_close(K.max_time_for_move, 3./60 + .3 - K.time_margin));
 }
 
 
 void test_all::test_update_clock() {
-    auto E = engine_tst();
+    auto K = k2_tst();
 
-    E.move_cr = 0;
-    E.moves_per_time_control = 1;
-    E.time_per_time_control = 2;
-    E.current_clock = 1;
-    E.timer_start();
-    E.update_clock();
-    assert(E.move_cr == 0);
-    assert(E.current_clock >= 2.8);
+    K.move_cr = 0;
+    K.moves_per_time_control = 1;
+    K.time_per_time_control = 2;
+    K.current_clock = 1;
+    K.timer_start();
+    K.update_clock();
+    assert(K.move_cr == 0);
+    assert(K.current_clock >= 2.8);
 }

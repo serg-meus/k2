@@ -1,5 +1,4 @@
-#include "engine.h"
-#include <memory>
+#include "k2.h"
 
 using move_s = board::move_s;
 
@@ -37,9 +36,11 @@ class chess_tst: public chess {
     using board_state::reversible_halfmoves;
 };
 
+
 class eval_tst: public eval {
     public:
 };
+
 
 class engine_tst: public engine {
     public:
@@ -49,13 +50,24 @@ class engine_tst: public engine {
     using engine::bb;
     using engine::material;
     using engine::not_a_move;
-    using engine::gen_stage;
     using engine::next_move;
-    using engine::set_time_for_move;
-    using engine::time_margin;
-    using engine::update_clock;
-    using engine::timer_start;
 };
+
+
+class k2_tst: public k2 {
+    public:
+    using k2::timer_start;
+    using k2::update_clock;
+    using k2::current_clock;
+    using k2::move_cr;
+    using k2::moves_per_time_control;
+    using k2::time_per_time_control;
+    using k2::time_inc;
+    using k2::time_for_move;
+    using k2::set_time_for_move;
+    using k2::time_margin;
+};
+
 
 class test_all : public bitboards {
 
@@ -93,4 +105,5 @@ public :
     void test_next_move();
     void test_set_time_for_move();
     void test_update_clock();
+    void test_k2();
 };
