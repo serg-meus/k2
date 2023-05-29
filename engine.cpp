@@ -148,13 +148,11 @@ move_s engine::next_move(std::vector<move_s> &moves,
                 move_num == 1)
             erase_move(moves, tt_move, 1);
         apprice_and_sort_moves(moves, move_num);
-        if (move_num < moves.size()) {
-            return moves.at(move_num);
-        }
     }
     if (stage == gen_stage::captures) {
         if (move_num < moves.size()) {
-            return moves.at(move_num);
+            if (depth > 0 || moves.at(move_num).priority >= 200)
+                return moves.at(move_num);
         }
         if (depth <= 0)
             return not_a_move;
@@ -223,7 +221,7 @@ void engine::apprice_move(move_s &move) const {
         see = 0;
     if (move.promo)
         see += material.at(move.promo);
-    int ans = see/40 + (see > 0 ? 200 : 64);
+    int ans = see/40 + (see >= 0 ? 200 : 64);
     assert(u8(ans) >= 200 || u8(ans) <= 64);
     move.priority = u8(ans);
 }

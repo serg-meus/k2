@@ -1006,6 +1006,47 @@ void test_all::test_next_move() {
     assert(ans == E.move_from_str("d7d8q"));
     ans = E.next_move(moves, tt_move, move_num, stage, 1);
     assert(ans == E.move_from_str("d7e8b"));
+
+    E.setup_position("3rrqk1/1P3pp1/7p/6P1/8/PR6/1Q3P1P/1R4K1 w - -");
+    moves.clear();
+    stage = gen_stage::init;
+    move_num = unsigned(-1);
+    ans = E.next_move(moves, tt_move, move_num, stage, 0);
+    assert(ans == E.move_from_str("b7b8q"));
+    ans = E.next_move(moves, tt_move, move_num, stage, 0);
+    assert(ans == E.move_from_str("b7b8r"));
+    ans = E.next_move(moves, tt_move, move_num, stage, 0);
+    assert(ans == E.move_from_str("b7b8b"));
+    ans = E.next_move(moves, tt_move, move_num, stage, 0);
+    assert(ans == E.move_from_str("b7b8n"));
+    ans = E.next_move(moves, tt_move, move_num, stage, 0);
+    assert(ans == E.move_from_str("g5h6"));
+    ans = E.next_move(moves, tt_move, move_num, stage, 0);
+    assert(ans == E.not_a_move);
+
+    E.setup_position("k7/pp2q1p1/7p/8/1b5R/N1P5/1P3PP1/K3Q2R w - -");
+    moves.clear();
+    stage = gen_stage::init;
+    move_num = unsigned(-1);
+    ans = E.next_move(moves, tt_move, move_num, stage, 0);
+    assert(ans == E.move_from_str("c3b4"));
+    ans = E.next_move(moves, tt_move, move_num, stage, 0);
+    assert(ans == E.move_from_str("h4b4"));
+    ans = E.next_move(moves, tt_move, move_num, stage, 0);
+    assert(ans == E.move_from_str("e1e7"));
+    ans = E.next_move(moves, tt_move, move_num, stage, 0);
+    assert(ans == E.not_a_move);
+
+    E.setup_position("k7/pp2q1p1/7p/8/1b5R/N1P5/1P3PP1/K3Q2R b - -");
+    moves.clear();
+    stage = gen_stage::init;
+    move_num = unsigned(-1);
+    ans = E.next_move(moves, tt_move, move_num, stage, 0);
+    assert(ans == E.move_from_str("b4a3"));
+    ans = E.next_move(moves, tt_move, move_num, stage, 0);
+    assert(ans == E.move_from_str("e7e1"));
+    ans = E.next_move(moves, tt_move, move_num, stage, 0);
+    assert(ans == E.not_a_move);
 }
 
 
