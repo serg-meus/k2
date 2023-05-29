@@ -219,9 +219,11 @@ void engine::apprice_move(move_s &move) const {
         return;
     }
     int see = static_exchange_eval(move);
-    int ans = see/20 + (see > 0 ? 200 : 64);
     if (see < -material[king_ix]/2)
-        ans = 0;
+        see = 0;
+    if (move.promo)
+        see += material.at(move.promo);
+    int ans = see/40 + (see > 0 ? 200 : 64);
     assert(u8(ans) >= 200 || u8(ans) <= 64);
     move.priority = u8(ans);
 }

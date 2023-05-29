@@ -994,6 +994,18 @@ void test_all::test_next_move() {
     ans = E.next_move(moves, tt_move, move_num, stage, 1);
     assert(ans == E.move_from_str("d2a5"));
 
+    E.setup_position("K3n2k/3P4/8/8/1N6/8/b7/8 w - -");
+    moves.clear();
+    stage = gen_stage::init;
+    move_num = unsigned(-1);
+    ans = E.next_move(moves, tt_move, move_num, stage, 1);
+    assert(ans == E.move_from_str("d7e8q"));
+    ans = E.next_move(moves, tt_move, move_num, stage, 1);
+    assert(ans == E.move_from_str("d7e8r"));
+    ans = E.next_move(moves, tt_move, move_num, stage, 1);
+    assert(ans == E.move_from_str("d7d8q"));
+    ans = E.next_move(moves, tt_move, move_num, stage, 1);
+    assert(ans == E.move_from_str("d7e8b"));
 }
 
 
