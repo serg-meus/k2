@@ -25,7 +25,7 @@ class engine : public eval {
 
     engine() : nodes(0), max_nodes(0), max_time_for_move(0), move_cr(0),
         ply(0), stop(false), done_moves(), t_beg(), tt(64*megabyte),
-        hash_keys({0}), killers{{{not_a_move}}} {}
+        hash_keys({0}), killers{{{not_a_move}}}, history{{{{{0}}}}} {}
     engine(const engine&);
 
     u64 perft(const int depth, const bool verbose);
@@ -92,6 +92,7 @@ class engine : public eval {
     transposition_table_c<tt_entry_c, u32, 8> tt;
     std::set<u64> hash_keys;
     std::array<std::array<move_s, 2>, max_ply> killers;
+    std::array<std::array<std::array<u64, 64>, 6>, 2> history;
     static const unsigned megabyte = 1000000/sizeof(tt_entry_c);
 
     int search(int depth, const int alpha, const int beta,
@@ -112,7 +113,7 @@ class engine : public eval {
                       const unsigned legal_moves, const bool in_check);
     void apprice_and_sort_moves(std::vector<move_s> &moves,
                                 unsigned first_move_num) const;
-    void apprice_move(move_s &move) const;
+    void apprice_move(move_s &move, const u64 max_hist) const;
     std::string pv_string(int dpt);
     void update_cutoff_stats(const int depth, const move_s move);
     void erase_move(std::vector<move_s> &moves, const move_s move,
@@ -141,6 +142,12 @@ public:
         hash_keys.insert(hash_key);
         std::fill(killers.begin(), killers.end(),
                   std::array<move_s, 2>({not_a_move, not_a_move}));
+        for (auto clr: {black, white})
+            for (auto ix: {pawn_ix, knight_ix, bishop_ix, rook_ix, queen_ix,
+                           king_ix})
+                std::fill(history.at(clr).at(ix).begin(),
+                          history.at(clr).at(ix).end(),
+                          0);
         move_cr = 0;
         return ans;
     }

@@ -183,6 +183,7 @@ move_s engine::next_move(std::vector<move_s> &moves,
             erase_move(moves, tt_move, move_num);
         erase_move(moves, killers.at(ply).at(0), move_num);
         erase_move(moves, killers.at(ply).at(1), move_num);
+        apprice_and_sort_moves(moves, move_num);
     }
     if (stage == gen_stage::silent_probe) {
         if (move_num < moves.size())
@@ -203,17 +204,26 @@ void engine::erase_move(std::vector<move_s> &moves, const move_s move,
 
 void engine::apprice_and_sort_moves(std::vector<move_s> &moves,
                                     unsigned first_move_num) const {
-    if (moves.size() == 0)
+    if (first_move_num >= moves.size())
         return;
+    u64 max_hist = 0;
+    if (!moves.at(first_move_num).is_capture)
+        for (auto i = first_move_num; i < moves.size(); ++i) {
+            const auto m = moves.at(i);
+            const auto h = history.at(side).at(m.index).at(m.to_coord);
+            if (h > max_hist)
+                max_hist = h;
+        }
     for (auto i = first_move_num; i < moves.size(); ++i)
-        apprice_move(moves.at(i));
+        apprice_move(moves.at(i), max_hist);
     std::sort(moves.begin() + int(first_move_num), moves.end());
 }
 
 
-void engine::apprice_move(move_s &move) const {
+void engine::apprice_move(move_s &move, const u64 max_hist) const {
     if (!move.is_capture && !move.promo) {
-        move.priority = 64;
+        const auto hist = history.at(side).at(move.index).at(move.to_coord);
+        move.priority = u8(128 + 64*hist/(max_hist + 1));
         return;
     }
     int see = static_exchange_eval(move);
@@ -327,8 +337,11 @@ std::string engine::pv_string(int dpt) {
 
 
 void engine::update_cutoff_stats(const int depth, const move_s move) {
-    if (depth <= 0 || move.is_capture || move.promo ||
-            move == killers.at(ply).at(0))
+    if (depth <= 0 || move.is_capture || move.promo)
+        return;
+    auto &h = history.at(side).at(move.index).at(move.to_coord);
+    h += u64(depth)*u64(depth);
+    if (move == killers.at(ply).at(0))
         return;
     if (move == killers.at(ply).at(1))
         std::swap(killers.at(ply).at(0), killers.at(ply).at(1));
