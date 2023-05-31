@@ -194,4 +194,18 @@ protected:
         return elapsed.count();
     }
 
+    int update_depth(const int depth_orig, const bool in_check) const {
+        int ans = (in_check && depth_orig >= 0) ? depth_orig + 1 : depth_orig;
+        return ans + int(is_recapture());
+    }
+
+    bool is_recapture() const {
+        if (ply < 2)
+            return false;
+        const auto prev_move = done_moves.at(ply - 1);
+        const auto prev_prev = done_moves.at(ply - 2);
+        return (prev_move.is_capture && prev_prev.is_capture &&
+                prev_move.to_coord == prev_prev.to_coord &&
+                prev_move.priority > 64 && prev_prev.priority > 64);
+    }
 };

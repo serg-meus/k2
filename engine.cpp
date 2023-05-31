@@ -11,7 +11,7 @@ int engine::search(const int depth_orig, const int alpha_orig, const int beta,
     if (tt_probe(depth_orig, alpha, beta, tt_move, node_type))
         return alpha;
     const bool in_check = is_in_check(side);
-    int depth = (in_check && depth_orig >= 0) ? depth_orig + 1 : depth_orig;
+    int depth = update_depth(depth_orig, in_check);
     if (null_move_pruning(depth, beta, in_check))
         return beta;
     std::vector<move_s> moves;
