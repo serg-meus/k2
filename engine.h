@@ -208,4 +208,20 @@ protected:
                 prev_move.to_coord == prev_prev.to_coord &&
                 prev_move.priority > 64 && prev_prev.priority > 64);
     }
+
+    bool razoring(int &val, const int depth, const int alpha,
+                  const int beta, const int node_type) {
+        if (node_type != pv_node && depth == 1 && val < beta - 60) {
+            val = search(-2, alpha, beta, cut_node);
+            return true;
+        }
+        if (node_type != pv_node && depth > 1 && depth <= 3 && val < beta - 250) {
+            auto x = search(-2, alpha, beta, cut_node);
+            if (x < beta) {
+                val = x;
+                return true;
+            }
+        }
+        return false;
+    }
 };

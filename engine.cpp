@@ -17,13 +17,14 @@ int engine::search(const int depth_orig, const int alpha_orig, const int beta,
     std::vector<move_s> moves;
     gen_stage stage = gen_stage::init;
     unsigned best_move_num = 0, move_num = unsigned(-1), legal_moves = 0;
-    if (depth <= 0) {
+    if (depth <= 3)
         val = Eval();
-    if(val >= beta)
+    if (razoring(val, depth, alpha, beta, node_type))
+        return val;
+    if(depth <= 0 && val >= beta)
         return beta;
-    else if(val > alpha)
+    else if(depth <= 0 && val > alpha)
         alpha = val;
-    }
     while (!stop && (cur_move = next_move(moves, tt_move, move_num,
                                           stage, depth)) != not_a_move) {
         make_move(cur_move);
