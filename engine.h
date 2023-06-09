@@ -4,8 +4,8 @@
 #include <set>
 
 
-enum class gen_stage {init, tt, captures, killer1, killer2, bad_captures,
-    silent_gen, silent_probe};
+enum class gen_stage {init, pv, tt, captures, killer1, killer2,
+                      bad_captures, silent_gen, silent_probe};
 
 
 class engine : public eval {
@@ -24,8 +24,15 @@ class engine : public eval {
     bool stop;
 
     engine() : nodes(0), max_nodes(0), max_time_for_move(0), move_cr(0),
-        ply(0), stop(false), done_moves(), t_beg(), tt(64*megabyte),
-        hash_keys({0}), killers{{{not_a_move}}}, history{{{{{0}}}}} {}
+            ply(0), stop(false), done_moves(), t_beg(), tt(64*megabyte),
+            hash_keys({0}), killers(), history(), pv(), follow_pv(0) {
+        for (auto i = 0; i < max_ply; ++i) {
+            std::vector<move_s> tmp;
+            tmp.reserve(max_ply);
+            pv.push_back(tmp);
+        }
+    }
+
     engine(const engine&);
 
     u64 perft(const int depth, const bool verbose);
@@ -93,6 +100,9 @@ class engine : public eval {
     std::set<u64> hash_keys;
     std::array<std::array<move_s, 2>, max_ply> killers;
     std::array<std::array<std::array<u64, 64>, 6>, 2> history;
+    std::vector<std::vector<move_s>> pv;
+    bool follow_pv;
+
     static const unsigned megabyte = 1000000/sizeof(tt_entry_c);
 
     int search(int depth, const int alpha, const int beta,
@@ -101,7 +111,7 @@ class engine : public eval {
     eval_t static_exchange_eval(const move_s move) const;
     move_s next_move(std::vector<move_s> &moves, move_s &tt_move,
                      unsigned &move_num, gen_stage &stage,
-                     const int depth) const;
+                     const int depth);
     bool tt_probe(const int depth, int &alpha, const int beta,
                   move_s &tt_move, const int node_type);
     int search_cur_pos(const int depth, const int alpha, const int beta,
@@ -114,7 +124,7 @@ class engine : public eval {
     void apprice_and_sort_moves(std::vector<move_s> &moves,
                                 unsigned first_move_num) const;
     void apprice_move(move_s &move, const u64 max_hist) const;
-    std::string pv_string(int dpt);
+    std::string pv_string();
     void update_cutoff_stats(const int depth, const move_s move);
     void erase_move(std::vector<move_s> &moves, const move_s move,
                         const unsigned first_ix) const;
@@ -148,6 +158,8 @@ public:
                 std::fill(history.at(clr).at(ix).begin(),
                           history.at(clr).at(ix).end(),
                           0);
+        for (auto &p: pv)
+            p.clear();
         move_cr = 0;
         return ans;
     }
@@ -223,5 +235,10 @@ protected:
             }
         }
         return false;
+    }
+
+    void store_pv(const move_s &cur_move) {
+        std::swap(pv.at(ply), pv.at(ply + 1));
+        pv.at(ply).insert(pv.at(ply).begin(), cur_move);
     }
 };

@@ -85,12 +85,16 @@ k2::move_s k2::search() {
     std::random_shuffle(moves.begin(), moves.end());
     move_s best_move = moves.at(0);
     for (i8 depth = 1; !stop && depth <= max_depth; ++depth) {
+        for (unsigned i = 1; i < pv.size(); ++i)
+            pv.at(i).clear();
+        follow_pv = true;
         auto move = root_search(depth, -material[king_ix], material[king_ix],
                                 moves);
         if (stop)
             break;
         best_move = move;
     }
+    pv.at(0).clear();
     return best_move;
 }
 
@@ -100,6 +104,7 @@ k2::move_s k2::root_search(i8 depth, const int alpha_orig, const int beta,
     const bool in_check = is_in_check(side);
     move_s best_move = moves.at(0);
     int alpha = alpha_orig, val = 0;
+    pv.at(ply).clear();
     for (unsigned i = 0; !stop && i < moves.size(); ++i) {
         if (search_moves.size() &&
                 search_moves.find(moves.at(i)) != search_moves.end())
@@ -115,6 +120,7 @@ k2::move_s k2::root_search(i8 depth, const int alpha_orig, const int beta,
             if (val >= beta)
                 break;
             alpha = val;
+            store_pv(moves.at(i));
             std::rotate(moves.rbegin() + int(moves.size() - i - 1),
                         moves.rbegin() + int(moves.size() - i),
                         moves.rend());
@@ -471,7 +477,7 @@ void k2::unsupported_command(const std::string &in) {
 
 
 void k2::print_search_iteration_result(i8 dpt, int val) {
-    std::string pv;
+    std::string pv_str;
     static int prev_val;
     static std::string prev_pv;
     if (silent_mode)
@@ -479,20 +485,20 @@ void k2::print_search_iteration_result(i8 dpt, int val) {
     if (stop) {
         --dpt;
         val = prev_val;
-        pv = prev_pv;
+        pv_str = prev_pv;
     }
     else
-        pv = prev_pv = pv_string(dpt);
+        pv_str = prev_pv = pv_string();
     prev_val = val;
     if (!uci) {
         cout << int(dpt) << ' ' << val << ' '
             << int(100*time_elapsed()) << ' '  << nodes << ' '
-            << pv << endl;
+            << pv_str << endl;
         return;
     }
     cout << "info depth " << int(dpt) << uci_score(val)
         << " time " << int(1000*time_elapsed()) << " nodes " << nodes
-        << " pv " << pv << endl;
+        << " pv " << pv_str << endl;
 }
 
 

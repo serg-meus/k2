@@ -25,6 +25,7 @@ int engine::search(const int depth_orig, const int alpha_orig, const int beta,
         return beta;
     else if(depth <= 0 && val > alpha)
         alpha = val;
+    pv.at(ply).clear();
     while (!stop && (cur_move = next_move(moves, tt_move, move_num,
                                           stage, depth)) != not_a_move) {
         make_move(cur_move);
@@ -43,9 +44,10 @@ int engine::search(const int depth_orig, const int alpha_orig, const int beta,
                 break;
             }
             alpha = val;
+            store_pv(cur_move);
         }
     }
-    move_s best_move = moves.size() ? moves.at(best_move_num) : not_a_move;
+    move_s best_move = legal_moves ? moves.at(best_move_num) : not_a_move;
     return search_result(val, alpha_orig, alpha, beta, depth, depth_orig,
         best_move, legal_moves, in_check);
 }
@@ -62,7 +64,7 @@ int engine::search_cur_pos(const int depth, const int alpha, const int beta,
     if (depth <= 0)
         return -search(depth - 1, -beta, -alpha, -node_type);
     if (search_draw() || hash_keys.find(hash_key) != hash_keys.end())
-        return search_result(0, 0, 0, 0, depth, depth, not_a_move, 1, false);
+        return search_result(0, 0, 0, 0, depth, depth, not_a_move, 0, false);
     int val;
     const int lmr = late_move_reduction(depth, cur_move, in_check,
                                          move_num, node_type);
@@ -116,6 +118,7 @@ int engine::search_result(const int val, const int alpha_orig,
         x = in_check ? -material[king_ix] + int(ply) : 0;
         bound_type = tt_bound::exact;
         best_move = not_a_move;
+        pv.at(ply).clear();
     }
     else {
         x = val >= beta ? beta : (alpha > alpha_orig ? alpha : alpha_orig);
@@ -129,15 +132,27 @@ int engine::search_result(const int val, const int alpha_orig,
 }
 
 
-move_s engine::next_move(std::vector<move_s> &moves,
-                         move_s &tt_move, unsigned &move_num, gen_stage &stage,
-                         const int depth) const {
+move_s engine::next_move(std::vector<move_s> &moves, move_s &tt_move,
+                         unsigned &move_num, gen_stage &stage,
+                         const int depth) {
     ++move_num;
     if (stage == gen_stage::init) {
+        stage = gen_stage::pv;
+        if (follow_pv && ply < pv.at(0).size()) {
+            stage = gen_stage::tt;
+            tt_move = pv.at(0).at(ply);
+            assert(is_pseudo_legal(tt_move));
+            tt_move.priority = 255;
+            moves.push_back(tt_move);
+            return tt_move;
+        }
+        follow_pv = false;
+    }
+    if (stage == gen_stage::pv) {
         stage = gen_stage::tt;
         if (tt_move != not_a_move && is_pseudo_legal(tt_move) &&
                 (depth > 0 || tt_move.is_capture)) {
-            tt_move.priority = 255;
+            tt_move.priority = 254;
             moves.push_back(tt_move);
             return tt_move;
         }
@@ -163,7 +178,7 @@ move_s engine::next_move(std::vector<move_s> &moves,
         stage = gen_stage::killer2;
         move_s k1 = killers.at(ply).at(0);
         if (k1 != tt_move && is_pseudo_legal(k1)) {
-            k1.priority = 254;
+            k1.priority = 253;
             moves.push_back(k1);
             return k1;
         }
@@ -172,7 +187,7 @@ move_s engine::next_move(std::vector<move_s> &moves,
         stage = gen_stage::silent_gen;
         move_s k2 = killers.at(ply).at(1);
         if (k2 != tt_move && is_pseudo_legal(k2)) {
-            k2.priority = 253;
+            k2.priority = 252;
             moves.push_back(k2);
             return k2;
         }
@@ -315,25 +330,15 @@ eval_t engine::static_exchange_eval(const move_s move) const {
 }
 
 
-std::string engine::pv_string(int dpt) {
-    std::string str_out;
-    int i = 0;
-    for(;i < dpt; ++i) {
-        const tt_entry_c *entry = tt.find(hash_key, u32(hash_key >> 32));
-        const auto &bmov = entry->result.best_move;
-        if (entry == nullptr || bmov == not_a_move || !is_pseudo_legal(bmov))
-            break;
-        auto move_str = move_to_str(bmov);
-        make_move(bmov);
-        if (!was_legal(bmov)) {
-            unmake_move();
-            break;
-        }
-        str_out += move_str + " ";
+std::string engine::pv_string() {
+    std::string ans;
+    for (auto move: pv.at(0)) {
+        ans += move_to_str(move) + " ";
+        make_move(move);
     }
-    for(int j = 0; j < i; ++j)
-        unmake_move();
-    return str_out;
+    for (unsigned i = 0; i < pv.at(0).size(); ++i)
+        unmake_move(); 
+    return ans;
 }
 
 
@@ -356,7 +361,7 @@ void engine::update_cutoff_stats(const int depth, const move_s move) {
 
 bool engine::null_move_pruning(const int depth, const int beta,
                                const bool in_check) {
-    if (in_check || depth < 2 || ply < 2)
+    if (in_check || depth < 2 || ply < 2 || follow_pv)
         return false;
     if (done_moves.at(ply - 1).from_coord == done_moves.at(ply - 1).to_coord &&
         done_moves.at(ply - 2).from_coord == done_moves.at(ply - 2).to_coord)
