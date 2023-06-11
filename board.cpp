@@ -172,7 +172,7 @@ bool board::setup_rest(const std::string &rest_str) {
     setup_en_passant(rest[2]);
     if (rest.size() == 3)
         return true;
-    reversible_halfmoves = std::stoi(rest[3]);
+    reversible_halfmoves = std::atoi(rest[3].c_str());
     return true;
 }
 

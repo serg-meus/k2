@@ -211,7 +211,7 @@ move_s engine::next_move(std::vector<move_s> &moves, move_s &tt_move,
 
 void engine::erase_move(std::vector<move_s> &moves, const move_s move,
                         const unsigned first_ix) const {
-    auto it = std::find(moves.begin() + first_ix, moves.end(), move);
+    auto it = std::find(moves.begin() + int(first_ix), moves.end(), move);
     if (it == moves.end())
         return;
     moves.erase(it);
