@@ -195,9 +195,18 @@ protected:
         if(depth < 3 || cur_move.is_capture || cur_move.promo ||
                 in_check || move_num < 3)
             return 0;
-        if(cur_move.index == pawn_ix /*&& is_passer*/)
+        if(cur_move.index == pawn_ix &&
+                (is_passer(!side, cur_move.to_coord, bb[side][pawn_ix]) ||
+                 is_pawn_attack(cur_move.to_coord)))
             return 0;
         return 1 + int(node_type != pv_node && move_num > 6);
+    }
+
+    bool is_pawn_attack(const u8 coord) const {
+        const u64 p_bb = one_nth_bit(coord);
+        const u64 occ1 = bb[side][occupancy_ix] ^ bb[side][pawn_ix];
+        return bool(all_pawn_attacks(p_bb, !side, occ1)) &&
+            bool(all_pawn_attacks(p_bb, side, bb[!side][pawn_ix]));
     }
 
     double time_elapsed() {
