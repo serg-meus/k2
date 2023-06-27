@@ -137,6 +137,8 @@ class board : public board_state, protected bitboards {
     u64 setup_hash_key();
     u8 min_attacker(const u8 to_coord, const u64 occ, const bool color,
                     u64 &attacker_bb) const;
+    bool is_passer(const bool color, const u8 pawn_coord,
+                   const u64 opp_pawns) const;
 
     u8 str_to_coord(const std::string &str_c) const {
         return get_coord(u8(str_c[0] - 'a'), u8(str_c[1] - '1'));

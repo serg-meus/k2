@@ -19,6 +19,7 @@ class board_tst : public board {
     using board::en_passant_bitboard;
     using board::reversible_halfmoves;
     using board::bb;
+    using board::is_passer;
 };
 
 
@@ -106,4 +107,5 @@ public :
     void test_set_time_for_move();
     void test_update_clock();
     void test_k2();
+    void test_is_passer();
 };

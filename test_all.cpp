@@ -59,6 +59,7 @@ void test_all::test_board() {
     test_board_to_fen();
     test_make_move();
     test_unmake_move();
+    test_is_passer();
 }
 
 
@@ -466,6 +467,24 @@ void test_all::test_unmake_move() {
     assert(brd.bb[white][brd.occupancy_ix] == 0x120822f793);
     assert(brd.bb[black][brd.occupancy_ix] == 0xd3de132100000000);
     test_bitboards_integrity(brd);
+}
+
+
+void test_all::test_is_passer() {
+    auto brd = board_tst();
+    const auto white = brd.white;
+    const auto black = brd.black;
+    const auto pawn_ix = brd.pawn_ix;
+    brd.setup_position("4k3/6p1/2p3P1/Pp2P3/p7/8/3P3P/4K3 w - -");
+    assert(brd.is_passer(white, str_to_coord("a5"), brd.bb[black][pawn_ix]));
+    assert(brd.is_passer(black, str_to_coord("a4"), brd.bb[white][pawn_ix]));
+    assert(brd.is_passer(black, str_to_coord("b5"), brd.bb[white][pawn_ix]));
+    assert(!brd.is_passer(black, str_to_coord("c6"), brd.bb[white][pawn_ix]));
+    assert(!brd.is_passer(white, str_to_coord("d2"), brd.bb[black][pawn_ix]));
+    assert(brd.is_passer(white, str_to_coord("e5"), brd.bb[black][pawn_ix]));
+    assert(!brd.is_passer(black, str_to_coord("g7"), brd.bb[white][pawn_ix]));
+    assert(!brd.is_passer(white, str_to_coord("g6"), brd.bb[black][pawn_ix]));
+    assert(!brd.is_passer(white, str_to_coord("h2"), brd.bb[black][pawn_ix]));
 }
 
 

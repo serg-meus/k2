@@ -502,3 +502,20 @@ u8 board::min_attacker(const u8 to_coord, const u64 occ, const bool color,
         return king_ix;
     return u8(-1);
 }
+
+
+bool board::is_passer(const bool color, const u8 pawn_coord,
+                      const u64 opp_pawns) const {
+    const u64 pawn_bb = one_nth_bit(pawn_coord);
+    u64 ans = pawn_bb | (pawn_bb << 1) |  (pawn_bb >> 1);
+    ans &= rank_mask(pawn_coord);
+    if (color == white) {
+        ans = (ans << 8) | (ans << 16) | (ans << 24);
+        ans |= (ans << 24);
+    }
+    else {
+        ans = (ans >> 8) | (ans >> 16) | (ans >> 24);
+        ans |= (ans >> 24);
+    }
+    return !bool(ans & opp_pawns);
+}
