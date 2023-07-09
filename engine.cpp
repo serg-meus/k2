@@ -15,8 +15,8 @@ int engine::search(const int depth_orig, const int alpha_orig, const int beta,
     if (null_move_pruning(depth, beta, in_check))
         return beta;
     std::vector<move_s> moves;
-    gen_stage stage = gen_stage::init;
-    unsigned best_move_num = 0, move_num = unsigned(-1), legal_moves = 0;
+    unsigned best_move_num = 0, move_num = unsigned(-1), legal_moves = 0,
+        stage = 0;
     if (depth <= 3)
         val = Eval();
     if (razoring(val, depth, alpha, beta, node_type))
@@ -67,7 +67,7 @@ int engine::search_cur_pos(const int depth, const int alpha, const int beta,
         return search_result(0, 0, 0, 0, depth, depth, not_a_move, 0, false);
     int val;
     const int lmr = late_move_reduction(depth, cur_move, in_check,
-                                         move_num, node_type);
+                                        move_num, node_type);
     if(move_num == 0)
         val = -search(depth - 1, -beta, -alpha, -node_type);
     else if(beta > alpha + 1)
@@ -133,78 +133,125 @@ int engine::search_result(const int val, const int alpha_orig,
 
 
 move_s engine::next_move(std::vector<move_s> &moves, move_s &tt_move,
-                         unsigned &move_num, gen_stage &stage,
+                         unsigned &move_num, unsigned &stage,
                          const int depth) {
     ++move_num;
-    if (stage == gen_stage::init) {
-        stage = gen_stage::pv;
-        if (follow_pv && ply < pv.at(0).size()) {
-            stage = gen_stage::tt;
-            tt_move = pv.at(0).at(ply);
-            assert(is_pseudo_legal(tt_move));
-            tt_move.priority = 255;
-            moves.push_back(tt_move);
-            return tt_move;
-        }
+    move_s ans = not_a_move;
+    while (stage < stages.size()) {
+        ans = ((*this).*(stages.at(stage)))(moves, tt_move, move_num,
+                                          stage, depth);
+        if (ans != not_a_move || stage >= stages.size())
+            break;
+        ++stage;
+    }
+    if (stage >= stages.size())
+        return not_a_move;
+    return ans;
+}
+
+
+move_s engine::gen_pv(std::vector<move_s> &moves, move_s &tt_move,
+                      unsigned &move_num, unsigned &stage, const int depth) {
+    (void) (moves); (void) (move_num); (void) (stage); (void) (depth);
+    if (!follow_pv || ply >= pv.at(0).size())
         follow_pv = false;
+    else {
+        tt_move = pv.at(0).at(ply);
+        tt_move.priority = 255;
     }
-    if (stage == gen_stage::pv) {
-        stage = gen_stage::tt;
-        if (tt_move != not_a_move && is_pseudo_legal(tt_move) &&
-                (depth > 0 || tt_move.is_capture)) {
-            tt_move.priority = 254;
-            moves.push_back(tt_move);
-            return tt_move;
-        }
+    return not_a_move;
+}
+
+
+move_s engine::gen_tt(std::vector<move_s> &moves, move_s &tt_move,
+                      unsigned &move_num, unsigned &stage, const int depth) {
+    (void) (move_num);
+    if (tt_move != not_a_move && is_pseudo_legal(tt_move) &&
+            (depth > 0 || tt_move.is_capture)) {
+        tt_move.priority = 254;
+        moves.push_back(tt_move);
+        ++stage;
+        return tt_move;
     }
-    if (stage == gen_stage::tt) {
-        stage = gen_stage::captures;
-        gen_pseudo_legal_moves(moves, gen_mode::only_captures);
-        if (tt_move != not_a_move && (tt_move.is_capture || tt_move.promo) &&
-                move_num == 1)
-            erase_move(moves, tt_move, 1);
-        apprice_and_sort_moves(moves, move_num);
-    }
-    if (stage == gen_stage::captures) {
-        if (move_num < moves.size()) {
-            if (depth > 0 || moves.at(move_num).priority >= 200)
-                return moves.at(move_num);
-        }
-        if (depth <= 0)
-            return not_a_move;
-        stage = gen_stage::killer1;
-    }
-    if (stage == gen_stage::killer1) {
-        stage = gen_stage::killer2;
-        move_s k1 = killers.at(ply).at(0);
-        if (k1 != tt_move && is_pseudo_legal(k1)) {
-            k1.priority = 253;
-            moves.push_back(k1);
-            return k1;
-        }
-    }
-    if (stage == gen_stage::killer2) {
-        stage = gen_stage::silent_gen;
-        move_s k2 = killers.at(ply).at(1);
-        if (k2 != tt_move && is_pseudo_legal(k2)) {
-            k2.priority = 252;
-            moves.push_back(k2);
-            return k2;
-        }
-    }
-    if (stage == gen_stage::silent_gen) {
-        stage = gen_stage::silent_probe;
-        gen_pseudo_legal_moves(moves, gen_mode::only_silent);
-        if (tt_move != not_a_move && !tt_move.is_capture && !tt_move.promo)
-            erase_move(moves, tt_move, move_num);
-        erase_move(moves, killers.at(ply).at(0), move_num);
-        erase_move(moves, killers.at(ply).at(1), move_num);
-        apprice_and_sort_moves(moves, move_num);
-    }
-    if (stage == gen_stage::silent_probe) {
-        if (move_num < moves.size())
+    return not_a_move;
+}
+
+
+move_s engine::gen_cap(std::vector<move_s> &moves, move_s &tt_move,
+                       unsigned &move_num, unsigned &stage, const int depth) {
+    (void) (depth); (void) (stage);
+    gen_pseudo_legal_moves(moves, gen_mode::only_captures);
+    if (move_num == 1 && tt_move != not_a_move &&
+            (tt_move.is_capture || tt_move.promo))
+        erase_move(moves, tt_move, 1);
+    apprice_and_sort_moves(moves, move_num);
+    return not_a_move;
+}
+
+
+move_s engine::probe_cap(std::vector<move_s> &moves, move_s &tt_move,
+                         unsigned &move_num, unsigned &stage,
+                         const int depth) {
+    (void) (tt_move);
+    if (move_num < moves.size()) {
+        if (depth > 0 || moves.at(move_num).priority >= 200)
             return moves.at(move_num);
     }
+    if (depth <= 0)
+        stage = unsigned(stages.size());
+    return not_a_move;
+}
+
+
+move_s engine::gen_killer1(std::vector<move_s> &moves, move_s &tt_move,
+                           unsigned &move_num, unsigned &stage,
+                           const int depth) {
+    (void) (move_num); (void) (stage); (void) (depth);
+    move_s k1 = killers.at(ply).at(0);
+    if (k1 == tt_move || !is_pseudo_legal(k1))
+        return not_a_move;
+    k1.priority = 253;
+    moves.push_back(k1);
+    ++stage;
+    return k1;
+}
+
+
+move_s engine::gen_killer2(std::vector<move_s> &moves, move_s &tt_move,
+                           unsigned &move_num, unsigned &stage,
+                           const int depth) {
+    (void) (move_num); (void) (stage); (void) (depth);
+    move_s k2 = killers.at(ply).at(1);
+    if (k2 == tt_move || !is_pseudo_legal(k2))
+        return not_a_move;
+    k2.priority = 252;
+    moves.push_back(k2);
+    ++stage;
+    return k2;
+}
+
+
+move_s engine::gen_silent(std::vector<move_s> &moves, move_s &tt_move,
+                          unsigned &move_num, unsigned &stage,
+                          const int depth) {
+    (void) (stage); (void) (depth);
+    gen_pseudo_legal_moves(moves, gen_mode::only_silent);
+    if (tt_move != not_a_move && !tt_move.is_capture && !tt_move.promo)
+        erase_move(moves, tt_move, move_num);
+    erase_move(moves, killers.at(ply).at(0), move_num);
+    erase_move(moves, killers.at(ply).at(1), move_num);
+    apprice_and_sort_moves(moves, move_num);
+    return not_a_move;
+}
+
+
+move_s engine::probe_silent(std::vector<move_s> &moves, move_s &tt_move,
+                            unsigned &move_num, unsigned &stage,
+                            const int depth) {
+    (void) (tt_move); (void) (depth);
+    if (move_num < moves.size())
+        return moves.at(move_num);
+    stage = unsigned(stages.size());
     return not_a_move;
 }
 
@@ -337,7 +384,7 @@ std::string engine::pv_string() {
         make_move(move);
     }
     for (unsigned i = 0; i < pv.at(0).size(); ++i)
-        unmake_move(); 
+        unmake_move();
     return ans;
 }
 
@@ -367,7 +414,7 @@ bool engine::null_move_pruning(const int depth, const int beta,
         done_moves.at(ply - 2).from_coord == done_moves.at(ply - 2).to_coord)
         return false;
     if (!(bb[side][knight_ix] | bb[side][bishop_ix] |
-            bb[side][rook_ix] | bb[side][queen_ix]))
+          bb[side][rook_ix] | bb[side][queen_ix]))
         return false;
     const u8 king_coord = trail_zeros(bb[side][king_ix]);
     make_move({king_ix, king_coord, king_coord, 0});

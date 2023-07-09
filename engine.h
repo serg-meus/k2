@@ -4,10 +4,6 @@
 #include <set>
 
 
-enum class gen_stage {init, pv, tt, captures, killer1, killer2,
-                      bad_captures, silent_gen, silent_probe};
-
-
 class engine : public eval {
 
     public:
@@ -25,12 +21,16 @@ class engine : public eval {
 
     engine() : nodes(0), max_nodes(0), max_time_for_move(0), move_cr(0),
             ply(0), stop(false), done_moves(), t_beg(), tt(64*megabyte),
-            hash_keys({0}), killers(), history(), pv(), follow_pv(0) {
+            hash_keys(), killers(), history(), pv(), follow_pv(0), stages() {
         for (auto i = 0; i < max_ply; ++i) {
             std::vector<move_s> tmp;
             tmp.reserve(max_ply);
             pv.push_back(tmp);
         }
+        stages = {&engine::gen_pv, &engine::gen_tt, &engine::gen_cap,
+                  &engine::probe_cap, &engine::gen_killer1,
+                  &engine::gen_killer2, &engine::gen_silent,
+                  &engine::probe_silent};
     }
 
     engine(const engine&);
@@ -95,6 +95,9 @@ class engine : public eval {
         }
     };
 
+    typedef move_s(engine::*stage_func_ptr)(std::vector<move_s> &, move_s &,
+                                            unsigned &, unsigned &, const int);
+
     time_point_t t_beg;
     transposition_table_c<tt_entry_c, u32, 8> tt;
     std::set<u64> hash_keys;
@@ -102,6 +105,7 @@ class engine : public eval {
     std::array<std::array<std::array<u64, 64>, 6>, 2> history;
     std::vector<std::vector<move_s>> pv;
     bool follow_pv;
+    std::vector<stage_func_ptr> stages;
 
     static const unsigned megabyte = 1000000/sizeof(tt_entry_c);
 
@@ -110,7 +114,7 @@ class engine : public eval {
     u64 tt_probe_perft(const int depth);
     eval_t static_exchange_eval(const move_s move) const;
     move_s next_move(std::vector<move_s> &moves, move_s &tt_move,
-                     unsigned &move_num, gen_stage &stage,
+                     unsigned &move_num, unsigned &stage,
                      const int depth);
     bool tt_probe(const int depth, int &alpha, const int beta,
                   move_s &tt_move, const int node_type);
@@ -129,6 +133,22 @@ class engine : public eval {
     void erase_move(std::vector<move_s> &moves, const move_s move,
                         const unsigned first_ix) const;
     bool null_move_pruning(const int dpt, const int beta,const bool in_check);
+    move_s gen_pv(std::vector<move_s> &moves, move_s &tt_move,
+                  unsigned &move_num, unsigned &stage, const int depth);
+    move_s gen_tt(std::vector<move_s> &moves, move_s &tt_move,
+                  unsigned &move_num, unsigned &stage, const int depth);
+    move_s gen_cap(std::vector<move_s> &moves, move_s &tt_move,
+                   unsigned &move_num, unsigned &stage, const int depth);
+    move_s probe_cap(std::vector<move_s> &moves, move_s &tt_move,
+                     unsigned &move_num, unsigned &stage, const int depth);
+    move_s gen_killer1(std::vector<move_s> &moves, move_s &tt_move,
+                       unsigned &move_num, unsigned &stage, const int depth);
+    move_s gen_killer2(std::vector<move_s> &moves, move_s &tt_move,
+                       unsigned &move_num, unsigned &stage, const int depth);
+    move_s gen_silent(std::vector<move_s> &moves, move_s &tt_move,
+                      unsigned &move_num, unsigned &stage, const int depth);
+    move_s probe_silent(std::vector<move_s> &moves, move_s &tt_move,
+                        unsigned &move_num, unsigned &stage, const int depth);
 
     void make_move(const move_s &move) {
         nodes++;

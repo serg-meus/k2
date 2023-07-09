@@ -1004,8 +1004,7 @@ void test_all::test_next_move() {
     E.setup_position("4k3/3p2p1/1b5b/n7/8/8/p2Q4/3K4 w - -");
     std::vector<move_s> moves;
     move_s tt_move = E.not_a_move;
-    auto stage = gen_stage::init;
-    unsigned move_num = unsigned(-1);
+    unsigned stage = 0, move_num = unsigned(-1);
     ans = E.next_move(moves, tt_move, move_num, stage, 1);
     assert(ans == E.move_from_str("d2a2"));
     ans = E.next_move(moves, tt_move, move_num, stage, 1);
@@ -1015,7 +1014,7 @@ void test_all::test_next_move() {
 
     E.setup_position("K3n2k/3P4/8/8/1N6/8/b7/8 w - -");
     moves.clear();
-    stage = gen_stage::init;
+    stage = 0;
     move_num = unsigned(-1);
     ans = E.next_move(moves, tt_move, move_num, stage, 1);
     assert(ans == E.move_from_str("d7e8q"));
@@ -1028,7 +1027,7 @@ void test_all::test_next_move() {
 
     E.setup_position("3rrqk1/1P3pp1/7p/6P1/8/PR6/1Q3P1P/1R4K1 w - -");
     moves.clear();
-    stage = gen_stage::init;
+    stage = 0;
     move_num = unsigned(-1);
     ans = E.next_move(moves, tt_move, move_num, stage, 0);
     assert(ans == E.move_from_str("b7b8q"));
@@ -1045,7 +1044,7 @@ void test_all::test_next_move() {
 
     E.setup_position("k7/pp2q1p1/7p/8/1b5R/N1P5/1P3PP1/K3Q2R w - -");
     moves.clear();
-    stage = gen_stage::init;
+    stage = 0;
     move_num = unsigned(-1);
     ans = E.next_move(moves, tt_move, move_num, stage, 0);
     assert(ans == E.move_from_str("c3b4"));
@@ -1058,7 +1057,7 @@ void test_all::test_next_move() {
 
     E.setup_position("k7/pp2q1p1/7p/8/1b5R/N1P5/1P3PP1/K3Q2R b - -");
     moves.clear();
-    stage = gen_stage::init;
+    stage = 0;
     move_num = unsigned(-1);
     ans = E.next_move(moves, tt_move, move_num, stage, 0);
     assert(ans == E.move_from_str("b4a3"));
