@@ -39,10 +39,9 @@ int engine::search(const int depth_orig, const int alpha_orig, const int beta,
         unmake_move();
         if (val >= beta || val > alpha) {
             best_move_num = move_num;
-            if (val >= beta) {
-                update_cutoff_stats(depth, cur_move);
+            update_cutoff_stats(depth, cur_move);
+            if (val >= beta)
                 break;
-            }
             alpha = val;
             store_pv(cur_move);
         }
