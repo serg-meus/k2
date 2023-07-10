@@ -565,9 +565,9 @@ void test_all::test_gen_pseudo_legal_moves() {
     C.gen_pseudo_legal_moves(moves);
     assert(moves.size() == 9);
     std::vector<move_s> estimate =
-        {{0, 8, 16, 0}, {0, 8, 17, 0}, {0, 8, 24, 0},
-        {1, 5, 11, 0}, {2, 15, 6, 0}, {3, 7, 6, 0},
-        {4, 23, 14, 0}, {4, 23, 30, 0}, {5, 0, 1, 0}};
+        {{0, 8, 16, 0, 0}, {0, 8, 17, 0, 1}, {0, 8, 24, 0, 0},
+        {1, 5, 11, 0, 0}, {2, 15, 6, 0, 0}, {3, 7, 6, 0, 0},
+        {4, 23, 14, 0, 0}, {4, 23, 30, 0, 1}, {5, 0, 1, 0, 0}};
     assert(moves.size() == estimate.size());
     for(auto est : estimate)
         assert(std::find(moves.begin(), moves.end(), est) != moves.end());

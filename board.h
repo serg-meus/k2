@@ -37,12 +37,14 @@ struct board_state {
 
         bool operator == (move_s m) const {
             return index == m.index && from_coord == m.from_coord &&
-                to_coord == m.to_coord && promo == m.promo;
+                to_coord == m.to_coord && promo == m.promo &&
+                is_capture == m.is_capture;
         }
 
         bool operator != (move_s m) const {
             return index != m.index || from_coord != m.from_coord ||
-                to_coord != m.to_coord || promo != m.promo;
+                to_coord != m.to_coord || promo != m.promo ||
+                is_capture != m.is_capture;
         }
 
         bool operator < (move_s m) const {
