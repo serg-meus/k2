@@ -30,7 +30,7 @@ class engine : public eval {
         stages = {&engine::gen_pv, &engine::gen_tt, &engine::gen_cap,
                   &engine::probe_cap, &engine::gen_killer1,
                   &engine::gen_killer2, &engine::gen_silent,
-                  &engine::probe_silent};
+                  &engine::probe_rest};
     }
 
     engine(const engine&);
@@ -147,7 +147,7 @@ class engine : public eval {
                        unsigned &move_num, unsigned &stage, const int depth);
     move_s gen_silent(std::vector<move_s> &moves, move_s &tt_move,
                       unsigned &move_num, unsigned &stage, const int depth);
-    move_s probe_silent(std::vector<move_s> &moves, move_s &tt_move,
+    move_s probe_rest(std::vector<move_s> &moves, move_s &tt_move,
                         unsigned &move_num, unsigned &stage, const int depth);
 
     void make_move(const move_s &move) {

@@ -999,7 +999,7 @@ void test_all::test_see() {
 
 void test_all::test_next_move() {
     auto E = engine_tst();
-    move_s ans;
+    move_s ans, prev_ans;
 
     E.setup_position("4k3/3p2p1/1b5b/n7/8/8/p2Q4/3K4 w - -");
     std::vector<move_s> moves;
@@ -1008,9 +1008,12 @@ void test_all::test_next_move() {
     ans = E.next_move(moves, tt_move, move_num, stage, 1);
     assert(ans == E.move_from_str("d2a2"));
     ans = E.next_move(moves, tt_move, move_num, stage, 1);
-    assert(ans == E.move_from_str("d2h6"));
-    ans = E.next_move(moves, tt_move, move_num, stage, 1);
-    assert(ans == E.move_from_str("d2a5"));
+    assert(!ans.is_capture);
+    while((ans = E.next_move(moves, tt_move, move_num, stage, 1)) !=
+            E.not_a_move)
+        prev_ans = ans;
+    assert(prev_ans == E.move_from_str("d2d7"));
+    assert(move_num == 25);
 
     E.setup_position("K3n2k/3P4/8/8/1N6/8/b7/8 w - -");
     moves.clear();
@@ -1023,7 +1026,7 @@ void test_all::test_next_move() {
     ans = E.next_move(moves, tt_move, move_num, stage, 1);
     assert(ans == E.move_from_str("d7d8q"));
     ans = E.next_move(moves, tt_move, move_num, stage, 1);
-    assert(ans == E.move_from_str("d7e8b"));
+    assert(ans == E.move_from_str("d7e8n"));
 
     E.setup_position("3rrqk1/1P3pp1/7p/6P1/8/PR6/1Q3P1P/1R4K1 w - -");
     moves.clear();
@@ -1034,9 +1037,9 @@ void test_all::test_next_move() {
     ans = E.next_move(moves, tt_move, move_num, stage, 0);
     assert(ans == E.move_from_str("b7b8r"));
     ans = E.next_move(moves, tt_move, move_num, stage, 0);
-    assert(ans == E.move_from_str("b7b8b"));
-    ans = E.next_move(moves, tt_move, move_num, stage, 0);
     assert(ans == E.move_from_str("b7b8n"));
+    ans = E.next_move(moves, tt_move, move_num, stage, 0);
+    assert(ans == E.move_from_str("b7b8b"));
     ans = E.next_move(moves, tt_move, move_num, stage, 0);
     assert(ans == E.move_from_str("g5h6"));
     ans = E.next_move(moves, tt_move, move_num, stage, 0);

@@ -193,7 +193,7 @@ move_s engine::probe_cap(std::vector<move_s> &moves, move_s &tt_move,
                          const int depth) {
     (void) (tt_move);
     if (move_num < moves.size()) {
-        if (depth > 0 || moves.at(move_num).priority >= 200)
+        if (moves.at(move_num).priority >= 200)
             return moves.at(move_num);
     }
     if (depth <= 0)
@@ -210,7 +210,7 @@ move_s engine::gen_killer1(std::vector<move_s> &moves, move_s &tt_move,
     if (k1 == tt_move || !is_pseudo_legal(k1))
         return not_a_move;
     k1.priority = 253;
-    moves.push_back(k1);
+    moves.insert(moves.begin() + move_num, k1);
     ++stage;
     return k1;
 }
@@ -224,7 +224,7 @@ move_s engine::gen_killer2(std::vector<move_s> &moves, move_s &tt_move,
     if (k2 == tt_move || !is_pseudo_legal(k2))
         return not_a_move;
     k2.priority = 252;
-    moves.push_back(k2);
+    moves.insert(moves.begin() + move_num, k2);
     ++stage;
     return k2;
 }
@@ -244,7 +244,7 @@ move_s engine::gen_silent(std::vector<move_s> &moves, move_s &tt_move,
 }
 
 
-move_s engine::probe_silent(std::vector<move_s> &moves, move_s &tt_move,
+move_s engine::probe_rest(std::vector<move_s> &moves, move_s &tt_move,
                             unsigned &move_num, unsigned &stage,
                             const int depth) {
     (void) (tt_move); (void) (depth);
