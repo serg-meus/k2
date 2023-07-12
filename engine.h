@@ -126,7 +126,8 @@ class engine : public eval {
                       const int depth_orig, move_s best_move,
                       const unsigned legal_moves, const bool in_check);
     void apprice_and_sort_moves(std::vector<move_s> &moves,
-                                unsigned first_move_num) const;
+                                const unsigned first_move_num,
+                                const gen_mode mode) const;
     void apprice_move(move_s &move, const u64 max_hist) const;
     std::string pv_string();
     void update_cutoff_stats(const int depth, const move_s move);

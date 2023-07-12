@@ -183,7 +183,7 @@ move_s engine::gen_cap(std::vector<move_s> &moves, move_s &tt_move,
     if (move_num == 1 && tt_move != not_a_move &&
             (tt_move.is_capture || tt_move.promo))
         erase_move(moves, tt_move, 1);
-    apprice_and_sort_moves(moves, move_num);
+    apprice_and_sort_moves(moves, move_num, gen_mode::only_captures);
     return not_a_move;
 }
 
@@ -239,7 +239,7 @@ move_s engine::gen_silent(std::vector<move_s> &moves, move_s &tt_move,
         erase_move(moves, tt_move, move_num);
     erase_move(moves, killers.at(ply).at(0), move_num);
     erase_move(moves, killers.at(ply).at(1), move_num);
-    apprice_and_sort_moves(moves, move_num);
+    apprice_and_sort_moves(moves, move_num, gen_mode::all_moves);
     return not_a_move;
 }
 
@@ -265,11 +265,12 @@ void engine::erase_move(std::vector<move_s> &moves, const move_s move,
 
 
 void engine::apprice_and_sort_moves(std::vector<move_s> &moves,
-                                    unsigned first_move_num) const {
+                                    const unsigned first_move_num,
+                                    const gen_mode mode) const {
     if (first_move_num >= moves.size())
         return;
     u64 max_hist = 0;
-    if (!moves.at(first_move_num).is_capture)
+    if (mode != gen_mode::only_captures)
         for (auto i = first_move_num; i < moves.size(); ++i) {
             const auto m = moves.at(i);
             const auto h = history.at(side).at(m.index).at(m.to_coord);
