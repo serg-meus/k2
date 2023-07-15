@@ -130,6 +130,7 @@ k2::move_s k2::root_search(i8 depth, const int alpha_orig, const int beta,
     search_result(val, alpha_orig, alpha, beta, depth, depth,
                   best_move, unsigned(moves.size()), in_check);
     print_search_iteration_result(depth, val >= beta ? beta : alpha);
+    reduce_history();
     return best_move;
 }
 

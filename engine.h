@@ -150,6 +150,7 @@ class engine : public eval {
                       unsigned &move_num, unsigned &stage, const int depth);
     move_s probe_rest(std::vector<move_s> &moves, move_s &tt_move,
                         unsigned &move_num, unsigned &stage, const int depth);
+    void reduce_history();
 
     void make_move(const move_s &move) {
         nodes++;

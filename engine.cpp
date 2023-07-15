@@ -423,3 +423,11 @@ bool engine::null_move_pruning(const int depth, const int beta,
     unmake_move();
     return x >= beta;
 }
+
+void engine::reduce_history() {
+    for (auto clr: {black, white})
+        for(auto ix: {pawn_ix, knight_ix, bishop_ix, rook_ix, queen_ix,
+                      king_ix})
+            for (unsigned coord = 0; coord < 64; ++coord)
+                history.at(clr).at(ix).at(coord) /= 2;
+}
