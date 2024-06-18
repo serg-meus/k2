@@ -18,29 +18,31 @@ int main(int argc, char* argv[])
     std::unique_ptr<k2> eng(new k2);
     eng->commands =
     {
-        {"help",        &k2::help_command},
-        {"new",         &k2::new_command},
-        {"force",       &k2::force_command},
-        {"setboard",    &k2::setboard_command},
-        {"set",         &k2::setboard_command},
-        {"quit",        &k2::quit_command},
-        {"q",           &k2::quit_command},
-        {"perft",       &k2::perft_command},
-        {"memory",      &k2::memory_command},
-        {"post",        &k2::post_command},
-        {"nopost",      &k2::nopost_command},
-        {"eval",        &k2::eval_command},
-        {"go",          &k2::go_command},
-        {"sd",          &k2::sd_command},
-        {"sn",          &k2::sn_command},
-        {"st",          &k2::st_command},
-        {"protover",    &k2::protover_command},
-        {"level",       &k2::level_command},
-        {"uci",         &k2::uci_command},
-        {"isready",     &k2::isready_command},
-        {"ucinewgame",  &k2::new_command},
-        {"position",    &k2::position_command},
-        {"setoption",   &k2::setoption_command},
+        {"help",        {&k2::help_command,     false}},
+        {"new",         {&k2::new_command,      true}},
+        {"force",       {&k2::force_command,    true}},
+        {"setboard",    {&k2::setboard_command, false}},
+        {"set",         {&k2::setboard_command, false}},
+        {"quit",        {&k2::quit_command,     true}},
+        {"q",           {&k2::quit_command,     true}},
+        {"perft",       {&k2::perft_command,    false}},
+        {"memory",      {&k2::memory_command,   false}},
+        {"post",        {&k2::post_command,     false}},
+        {"nopost",      {&k2::nopost_command,   false}},
+        {"eval",        {&k2::eval_command,     false}},
+        {"go",          {&k2::go_command,       false}},
+        {"sd",          {&k2::sd_command,       false}},
+        {"sn",          {&k2::sn_command,       false}},
+        {"st",          {&k2::st_command,       false}},
+        {"protover",    {&k2::protover_command, false}},
+        {"level",       {&k2::level_command,    false}},
+        {"uci",         {&k2::uci_command,      false}},
+        {"isready",     {&k2::isready_command,  false}},
+        {"ucinewgame",  {&k2::new_command,      true}},
+        {"position",    {&k2::position_command, false}},
+        {"setoption",   {&k2::setoption_command,false}},
+        {"stop",        {&k2::void_command,     true}},
+        {"?",           {&k2::void_command,     true}},
     };
     cout << "K2, the chess engine by Sergey Meus" << endl;
     eng->start();
@@ -77,34 +79,31 @@ void k2::start()
 }
 
 
-k2::move_s k2::search() {
+void k2::main_search() {
     nodes = 0;
     ply = 0;
     stop = false;
     auto moves = gen_moves();
-    std::random_shuffle(moves.begin(), moves.end());
     move_s best_move = moves.at(0);
+    std::random_shuffle(moves.begin(), moves.end());
     for (i8 depth = 1; !stop && depth <= max_depth; ++depth) {
         for (unsigned i = 1; i < pv.size(); ++i)
             pv.at(i).clear();
         follow_pv = true;
-        auto move = root_search(depth, -material[king_ix], material[king_ix],
-                                moves);
-        if (stop)
-            break;
-        best_move = move;
+        root_search(depth, -material[king_ix], material[king_ix], moves);
+        if(!stop)
+            best_move = pv.at(0).at(0);
     }
-    pv.at(0).clear();
-    return best_move;
+    pv.at(0).push_back(best_move);
 }
 
 
-k2::move_s k2::root_search(i8 depth, const int alpha_orig, const int beta,
-                           std::vector<move_s> &moves) {
+void k2::root_search(const i8 depth, const int alpha_orig, const int beta,
+                     std::vector<move_s> &moves) {
     const bool in_check = is_in_check(side);
     move_s best_move = moves.at(0);
     int alpha = alpha_orig, val = 0;
-    pv.at(ply).clear();
+    pv.at(0).clear();
     for (unsigned i = 0; !stop && i < moves.size(); ++i) {
         if (search_moves.size() &&
                 search_moves.find(moves.at(i)) != search_moves.end())
@@ -124,14 +123,12 @@ k2::move_s k2::root_search(i8 depth, const int alpha_orig, const int beta,
             std::rotate(moves.rbegin() + int(moves.size() - i - 1),
                         moves.rbegin() + int(moves.size() - i),
                         moves.rend());
-            assert(moves.at(0) == best_move);
         }
     }
     search_result(val, alpha_orig, alpha, beta, depth, depth,
                   best_move, unsigned(moves.size()), in_check);
     print_search_iteration_result(depth, val >= beta ? beta : alpha);
     reduce_history();
-    return best_move;
 }
 
 
@@ -160,7 +157,17 @@ bool k2::execute_command(const std::string &in) {
     int first_pos = int(in.find_first_of(" "));
     if (first_pos != -1)
         args = in.substr(size_t(first_pos + 1), in.size());
-    ((*this).*(el->second))(args);
+    if (use_thread) {
+        bool store_silent_mode = silent_mode;
+        if (el->second.second) {  // immediate command
+            stop = true;
+            silent_mode = true;
+        }
+        if (thr.joinable())
+            thr.join();
+        silent_mode = store_silent_mode;
+    }
+    ((*this).*(el->second.first))(args);
     return true;
 }
 
@@ -261,10 +268,22 @@ void k2::eval_command(const std::string &in) {
 void k2::go_command(const std::string &in) {
     if (uci)
         uci_go_command(in);
+    if(use_thread) {
+        if(thr.joinable())
+            thr.join();
+        thr = std::thread(&k2::execute_search, this);
+    }
+    else
+        execute_search();
+}
+
+
+void k2::execute_search() {
     force = false;
     set_time_for_move();
     timer_start();
-    move_s best_move = search();
+    main_search();
+    move_s best_move = pv.at(0).at(0);
     if(uci)
         cout << "best";
     cout << "move " << move_to_str(best_move) << endl;
@@ -378,7 +397,7 @@ void k2::position_command(const std::string &in) {
 void k2::setoption_command(const std::string &in) {
     auto args = split(in);
     if (args.size() != 4 || args.at(0) != "name" || args.at(2) != "value") {
-        cout << "Wron args" << endl;
+        cout << "Wrong args" << endl;
         return;
     }
     if (to_lower(args.at(1)) == "hash")
@@ -474,7 +493,7 @@ void k2::uci_go_searchmoves(const std::string &in) {
 }
 
 
-void k2::unsupported_command(const std::string &in) {
+void k2::void_command(const std::string &in) {
     (void)(in);
 }
 
