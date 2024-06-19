@@ -105,8 +105,10 @@ void k2::root_search(const i8 depth, const int alpha_orig, const int beta,
     int alpha = alpha_orig, val = 0;
     pv.at(0).clear();
     for (unsigned i = 0; !stop && i < moves.size(); ++i) {
-        if (search_moves.size() &&
-                search_moves.find(moves.at(i)) != search_moves.end())
+        const auto s = move_to_str(moves.at(i));
+        if (not_search_moves.size() && not_search_moves.count(s))
+            continue;
+        if (search_moves.size() && !search_moves.count(s))
             continue;
         make_move(moves.at(i));
         val = search_cur_pos(depth, alpha, beta, moves.at(i), i,
@@ -266,8 +268,7 @@ void k2::eval_command(const std::string &in) {
 
 
 void k2::go_command(const std::string &in) {
-    if (uci)
-        uci_go_command(in);
+    uci_go_command(in);
     if(use_thread) {
         if(thr.joinable())
             thr.join();
@@ -489,7 +490,10 @@ void k2::uci_go_movestogo(const std::string &in) {
 
 
 void k2::uci_go_searchmoves(const std::string &in) {
-    search_moves.insert(move_from_str(in));
+    if (in.at(0) != '!' && in.at(0) != '~')
+        search_moves.insert(in);
+    else
+        not_search_moves.insert(in.substr(1));
 }
 
 
@@ -524,7 +528,7 @@ void k2::print_search_iteration_result(i8 dpt, int val) {
 }
 
 
-std::string k2::uci_score(int val) {
+std::string k2::uci_score(int val) const {
     std::string ans = " score ";
     if (std::abs(val) < material[king_ix] - max_ply) {
         ans += "cp " + std::to_string(val);

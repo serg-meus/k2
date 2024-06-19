@@ -10,9 +10,9 @@ public:
 
     k2() : commands(), force(false), quit(false), silent_mode(false),
            xboard(false), uci(false), max_depth(max_ply), search_moves(),
-           time_for_move(0), time_per_time_control(60), time_inc(0),
-           current_clock(60), moves_per_time_control(0), moves_to_go(0),
-           move_cr(0), use_thread(true), thr() {
+           not_search_moves(), time_for_move(0), time_per_time_control(60),
+           time_inc(0), current_clock(60), moves_per_time_control(0),
+           moves_to_go(0), move_cr(0), use_thread(true), thr() {
         std::srand(unsigned(time(nullptr)));
     }
 
@@ -49,7 +49,7 @@ protected:
 
     bool force, quit, silent_mode, xboard, uci;
     i8 max_depth;
-    std::set<move_s> search_moves;
+    std::set<std::string> search_moves, not_search_moves;
     double time_for_move, time_per_time_control,
         time_inc, current_clock;
     int moves_per_time_control, moves_to_go, move_cr;
@@ -75,7 +75,7 @@ protected:
     void root_search(const i8 depth, const int alpha_orig, const int beta,
                      std::vector<move_s> &moves);
     void print_search_iteration_result(i8 dpt, int val);
-    std::string uci_score(int val);
+    std::string uci_score(int val) const;
 
 
     void timer_start() {
