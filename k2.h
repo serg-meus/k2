@@ -72,8 +72,8 @@ protected:
     void uci_go_searchmoves(const std::string &in);
 
     bool looks_like_move(const std::string &in) const;
-    void root_search(const i8 depth, const int alpha_orig, const int beta,
-                     std::vector<move_s> &moves);
+    move_s root_search(const i8 depth, const int alpha_orig, const int beta,
+                       std::vector<move_s> &moves);
     void print_search_iteration_result(i8 dpt, int val);
     std::string uci_score(int val) const;
 

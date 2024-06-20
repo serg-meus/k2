@@ -90,16 +90,15 @@ void k2::main_search() {
         for (unsigned i = 1; i < pv.size(); ++i)
             pv.at(i).clear();
         follow_pv = true;
-        root_search(depth, -material[king_ix], material[king_ix], moves);
-        if(!stop)
-            best_move = pv.at(0).at(0);
+        best_move = root_search(depth, -material[king_ix], material[king_ix],
+                                moves);
     }
     pv.at(0).push_back(best_move);
 }
 
 
-void k2::root_search(const i8 depth, const int alpha_orig, const int beta,
-                     std::vector<move_s> &moves) {
+k2::move_s k2::root_search(const i8 depth, const int alpha_orig,
+                           const int beta, std::vector<move_s> &moves) {
     const bool in_check = is_in_check(side);
     move_s best_move = moves.at(0);
     int alpha = alpha_orig, val = 0;
@@ -114,23 +113,26 @@ void k2::root_search(const i8 depth, const int alpha_orig, const int beta,
         val = search_cur_pos(depth, alpha, beta, moves.at(i), i,
                              i ? cut_node : pv_node, in_check);
         unmake_move();
-        if (stop)
-            break;
-        if (val >= beta || val > alpha) {
+        if (!stop && (val >= beta || val > alpha)) {
             best_move = moves.at(i);
-            if (val >= beta)
+            if (val >= beta) {
+                print_search_iteration_result(depth, beta);
                 break;
+            }
             alpha = val;
             store_pv(moves.at(i));
             std::rotate(moves.rbegin() + int(moves.size() - i - 1),
                         moves.rbegin() + int(moves.size() - i),
                         moves.rend());
+            print_search_iteration_result(depth, alpha);
         }
     }
+    if (stop)
+        print_search_iteration_result(depth, alpha);
     search_result(val, alpha_orig, alpha, beta, depth, depth,
                   best_move, unsigned(moves.size()), in_check);
-    print_search_iteration_result(depth, val >= beta ? beta : alpha);
     reduce_history();
+    return best_move;
 }
 
 
