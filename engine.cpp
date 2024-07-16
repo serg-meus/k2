@@ -37,7 +37,7 @@ int engine::search(const int depth_orig, const int alpha_orig, const int beta,
         val = search_cur_pos(depth, alpha, beta, cur_move,
                              move_num, node_type, in_check);
         unmake_move();
-        if (val >= beta || val > alpha) {
+        if (!stop && (val >= beta || val > alpha)) {
             best_move_num = move_num;
             update_cutoff_stats(depth, cur_move);
             if (val >= beta)
@@ -60,6 +60,8 @@ int engine::search_cur_pos(const int depth, const int alpha, const int beta,
         stop = true;
         return 0;
     }
+    if (ply >= max_ply)
+        return 0;
     if (depth <= 0)
         return -search(depth - 1, -beta, -alpha, -node_type);
     if (search_draw() || hash_keys.find(hash_key) != hash_keys.end())

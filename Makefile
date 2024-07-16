@@ -1,8 +1,18 @@
+ifeq ($(OS),Windows_NT)
+EXEC = k2.exe
+RM = del /q
+RM_DIR = rmdir
+else
+EXEC = ./k2
+RM = rm -f
+RM_DIR = rm -rf
+endif
+
 CC=g++
 
-CFLAGS=-std=c++0x -Werror -Wall -Wextra -Wpedantic -Wcast-align -Wcast-qual -Wconversion -Wsign-conversion -Wctor-dtor-privacy -Wfloat-equal -Wnon-virtual-dtor -Wold-style-cast -Woverloaded-virtual -Wredundant-decls -Wsign-promo -Wshadow -Weffc++
+CFLAGS=-std=c++0x -Werror -Wall -Wextra -Wpedantic -Wcast-align -Wcast-qual -Wconversion -Wsign-conversion -Wctor-dtor-privacy -Wfloat-equal -Wnon-virtual-dtor -Wold-style-cast -Woverloaded-virtual -Wredundant-decls -Wsign-promo -Wshadow -Weffc++ -Wmaybe-uninitialized
 
-COPT=-O3 -DNDEBUG -flto
+COPT=-O3 -DNDEBUG -DUSE_THREAD=true -flto
 
 CPP_FILES=utils.cpp bitboards.cpp board.cpp chess.cpp eval.cpp engine.cpp k2.cpp
 
@@ -17,10 +27,13 @@ test:
 	$(CC) $(CFLAGS) -O2 utils.cpp bitboards.cpp board.cpp chess.cpp eval.cpp engine.cpp test_all.cpp -o test_all
 
 debug:
-	$(CC) $(CFLAGS) -O0 $(CPP_FILES) -o k2
+	$(CC) $(CFLAGS) -O0 -DUSE_THREAD=false $(CPP_FILES) -o k2
 
 static:
 	$(CC) $(CFLAGS) $(COPT) -s -static $(CPP_FILES) -o k2
+
+32bit: $(O_FILES)
+	$(CC) $(CFLAGS) $(COPT) -m32 $(O_FILES) -o k2
 
 utils.o: utils.cpp
 	$(CC) -c $(CFLAGS) $(COPT) utils.cpp
@@ -44,22 +57,10 @@ k2.o: k2.cpp
 	$(CC) -c $(CFLAGS) $(COPT) k2.cpp
 
 prof:
-	$(CC) $(CFLAGS) -pg -O2 $(CPP_FILES) k2
-	./k2
-	gprof k2 gmon.out > gmon.txt
-
-wprof:
-	$(CC) $(CFLAGS) -pg -O2 $(CPP_FILES) -o k2
-	k2.exe
-	gprof k2.exe gmon.out > gmon.txt
-
-32bit: $(O_FILES)
-	$(CC) $(CFLAGS) $(COPT) -m32 $(O_FILES) -o k2
+	$(CC) $(CFLAGS) -pg -O2 -DUSE_THREAD=false $(CPP_FILES) -o k2
+	$(EXEC)
+	gprof $(EXEC) gmon.out > gmon.txt
 
 clean:
-	rm -f *.o test_all k2 gmon.* *.depend *.layout
-	rm -rf bin/ obj/
-
-wclean:
-	del /q *.o *.exe gmon.* *.depend *.layout
-	rmdir /s /q bin obj
+	$(RM) -f *.o test_all k2 gmon.* *.depend *.layout
+	$(RM_DIR) bin/ obj/

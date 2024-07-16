@@ -13,6 +13,7 @@
 				<Option compiler="gcc" />
 				<Compiler>
 					<Add option="-g" />
+					<Add option="-DUSE_THREAD=false" />
 				</Compiler>
 			</Target>
 			<Target title="Release">
@@ -21,7 +22,6 @@
 				<Option type="1" />
 				<Option compiler="gcc" />
 				<Compiler>
-					<Add option="-flto" />
 					<Add option="-O3" />
 					<Add option="-Wnon-virtual-dtor" />
 					<Add option="-Wshadow" />
@@ -45,9 +45,9 @@
 					<Add option="-Wextra" />
 					<Add option="-Wall" />
 					<Add option="-DNDEBUG" />
+					<Add option="-DUSE_THREAD=true" />
 				</Compiler>
 				<Linker>
-					<Add option="-flto" />
 					<Add option="-s" />
 					<Add option="-static" />
 				</Linker>

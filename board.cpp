@@ -38,6 +38,8 @@ bool board::setup_position(const std::string &fen) {
     init();
     const auto fen_split = split(fen, ' ', 1);
     const auto rows = split(fen_split[0], '/');
+    if (rows.size() != 8)
+        return false;
     for (u8 i = 0; i < rows.size(); ++i)
         if (i >= 8 || !setup_row(u8(7 - i), rows[i]))
             return false;

@@ -21,8 +21,9 @@ class engine : public eval {
 
     engine() : nodes(0), max_nodes(0), max_time_for_move(0), move_cr(0),
             ply(0), stop(false), done_moves(), t_beg(), tt(64*megabyte),
-            hash_keys(), killers(), history(), pv(), follow_pv(0), stages() {
-        for (auto i = 0; i < max_ply; ++i) {
+            hash_keys(), killers(), history(), pv(), follow_pv(0),
+            stages(), cv() {
+        for (auto i = 0; i <= max_ply; ++i) {
             std::vector<move_s> tmp;
             tmp.reserve(max_ply);
             pv.push_back(tmp);
@@ -53,6 +54,8 @@ class engine : public eval {
         u8 bound_type;
         bool one_reply;
     };
+
+    static_assert(sizeof(tt_entry_result_c) == 8, "Wrong entry size");
 
     struct tt_entry_c {
         union {
@@ -106,6 +109,7 @@ class engine : public eval {
     std::vector<std::vector<move_s>> pv;
     bool follow_pv;
     std::vector<stage_func_ptr> stages;
+    std::string cv;
 
     static const unsigned megabyte = 1000000/sizeof(tt_entry_c);
 
@@ -157,10 +161,18 @@ class engine : public eval {
         ply++;
         board::make_move(move);
         done_moves.push_back(move);
+#ifndef NDEBUG
+        cv += move_to_str(move) + " ";
+        if (cv == " ")
+            std::cout << "Breakpoint" << std::endl;
+#endif
     }
 
     void unmake_move() {
         ply--;
+#ifndef NDEBUG
+        cv.erase(cv.size() - 5);
+#endif
         done_moves.pop_back();
         board::unmake_move();
     }
@@ -182,6 +194,7 @@ public:
                           0);
         for (auto &p: pv)
             p.clear();
+        cv.clear();
         move_cr = 0;
         return ans;
     }

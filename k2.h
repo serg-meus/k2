@@ -12,7 +12,7 @@ public:
            xboard(false), uci(false), max_depth(max_ply), search_moves(),
            not_search_moves(), time_for_move(0), time_per_time_control(60),
            time_inc(0), current_clock(60), moves_per_time_control(0),
-           moves_to_go(0), move_cr(0), use_thread(true), thr() {
+           moves_to_go(0), move_cr(0), use_thread(USE_THREAD), thr() {
         std::srand(unsigned(time(nullptr)));
     }
 
@@ -72,7 +72,7 @@ protected:
     void uci_go_searchmoves(const std::string &in);
 
     bool looks_like_move(const std::string &in) const;
-    move_s root_search(const i8 depth, const int alpha_orig, const int beta,
+    move_s root_search(const i8 depth, int &alpha_orig, const int beta,
                        std::vector<move_s> &moves);
     void print_search_iteration_result(i8 dpt, int val);
     std::string uci_score(int val) const;
