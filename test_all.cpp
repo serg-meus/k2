@@ -1079,8 +1079,8 @@ void test_all::test_set_time_for_move() {
     K.time_inc = 0;
     K.moves_per_time_control = 0;
     K.set_time_for_move();
-    assert(is_close(K.time_for_move,  1./60));
-    assert(is_close(K.max_time_for_move, 3./60 - K.time_margin));
+    assert(is_close(K.time_for_move,  1./90));
+    assert(is_close(K.max_time_for_move, 3./90 - K.time_margin));
 
     K.moves_per_time_control = 10;
     K.set_time_for_move();
@@ -1095,14 +1095,14 @@ void test_all::test_set_time_for_move() {
     K.moves_per_time_control = 0;
     K.time_inc = .1;
     K.set_time_for_move();
-    assert(is_close(K.time_for_move,  1./60 + .1));
-    assert(is_close(K.max_time_for_move, 3./60 + .3 - K.time_margin));
+    assert(is_close(K.time_for_move,  1./90 + .1));
+    assert(is_close(K.max_time_for_move, 3./90 + .3 - K.time_margin));
 
     K.move_cr = 6;
     K.time_inc = 0;
     K.set_time_for_move();
-    assert(is_close(K.time_for_move,  1./60));
-    assert(is_close(K.max_time_for_move, 3./60 - K.time_margin));
+    assert(is_close(K.time_for_move,  1./90));
+    assert(is_close(K.max_time_for_move, 3./90 - K.time_margin));
 
     K.moves_per_time_control = 10;
     K.set_time_for_move();
@@ -1112,8 +1112,8 @@ void test_all::test_set_time_for_move() {
     K.moves_per_time_control = 0;
     K.time_inc = .1;
     K.set_time_for_move();
-    assert(is_close(K.time_for_move,  1./60 + .1));
-    assert(is_close(K.max_time_for_move, 3./60 + .3 - K.time_margin));
+    assert(is_close(K.time_for_move,  1./90 + .1));
+    assert(is_close(K.max_time_for_move, 3./90 + .3 - K.time_margin));
 }
 
 

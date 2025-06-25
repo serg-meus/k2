@@ -97,7 +97,7 @@ protected:
         if (!uci)
             moves_to_go = moves_per_time_control ?
                 moves_per_time_control - move_cr : 0;
-        int mov2go = moves_to_go ? moves_to_go : 30;
+        int mov2go = moves_to_go ? moves_to_go : 45;
         double k_branch = mov2go <= 4 ? 1 : 2;
         time_for_move = current_clock/mov2go/k_branch + time_inc;
         double k_max = mov2go <= 4 ? 1 : 3;
