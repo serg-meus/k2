@@ -24,7 +24,7 @@ prod: $(O_FILES)
 	$(CC) $(COPT) $(O_FILES) -o k2
 
 test:
-	$(CC) $(CFLAGS) -O2 utils.cpp bitboards.cpp board.cpp chess.cpp eval.cpp engine.cpp test_all.cpp -o test_all
+	$(CC) $(CFLAGS) -DUSE_THREAD=false -O0 utils.cpp bitboards.cpp board.cpp chess.cpp eval.cpp engine.cpp test_all.cpp -o test_all
 
 debug:
 	$(CC) $(CFLAGS) -O0 -DUSE_THREAD=false $(CPP_FILES) -o k2
