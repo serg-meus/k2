@@ -4,6 +4,9 @@
 #include <random>
 #include <iostream>
 
+static const bool black = false, white = true;
+static const u8 pawn_ix = 0, knight_ix = 1, bishop_ix = 2, rook_ix = 3,
+    queen_ix = 4, king_ix = 5, occupancy_ix = 6;
 
 struct board_state {
 
@@ -65,10 +68,6 @@ struct board_state {
     };
 
     static_assert(sizeof(move_s) == 4, "Wrong size of move struct");
-
-    static const bool black = false, white = true;
-    static const u8 pawn_ix = 0, knight_ix = 1, bishop_ix = 2, rook_ix = 3,
-        queen_ix = 4, king_ix = 5, occupancy_ix = 6;
 
     board_state() :
         en_passant_bitboard(0),

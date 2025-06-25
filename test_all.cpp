@@ -72,6 +72,19 @@ void test_all::test_chess() {
 
 
 void test_all::test_eval() {
+    test_eval_material();
+    test_eval_pst();
+    test_double_pawns();
+    test_isolated_pawns();
+    test_double_and_isolated();
+    test_passed_pawns();
+    test_distance();
+    test_unstoppable();
+    test_connected_passers();
+    test_pawn_gaps();
+    test_king_pawn_tropism();
+    test_mobility_piece_type();
+    test_eval_pawns();
 }
 
 
@@ -85,6 +98,181 @@ void test_all::test_engine() {
 void test_all::test_k2() {
     test_set_time_for_move();
     test_update_clock();
+}
+
+
+void test_all::test_eval_material() {
+    auto E = eval_tst();
+    E.setup_position("rn2kbnr/pppppppp/8/8/8/8/PPPPPPPP/1NBQKB2 w kq -");
+    assert(E.eval_material(white) == vec2<eval_t>(8, 8) * E.piece_values[pawn_ix] +
+        E.piece_values[knight_ix] + vec2<eval_t>(2, 2) * E.piece_values[bishop_ix] +
+        E.piece_values[queen_ix]);
+}
+
+
+void test_all::test_eval_pst() {
+    auto E = eval_tst{};
+    E.setup_position("6k1/6N1/5P1B/8/5r2/4p1p1/8/5K2 w - -");
+    assert(E.eval_pst(white) == E.pst[pawn_ix][str_to_coord("f6") ^ 56] +
+        E.pst[knight_ix][str_to_coord("g7") ^ 56] +
+        E.pst[bishop_ix][str_to_coord("h6") ^ 56] +
+        E.pst[king_ix][str_to_coord("f1") ^ 56]);
+    assert(E.eval_pst(black) == E.pst[pawn_ix][str_to_coord("e6") ^ 56] +
+        E.pst[pawn_ix][str_to_coord("g6") ^ 56] + E.pst[rook_ix][str_to_coord("f5") ^ 56] +
+        E.pst[king_ix][str_to_coord("g1") ^ 56]);
+}
+
+
+void test_all::test_double_pawns() {
+    auto E = eval_tst{};
+    E.setup_position("4k3/ppp5/2p5/8/6P1/P1P1P1P1/P2P2P1/4K3 w - -");
+    assert(E.double_pawns(white) == 0x404100);
+    assert(E.double_pawns(black) == 0x04000000000000);
+}
+
+
+void test_all::test_isolated_pawns() {
+    auto E = eval_tst();
+    E.setup_position("4k3/p2p2p1/1p6/3P4/8/P3p3/P1P1P2P/5K2 w - -");
+    assert(E.isolated_pawns(white) == 0x018100);
+    assert(E.isolated_pawns(black) == bit("g7"));
+}
+
+void test_all::test_double_and_isolated() {
+    auto E = eval_tst();
+    E.setup_position("4k3/p2p1pp1/3p1pp1/3p4/1P6/1P2P3/1P1PP2P/4K3 w - -");
+    assert(E.eval_double_and_isolated(white) == 2 * pawn_dbl_iso + pawn_doubled +
+        pawn_isolated);
+    assert(E.eval_double_and_isolated(black) == 2 * pawn_dbl_iso + pawn_isolated +
+        2 * pawn_doubled);
+}
+
+
+void test_all::test_passed_pawns() {
+    auto E = eval_tst();
+    E.setup_position("4k3/8/8/8/7p/P7/8/4K3 w - -");
+    assert(E.passed_pawns(black) == bit("h4"));
+    assert(E.passed_pawns(white) == bit("a3"));
+    E.setup_position("6k1/2p5/8/3pPp2/3PpP2/8/P3P3/6K1 w - -");
+    assert(E.passed_pawns(black) == 0);
+    assert(E.passed_pawns(white) == (bit("a2") | bit("e5")));
+}
+
+
+void test_all::test_distance() {
+    assert(distance(str_to_coord("e5"), str_to_coord("f6")) == 1);
+    assert(distance(str_to_coord("e5"), str_to_coord("d3")) == 2);
+    assert(distance(str_to_coord("h1"), str_to_coord("h8")) == 7);
+    assert(distance(str_to_coord("h1"), str_to_coord("a8")) == 7);
+}
+
+
+void test_all::test_unstoppable() {
+    auto E = eval_tst();
+    E.setup_position("5k2/8/2P5/8/8/8/8/K7 w - -");
+    auto pass = E.passed_pawns(white);
+    assert(E.unstoppable_pawns(pass, white, white) == bit("c6"));
+    assert(E.unstoppable_pawns(pass, white, black) == 0);
+    assert(E.unstoppable_pawns(pass, black, black) == 0);
+    E.setup_position("k7/7p/8/8/8/8/8/1K6 b - -");
+    pass = E.passed_pawns(black);
+    assert(E.unstoppable_pawns(pass, black, black) == bit("h7"));
+    assert(E.unstoppable_pawns(pass, black, white) == 0);
+    E.setup_position("8/7p/8/8/7k/8/8/K7 w - -");
+    pass = E.passed_pawns(black);
+    assert(E.unstoppable_pawns(pass, black, black) == bit("h7"));
+    assert(E.unstoppable_pawns(pass, black, white) == 0);
+    E.setup_position("7k/8/8/8/8/K7/P7/8 w - -");
+    pass = E.passed_pawns(white);
+    assert(E.unstoppable_pawns(pass, white, white) == bit("a2"));
+    assert(E.unstoppable_pawns(pass, white, black) == 0);
+}
+
+
+void test_all::test_connected_passers() {
+    auto E = eval_tst();
+    E.setup_position("5k2/b3ppp1/8/7P/P1P5/1P6/8/5K2 w - -");
+    u64 pass_w = E.passed_pawns(white);
+    u64 pass_b = E.passed_pawns(black);
+    assert(E.connected_passers(pass_w) == 0x05020000);
+    assert(E.connected_passers(pass_b) == 0x30000000000000);
+}
+
+
+void test_all::test_pawn_gaps() {
+    auto E = eval_tst();
+    E.setup_position("4k3/2p3pp/Pp6/4p2P/6P1/pP3p2/P2P1P2/4K3 w - -");
+    assert(E.pawn_gaps(E.bb[white][pawn_ix]) == 2);
+    assert(E.pawn_gaps(E.bb[black][pawn_ix]) == 3);
+}
+
+
+void test_all::test_king_pawn_tropism() {
+    auto E = eval_tst();
+	E.setup_position("8/5ppp/5k2/3K4/1PPP4/8/4P3/8 w - -");
+	u64 pass_w = E.passed_pawns(white);
+	u64 pass_b = E.passed_pawns(black);
+	u64 king_w = E.bb[white][king_ix];
+	u64 king_b = E.bb[black][king_ix];
+	assert(E.king_pawn_tropism(pass_w, white, king_w, 1) == (bit("c4") | bit("d4")));
+	assert(E.king_pawn_tropism(pass_w, white, king_w, 2) == bit("b4"));
+	assert(E.king_pawn_tropism(pass_b, black, king_b, 1) == bit("g7"));
+	assert(E.king_pawn_tropism(pass_b, black, king_b, 2) == bit("h7"));
+	assert(E.king_pawn_tropism(pass_w, white, king_b, 1) == 0);
+	assert(E.king_pawn_tropism(pass_w, white, king_b, 2) == bit("d4"));
+	assert(E.king_pawn_tropism(pass_b, black, king_w, 1) == 0);
+	assert(E.king_pawn_tropism(pass_b, black, king_w, 2) == 0);
+}
+
+
+void test_all::test_pawn_holes() {
+    auto E = eval_tst();
+    E.setup_position("r3kbnr/ppp3p1/4p1Np/bPPnP3/P2P1B2/8/7P/RNB1K2R w KQkq -");
+    assert(E.pawn_holes(bb[white][pawn_ix], white) == (bit("a4") | bit("d4")));
+    assert(E.pawn_holes(bb[black][pawn_ix], black) == bit("g7"));
+}
+
+
+void test_all::test_mobility_piece_type() {
+    auto E = eval_tst();
+    E.setup_position("5rk1/pq2nbp1/1p5p/2n2P2/4P1Q1/1PN4N/PB6/5K1R w - -");
+    assert(E.mobility_piece_type(white, rook_ix) == mobility_curve[2]);
+    assert(E.mobility_piece_type(black, knight_ix) == mobility_curve[2] +
+        mobility_curve[3]);
+    assert(E.mobility_piece_type(white, bishop_ix) == mobility_curve[3]);
+    assert(E.mobility_piece_type(black, queen_ix) == mobility_curve[7/2]);
+    assert(E.mobility_piece_type(white, knight_ix) == mobility_curve[3] +
+        mobility_curve[6]);
+    assert(E.mobility_piece_type(black, bishop_ix) == mobility_curve[2]);
+    assert(E.mobility_piece_type(white, king_ix) == mobility_curve[5]);
+    assert(E.mobility_piece_type(black, king_ix) == mobility_curve[2]);
+    assert(E.mobility_piece_type(white, queen_ix) == mobility_curve[10/2]);
+}
+
+
+void test_all::test_eval_pawns() {
+    auto E = eval_tst();
+    E.setup_position("4k3/1p6/8/8/1P6/8/1P6/4K3 w - -");
+    auto val = E.eval_pawns(white);
+    assert(val == -pawn_dbl_iso);
+    val = E.eval_pawns(black);
+    assert(val == -pawn_isolated);
+    E.setup_position("4k3/1pp5/1p6/8/1P6/1P6/1P6/4K3 w - -");
+    val = E.eval_pawns(white);
+    assert(val == -2*pawn_dbl_iso);
+    val = E.eval_pawns(black);
+    assert(val == -pawn_doubled);
+    E.setup_position("4k3/2p1p1p1/2Np1pPp/7P/1p6/Pr1PnP2/1P2P3/4K3 b - -");
+    val = E.eval_pawns(white);
+    assert(val == -2*pawn_hole - pawn_gap);
+    val = E.eval_pawns(black);
+    assert(val == -pawn_hole - pawn_gap);
+    E.setup_position("8/8/3K1P2/3p2P1/1Pkn4/8/8/8 w - -");
+    val = E.eval_pawns(white);
+    assert(val == eval_t(3*3 + 4*4 + 5*5)*pawn_pass2 +
+           eval_t(3 + 4 + 5)*pawn_pass1 + 3*pawn_pass0 - pawn_isolated +
+           2*pawn_king_tropism3 - pawn_king_tropism1 -
+           3*pawn_king_tropism2/* + 5*pawn_pass_connected*/);
 }
 
 
@@ -202,16 +390,12 @@ void test_all::test_attacks(const bitboards_tst& B) {
     assert(B.king_attacks(str_to_coord("a1")) == 0x0302);
     u64 w_pawns = 0x801fa00;  // 8/p2p3p/7p/3p3p/3Pp2k/PK3p2/1P1PPPPP/8 w - -
     u64 b_pawns = 0x89808810200000;
-    assert(B.all_pawn_attacks_kingside(w_pawns, 1, b_pawns) ==
-           one_nth_bit(str_to_coord("f3")));
-    assert(B.all_pawn_attacks_queenside(w_pawns, 1, b_pawns) ==
-           one_nth_bit(str_to_coord("f3")));
-    assert(B.all_pawn_attacks_kingside(b_pawns, 0, w_pawns) ==
-           one_nth_bit(str_to_coord("g2")));
-    assert(B.all_pawn_attacks_queenside(b_pawns, 0, w_pawns) ==
-           one_nth_bit(str_to_coord("e2")));
-    u64 w_king = one_nth_bit(str_to_coord("b3"));
-    u64 b_king = one_nth_bit(str_to_coord("h4"));
+    assert(B.all_pawn_attacks_kingside(w_pawns, 1, b_pawns) == bit("f3"));
+    assert(B.all_pawn_attacks_queenside(w_pawns, 1, b_pawns) == bit("f3"));
+    assert(B.all_pawn_attacks_kingside(b_pawns, 0, w_pawns) == bit("g2"));
+    assert(B.all_pawn_attacks_queenside(b_pawns, 0, w_pawns) == bit("e2"));
+    u64 w_king = bit("b3");
+    u64 b_king = bit("h4");
     u64 occupancy = w_pawns | b_pawns | w_king | b_king;
     u64 w_pushes = B.all_pawn_pushes(w_pawns, 1, occupancy);
     assert(w_pushes == 0x1d80000);
@@ -227,27 +411,25 @@ void test_all::test_setup_position() {
     brd.setup_position(
         "rq2k1nr/1bppb1pp/np2p3/pB2Pp2/3P4/1P3N2/PBP1QPPP/RN2K2R"
         " w Qk f6 0 11 ");
-    const auto white = brd.white;
-    const auto black = brd.black;
     assert(brd.side == white);
     assert(brd.castling_rights[white] == brd.castle_queenside);
     assert(brd.castling_rights[black] == brd.castle_kingside);
-    assert(brd.en_passant_bitboard == one_nth_bit(str_to_coord("f6")));
+    assert(brd.en_passant_bitboard == bit("f6"));
     assert(brd.reversible_halfmoves == 0);
-    assert(brd.bb[white][brd.pawn_ix] == 0x100802e500);
-    assert(brd.bb[black][brd.pawn_ix] == 0xcc122100000000);
-    assert(brd.bb[white][brd.knight_ix] == 0x200002);
-    assert(brd.bb[black][brd.knight_ix] == 0x4000010000000000);
-    assert(brd.bb[white][brd.bishop_ix] == 0x0200000200);
-    assert(brd.bb[black][brd.bishop_ix] == 0x12000000000000);
-    assert(brd.bb[white][brd.rook_ix] == 0x81);
-    assert(brd.bb[black][brd.rook_ix] == 0x8100000000000000);
-    assert(brd.bb[white][brd.queen_ix] == 0x1000);
-    assert(brd.bb[black][brd.queen_ix] == 0x0200000000000000);
-    assert(brd.bb[white][brd.king_ix] == 0x10);
-    assert(brd.bb[black][brd.king_ix] == 0x1000000000000000);
-    assert(brd.bb[white][brd.occupancy_ix] == 0x120822f793);
-    assert(brd.bb[black][brd.occupancy_ix] == 0xd3de132100000000);
+    assert(brd.bb[white][pawn_ix] == 0x100802e500);
+    assert(brd.bb[black][pawn_ix] == 0xcc122100000000);
+    assert(brd.bb[white][knight_ix] == 0x200002);
+    assert(brd.bb[black][knight_ix] == 0x4000010000000000);
+    assert(brd.bb[white][bishop_ix] == 0x0200000200);
+    assert(brd.bb[black][bishop_ix] == 0x12000000000000);
+    assert(brd.bb[white][rook_ix] == 0x81);
+    assert(brd.bb[black][rook_ix] == 0x8100000000000000);
+    assert(brd.bb[white][queen_ix] == 0x1000);
+    assert(brd.bb[black][queen_ix] == 0x0200000000000000);
+    assert(brd.bb[white][king_ix] == 0x10);
+    assert(brd.bb[black][king_ix] == 0x1000000000000000);
+    assert(brd.bb[white][occupancy_ix] == 0x120822f793);
+    assert(brd.bb[black][occupancy_ix] == 0xd3de132100000000);
 }
 
 
@@ -268,14 +450,12 @@ void test_all::test_board_to_fen() {
 
 void test_all::test_make_move() {
     auto brd = board_tst();
-    const auto white = brd.white;
-    const auto black = brd.black;
     std::string fen =
         "rq2k1nr/1bppb1pp/np2p3/pB2Pp2/3P4/1P3N2/PBP1QPPP/RN2K2R w Qk f6 3";
     brd.setup_position(fen);
     brd.enter_move("a2a4");
-    assert(!(brd.bb[white][brd.pawn_ix] & one_nth_bit(str_to_coord("a2"))));
-    assert(brd.bb[white][brd.pawn_ix] & one_nth_bit(str_to_coord("a4")));
+    assert(!(brd.bb[white][pawn_ix] & bit("a2")));
+    assert(brd.bb[white][pawn_ix] & bit("a4"));
     assert(brd.side == black);
     assert(brd.en_passant_bitboard == 0);
     assert(brd.castling_rights[white] == brd.castle_queenside);
@@ -284,8 +464,8 @@ void test_all::test_make_move() {
 
     brd.setup_position(fen);
     brd.enter_move("a2a3");
-    assert(!(brd.bb[white][brd.pawn_ix] & one_nth_bit(str_to_coord("a2"))));
-    assert(brd.bb[white][brd.pawn_ix] & one_nth_bit(str_to_coord("a3")));
+    assert(!(brd.bb[white][pawn_ix] & bit("a2")));
+    assert(brd.bb[white][pawn_ix] & bit("a3"));
     assert(brd.side == black);
     assert(brd.en_passant_bitboard == 0);
     assert(brd.castling_rights[white] == brd.castle_queenside);
@@ -294,8 +474,8 @@ void test_all::test_make_move() {
 
     brd.setup_position(fen);
     brd.enter_move("e2d1");
-    assert(!(brd.bb[white][brd.queen_ix] & one_nth_bit(str_to_coord("e2"))));
-    assert(brd.bb[white][brd.queen_ix] & one_nth_bit(str_to_coord("d1")));
+    assert(!(brd.bb[white][queen_ix] & bit("e2")));
+    assert(brd.bb[white][queen_ix] & bit("d1"));
     assert(brd.side == black);
     assert(brd.en_passant_bitboard == 0);
     assert(brd.castling_rights[white] == brd.castle_queenside);
@@ -304,8 +484,8 @@ void test_all::test_make_move() {
 
     brd.setup_position(fen);
     brd.enter_move("e1d2");
-    assert(!(brd.bb[white][brd.king_ix] & one_nth_bit(str_to_coord("e1"))));
-    assert(brd.bb[white][brd.king_ix] & one_nth_bit(str_to_coord("d2")));
+    assert(!(brd.bb[white][king_ix] & bit("e1")));
+    assert(brd.bb[white][king_ix] & bit("d2"));
     assert(brd.side == black);
     assert(brd.en_passant_bitboard == 0);
     assert(brd.castling_rights[white] == 0);
@@ -314,10 +494,10 @@ void test_all::test_make_move() {
 
     brd.setup_position(fen);
     brd.enter_move("e1g1");
-    assert(!(brd.bb[white][brd.king_ix] & one_nth_bit(str_to_coord("e1"))));
-    assert(brd.bb[white][brd.king_ix] & one_nth_bit(str_to_coord("g1")));
-    assert(!(brd.bb[white][brd.rook_ix] & one_nth_bit(str_to_coord("h1"))));
-    assert(brd.bb[white][brd.rook_ix] & one_nth_bit(str_to_coord("f1")));
+    assert(!(brd.bb[white][king_ix] & bit("e1")));
+    assert(brd.bb[white][king_ix] & bit("g1"));
+    assert(!(brd.bb[white][rook_ix] & bit("h1")));
+    assert(brd.bb[white][rook_ix] & bit("f1"));
     assert(brd.side == black);
     assert(brd.en_passant_bitboard == 0);
     assert(brd.castling_rights[white] == 0);
@@ -325,8 +505,8 @@ void test_all::test_make_move() {
     assert(brd.reversible_halfmoves == 4);
 
     brd.enter_move("g8f6");
-    assert(!(brd.bb[black][brd.knight_ix] & one_nth_bit(str_to_coord("g8"))));
-    assert(brd.bb[black][brd.knight_ix] & one_nth_bit(str_to_coord("f6")));
+    assert(!(brd.bb[black][knight_ix] & bit("g8")));
+    assert(brd.bb[black][knight_ix] & bit("f6"));
     assert(brd.side == white);
     assert(brd.en_passant_bitboard == 0);
     assert(brd.castling_rights[white] == 0);
@@ -334,9 +514,9 @@ void test_all::test_make_move() {
     assert(brd.reversible_halfmoves == 5);
 
     brd.enter_move("e5f6");
-    assert(!(brd.bb[white][brd.pawn_ix] & one_nth_bit(str_to_coord("e5"))));
-    assert(brd.bb[white][brd.pawn_ix] & one_nth_bit(str_to_coord("f6")));
-    assert(!(brd.bb[black][brd.knight_ix] & one_nth_bit(str_to_coord("f6"))));
+    assert(!(brd.bb[white][pawn_ix] & bit("e5")));
+    assert(brd.bb[white][pawn_ix] & bit("f6"));
+    assert(!(brd.bb[black][knight_ix] & bit("f6")));
     assert(brd.side == black);
     assert(brd.en_passant_bitboard == 0);
     assert(brd.castling_rights[white] == 0);
@@ -348,13 +528,13 @@ void test_all::test_make_move() {
     assert(brd.reversible_halfmoves == 1);
 
     brd.setup_position(fen);
-    assert(brd.bb[white][brd.knight_ix] & one_nth_bit(str_to_coord("f3")));
+    assert(brd.bb[white][knight_ix] & bit("f3"));
     brd.enter_move("b1c3");
-    assert(brd.bb[white][brd.occupancy_ix] & one_nth_bit(str_to_coord("f3")));
+    assert(brd.bb[white][occupancy_ix] & bit("f3"));
     brd.enter_move("b7f3");
-    assert(!(brd.bb[black][brd.bishop_ix] & one_nth_bit(str_to_coord("b7"))));
-    assert(brd.bb[black][brd.bishop_ix] & one_nth_bit(str_to_coord("f3")));
-    assert(!(brd.bb[white][brd.knight_ix] & one_nth_bit(str_to_coord("f3"))));
+    assert(!(brd.bb[black][bishop_ix] & bit("b7")));
+    assert(brd.bb[black][bishop_ix] & bit("f3"));
+    assert(!(brd.bb[white][knight_ix] & bit("f3")));
     assert(brd.side == white);
     assert(brd.en_passant_bitboard == 0);
     assert(brd.castling_rights[white] == brd.castle_queenside);
@@ -365,10 +545,10 @@ void test_all::test_make_move() {
     brd.enter_move("g8f6");
     brd.enter_move("e5f6");
     brd.enter_move("e8g8");
-    assert(!(brd.bb[black][brd.king_ix] & one_nth_bit(str_to_coord("e8"))));
-    assert(brd.bb[black][brd.king_ix] & one_nth_bit(str_to_coord("g8")));
-    assert(!(brd.bb[black][brd.rook_ix] & one_nth_bit(str_to_coord("h8"))));
-    assert(brd.bb[black][brd.rook_ix] & one_nth_bit(str_to_coord("f8")));
+    assert(!(brd.bb[black][king_ix] & bit("e8")));
+    assert(brd.bb[black][king_ix] & bit("g8"));
+    assert(!(brd.bb[black][rook_ix] & bit("h8")));
+    assert(brd.bb[black][rook_ix] & bit("f8"));
     assert(brd.side == white);
     assert(brd.en_passant_bitboard == 0);
     assert(brd.castling_rights[white] == 0);
@@ -377,64 +557,62 @@ void test_all::test_make_move() {
 
     brd.enter_move("f6e7");
     brd.enter_move("f3e2");
-    assert(brd.bb[white][brd.occupancy_ix] == 0x001000020806e78c);
-    assert(brd.bb[black][brd.occupancy_ix] == 0x63cc132100001000);
+    assert(brd.bb[white][occupancy_ix] == 0x001000020806e78c);
+    assert(brd.bb[black][occupancy_ix] == 0x63cc132100001000);
     brd.enter_move("e7f8");
-    assert(!(brd.bb[white][brd.queen_ix] & one_nth_bit(str_to_coord("e7"))));
-    assert(!(brd.bb[white][brd.pawn_ix] & one_nth_bit(str_to_coord("e7"))));
-    assert(brd.bb[white][brd.queen_ix] & one_nth_bit(str_to_coord("f8")));
-    assert(!(brd.bb[white][brd.pawn_ix] & one_nth_bit(str_to_coord("f8"))));
+    assert(!(brd.bb[white][queen_ix] & bit("e7")));
+    assert(!(brd.bb[white][pawn_ix] & bit("e7")));
+    assert(brd.bb[white][queen_ix] & bit("f8"));
+    assert(!(brd.bb[white][pawn_ix] & bit("f8")));
     assert(brd.side == black);
     assert(brd.en_passant_bitboard == 0);
     assert(brd.castling_rights[white] == 0);
     assert(brd.castling_rights[black] == 0);
     assert(brd.reversible_halfmoves == 0);
-    assert(brd.bb[white][brd.occupancy_ix] == 0x200000020806e78c);
-    assert(brd.bb[black][brd.occupancy_ix] == 0x43CC132100001000);
+    assert(brd.bb[white][occupancy_ix] == 0x200000020806e78c);
+    assert(brd.bb[black][occupancy_ix] == 0x43CC132100001000);
     test_bitboards_integrity(brd);
 
     brd.setup_position(fen);
     brd.enter_move("e5f6");
-    assert(!(brd.bb[white][brd.pawn_ix] & one_nth_bit(str_to_coord("e5"))));
-    assert(brd.bb[white][brd.pawn_ix] & one_nth_bit(str_to_coord("f6")));
-    assert(!(brd.bb[black][brd.pawn_ix] & one_nth_bit(str_to_coord("f5"))));
+    assert(!(brd.bb[white][pawn_ix] & bit("e5")));
+    assert(brd.bb[white][pawn_ix] & bit("f6"));
+    assert(!(brd.bb[black][pawn_ix] & bit("f5")));
     assert(brd.side == black);
     assert(brd.en_passant_bitboard == 0);
     assert(brd.castling_rights[white] == brd.castle_queenside);
     assert(brd.castling_rights[black] == brd.castle_kingside);
     assert(brd.reversible_halfmoves == 0);
-    assert(brd.bb[white][brd.occupancy_ix] == 0x20020822f793);
-    assert(brd.bb[black][brd.occupancy_ix] == 0xd3de130100000000);
+    assert(brd.bb[white][occupancy_ix] == 0x20020822f793);
+    assert(brd.bb[black][occupancy_ix] == 0xd3de130100000000);
     test_bitboards_integrity(brd);
 
     fen = "4b3/3P2k1/8/8/8/8/1p4K1/N1N5 w - -";
     brd.setup_position(fen);
     brd.enter_move("d7e8n");
-    assert(!(brd.bb[white][brd.pawn_ix] & one_nth_bit(str_to_coord("d7"))));
-    assert(brd.bb[white][brd.knight_ix] & one_nth_bit(str_to_coord("e8")));
-    assert(!(brd.bb[white][brd.pawn_ix] & one_nth_bit(str_to_coord("e8"))));
+    assert(!(brd.bb[white][pawn_ix] & bit("d7")));
+    assert(brd.bb[white][knight_ix] & bit("e8"));
+    assert(!(brd.bb[white][pawn_ix] & bit("e8")));
     brd.unmake_move();
     brd.enter_move("d7e8b");
-    assert(!(brd.bb[white][brd.pawn_ix] & one_nth_bit(str_to_coord("d7"))));
-    assert(brd.bb[white][brd.bishop_ix] & one_nth_bit(str_to_coord("e8")));
-    assert(!(brd.bb[white][brd.pawn_ix] & one_nth_bit(str_to_coord("e8"))));
+    assert(!(brd.bb[white][pawn_ix] & bit("d7")));
+    assert(brd.bb[white][bishop_ix] & bit("e8"));
+    assert(!(brd.bb[white][pawn_ix] & bit("e8")));
     brd.unmake_move();
     brd.enter_move("d7e8r");
-    assert(!(brd.bb[white][brd.pawn_ix] & one_nth_bit(str_to_coord("d7"))));
-    assert(brd.bb[white][brd.rook_ix] & one_nth_bit(str_to_coord("e8")));
-    assert(!(brd.bb[white][brd.pawn_ix] & one_nth_bit(str_to_coord("e8"))));
+    assert(!(brd.bb[white][pawn_ix] & bit("d7")));
+    assert(brd.bb[white][rook_ix] & bit("e8"));
+    assert(!(brd.bb[white][pawn_ix] & bit("e8")));
     brd.unmake_move();
     brd.enter_move("d7e8q");
-    assert(!(brd.bb[white][brd.pawn_ix] & one_nth_bit(str_to_coord("d7"))));
-    assert(brd.bb[white][brd.queen_ix] & one_nth_bit(str_to_coord("e8")));
-    assert(!(brd.bb[white][brd.pawn_ix] & one_nth_bit(str_to_coord("e8"))));
+    assert(!(brd.bb[white][pawn_ix] & bit("d7")));
+    assert(brd.bb[white][queen_ix] & bit("e8"));
+    assert(!(brd.bb[white][pawn_ix] & bit("e8")));
 }
 
 
 void test_all::test_unmake_move() {
     auto brd = board_tst();
-    const auto white = brd.white;
-    const auto black = brd.black;
     const auto fen =
         "rq2k1nr/1bppb1pp/np2p3/pB2Pp2/3P4/1P3N2/PBP1QPPP/RN2K2R w Qk f6 3";
     brd.setup_position(fen);
@@ -443,17 +621,17 @@ void test_all::test_unmake_move() {
     brd.enter_move("e1g1");
     brd.enter_move("e8d8");
     brd.unmake_move();
-    assert(!(brd.bb[black][brd.king_ix] & one_nth_bit(str_to_coord("d8"))));
-    assert(brd.bb[black][brd.king_ix] & one_nth_bit(str_to_coord("e8")));
+    assert(!(brd.bb[black][king_ix] & bit("d8")));
+    assert(brd.bb[black][king_ix] & bit("e8"));
     assert(brd.castling_rights[white] == 0);
     assert(brd.castling_rights[black] & brd.castle_kingside);
     assert(brd.en_passant_bitboard == 0);
     assert(brd.reversible_halfmoves == 1);
     brd.unmake_move();
-    assert(!(brd.bb[white][brd.king_ix] & one_nth_bit(str_to_coord("g1"))));
-    assert(brd.bb[white][brd.king_ix] & one_nth_bit(str_to_coord("e1")));
-    assert(!(brd.bb[white][brd.rook_ix] & one_nth_bit(str_to_coord("f1"))));
-    assert(brd.bb[white][brd.rook_ix] & one_nth_bit(str_to_coord("h1")));
+    assert(!(brd.bb[white][king_ix] & bit("g1")));
+    assert(brd.bb[white][king_ix] & bit("e1"));
+    assert(!(brd.bb[white][rook_ix] & bit("f1")));
+    assert(brd.bb[white][rook_ix] & bit("h1"));
     assert(brd.castling_rights[white] & brd.castle_queenside);
     assert(brd.castling_rights[black] & brd.castle_kingside);
     assert(brd.en_passant_bitboard == 0);
@@ -462,19 +640,16 @@ void test_all::test_unmake_move() {
     brd.unmake_move();
     assert(brd.castling_rights[white] & brd.castle_queenside);
     assert(brd.castling_rights[black] & brd.castle_kingside);
-    assert(brd.en_passant_bitboard == one_nth_bit(str_to_coord("f6")));
+    assert(brd.en_passant_bitboard == bit("f6"));
     assert(brd.reversible_halfmoves == 3);
-    assert(brd.bb[white][brd.occupancy_ix] == 0x120822f793);
-    assert(brd.bb[black][brd.occupancy_ix] == 0xd3de132100000000);
+    assert(brd.bb[white][occupancy_ix] == 0x120822f793);
+    assert(brd.bb[black][occupancy_ix] == 0xd3de132100000000);
     test_bitboards_integrity(brd);
 }
 
 
 void test_all::test_is_passer() {
     auto brd = board_tst();
-    const auto white = brd.white;
-    const auto black = brd.black;
-    const auto pawn_ix = brd.pawn_ix;
     brd.setup_position("4k3/6p1/2p3P1/Pp2P3/p7/8/3P3P/4K3 w - -");
     assert(brd.is_passer(white, str_to_coord("a5"), brd.bb[black][pawn_ix]));
     assert(brd.is_passer(black, str_to_coord("a4"), brd.bb[white][pawn_ix]));
@@ -489,63 +664,63 @@ void test_all::test_is_passer() {
 
 
 void test_all::test_bitboards_integrity(const board_tst &B) {
-    for(auto color : {B.black, B.white}) {
+    for(auto color : {black, white}) {
         auto ans = u64(0);
-        for(auto i : {B.pawn_ix, B.knight_ix, B.bishop_ix, B.rook_ix,
-                      B.queen_ix, B.king_ix})
+        for(auto i : {pawn_ix, knight_ix, bishop_ix, rook_ix,
+                      queen_ix, king_ix})
             ans ^= B.bb[color][i];
-        assert(ans == B.bb[color][B.occupancy_ix]);
+        assert(ans == B.bb[color][occupancy_ix]);
     }
 }
 
 
 void test_all::test_gen_pseudo_legal_moves() {
     auto C = chess_tst("8/3pp1p1/6p1/1p2P3/1kP2p1p/p3P2K/PP1P2PP/8 w - -");
-    u64 occupancy = C.bb[0][C.occupancy_ix] | C.bb[1][C.occupancy_ix];
-    u64 opp_occupancy = C.bb[!C.side][C.occupancy_ix];
+    u64 occupancy = C.bb[0][occupancy_ix] | C.bb[1][occupancy_ix];
+    u64 opp_occupancy = C.bb[!C.side][occupancy_ix];
     std::vector<move_s> moves;
     C.gen_pawns(moves, occupancy, opp_occupancy);
     assert(moves.size() == 11);
     moves.clear();
     assert(C.enter_move("g2g4"));
-    occupancy = C.bb[0][C.occupancy_ix] | C.bb[1][C.occupancy_ix];
-    opp_occupancy = C.bb[!C.side][C.occupancy_ix];
+    occupancy = C.bb[0][occupancy_ix] | C.bb[1][occupancy_ix];
+    opp_occupancy = C.bb[!C.side][occupancy_ix];
     C.gen_pawns(moves, occupancy, opp_occupancy);
     assert(moves.size() == 10);
     moves.clear();
     assert(C.enter_move("d7d5"));
-    occupancy = C.bb[0][C.occupancy_ix] | C.bb[1][C.occupancy_ix];
-    opp_occupancy = C.bb[!C.side][C.occupancy_ix];
+    occupancy = C.bb[0][occupancy_ix] | C.bb[1][occupancy_ix];
+    opp_occupancy = C.bb[!C.side][occupancy_ix];
     C.gen_pawns(moves, occupancy, opp_occupancy);
     assert(moves.size() == 12);
     moves.clear();
     C.setup_position("r3k2r/p5pp/8/8/8/8/P4P1P/R3K2R w KQkq -");
-    occupancy = C.bb[0][C.occupancy_ix] | C.bb[1][C.occupancy_ix];
+    occupancy = C.bb[0][occupancy_ix] | C.bb[1][occupancy_ix];
     C.gen_castles(moves, occupancy);
     assert(moves.size() == 2);
     moves.clear();
     assert(C.enter_move("e1g1"));
-    occupancy = C.bb[0][C.occupancy_ix] | C.bb[1][C.occupancy_ix];
+    occupancy = C.bb[0][occupancy_ix] | C.bb[1][occupancy_ix];
     C.gen_castles(moves, occupancy);
     assert(moves.size() == 2);
     moves.clear();
     C.setup_position("r3k2r/p5pp/7N/4B3/4b3/8/5P1P/RN2K2R w KQkq -");
-    occupancy = C.bb[0][C.occupancy_ix] | C.bb[1][C.occupancy_ix];
+    occupancy = C.bb[0][occupancy_ix] | C.bb[1][occupancy_ix];
     C.gen_castles(moves, occupancy);
     assert(moves.size() == 1);
     moves.clear();
     assert(C.enter_move("e1g1"));
-    occupancy = C.bb[0][C.occupancy_ix] | C.bb[1][C.occupancy_ix];
+    occupancy = C.bb[0][occupancy_ix] | C.bb[1][occupancy_ix];
     C.gen_castles(moves, occupancy);
     assert(moves.size() == 2);
     moves.clear();
     C.setup_position("rn2k2r/p5pp/8/8/8/6P1/P6P/R3K1NR w KQkq -");
-    occupancy = C.bb[0][C.occupancy_ix] | C.bb[1][C.occupancy_ix];
+    occupancy = C.bb[0][occupancy_ix] | C.bb[1][occupancy_ix];
     C.gen_castles(moves, occupancy);
     assert(moves.size() == 1);
     moves.clear();
     assert(C.enter_move("e1e2"));
-    occupancy = C.bb[0][C.occupancy_ix] | C.bb[1][C.occupancy_ix];
+    occupancy = C.bb[0][occupancy_ix] | C.bb[1][occupancy_ix];
     C.gen_castles(moves, occupancy);
     assert(moves.size() == 1);
     moves.clear();
@@ -590,8 +765,6 @@ void test_all::test_gen_pseudo_legal_moves() {
 
 void test_all::test_is_attacked_by() {
     auto C = chess_tst("4KR2/3P4/3nQ3/B6q/3b4/2N5/4p3/r3k3 w - -");
-    const u8 black = C.black;
-    const u8 white = C.white;
     assert(C.is_attacked_by_slider(str_to_coord("e8"), black));
     assert(C.is_attacked_by_slider(str_to_coord("e8"), white));
     assert(C.is_attacked_by_non_slider(str_to_coord("e8"), black));
@@ -910,90 +1083,90 @@ void test_all::test_perft() {
 void test_all::test_see() {
     auto E = engine_tst();
     E.setup_position("3k4/3b4/2P5/1Q5p/6B1/1r4N1/4p1nR/4K3 w - -");
-    auto occ = E.bb[0][E.occupancy_ix] | E.bb[1][E.occupancy_ix];
+    auto occ = E.bb[0][occupancy_ix] | E.bb[1][occupancy_ix];
     auto to_coord = str_to_coord("d7");
     u64 ans_bb;
-    E.min_attacker(to_coord, occ, E.white, ans_bb);
-    assert (ans_bb == one_nth_bit(str_to_coord("c6")));
+    E.min_attacker(to_coord, occ, white, ans_bb);
+    assert (ans_bb == bit("c6"));
     to_coord = str_to_coord("e2");
-    E.min_attacker(to_coord, occ, E.white, ans_bb);
-    assert (ans_bb == one_nth_bit(str_to_coord("g3")));
+    E.min_attacker(to_coord, occ, white, ans_bb);
+    assert (ans_bb == bit("g3"));
     to_coord = str_to_coord("h5");
-    E.min_attacker(to_coord, occ, E.white, ans_bb);
-    assert (ans_bb == one_nth_bit(str_to_coord("g3")));
+    E.min_attacker(to_coord, occ, white, ans_bb);
+    assert (ans_bb == bit("g3"));
     to_coord = str_to_coord("b3");
-    E.min_attacker(to_coord, occ, E.white, ans_bb);
-    assert (ans_bb == one_nth_bit(str_to_coord("b5")));
+    E.min_attacker(to_coord, occ, white, ans_bb);
+    assert (ans_bb == bit("b5"));
     to_coord = str_to_coord("g2");
-    E.min_attacker(to_coord, occ, E.white, ans_bb);
-    assert (ans_bb == one_nth_bit(str_to_coord("h2")));
+    E.min_attacker(to_coord, occ, white, ans_bb);
+    assert (ans_bb == bit("h2"));
     to_coord = str_to_coord("b5");
-    E.min_attacker(to_coord, occ, E.black, ans_bb);
-    assert (ans_bb == one_nth_bit(str_to_coord("b3")));
+    E.min_attacker(to_coord, occ, black, ans_bb);
+    assert (ans_bb == bit("b3"));
     to_coord = str_to_coord("e1");
-    E.min_attacker(to_coord, occ, E.black, ans_bb);
-    assert (ans_bb == one_nth_bit(str_to_coord("g2")));
+    E.min_attacker(to_coord, occ, black, ans_bb);
+    assert (ans_bb == bit("g2"));
     to_coord = str_to_coord("g4");
-    E.min_attacker(to_coord, occ, E.black, ans_bb);
-    assert (ans_bb == one_nth_bit(str_to_coord("h5")));
+    E.min_attacker(to_coord, occ, black, ans_bb);
+    assert (ans_bb == bit("h5"));
     E.setup_position("1b3rk1/4n2p/6p1/5p2/6P1/3B2N1/6PP/5RK1 w - -");
     auto move = E.move_from_str("g4f5");
-    assert(E.static_exchange_eval(move) == E.material.at(E.pawn_ix));
+    assert(E.static_exchange_eval(move) == E.material_values.at(pawn_ix));
     E.setup_position("2b2rk1/4n2p/6p1/5p2/6P1/3B2N1/6PP/5RK1 w - -");
     move = E.move_from_str("g4f5");
     assert(E.static_exchange_eval(move) == 0);
     E.setup_position("B2r2k1/4nb2/1N3n2/3R4/8/2N5/8/3R2K1 b - -");
     move = E.move_from_str("e7d5");
     assert(E.static_exchange_eval(move) ==
-        E.material.at(E.rook_ix) - E.material.at(E.knight_ix));
+        E.material_values.at(rook_ix) - E.material_values.at(knight_ix));
     move = E.move_from_str("f6d5");
     assert(E.static_exchange_eval(move) ==
-        E.material.at(E.rook_ix) - E.material.at(E.knight_ix));
+        E.material_values.at(rook_ix) - E.material_values.at(knight_ix));
     move = E.move_from_str("f7d5");
     assert(E.static_exchange_eval(move) ==
-        E.material.at(E.rook_ix) - E.material.at(E.bishop_ix));
+        E.material_values.at(rook_ix) - E.material_values.at(bishop_ix));
     move = E.move_from_str("d8d5");
     assert(E.static_exchange_eval(move) == 0);
     E.setup_position("3rk3/8/8/8/8/8/8/3QK3 w - -");
     move = E.move_from_str("d1d8");
     assert(E.static_exchange_eval(move) ==
-        E.material.at(E.rook_ix) - E.material.at(E.queen_ix));
+        E.material_values.at(rook_ix) - E.material_values.at(queen_ix));
     E.setup_position("q2b1rk1/5pp1/n6p/8/2Q5/7P/3P2P1/2R2BK1 w - -");
     move = E.move_from_str("c4a6");
-    assert(E.static_exchange_eval(move) == E.material.at(E.knight_ix));
+    assert(E.static_exchange_eval(move) == E.material_values.at(knight_ix));
     E.enter_move("d2d3");
     E.enter_move("h6h5");
     assert(E.static_exchange_eval(move) ==
-        E.material.at(E.knight_ix) - E.material.at(E.queen_ix));
+        E.material_values.at(knight_ix) - E.material_values.at(queen_ix));
     E.setup_position("r1b3k1/4nr1p/5qp1/5p2/6P1/3B1RN1/5RPP/5QK1 w - -");
     move = E.move_from_str("g4f5");
-    assert(E.static_exchange_eval(move) == E.material.at(E.pawn_ix));
+    assert(E.static_exchange_eval(move) == E.material_values.at(pawn_ix));
     E.setup_position("r1b3k1/4nr1p/5qp1/5p2/6P1/3R1RN1/5BPP/5QK1 w - -");
     move = E.move_from_str("g4f5");
     assert(E.static_exchange_eval(move) == 0);
     E.setup_position("5rk1/5q2/5r2/8/8/5R2/5R2/5QK1 w - -");
     move = E.move_from_str("f3f6");
-    assert(E.static_exchange_eval(move) == E.material.at(E.rook_ix));
+    assert(E.static_exchange_eval(move) == E.material_values.at(rook_ix));
     E.setup_position("5rk1/5q2/5r2/8/8/5R2/5B2/5QK1 w - -");
     move = E.move_from_str("f3f6");
     assert(E.static_exchange_eval(move) == 0);
     E.setup_position("3bn1k1/3np1p1/rpqr1p2/4P1PN/6NB/5R2/5RPP/5QK1 w - -");
     move = E.move_from_str("e5f6");
-    assert(E.static_exchange_eval(move) == E.material.at(E.pawn_ix));
+    assert(E.static_exchange_eval(move) == E.material_values.at(pawn_ix));
     move = E.move_from_str("g5f6");
-    assert(E.static_exchange_eval(move) == E.material.at(E.pawn_ix));
+    assert(E.static_exchange_eval(move) == E.material_values.at(pawn_ix));
     move = E.move_from_str("h5f6");
     assert(E.static_exchange_eval(move) ==
-        2*E.material.at(E.pawn_ix) - E.material.at(E.knight_ix));
+        2*E.material_values.at(pawn_ix) - E.material_values.at(knight_ix));
     E.setup_position("5b2/8/8/2k5/1p6/2P5/3B4/4K3 w - -");
     move = E.move_from_str("c3b4");
-    assert(E.static_exchange_eval(move) == E.material.at(E.pawn_ix));
+    assert(E.static_exchange_eval(move) == E.material_values.at(pawn_ix));
     E.setup_position("5b2/8/8/k7/1p6/2P5/3B4/4K3 w - -");
     move = E.move_from_str("c3b4");
     assert(E.static_exchange_eval(move) == 0);
     E.setup_position("3r2k1/6p1/2q2r1p/pp1p1p2/3P4/1QN1PBP1/PP3P1P/6K1 w - -");
     move = E.move_from_str("c3d5");
-    assert(E.static_exchange_eval(move) == E.material.at(E.pawn_ix));
+    assert(E.static_exchange_eval(move) == E.material_values.at(pawn_ix));
 }
 
 
@@ -1022,11 +1195,11 @@ void test_all::test_next_move() {
     ans = E.next_move(moves, tt_move, move_num, stage, 1);
     assert(ans == E.move_from_str("d7e8q"));
     ans = E.next_move(moves, tt_move, move_num, stage, 1);
-    assert(ans == E.move_from_str("d7e8r"));
-    ans = E.next_move(moves, tt_move, move_num, stage, 1);
     assert(ans == E.move_from_str("d7d8q"));
     ans = E.next_move(moves, tt_move, move_num, stage, 1);
-    assert(ans == E.move_from_str("d7e8n"));
+    assert(ans == E.move_from_str("d7e8r"));
+    ans = E.next_move(moves, tt_move, move_num, stage, 1);
+    assert(ans == E.move_from_str("d7e8b"));
 
     E.setup_position("3rrqk1/1P3pp1/7p/6P1/8/PR6/1Q3P1P/1R4K1 w - -");
     moves.clear();
@@ -1037,9 +1210,9 @@ void test_all::test_next_move() {
     ans = E.next_move(moves, tt_move, move_num, stage, 0);
     assert(ans == E.move_from_str("b7b8r"));
     ans = E.next_move(moves, tt_move, move_num, stage, 0);
-    assert(ans == E.move_from_str("b7b8n"));
-    ans = E.next_move(moves, tt_move, move_num, stage, 0);
     assert(ans == E.move_from_str("b7b8b"));
+    ans = E.next_move(moves, tt_move, move_num, stage, 0);
+    assert(ans == E.move_from_str("b7b8n"));
     ans = E.next_move(moves, tt_move, move_num, stage, 0);
     assert(ans == E.move_from_str("g5h6"));
     ans = E.next_move(moves, tt_move, move_num, stage, 0);

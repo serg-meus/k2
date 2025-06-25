@@ -40,6 +40,26 @@ class chess_tst: public chess {
 
 class eval_tst: public eval {
     public:
+    using eval::material_values;
+    using eval::piece_values;
+    using eval::eval_material;
+    using eval::eval_pst;
+    using eval::pst;
+    using eval::double_pawns;
+    using eval::isolated_pawns;
+    using eval::pawn_doubled;
+    using eval::pawn_isolated;
+    using eval::pawn_dbl_iso;
+    using eval::eval_double_and_isolated;
+    using eval::passed_pawns;
+    using eval::unstoppable_pawns;
+    using eval::connected_passers;
+    using eval::pawn_gaps;
+    using eval::pawn_holes;
+    using eval::king_pawn_tropism;
+    using eval::mobility_piece_type;
+    using eval::eval_pawns;
+    using eval::mobility_curve;
 };
 
 
@@ -49,7 +69,7 @@ class engine_tst: public engine {
     using engine::static_exchange_eval;
     using engine::min_attacker;
     using engine::bb;
-    using engine::material;
+    using engine::material_values;
     using engine::not_a_move;
     using engine::next_move;
 };
@@ -70,7 +90,11 @@ class k2_tst: public k2 {
 };
 
 
-class test_all : public bitboards {
+class test_all : public eval {
+
+    u64 bit(const char *str_c) {
+        return one_nth_bit(str_to_coord(str_c));
+    }
 
 public :
 
@@ -102,6 +126,20 @@ public :
     void test_perft();
     void test_engine();
     void test_eval();
+    void test_eval_material();
+    void test_eval_pst();
+    void test_double_pawns();
+    void test_isolated_pawns();
+    void test_double_and_isolated();
+    void test_passed_pawns();
+    void test_distance();
+    void test_unstoppable();
+    void test_connected_passers();
+    void test_pawn_gaps();
+    void test_pawn_holes();
+    void test_eval_pawns();
+    void test_king_pawn_tropism();
+    void test_mobility_piece_type();
     void test_see();
     void test_next_move();
     void test_set_time_for_move();

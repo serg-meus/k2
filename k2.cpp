@@ -92,7 +92,8 @@ void k2::main_search() {
         for (unsigned i = 1; i < pv.size(); ++i)
             pv.at(i).clear();
         follow_pv = true;
-        alpha = -material[king_ix], beta = material[king_ix];
+        alpha = -material_values[king_ix];
+        beta = material_values[king_ix];
         best_move = root_search(depth, alpha, beta, moves);
     }
     if (!stop)
@@ -536,12 +537,12 @@ void k2::print_search_iteration_result(i8 depth, int val) {
 
 std::string k2::uci_score(int val) const {
     std::string ans = " score ";
-    if (std::abs(val) < material[king_ix] - max_ply) {
+    if (std::abs(val) < material_values[king_ix] - max_ply) {
         ans += "cp " + std::to_string(val);
         return ans;
     }
     ans += "mate ";
-    int mate_depth = (material[king_ix] - std::abs(val) + 1)/2;
+    int mate_depth = (material_values[king_ix] - std::abs(val) + 1)/2;
     if (val < 0)
         ans += "-";
     ans += std::to_string(mate_depth);

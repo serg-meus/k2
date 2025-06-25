@@ -116,7 +116,7 @@ int engine::search_result(const int val, const int alpha_orig,
     int x;
     tt_bound bound_type;
     if (!legal_moves && depth > 0) {
-        x = in_check ? -material[king_ix] + int(ply) : 0;
+        x = in_check ? -material_values[king_ix] + int(ply) : 0;
         bound_type = tt_bound::exact;
         best_move = not_a_move;
         pv.at(ply).clear();
@@ -292,10 +292,10 @@ void engine::apprice_move(move_s &move, const u64 max_hist) const {
         return;
     }
     int see = static_exchange_eval(move);
-    if (see < -material[king_ix]/2)
+    if (see < -material_values[king_ix]/2)
         see = 0;
     if (move.promo)
-        see += material.at(move.promo);
+        see += material_values.at(move.promo);
     int ans = see/40 + (see >= 0 ? 200 : 64);
     assert(u8(ans) >= 200 || u8(ans) <= 64);
     move.priority = u8(ans);
@@ -351,14 +351,14 @@ eval_t engine::static_exchange_eval(const move_s move) const {
     if (ix == u8(-1) && move.index == pawn_ix &&
             get_col(move.from_coord) != get_col(move.to_coord))
         ix = pawn_ix;
-    auto val = ix != u8(-1) ? material.at(ix) : 0;
+    auto val = ix != u8(-1) ? material_values.at(ix) : 0;
     see_vals[0] = val;
     auto occ = (bb[0][occupancy_ix] | bb[1][occupancy_ix] | to_bb) &
         ~one_nth_bit(move.from_coord);
     bool color = side;
     unsigned depth = 1;
     u64 attacker_bb;
-    eval_t mat = 0, new_mat = material.at(move.index);
+    eval_t mat = 0, new_mat = material_values.at(move.index);
     for (; depth < 30; ++depth) {
         color = !color;
         const u8 attacker_ix = min_attacker(move.to_coord, occ, color,
@@ -366,7 +366,7 @@ eval_t engine::static_exchange_eval(const move_s move) const {
         if (attacker_ix == u8(-1))
             break;
         mat = new_mat;
-        new_mat = material.at(attacker_ix);
+        new_mat = material_values.at(attacker_ix);
         val = eval_t(depth % 2 ? val - mat : val + mat);
         see_vals.at(depth) = depth % 2 ? -val : val;
         occ ^= lower_bit(attacker_bb);
