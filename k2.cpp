@@ -3,7 +3,7 @@
 /*
 K2, the chess engine
 Author: Sergey Meus (serg_meus@mail.ru), Krasnoyarsk Krai, Russia
-2012-2023
+2012-2025
 */
 
 using std::cout;
@@ -84,9 +84,9 @@ void k2::main_search() {
     ply = 0;
     stop = false;
     auto moves = gen_moves();
+    std::random_shuffle(moves.begin(), moves.end());
     move_s best_move = moves.at(0);
     i8 depth = 1;
-    std::random_shuffle(moves.begin(), moves.end());
     int alpha = 0, beta;
     for (; !stop && depth <= max_depth; ++depth) {
         for (unsigned i = 1; i < pv.size(); ++i)
@@ -304,6 +304,7 @@ void k2::execute_search() {
     if (!silent_mode && !xboard && !uci)
         cout << board_to_ascii() << endl;
     update_clock();
+    pv.at(0).clear();
 }
 
 
