@@ -121,14 +121,37 @@ vec2 eval::eval_king_safety(bool color) {
     if (k_bb & (file_mask('d') | file_mask('e')))
         ans += {-80, 0};
     else {
-        u64 lr = ((k_bb & ~file_mask('a')) >> 1) | ((k_bb & ~file_mask('h')) << 1);
+        u64 lr = roll_left(k_bb) | roll_right(k_bb);
         bool shlt1 = (bb[color][pawn_ix] & signed_shift(lr, shifts(color))) != 0;
         bool shlt2 = (bb[color][pawn_ix] & (signed_shift(k_bb, shifts(color)) |
             signed_shift(k_bb, 2*shifts(color)))) != 0;
         if (!shlt1 || !shlt2)
             ans += {-80, 0};
     }
+    u64 king_zone = king_quaterboard(k_bb) | king_neighborhood(k_bb);
+    eval_t opps_in_zone = eval_t(__builtin_popcountll(bb[!color][occupancy_ix] & king_zone));
+	eval_t K = ans.mid == 0 ? 1 : 2;
+    ans = ans + eval_t(K*opps_in_zone*opps_in_zone)*vec2<eval_t>({-16, 0});
     return ans;
+}
+
+
+u64 eval::king_quaterboard(u64 k_bb) {
+    std::array<u64, 4> quaterboards = {0x0f0f0f0f, 0xf0f0f0f0,
+                                       u64(0x0f0f0f0f) << 32, u64(0xf0f0f0f0) << 32};
+    u8 k_coord = trail_zeros(k_bb);
+    unsigned col = get_col(k_coord)/4;
+    unsigned row = get_row(k_coord)/4;
+    return quaterboards.at(col + 2*row);
+}
+
+
+u64 eval::king_neighborhood(u64 k_bb) {
+    k_bb |= roll_left(k_bb) | roll_right(k_bb);
+    k_bb |= roll_left(k_bb) | roll_right(k_bb);
+    k_bb |= (k_bb << 8) | (k_bb >> 8);
+    k_bb |= (k_bb << 8) | (k_bb >> 8);
+    return k_bb;
 }
 
 
@@ -212,8 +235,7 @@ u64 args[] =  {color, bb[!color][pawn_ix]};
 u64 eval::passed_pawn(u64 pawn_bb, u64 *args) {
     bool color = bool(args[0]);
     u64 opp_pawns = args[1];
-    u64 wide = pawn_bb | (((pawn_bb & ~file_mask('a')) >> 1) |
-        ((pawn_bb & ~file_mask('h')) << 1));
+    u64 wide = pawn_bb | roll_left(pawn_bb) | roll_right(pawn_bb);
     u64 fill = color == white ? fill_up(wide) : fill_down(wide);
     return (fill & opp_pawns) == 0 ? pawn_bb : 0;
 }
@@ -272,9 +294,9 @@ u64 eval::connected_passers(u64 passers) {
 
 u64 eval::adjacent_pawn(u64 pawn_bb, u64 *args) {
     u64 pawns = args[0];
-    u64 left = (pawn_bb & ~file_mask('a')) >> 1;
+    u64 left = roll_left(pawn_bb);
     left |= (left << 8) | (left >> 8);
-    u64 right = (pawn_bb & ~file_mask('h')) << 1;
+    u64 right = roll_right(pawn_bb);
     right |= right << 8 | right >> 8;
     return pawns & (left | right);
 }
@@ -310,11 +332,11 @@ u64 eval::one_pawn_hole(u64 pawn_bb, u64 *args) {
     bool color = bool(args[1]);
     u64 opp_pieces = args[2];
     u64 up = color == white ? fill_up(pawn_bb) : fill_down(pawn_bb);
-    u64 tmp = ((up & ~file_mask('a')) >> 1) | ((up & ~file_mask('h')) << 1);
+    u64 tmp = roll_left(up) | roll_right(up);
     if ((tmp & pawns) == 0)
         return 0;
     u64 dwn = color == white ? fill_down(pawn_bb) : fill_up(pawn_bb);
-    tmp = (dwn & ~file_mask('a') >> 1) | (dwn & file_mask('h') << 1);
+    tmp = roll_left(dwn) | roll_right(dwn);
     if ((tmp & pawns) != 0)
         return 0;
     u64 weak_sq = color == white ? pawn_bb << 8 : pawn_bb >> 8;

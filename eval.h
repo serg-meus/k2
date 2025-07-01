@@ -97,9 +97,18 @@ class eval : public chess {
     eval_t interpolate_eval(vec2<eval_t> val);
     vec2<eval_t> eval_king_safety(bool color);
     vec2<eval_t> eval_mobility(bool color);
+    static u64 king_quaterboard(u64 k_bb);
+    static u64 king_neighborhood(u64 k_bb);
 
+static u64 roll_left(u64 bitboard) {
+    return (bitboard & ~file_mask('a')) >> 1;
+}
 
-eval_t row_from_bb(u64 lowbit, bool color) {
+static u64 roll_right(u64 bitboard) {
+    return (bitboard & ~file_mask('h')) << 1;
+}
+
+static eval_t row_from_bb(u64 lowbit, bool color) {
     return get_row(trail_zeros(lowbit) ^ u8(color == white ? 0 : 56));
 }
 
@@ -116,7 +125,7 @@ static u64 fill_down(u64 given) {
 }
 
 static int shifts(bool color) {
-	return color ? -8 : 8;
+    return color ? -8 : 8;
 }
 
     public:

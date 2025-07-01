@@ -85,6 +85,7 @@ void test_all::test_eval() {
     test_king_pawn_tropism();
     test_mobility_piece_type();
     test_eval_pawns();
+    test_king_quaterboard();
 }
 
 
@@ -209,19 +210,19 @@ void test_all::test_pawn_gaps() {
 
 void test_all::test_king_pawn_tropism() {
     auto E = eval_tst();
-	E.setup_position("8/5ppp/5k2/3K4/1PPP4/8/4P3/8 w - -");
-	u64 pass_w = E.passed_pawns(white);
-	u64 pass_b = E.passed_pawns(black);
-	u64 king_w = E.bb[white][king_ix];
-	u64 king_b = E.bb[black][king_ix];
-	assert(E.king_pawn_tropism(pass_w, white, king_w, 1) == (bit("c4") | bit("d4")));
-	assert(E.king_pawn_tropism(pass_w, white, king_w, 2) == bit("b4"));
-	assert(E.king_pawn_tropism(pass_b, black, king_b, 1) == bit("g7"));
-	assert(E.king_pawn_tropism(pass_b, black, king_b, 2) == bit("h7"));
-	assert(E.king_pawn_tropism(pass_w, white, king_b, 1) == 0);
-	assert(E.king_pawn_tropism(pass_w, white, king_b, 2) == bit("d4"));
-	assert(E.king_pawn_tropism(pass_b, black, king_w, 1) == 0);
-	assert(E.king_pawn_tropism(pass_b, black, king_w, 2) == 0);
+    E.setup_position("8/5ppp/5k2/3K4/1PPP4/8/4P3/8 w - -");
+    u64 pass_w = E.passed_pawns(white);
+    u64 pass_b = E.passed_pawns(black);
+    u64 king_w = E.bb[white][king_ix];
+    u64 king_b = E.bb[black][king_ix];
+    assert(E.king_pawn_tropism(pass_w, white, king_w, 1) == (bit("c4") | bit("d4")));
+    assert(E.king_pawn_tropism(pass_w, white, king_w, 2) == bit("b4"));
+    assert(E.king_pawn_tropism(pass_b, black, king_b, 1) == bit("g7"));
+    assert(E.king_pawn_tropism(pass_b, black, king_b, 2) == bit("h7"));
+    assert(E.king_pawn_tropism(pass_w, white, king_b, 1) == 0);
+    assert(E.king_pawn_tropism(pass_w, white, king_b, 2) == bit("d4"));
+    assert(E.king_pawn_tropism(pass_b, black, king_w, 1) == 0);
+    assert(E.king_pawn_tropism(pass_b, black, king_w, 2) == 0);
 }
 
 
@@ -273,6 +274,14 @@ void test_all::test_eval_pawns() {
            eval_t(3 + 4 + 5)*pawn_pass1 + 3*pawn_pass0 - pawn_isolated +
            2*pawn_king_tropism3 - pawn_king_tropism1 -
            3*pawn_king_tropism2/* + 5*pawn_pass_connected*/);
+}
+
+
+void test_all::test_king_quaterboard() {
+    assert(king_quaterboard(bit("a2")) == 0x0f0f0f0f);
+    assert(king_quaterboard(bit("f4")) == 0xf0f0f0f0);
+    assert(king_quaterboard(bit("c5")) == u64(0x0f0f0f0f) << 32);
+    assert(king_quaterboard(bit("g8")) == u64(0xf0f0f0f0) << 32);
 }
 
 

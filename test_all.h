@@ -60,6 +60,7 @@ class eval_tst: public eval {
     using eval::mobility_piece_type;
     using eval::eval_pawns;
     using eval::mobility_curve;
+    using eval::king_quaterboard;
 };
 
 
@@ -146,4 +147,5 @@ public :
     void test_update_clock();
     void test_k2();
     void test_is_passer();
+    void test_king_quaterboard();
 };
