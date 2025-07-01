@@ -3,7 +3,7 @@
 
 class eval : public chess {
 
-    typedef u64 (eval::*eval_fptr)(u64 bb, u64 *args);
+    typedef u64 (*eval_fptr)(u64 bb, u64 *args);
 
     public:
 
@@ -64,7 +64,7 @@ class eval : public chess {
         pawn_king_tropism3, pawn_pass0, pawn_pass1, pawn_pass2, pawn_blk_pass0,
         pawn_blk_pass1, pawn_blk_pass2, pawn_pass_connected, pawn_unstoppable;
     std::array<eval_t, 16> mobility_curve;
-    std::array<int, 2> shifts, material_sum, num_pieces;
+    std::array<int, 2> material_sum, num_pieces;
 
     nn_t calc_nn_out(const bool color);
     void sparce_multiply(const bool color);
@@ -75,20 +75,20 @@ class eval : public chess {
     u64 isolated_pawns(bool color);
     vec2<eval_t> eval_double_and_isolated(bool color);
     u64 passed_pawns(bool color);
-    u64 for_each_set_bit(u64 bitboard, const eval_fptr &foo , u64 *args);
-    u64 passed_pawn(u64 pawn_bb, u64 *args);
-    u8 distance(u8 coord1, u8 coord2);
+    u64 for_each_set_bit(u64 bitboard, const eval_fptr &foo ,u64 *args);
+    static u64 passed_pawn(u64 pawn_bb, u64 *args);
+    static u8 distance(u8 coord1, u8 coord2);
     u64 unstoppable_pawns(u64 passers, bool color, bool side_to_move);
-    u64 unstoppable_pawn(u64 passer_bb , u64 *args);
-    u64 unstop_fill(u64 passer_bb, bool color, u64 *kings_bb);
+    static u64 unstoppable_pawn(u64 passer_bb , u64 *args);
+    static u64 unstop_fill(u64 passer_bb, bool color, u64 *kings_bb);
     u64 connected_passers(u64 passers);
-    u64 adjacent_pawn(u64 pawn_bb, u64 *args);
+    static u64 adjacent_pawn(u64 pawn_bb, u64 *args);
     eval_t pawn_gaps(u64 pawns);
-    u64 one_pawn_gap(u64 pawn_bb, u64 *args);
+    static u64 one_pawn_gap(u64 pawn_bb, u64 *args);
     u64 pawn_holes(u64 passers, bool color);
-    u64 one_pawn_hole(u64 pawn_bb, u64 *args);
+    static u64 one_pawn_hole(u64 pawn_bb, u64 *args);
     u64 king_pawn_tropism(u64 passers, bool color, u64 king_bb, u8 dist);
-    u64 tropism(u64 pawn_bb, u64 *args);
+    static u64 tropism(u64 pawn_bb, u64 *args);
     eval_t mobility_piece_type(bool color, u8 piece_index);
     vec2<eval_t> eval_pawns(bool color);
     vec2<eval_t> eval_king_tropism(u64 passers, bool color);
@@ -103,7 +103,6 @@ eval_t row_from_bb(u64 lowbit, bool color) {
     return get_row(trail_zeros(lowbit) ^ u8(color == white ? 0 : 56));
 }
 
-
 static u64 fill_up(u64 given)  {
     u64 tmp = given << 8 | given << 16;
     tmp |= tmp | tmp << 16;
@@ -116,6 +115,10 @@ static u64 fill_down(u64 given) {
     return tmp | tmp >> 32;
 }
 
+static int shifts(bool color) {
+	return color ? -8 : 8;
+}
+
     public:
 
     eval() :
@@ -125,7 +128,7 @@ static u64 fill_down(u64 given) {
     piece_values({{{100, 128}, {450, 370}, {470, 390}, {560, 680}, {1170, 1290}}}),
     #include "pst.h"
     #include "eval_features.h"
-    shifts({8, -8}), material_sum(), num_pieces()
+    material_sum(), num_pieces()
     {
     }
 };

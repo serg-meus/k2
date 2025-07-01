@@ -122,9 +122,9 @@ vec2 eval::eval_king_safety(bool color) {
         ans += {-80, 0};
     else {
         u64 lr = ((k_bb & ~file_mask('a')) >> 1) | ((k_bb & ~file_mask('h')) << 1);
-        bool shlt1 = (bb[color][pawn_ix] & signed_shift(lr, shifts[color])) != 0;
-        bool shlt2 = (bb[color][pawn_ix] & (signed_shift(k_bb, shifts[color]) |
-            signed_shift(k_bb, 2*shifts[color]))) != 0;
+        bool shlt1 = (bb[color][pawn_ix] & signed_shift(lr, shifts(color))) != 0;
+        bool shlt2 = (bb[color][pawn_ix] & (signed_shift(k_bb, shifts(color)) |
+            signed_shift(k_bb, 2*shifts(color)))) != 0;
         if (!shlt1 || !shlt2)
             ans += {-80, 0};
     }
@@ -178,7 +178,7 @@ vec2 eval::eval_king_tropism(u64 pass, bool color) {
 
 u64 eval::double_pawns(bool color)  {
     u64 p_bb = bb[color][pawn_ix];
-    return p_bb & signed_shift(p_bb, -shifts[color]);
+    return p_bb & signed_shift(p_bb, -shifts(color));
 }
 
 
@@ -195,7 +195,7 @@ vec2 eval::eval_double_and_isolated(bool color) {
     u64 isolated = isolated_pawns(color);
     u64 dbl_iso = doubled & isolated;
     doubled = doubled ^ dbl_iso;
-    isolated = isolated ^ (dbl_iso | signed_shift(dbl_iso, shifts[color]));
+    isolated = isolated ^ (dbl_iso | signed_shift(dbl_iso, shifts(color)));
     auto dbl_iso_val = eval_t(__builtin_popcountll(dbl_iso)) * pawn_dbl_iso;
     auto dbl_val = eval_t(__builtin_popcountll(doubled)) * pawn_doubled;
     auto iso_val = eval_t(__builtin_popcountll(isolated)) * pawn_isolated;
@@ -205,7 +205,7 @@ vec2 eval::eval_double_and_isolated(bool color) {
 
 u64 eval::passed_pawns(bool color)  {
 u64 args[] =  {color, bb[!color][pawn_ix]};
-    return for_each_set_bit(bb[color][pawn_ix], eval::passed_pawn, args);
+    return for_each_set_bit(bb[color][pawn_ix], passed_pawn, args);
 }
 
 
@@ -337,7 +337,7 @@ u64 eval::tropism(u64 pawn_bb, u64 *args) {
     bool color = args[0];
     u64 king_bb = args[1];
     u8 dist = u8(args[2]);
-    u8 stop_coord = u8(trail_zeros(signed_shift(pawn_bb, shifts[color])));
+    u8 stop_coord = u8(trail_zeros(signed_shift(pawn_bb, shifts(color))));
     u8 king_coord = u8(trail_zeros(king_bb));
     return distance(king_coord, stop_coord) == dist ? pawn_bb : 0;
 }
@@ -368,7 +368,7 @@ u64 eval::for_each_set_bit(u64 bitboard, const eval_fptr &foo, u64 *args) {
     u64 ans = 0;
     while (bitboard != 0) {
         auto bit = lower_bit(bitboard);
-        ans |= ((*this).*(foo))(bit, args);
+        ans |= (foo)(bit, args);
         bitboard ^= bit;
     }
     return ans;
@@ -379,7 +379,7 @@ u64 eval::sum_for_each_set_bit(u64 bitboard, const eval_fptr &foo, u64 *args) {
     u64 ans = 0;
     while (bitboard != 0) {
         auto bit = lower_bit(bitboard);
-        ans += ((*this).*(foo))(bit, args);
+        ans += (foo)(bit, args);
         bitboard ^= bit;
     }
     return ans;
