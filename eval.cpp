@@ -159,7 +159,26 @@ vec2 eval::eval_mobility(bool color) {
     vec2<eval_t> ans = {0, 0};
     for (auto piece_ix: {bishop_ix, rook_ix, queen_ix}) {
         eval_t mob = mobility_piece_type(color, piece_ix);
-        ans += mob*vec2<eval_t>{1, 2};
+        ans += mob*vec2<eval_t>{10, 20}/10;
+    }
+    return ans;
+}
+
+
+eval_t eval::mobility_piece_type(bool color, u8 piece_index) {
+    u64 occupancy = bb[0][occupancy_ix] | bb[1][occupancy_ix];
+    u64 piece_occ = bb[color][piece_index];
+    eval_t ans = 0;
+    while (piece_occ != 0) {
+        u64 lowbit = lower_bit(piece_occ);
+        u8 from_coord = u8(trail_zeros(lowbit));
+        u64 attacks = all_non_pawn_attacks(piece_index, from_coord, occupancy);
+        u8 n_attacks =
+            u8(__builtin_popcountll(attacks & ~occupancy));
+        if (piece_index == queen_ix)
+            n_attacks /= 2;
+        ans = eval_t(ans + mobility_curve.at(n_attacks));
+        piece_occ ^= lowbit;
     }
     return ans;
 }
@@ -362,27 +381,6 @@ u64 eval::tropism(u64 pawn_bb, u64 *args) {
     u8 stop_coord = u8(trail_zeros(signed_shift(pawn_bb, shifts(color))));
     u8 king_coord = u8(trail_zeros(king_bb));
     return distance(king_coord, stop_coord) == dist ? pawn_bb : 0;
-}
-
-
-eval_t eval::mobility_piece_type(bool color, u8 piece_index) {
-    u64 occupancy = bb[0][occupancy_ix] | bb[1][occupancy_ix];
-    u64 piece_occ = bb[color][piece_index];
-    u64 opp_pawn_att = all_pawn_attacks(bb[!color][pawn_ix], color != white,
-                                        u64(-1));
-    eval_t ans = 0;
-    while (piece_occ != 0) {
-        u64 lowbit = lower_bit(piece_occ);
-        u8 from_coord = u8(trail_zeros(lowbit));
-        u64 attacks = all_non_pawn_attacks(piece_index, from_coord, occupancy);
-        u8 n_attacks =
-            u8(__builtin_popcountll(attacks & ~occupancy & ~opp_pawn_att));
-        if (piece_index == queen_ix)
-            n_attacks /= 2;
-        ans = eval_t(ans + mobility_curve.at(n_attacks));
-        piece_occ ^= lowbit;
-    }
-    return ans;
 }
 
 

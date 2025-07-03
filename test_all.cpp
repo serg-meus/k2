@@ -238,13 +238,13 @@ void test_all::test_mobility_piece_type() {
     auto E = eval_tst();
     E.setup_position("5rk1/pq2nbp1/1p5p/2n2P2/4P1Q1/1PN4N/PB6/5K1R w - -");
     assert(E.mobility_piece_type(white, rook_ix) == mobility_curve[2]);
-    assert(E.mobility_piece_type(black, knight_ix) == mobility_curve[2] +
-        mobility_curve[3]);
+    assert(E.mobility_piece_type(black, knight_ix) == mobility_curve[4] +
+        mobility_curve[5]);
     assert(E.mobility_piece_type(white, bishop_ix) == mobility_curve[3]);
-    assert(E.mobility_piece_type(black, queen_ix) == mobility_curve[7/2]);
-    assert(E.mobility_piece_type(white, knight_ix) == mobility_curve[3] +
+    assert(E.mobility_piece_type(black, queen_ix) == mobility_curve[8/2]);
+    assert(E.mobility_piece_type(white, knight_ix) == mobility_curve[4] +
         mobility_curve[6]);
-    assert(E.mobility_piece_type(black, bishop_ix) == mobility_curve[2]);
+    assert(E.mobility_piece_type(black, bishop_ix) == mobility_curve[6]);
     assert(E.mobility_piece_type(white, king_ix) == mobility_curve[5]);
     assert(E.mobility_piece_type(black, king_ix) == mobility_curve[2]);
     assert(E.mobility_piece_type(white, queen_ix) == mobility_curve[10/2]);
