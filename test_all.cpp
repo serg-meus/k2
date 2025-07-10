@@ -83,8 +83,8 @@ void test_all::test_eval() {
     test_connected_passers();
     test_pawn_gaps();
     test_king_pawn_tropism();
-    test_mobility_piece_type();
     test_eval_pawns();
+	test_eval_mobility();
     test_king_quaterboard();
 }
 
@@ -234,23 +234,6 @@ void test_all::test_pawn_holes() {
 }
 
 
-void test_all::test_mobility_piece_type() {
-    auto E = eval_tst();
-    E.setup_position("5rk1/pq2nbp1/1p5p/2n2P2/4P1Q1/1PN4N/PB6/5K1R w - -");
-    assert(E.mobility_piece_type(white, rook_ix) == mobility_curve[2]);
-    assert(E.mobility_piece_type(black, knight_ix) == mobility_curve[4] +
-        mobility_curve[5]);
-    assert(E.mobility_piece_type(white, bishop_ix) == mobility_curve[3]);
-    assert(E.mobility_piece_type(black, queen_ix) == mobility_curve[8/2]);
-    assert(E.mobility_piece_type(white, knight_ix) == mobility_curve[4] +
-        mobility_curve[6]);
-    assert(E.mobility_piece_type(black, bishop_ix) == mobility_curve[6]);
-    assert(E.mobility_piece_type(white, king_ix) == mobility_curve[5]);
-    assert(E.mobility_piece_type(black, king_ix) == mobility_curve[2]);
-    assert(E.mobility_piece_type(white, queen_ix) == mobility_curve[10/2]);
-}
-
-
 void test_all::test_eval_pawns() {
     auto E = eval_tst();
     E.setup_position("4k3/1p6/8/8/1P6/8/1P6/4K3 w - -");
@@ -282,6 +265,23 @@ void test_all::test_king_quaterboard() {
     assert(king_quaterboard(bit("f4")) == 0xf0f0f0f0);
     assert(king_quaterboard(bit("c5")) == u64(0x0f0f0f0f) << 32);
     assert(king_quaterboard(bit("g8")) == u64(0xf0f0f0f0) << 32);
+}
+
+
+void test_all::test_eval_mobility() {
+    auto E = eval_tst();
+    E.setup_position("5rk1/pq2nbp1/1p5p/2n2P2/4P1Q1/1PN4N/PB6/5K1R w - -");
+	E.fill_attack_array();
+	eval_t mob_w = mobility_curve[2];  // white rook
+    mob_w += mobility_curve[3];  // white bishop
+	mob_w += mobility_curve[11/2];  // white queen
+	vec2<eval_t> ans = mob_w*mobility_factor/10;
+	assert(E.eval_mobility(white) == ans);
+    mob_w = mobility_curve[8/2];  // black queen
+    mob_w += mobility_curve[6];  // black bishop
+	mob_w += mobility_curve[5];  // black rook
+	ans = mob_w*mobility_factor/10;
+	assert(E.eval_mobility(black) == ans);
 }
 
 

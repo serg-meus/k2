@@ -7,6 +7,7 @@ using vec2 = eval::vec2<eval::eval_t>;
 
 eval_t eval::Eval() {
     vec2<eval_t> ans = {0, 0};
+    fill_attack_array();
     for (auto color : {black, white}) {
         ans += eval_material(color);
         ans += eval_pst(color);
@@ -130,15 +131,15 @@ vec2 eval::eval_king_safety(bool color) {
     }
     u64 king_zone = king_quaterboard(k_bb) | king_neighborhood(k_bb);
     eval_t opps_in_zone = eval_t(__builtin_popcountll(bb[!color][occupancy_ix] & king_zone));
-	eval_t K = ans.mid == 0 ? 1 : 2;
+    eval_t K = ans.mid == 0 ? 1 : 2;
     ans = ans + eval_t(K*opps_in_zone*opps_in_zone)*vec2<eval_t>({-16, 0});
     return ans;
 }
 
 
 u64 eval::king_quaterboard(u64 k_bb) {
-    std::array<u64, 4> quaterboards = {0x0f0f0f0f, 0xf0f0f0f0,
-                                       u64(0x0f0f0f0f) << 32, u64(0xf0f0f0f0) << 32};
+    std::array<u64, 4> quaterboards =
+        {0x0f0f0f0f, 0xf0f0f0f0, u64(0x0f0f0f0f) << 32, u64(0xf0f0f0f0) << 32};
     u8 k_coord = trail_zeros(k_bb);
     unsigned col = get_col(k_coord)/4;
     unsigned row = get_row(k_coord)/4;
@@ -155,30 +156,44 @@ u64 eval::king_neighborhood(u64 k_bb) {
 }
 
 
-vec2 eval::eval_mobility(bool color) {
-    vec2<eval_t> ans = {0, 0};
-    for (auto piece_ix: {bishop_ix, rook_ix, queen_ix}) {
-        eval_t mob = mobility_piece_type(color, piece_ix);
-        ans += mob*vec2<eval_t>{10, 20}/10;
+void eval::fill_attack_array() {
+    for (auto color : {black, white}) {
+        attack_arr[color][0] =
+            {all_pawn_attacks(bb[color][pawn_ix], color, u64(-1)), pawn_ix};
+        attack_arr_ix[color] = 1;
+        for (auto piece_ix : {knight_ix, bishop_ix, rook_ix, queen_ix, king_ix}) {
+            fill_attacks_piece_type(color, piece_ix);
+        }
     }
-    return ans;
 }
 
 
-eval_t eval::mobility_piece_type(bool color, u8 piece_index) {
+void eval::fill_attacks_piece_type(bool color, u8 piece_ix) {
     u64 occupancy = bb[0][occupancy_ix] | bb[1][occupancy_ix];
-    u64 piece_occ = bb[color][piece_index];
-    eval_t ans = 0;
+    u64 piece_occ = bb[color][piece_ix];
     while (piece_occ != 0) {
         u64 lowbit = lower_bit(piece_occ);
         u8 from_coord = u8(trail_zeros(lowbit));
-        u64 attacks = all_non_pawn_attacks(piece_index, from_coord, occupancy);
-        u8 n_attacks =
-            u8(__builtin_popcountll(attacks & ~occupancy));
-        if (piece_index == queen_ix)
-            n_attacks /= 2;
-        ans = eval_t(ans + mobility_curve.at(n_attacks));
+        u64 att = all_non_pawn_attacks(piece_ix, from_coord, occupancy);
+        attack_arr[color][attack_arr_ix[color]++] = {att, piece_ix};
         piece_occ ^= lowbit;
+    }
+}
+
+
+vec2 eval::eval_mobility(bool color) {
+    vec2<eval_t> ans = {0, 0};
+    u64 occupancy = bb[0][occupancy_ix] | bb[1][occupancy_ix];
+    for (unsigned i = 0; i < attack_arr_ix[color]; ++i) {
+        u8 ix = attack_arr[color][i].second;
+        if (ix == pawn_ix || ix == knight_ix || ix == king_ix)
+            continue;
+        u64 attacks = attack_arr[color][i].first;
+        u8 n_attacks = u8(__builtin_popcountll(attacks & ~occupancy));
+        if (ix == queen_ix)
+            n_attacks /= 2;
+        eval_t mob_value = mobility_curve[n_attacks];
+        ans += mob_value*mobility_factor/10;
     }
     return ans;
 }

@@ -57,10 +57,12 @@ class eval_tst: public eval {
     using eval::pawn_gaps;
     using eval::pawn_holes;
     using eval::king_pawn_tropism;
-    using eval::mobility_piece_type;
     using eval::eval_pawns;
     using eval::mobility_curve;
     using eval::king_quaterboard;
+	using eval::eval_mobility;
+	using eval::mobility_factor;
+	using eval::fill_attack_array;
 };
 
 
@@ -140,7 +142,6 @@ public :
     void test_pawn_holes();
     void test_eval_pawns();
     void test_king_pawn_tropism();
-    void test_mobility_piece_type();
     void test_see();
     void test_next_move();
     void test_set_time_for_move();
@@ -148,4 +149,5 @@ public :
     void test_k2();
     void test_is_passer();
     void test_king_quaterboard();
+	void test_eval_mobility();
 };

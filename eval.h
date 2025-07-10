@@ -62,9 +62,12 @@ class eval : public chess {
     vec2<eval_t> pawn_doubled, pawn_isolated, pawn_dbl_iso, pawn_hole,
         pawn_gap, pawn_king_tropism1, pawn_king_tropism2,
         pawn_king_tropism3, pawn_pass0, pawn_pass1, pawn_pass2, pawn_blk_pass0,
-        pawn_blk_pass1, pawn_blk_pass2, pawn_pass_connected, pawn_unstoppable;
+        pawn_blk_pass1, pawn_blk_pass2, pawn_pass_connected, pawn_unstoppable,
+		mobility_factor;
     std::array<eval_t, 16> mobility_curve;
     std::array<int, 2> material_sum, num_pieces;
+    std::array<std::array<std::pair<u64, u8>, 64>, 2> attack_arr;
+    std::array<unsigned, 2> attack_arr_ix;
 
     nn_t calc_nn_out(const bool color);
     void sparce_multiply(const bool color);
@@ -89,7 +92,6 @@ class eval : public chess {
     static u64 one_pawn_hole(u64 pawn_bb, u64 *args);
     u64 king_pawn_tropism(u64 passers, bool color, u64 king_bb, u8 dist);
     static u64 tropism(u64 pawn_bb, u64 *args);
-    eval_t mobility_piece_type(bool color, u8 piece_index);
     vec2<eval_t> eval_pawns(bool color);
     vec2<eval_t> eval_king_tropism(u64 passers, bool color);
     u64 sum_for_each_set_bit(u64 bitboard, const eval_fptr &foo , u64 *args);
@@ -99,6 +101,8 @@ class eval : public chess {
     vec2<eval_t> eval_mobility(bool color);
     static u64 king_quaterboard(u64 k_bb);
     static u64 king_neighborhood(u64 k_bb);
+    void fill_attack_array();
+    void fill_attacks_piece_type(bool color, u8 piece_ix);
 
 static u64 roll_left(u64 bitboard) {
     return (bitboard & ~file_mask('a')) >> 1;
@@ -134,10 +138,11 @@ static int shifts(bool color) {
     #include "nn_data.h"
     in2({0}),
     material_values({{100, 390, 410, 600, 1000, 32000}}),
-    piece_values({{{100, 128}, {450, 370}, {470, 390}, {560, 680}, {1170, 1290}}}),
+    piece_values({{{100, 128}, {450, 370}, {470, 390}, {560, 680},
+        {1170, 1290}}}),
     #include "pst.h"
     #include "eval_features.h"
-    material_sum(), num_pieces()
+    material_sum(), num_pieces(), attack_arr(), attack_arr_ix()
     {
     }
 };
