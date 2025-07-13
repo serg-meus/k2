@@ -60,9 +60,9 @@ class eval_tst: public eval {
     using eval::eval_pawns;
     using eval::mobility_curve;
     using eval::king_quaterboard;
-	using eval::eval_mobility;
-	using eval::mobility_factor;
-	using eval::fill_attack_array;
+    using eval::eval_mobility;
+    using eval::mobility_factor;
+    using eval::fill_attack_array;
 };
 
 
@@ -149,5 +149,5 @@ public :
     void test_k2();
     void test_is_passer();
     void test_king_quaterboard();
-	void test_eval_mobility();
+    void test_eval_mobility();
 };

@@ -115,25 +115,37 @@ vec2 eval::eval_pawns(bool color) {
 
 
 vec2 eval::eval_king_safety(bool color) {
-    vec2<eval_t> ans = {0, 0};
     if (__builtin_popcountll(bb[!color][queen_ix]) == 0)
-        return ans;
+        return {0, 0};
+    if (!bb[!color][knight_ix] && !bb[!color][bishop_ix] && !bb[!color][rook_ix])
+        return {0, 0};
+    vec2<eval_t> ans = {0, 0};
     u64 k_bb = bb[color][king_ix];
     if (k_bb & (file_mask('d') | file_mask('e')))
-        ans += {-80, 0};
+        ans += king_saf_no_shelter;
     else {
         u64 lr = roll_left(k_bb) | roll_right(k_bb);
         bool shlt1 = (bb[color][pawn_ix] & signed_shift(lr, shifts(color))) != 0;
         bool shlt2 = (bb[color][pawn_ix] & (signed_shift(k_bb, shifts(color)) |
             signed_shift(k_bb, 2*shifts(color)))) != 0;
-        if (!shlt1 || !shlt2)
-            ans += {-80, 0};
+        if (!shlt1 || !shlt2)  // at least two pawns
+            ans += king_saf_no_shelter;
     }
-    u64 king_zone = king_quaterboard(k_bb) | king_neighborhood(k_bb);
-    eval_t opps_in_zone = eval_t(__builtin_popcountll(bb[!color][occupancy_ix] & king_zone));
-    eval_t K = ans.mid == 0 ? 1 : 2;
-    ans = ans + eval_t(K*opps_in_zone*opps_in_zone)*vec2<eval_t>({-16, 0});
-    return ans;
+    u64 king_nearest = k_bb | nearest_squares(k_bb);
+    u64 king_zone = (king_quaterboard(k_bb) | king_neighborhood(k_bb)) &
+        ~king_nearest;
+    int attacks = king_attacks(color, king_nearest) +
+		king_attacks(color, king_zone)*king_saf_attacks2.mid/32;
+    auto att_val = eval_t(attacks*attacks)*king_saf_attacks1/32;
+    return ans + att_val;
+}
+
+
+int eval::king_attacks(bool color, u64 king_zone) {
+    int attacks = 0;
+    for (unsigned i = 0; i < attack_arr_ix[!color]; ++i)
+        attacks += __builtin_popcountll(attack_arr[!color][i].first & king_zone);
+    return attacks;
 }
 
 

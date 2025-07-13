@@ -84,7 +84,7 @@ void test_all::test_eval() {
     test_pawn_gaps();
     test_king_pawn_tropism();
     test_eval_pawns();
-	test_eval_mobility();
+    test_eval_mobility();
     test_king_quaterboard();
 }
 
@@ -271,17 +271,17 @@ void test_all::test_king_quaterboard() {
 void test_all::test_eval_mobility() {
     auto E = eval_tst();
     E.setup_position("5rk1/pq2nbp1/1p5p/2n2P2/4P1Q1/1PN4N/PB6/5K1R w - -");
-	E.fill_attack_array();
-	eval_t mob_w = mobility_curve[2];  // white rook
+    E.fill_attack_array();
+    eval_t mob_w = mobility_curve[2];  // white rook
     mob_w += mobility_curve[3];  // white bishop
-	mob_w += mobility_curve[11/2];  // white queen
-	vec2<eval_t> ans = mob_w*mobility_factor/10;
-	assert(E.eval_mobility(white) == ans);
+    mob_w += mobility_curve[11/2];  // white queen
+    vec2<eval_t> ans = mob_w*mobility_factor/10;
+    assert(E.eval_mobility(white) == ans);
     mob_w = mobility_curve[8/2];  // black queen
     mob_w += mobility_curve[6];  // black bishop
-	mob_w += mobility_curve[5];  // black rook
-	ans = mob_w*mobility_factor/10;
-	assert(E.eval_mobility(black) == ans);
+    mob_w += mobility_curve[5];  // black rook
+    ans = mob_w*mobility_factor/10;
+    assert(E.eval_mobility(black) == ans);
 }
 
 
