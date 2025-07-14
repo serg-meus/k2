@@ -221,7 +221,7 @@ protected:
 
     bool search_draw() {
         return is_N_fold_repetition(1) || is_draw_by_N_move_rule(50) ||
-            is_stalemate() || is_draw_by_material();
+            is_draw_by_material();
     }
 
     int late_move_reduction(const int depth, const move_s cur_move,
