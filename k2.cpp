@@ -97,6 +97,8 @@ void k2::main_search() {
             best_move = root_search(depth, alpha, beta, moves, val);
         if (val >= material_values[king_ix] - max_ply)
             mate_cr++;
+        if (time_elapsed() >= time_for_move)
+            stop = true;
     }
     if (!stop)
         print_search_iteration_result(i8(depth - 1), val, "");
