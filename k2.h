@@ -57,6 +57,11 @@ protected:
     std::thread thr;
 
     const double time_margin = 0.02;
+    const int aspiration_margin = 43;
+    const int aspiration_factor = 3;
+    const int max_mate_cr = 2;
+    const int aspiration_k_flt = 40;
+    const int aspiration_goal = 16;
 
     bool execute_command(const std::string &in);
     void uci_go_command(const std::string &in);
@@ -70,11 +75,12 @@ protected:
     void uci_go_movestogo(const std::string &in);
     void uci_go_movetime(const std::string &in);
     void uci_go_searchmoves(const std::string &in);
+    bool root_bounds(int x, int &alpha, int &beta, int &margin) const;
 
     bool looks_like_move(const std::string &in) const;
-    move_s root_search(const i8 depth, int &alpha_orig, const int beta,
-                       std::vector<move_s> &moves);
-    void print_search_iteration_result(i8 dpt, int val);
+    move_s root_search(const i8 depth, int alpha_orig, const int beta,
+                       std::vector<move_s> &moves, int &val);
+    void print_search_iteration_result(i8 dpt, int val, std::string ending);
     std::string uci_score(int val) const;
 
 
@@ -104,5 +110,14 @@ protected:
         max_time_for_move = k_max*time_for_move - time_margin;
         if (max_time_for_move >= current_clock)
             max_time_for_move = current_clock - time_margin;
+    }
+
+    eval_t sum_eval(int x1, int x2) const
+    {
+        if(x1 + x2 >= material_values[king_ix])
+            return material_values[king_ix];
+        else if(x1 + x2 <= -material_values[king_ix])
+            return -material_values[king_ix];
+        return eval_t(x1 + x2);
     }
 };

@@ -87,29 +87,32 @@ void k2::main_search() {
     std::random_shuffle(moves.begin(), moves.end());
     move_s best_move = moves.at(0);
     i8 depth = 1;
-    int alpha = 0, beta;
-    for (; !stop && depth <= max_depth; ++depth) {
+    int val = 0, alpha , beta, margin = aspiration_margin, mate_cr = 0;
+    for (; !stop && depth <= max_depth && mate_cr < max_mate_cr; ++depth) {
         for (unsigned i = 1; i < pv.size(); ++i)
             pv.at(i).clear();
         follow_pv = true;
-        alpha = -material_values[king_ix];
-        beta = material_values[king_ix];
-        best_move = root_search(depth, alpha, beta, moves);
+        alpha = beta = 0;
+        while (root_bounds(val, alpha, beta, margin))
+            best_move = root_search(depth, alpha, beta, moves, val);
+        if (val >= material_values[king_ix] - max_ply)
+            mate_cr++;
     }
     if (!stop)
-        print_search_iteration_result(i8(depth - 1), alpha);
+        print_search_iteration_result(i8(depth - 1), val, "");
     pv.at(0).push_back(best_move);
 }
 
 
-k2::move_s k2::root_search(const i8 depth, int &alpha,
-                           const int beta, std::vector<move_s> &moves) {
+k2::move_s k2::root_search(const i8 depth, int alpha,
+                           const int beta, std::vector<move_s> &moves,
+                           int &val) {
     const bool in_check = is_in_check(side);
     move_s best_move = moves.at(0);
-    int alpha_orig = alpha, val = 0;
+    int alpha_orig = alpha;
     pv.at(0).clear();
     unsigned move_num = 0;
-    for (; !stop && move_num < moves.size(); ++move_num) {
+    for (; move_num < moves.size(); ++move_num) {
         const auto s = move_to_str(moves.at(move_num));
         if (not_search_moves.size() && not_search_moves.count(s))
             continue;
@@ -119,26 +122,75 @@ k2::move_s k2::root_search(const i8 depth, int &alpha,
         val = search_cur_pos(depth, alpha, beta, moves.at(move_num), move_num,
                              move_num ? cut_node : pv_node, in_check);
         unmake_move();
-        if (!stop && (val >= beta || val > alpha)) {
-            best_move = moves.at(move_num);
-            if (val >= beta) {
-                print_search_iteration_result(depth, beta);
-                break;
-            }
+        if (stop)
+            break;
+        else if (val >= beta) {
+            pv.at(0).clear();
+            pv.at(0).push_back(moves.at(move_num));
+            std::rotate(moves.rbegin() + int(moves.size() - move_num - 1),
+                        moves.rbegin() + int(moves.size() - move_num),
+                        moves.rend());
+            print_search_iteration_result(depth, beta, "\b!");
+            break;
+        }
+        else if (val > alpha) {
             alpha = val;
             store_pv(moves.at(move_num));
             std::rotate(moves.rbegin() + int(moves.size() - move_num - 1),
                         moves.rbegin() + int(moves.size() - move_num),
                         moves.rend());
-            print_search_iteration_result(depth, alpha);
+            print_search_iteration_result(depth, alpha, "");
         }
     }
     if (stop)
-        print_search_iteration_result(i8(depth - (move_num == 1)), alpha);
+        print_search_iteration_result(i8(depth - (move_num == 1)), alpha, "");
+    else if (val < beta && alpha_orig == alpha) {
+        pv.at(0).clear();
+        pv.at(0).push_back(moves.at(0));
+        print_search_iteration_result(depth, alpha, "\b?");
+    }
     search_result(val, alpha_orig, alpha, beta, depth, depth,
                   best_move, unsigned(moves.size()), in_check);
     reduce_history();
     return best_move;
+}
+
+
+bool k2::root_bounds(int val, int &alpha, int &beta, int &margin) const
+
+{
+    static int prev_val;
+    if(stop)
+        return false;
+
+    if(alpha == beta)
+    {
+        alpha = sum_eval(val, -margin);
+        beta = sum_eval(val, margin);
+    }
+    else if(val <= alpha)
+    {
+        margin = aspiration_margin;
+        alpha = sum_eval(alpha, aspiration_factor*(alpha - beta));
+        beta = sum_eval(beta, margin);
+    }
+    else if(val >= beta)
+    {
+        margin = aspiration_margin;
+        alpha = sum_eval(alpha, -aspiration_margin);
+        beta = sum_eval(beta, aspiration_factor*(beta - alpha));
+    }
+    else {
+        int goal = 32*std::abs(val - prev_val)/aspiration_goal;
+        margin += 8*(goal - margin)/aspiration_k_flt;
+        alpha = sum_eval(val, -margin);
+        beta = sum_eval(val, margin);
+//        std::cout << alpha << ", " << beta << ", " << margin << std::endl;
+        prev_val = val;
+        return false;
+    }
+    prev_val = val;
+    return true;
 }
 
 
@@ -511,7 +563,7 @@ void k2::void_command(const std::string &in) {
 }
 
 
-void k2::print_search_iteration_result(i8 depth, int val) {
+void k2::print_search_iteration_result(i8 depth, int val, std::string ending) {
     std::string pv_str;
     static int prev_val;
     static std::string prev_pv;
@@ -527,12 +579,16 @@ void k2::print_search_iteration_result(i8 depth, int val) {
     if (!uci) {
         cout << int(depth) << ' ' << val << ' '
             << int(100*time_elapsed()) << ' '  << nodes << ' '
-            << pv_str << endl;
+            << pv_str << ending << endl;
         return;
     }
+    if (ending.back() == '!')
+        ending = " upperbound";
+    else if (ending.back() == '?')
+        ending = " lowerbound";
     cout << "info depth " << int(depth) << uci_score(val)
-        << " time " << int(1000*time_elapsed()) << " nodes " << nodes
-        << " pv " << pv_str << endl;
+        << ending << " time " << int(1000*time_elapsed())
+        << " nodes " << nodes << " pv " << pv_str << endl;
 }
 
 

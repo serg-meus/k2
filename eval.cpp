@@ -135,7 +135,7 @@ vec2 eval::eval_king_safety(bool color) {
     u64 king_zone = (king_quaterboard(k_bb) | king_neighborhood(k_bb)) &
         ~king_nearest;
     int attacks = king_attacks(color, king_nearest) +
-		king_attacks(color, king_zone)*king_saf_attacks2.mid/32;
+	    king_attacks(color, king_zone)*king_saf_attacks2.mid/32;
     auto att_val = eval_t(attacks*attacks)*king_saf_attacks1/32;
     return ans + att_val;
 }
