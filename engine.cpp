@@ -19,7 +19,7 @@ int engine::search(const int depth_orig, const int alpha_orig, const int beta,
         stage = 0;
     if (depth <= 3)
         val = Eval();
-    if (razoring(val, depth, alpha, beta, node_type))
+    if (razoring(val, depth, beta, node_type))
         return val;
     if(depth <= 0 && val >= beta)
         return beta;

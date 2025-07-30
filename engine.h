@@ -250,9 +250,8 @@ protected:
         return elapsed.count();
     }
 
-    int update_depth(const int depth_orig, const bool in_check) const {
-        int ans = (in_check && depth_orig >= 0) ? depth_orig + 1 : depth_orig;
-        return ans + int(is_recapture());
+    int update_depth(const int depth, const bool in_check) const {
+        return depth + int((depth >= 0 && in_check) || (depth > 0 && is_recapture()));
     }
 
     bool is_recapture() const {
@@ -265,14 +264,13 @@ protected:
                 prev_move.priority > 64 && prev_prev.priority > 64);
     }
 
-    bool razoring(int &val, const int depth, const int alpha,
-                  const int beta, const int node_type) {
-        if (node_type != pv_node && depth == 1 && val < beta - 60) {
-            val = search(-2, alpha, beta, cut_node);
-            return true;
-        }
-        if (node_type != pv_node && depth > 1 && depth <= 3 && val < beta - 250) {
-            auto x = search(-2, alpha, beta, cut_node);
+    bool razoring(int &val, int depth, int beta, int node_type) {
+        if (node_type == pv_node || depth < 1 || depth > 4)
+            return false;
+        int margins[] = {0, 60, 220, 250, 450};
+        int depths[]  = {0, -2,  -2,  -2,  -1};
+        if (val < beta - margins[unsigned(depth)]) {
+            auto x = search(depths[unsigned(depth)], beta - 1, beta, cut_node);
             if (x < beta) {
                 val = x;
                 return true;
