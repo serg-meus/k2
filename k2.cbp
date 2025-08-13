@@ -66,8 +66,11 @@
 		<Unit filename="engine.h" />
 		<Unit filename="eval.cpp" />
 		<Unit filename="eval.h" />
+		<Unit filename="eval_features.h" />
 		<Unit filename="k2.cpp" />
 		<Unit filename="k2.h" />
+		<Unit filename="nn_data.h" />
+		<Unit filename="pst.h" />
 		<Unit filename="utils.cpp" />
 		<Unit filename="utils.h" />
 		<Extensions>

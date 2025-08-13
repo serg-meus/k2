@@ -112,3 +112,23 @@ inline constexpr u64 get_nth_bit(const u64 inp, const u8 bit_num) {
 inline constexpr bool is_close(const double x, const double y) {
     return std::abs(x - y) <= 1e-8;
 }
+
+inline constexpr u64 roll_left(u64 bitboard) {
+    return (bitboard & ~file_mask('a')) >> 1;
+}
+
+inline constexpr u64 roll_right(u64 bitboard) {
+    return (bitboard & ~file_mask('h')) << 1;
+}
+
+inline constexpr u64 roll_up(u64 bitboard, bool color) {
+    return signed_shift(bitboard, color ? -8 : 8);
+}
+
+inline constexpr u64 roll_down(u64 bitboard, bool color) {
+    return signed_shift(bitboard, color ? 8 : -8);
+}
+
+inline constexpr int popcount(u64 x) {
+    return __builtin_popcountll(x);
+}

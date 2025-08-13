@@ -290,7 +290,7 @@ bool chess::is_pseudo_legal_pawn(const u8 from_coord, const u64 to_bb) const {
 }
 
 
-bool chess::is_pseudo_legal_king(const u8 from_coord, const u8 to_coord) const {
+bool chess::is_pseudo_legal_king(const u8 from_coord, const u8 to_coord) const{
     const u64 to_bb = one_nth_bit(to_coord);
     if (abs(i8(from_coord) - i8(to_coord)) != 2)
         return bool(to_bb & king_attacks(from_coord));
@@ -308,11 +308,12 @@ bool chess::is_draw_by_material() const {
     for (auto ix : {pawn_ix, rook_ix, queen_ix})
         if (bb[0][ix] || bb[1][ix])
             return false;
-    auto white_bishops = __builtin_popcountll(bb[white][bishop_ix]);
-    auto black_bishops = __builtin_popcountll(bb[black][bishop_ix]);
-    auto white_knights = __builtin_popcountll(bb[white][knight_ix]);
-    auto black_knights = __builtin_popcountll(bb[black][knight_ix]);
-    return white_bishops + white_knights <= 1 && black_bishops + black_knights <= 1;
+    auto white_bishops = popcount(bb[white][bishop_ix]);
+    auto black_bishops = popcount(bb[black][bishop_ix]);
+    auto white_knights = popcount(bb[white][knight_ix]);
+    auto black_knights = popcount(bb[black][knight_ix]);
+    return white_bishops + white_knights <= 1 &&
+        black_bishops + black_knights <= 1;
 }
 
 

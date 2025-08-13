@@ -62,7 +62,7 @@ class eval : public chess {
     vec2<eval_t> pawn_doubled, pawn_isolated, pawn_dbl_iso, pawn_hole,
         pawn_gap, pawn_king_tropism1, pawn_king_tropism2,
         pawn_king_tropism3, pawn_pass0, pawn_pass1, pawn_pass2, pawn_blk_pass0,
-        pawn_blk_pass1, pawn_blk_pass2, pawn_pass_connected, pawn_unstoppable,
+        pawn_blk_pass1, pawn_blk_pass2, pawn_unstoppable,
         king_saf_no_shelter, king_saf_attacks1, king_saf_attacks2,
         mobility_factor;
     std::array<eval_t, 16> mobility_curve;
@@ -96,7 +96,7 @@ class eval : public chess {
     vec2<eval_t> eval_pawns(bool color);
     vec2<eval_t> eval_king_tropism(u64 passers, bool color);
     u64 sum_for_each_set_bit(u64 bitboard, const eval_fptr &foo , u64 *args);
-    vec2<eval_t> eval_passers(u64 passers, bool color);
+    vec2<eval_t> eval_passers(u64 passers, u64 blocked, bool color);
     eval_t interpolate_eval(vec2<eval_t> val);
     vec2<eval_t> eval_king_safety(bool color);
     vec2<eval_t> eval_mobility(bool color);
@@ -105,14 +105,6 @@ class eval : public chess {
     void fill_attack_array();
     void fill_attacks_piece_type(bool color, u8 piece_ix);
     int king_attacks(bool color, u64 king_zone);
-
-static u64 roll_left(u64 bitboard) {
-    return (bitboard & ~file_mask('a')) >> 1;
-}
-
-static u64 roll_right(u64 bitboard) {
-    return (bitboard & ~file_mask('h')) << 1;
-}
 
 static u64 nearest_squares(u64 bitboard) {
     bitboard = roll_left(bitboard) | roll_right(bitboard);

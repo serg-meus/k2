@@ -255,8 +255,12 @@ void test_all::test_eval_pawns() {
     val = E.eval_pawns(white);
     assert(val == eval_t(3*3 + 4*4 + 5*5)*pawn_pass2 +
            eval_t(3 + 4 + 5)*pawn_pass1 + 3*pawn_pass0 - pawn_isolated +
-           2*pawn_king_tropism3 - pawn_king_tropism1 -
-           3*pawn_king_tropism2/* + 5*pawn_pass_connected*/);
+           2*pawn_king_tropism3 - pawn_king_tropism1 - 3*pawn_king_tropism2);
+    E.setup_position("5k2/2B5/N7/P1P2p1p/2n2b1N/8/8/4K3 w - -");
+    val = E.eval_pawns(white);
+    assert(val == eval_t(4*4)*(pawn_pass2 + pawn_blk_pass2) +
+           eval_t(4)*(pawn_pass1 + pawn_blk_pass1) +
+           pawn_pass0 + pawn_blk_pass0 - eval_t(2)*pawn_isolated);
 }
 
 

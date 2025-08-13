@@ -70,15 +70,15 @@ void eval::sparce_multiply(const bool color) {
 vec2 eval::eval_material(bool color) {
     vec2<eval_t> piece_values_sum;
     int mat_cr = 0;
-    int pieces_cr = 0;
+    int piece_cr = 0;
     for (unsigned ix = pawn_ix; ix < king_ix; ++ix) {
-        eval_t n_pieces = eval_t(__builtin_popcountll(bb[color][ix]));
-        piece_values_sum += vec2<eval_t>(n_pieces, n_pieces) * piece_values[ix];
-        mat_cr += n_pieces*material_values[ix];
-        pieces_cr += n_pieces;
+        eval_t n_pcs = eval_t(popcount(bb[color][ix]));
+        piece_values_sum += vec2<eval_t>(n_pcs, n_pcs) * piece_values[ix];
+        mat_cr += n_pcs*material_values[ix];
+        piece_cr += n_pcs;
     }
     material_sum[color] = mat_cr;
-    num_pieces[color] = pieces_cr;
+    num_pieces[color] = piece_cr;
     return piece_values_sum;
 }
 
@@ -101,23 +101,25 @@ vec2 eval::eval_pst(bool color) {
 
 vec2 eval::eval_pawns(bool color) {
     vec2<eval_t> ans = eval_double_and_isolated(color);
-
     u64 passers = passed_pawns(color);
     u64 non_passers = bb[color][pawn_ix] ^ passers;
-    int holes = __builtin_popcountll(pawn_holes(non_passers, color));
+    u64 occupancy = bb[0][occupancy_ix] | bb[1][occupancy_ix];
+    u64 blocked_passers = passers & roll_down(occupancy, color);
+    int holes = popcount(pawn_holes(non_passers, color));
     ans += pawn_hole*eval_t(holes);
     eval_t gaps = pawn_gaps(bb[color][pawn_ix]);
     ans += pawn_gap*gaps;
     ans -= eval_king_tropism(passers, color);
-    ans -= eval_passers(passers, color);
+    ans -= eval_passers(passers, blocked_passers, color);
     return -ans;
 }
 
 
 vec2 eval::eval_king_safety(bool color) {
-    if (__builtin_popcountll(bb[!color][queen_ix]) == 0)
+    if (popcount(bb[!color][queen_ix]) == 0)
         return {0, 0};
-    if (!bb[!color][knight_ix] && !bb[!color][bishop_ix] && !bb[!color][rook_ix])
+    if (!bb[!color][knight_ix] && !bb[!color][bishop_ix] &&
+            !bb[!color][rook_ix])
         return {0, 0};
     vec2<eval_t> ans = {0, 0};
     u64 k_bb = bb[color][king_ix];
@@ -125,8 +127,8 @@ vec2 eval::eval_king_safety(bool color) {
         ans += king_saf_no_shelter;
     else {
         u64 lr = roll_left(k_bb) | roll_right(k_bb);
-        bool shlt1 = (bb[color][pawn_ix] & signed_shift(lr, shifts(color))) != 0;
-        bool shlt2 = (bb[color][pawn_ix] & (signed_shift(k_bb, shifts(color)) |
+        bool shlt1 = (bb[color][pawn_ix] & roll_up(lr, color)) != 0;
+        bool shlt2 = (bb[color][pawn_ix] & (roll_up(k_bb, color) |
             signed_shift(k_bb, 2*shifts(color)))) != 0;
         if (!shlt1 || !shlt2)  // at least two pawns
             ans += king_saf_no_shelter;
@@ -141,10 +143,10 @@ vec2 eval::eval_king_safety(bool color) {
 }
 
 
-int eval::king_attacks(bool color, u64 king_zone) {
+int eval::king_attacks(bool color, u64 k_zone) {
     int attacks = 0;
     for (unsigned i = 0; i < attack_arr_ix[!color]; ++i)
-        attacks += __builtin_popcountll(attack_arr[!color][i].first & king_zone);
+        attacks += popcount(attack_arr[!color][i].first & k_zone);
     return attacks;
 }
 
@@ -173,8 +175,8 @@ void eval::fill_attack_array() {
         attack_arr[color][0] =
             {all_pawn_attacks(bb[color][pawn_ix], color, u64(-1)), pawn_ix};
         attack_arr_ix[color] = 1;
-        for (auto piece_ix : {knight_ix, bishop_ix, rook_ix, queen_ix, king_ix}) {
-            fill_attacks_piece_type(color, piece_ix);
+        for (auto ix : {knight_ix, bishop_ix, rook_ix, queen_ix, king_ix}) {
+            fill_attacks_piece_type(color, ix);
         }
     }
 }
@@ -201,7 +203,7 @@ vec2 eval::eval_mobility(bool color) {
         if (ix == pawn_ix || ix == knight_ix || ix == king_ix)
             continue;
         u64 attacks = attack_arr[color][i].first;
-        u8 n_attacks = u8(__builtin_popcountll(attacks & ~occupancy));
+        u8 n_attacks = u8(popcount(attacks & ~occupancy));
         if (ix == queen_ix)
             n_attacks /= 2;
         eval_t mob_value = mobility_curve[n_attacks];
@@ -211,12 +213,18 @@ vec2 eval::eval_mobility(bool color) {
 }
 
 
-vec2 eval::eval_passers(u64 passers, bool color) {
-    vec2<eval_t> ans = {0, 0};
+vec2 eval::eval_passers(u64 passers, u64 blocked, bool color) {
+    vec2<eval_t> ans = {0, 0}, delta;
     while (passers != 0) {
         u64 lowbit = lower_bit(passers);
         eval_t row = row_from_bb(lowbit, color);
-        ans += eval_t(row*row)*pawn_pass2 + row*pawn_pass1 + pawn_pass0;
+        delta = eval_t(row*row)*pawn_pass2 + row*pawn_pass1 + pawn_pass0;
+        if (lowbit & blocked)
+            delta = eval_t(row*row)*pawn_blk_pass2 + row*pawn_blk_pass1 +
+                pawn_blk_pass0;
+        else
+            delta = eval_t(row*row)*pawn_pass2 + row*pawn_pass1 + pawn_pass0;
+        ans += delta;
         passers ^= lowbit;
     }
     return ans;
@@ -230,24 +238,24 @@ vec2 eval::eval_king_tropism(u64 pass, bool color) {
     u64 opp_tropism2 = king_pawn_tropism(pass, color, bb[!color][king_ix], 2);
     vec2<eval_t> ans = {0, 0};
     while (king_tropism1 != 0) {
-        u64 lowbit = lower_bit(king_tropism1);
-        ans += pawn_king_tropism1 + row_from_bb(lowbit, color)*pawn_king_tropism2;
-        king_tropism1 ^= lowbit;
+        u64 lb = lower_bit(king_tropism1);
+        ans += pawn_king_tropism1 + row_from_bb(lb, color)*pawn_king_tropism2;
+        king_tropism1 ^= lb;
     }
     while (opp_tropism1 != 0) {
-        u64 lowbit = lower_bit(opp_tropism1);
-        ans -= pawn_king_tropism1 + row_from_bb(lowbit, color)*pawn_king_tropism2;
-        opp_tropism1 ^= lowbit;
+        u64 lb = lower_bit(opp_tropism1);
+        ans -= pawn_king_tropism1 + row_from_bb(lb, color)*pawn_king_tropism2;
+        opp_tropism1 ^= lb;
     }
-    ans += pawn_king_tropism3*eval_t(__builtin_popcountll(king_tropism2));
-    ans -= pawn_king_tropism3*eval_t(__builtin_popcountll(opp_tropism2));
+    ans += pawn_king_tropism3*eval_t(popcount(king_tropism2));
+    ans -= pawn_king_tropism3*eval_t(popcount(opp_tropism2));
     return ans;
 }
 
 
 u64 eval::double_pawns(bool color)  {
     u64 p_bb = bb[color][pawn_ix];
-    return p_bb & signed_shift(p_bb, -shifts(color));
+    return p_bb & roll_down(p_bb, color);
 }
 
 
@@ -264,17 +272,18 @@ vec2 eval::eval_double_and_isolated(bool color) {
     u64 isolated = isolated_pawns(color);
     u64 dbl_iso = doubled & isolated;
     doubled = doubled ^ dbl_iso;
-    isolated = isolated ^ (dbl_iso | signed_shift(dbl_iso, shifts(color)));
-    auto dbl_iso_val = eval_t(__builtin_popcountll(dbl_iso)) * pawn_dbl_iso;
-    auto dbl_val = eval_t(__builtin_popcountll(doubled)) * pawn_doubled;
-    auto iso_val = eval_t(__builtin_popcountll(isolated)) * pawn_isolated;
+    isolated = isolated ^ (dbl_iso | roll_up(dbl_iso, color));
+    auto dbl_iso_val = eval_t(popcount(dbl_iso)) * pawn_dbl_iso;
+    auto dbl_val = eval_t(popcount(doubled)) * pawn_doubled;
+    auto iso_val = eval_t(popcount(isolated)) * pawn_isolated;
     return dbl_iso_val + dbl_val + iso_val;
 }
 
 
 u64 eval::passed_pawns(bool color)  {
-u64 args[] =  {color, bb[!color][pawn_ix]};
+    u64 args[] =  {color, bb[!color][pawn_ix]};
     return for_each_set_bit(bb[color][pawn_ix], passed_pawn, args);
+
 }
 
 
@@ -310,7 +319,7 @@ u64 eval::unstoppable_pawn(u64 passer_bb , u64 *args) {
     u8 opp_k_coord = u8(trail_zeros(kings_bb[!color]));
     u8 k_dist = distance(opp_k_coord, transform_coord);
     bool tempo = side_to_move != color;
-    u8 p_dist = u8(__builtin_popcountll(p_fill));
+    u8 p_dist = u8(popcount(p_fill));
     return k_dist > p_dist + tempo ? passer_bb : 0;
 }
 
@@ -351,7 +360,7 @@ u64 eval::adjacent_pawn(u64 pawn_bb, u64 *args) {
 eval_t eval::pawn_gaps(u64 pawns) {
     u64 arg[] = {pawns};
     u64 B = for_each_set_bit(pawns & ~file_mask('a'), eval::one_pawn_gap, arg);
-    return eval_t(__builtin_popcountll(B));
+    return eval_t(popcount(B));
 }
 
 
@@ -405,7 +414,7 @@ u64 eval::tropism(u64 pawn_bb, u64 *args) {
     bool color = args[0];
     u64 king_bb = args[1];
     u8 dist = u8(args[2]);
-    u8 stop_coord = u8(trail_zeros(signed_shift(pawn_bb, shifts(color))));
+    u8 stop_coord = u8(trail_zeros(roll_up(pawn_bb, color)));
     u8 king_coord = u8(trail_zeros(king_bb));
     return distance(king_coord, stop_coord) == dist ? pawn_bb : 0;
 }
