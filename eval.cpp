@@ -7,7 +7,7 @@ using vec2 = eval::vec2<eval::eval_t>;
 
 eval_t eval::Eval() {
     vec2<eval_t> ans = {0, 0};
-    fill_attack_array();
+    fill_arrays();
     for (auto color : {black, white}) {
         ans += eval_material(color);
         ans += eval_pst(color);
@@ -17,11 +17,11 @@ eval_t eval::Eval() {
         // ans += eval_rooks(color);
         // ans += eval_bishops(color);
         // ans += eval_knights(color);
+        // ans = eval_imbalances(color, ans);
         ans = -ans;
     }
 
-    // cur_eval += e.eval_side_to_move(stm);
-    // cur_eval = e.eval_imbalances(stm, cur_eval);
+    // ans += e.eval_side_to_move(color);
     return interpolate_eval(ans);
 }
 
@@ -68,18 +68,13 @@ void eval::sparce_multiply(const bool color) {
 
 
 vec2 eval::eval_material(bool color) {
-    vec2<eval_t> piece_values_sum;
-    int mat_cr = 0;
-    int piece_cr = 0;
-    for (unsigned ix = pawn_ix; ix < king_ix; ++ix) {
-        eval_t n_pcs = eval_t(popcount(bb[color][ix]));
-        piece_values_sum += vec2<eval_t>(n_pcs, n_pcs) * piece_values[ix];
-        mat_cr += n_pcs*material_values[ix];
-        piece_cr += n_pcs;
-    }
-    material_sum[color] = mat_cr;
-    num_pieces[color] = piece_cr;
-    return piece_values_sum;
+    vec2<eval_t> ans;
+    ans += material_eval[color];
+
+    if (popcount(bb[color][bishop_ix] & dark_squares) >= 1 &&
+            popcount(bb[color][bishop_ix] & light_squares) >= 1)
+        ans += bishop_pair;
+    return ans;
 }
 
 
@@ -170,14 +165,25 @@ u64 eval::king_neighborhood(u64 k_bb) {
 }
 
 
-void eval::fill_attack_array() {
+void eval::fill_arrays() {
     for (auto color : {black, white}) {
+        material_eval[color] = vec2<eval_t>(0, 0);
         attack_arr[color][0] =
             {all_pawn_attacks(bb[color][pawn_ix], color, u64(-1)), pawn_ix};
         attack_arr_ix[color] = 1;
         for (auto ix : {knight_ix, bishop_ix, rook_ix, queen_ix, king_ix}) {
             fill_attacks_piece_type(color, ix);
         }
+        int mat_cr = 0;
+        int piece_cr = 0;
+        for (unsigned ix = pawn_ix; ix < king_ix; ++ix) {
+            eval_t n_pcs = eval_t(popcount(bb[color][ix]));
+            mat_cr += n_pcs*material_values[ix];
+            piece_cr += n_pcs;
+            material_eval[color] += vec2<eval_t>(n_pcs,n_pcs)*piece_values[ix];
+        }
+        material_sum[color] = mat_cr;
+        num_pieces[color] = piece_cr;
     }
 }
 
@@ -419,6 +425,9 @@ u64 eval::tropism(u64 pawn_bb, u64 *args) {
     return distance(king_coord, stop_coord) == dist ? pawn_bb : 0;
 }
 
+
+//vec2 eval::eval_imbalances(bool color, vec2<eval_t> val) {
+//}
 
 u64 eval::for_each_set_bit(u64 bitboard, const eval_fptr &foo, u64 *args) {
     u64 ans = 0;

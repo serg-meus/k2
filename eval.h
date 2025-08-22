@@ -64,9 +64,10 @@ class eval : public chess {
         pawn_king_tropism3, pawn_pass0, pawn_pass1, pawn_pass2, pawn_blk_pass0,
         pawn_blk_pass1, pawn_blk_pass2, pawn_unstoppable,
         king_saf_no_shelter, king_saf_attacks1, king_saf_attacks2,
-        mobility_factor;
+        mobility_factor, bishop_pair;
     std::array<eval_t, 16> mobility_curve;
     std::array<int, 2> material_sum, num_pieces;
+    std::array<vec2<eval_t>, 2> material_eval;
     std::array<std::array<std::pair<u64, u8>, 64>, 2> attack_arr;
     std::array<unsigned, 2> attack_arr_ix;
 
@@ -102,9 +103,10 @@ class eval : public chess {
     vec2<eval_t> eval_mobility(bool color);
     static u64 king_quaterboard(u64 k_bb);
     static u64 king_neighborhood(u64 k_bb);
-    void fill_attack_array();
+    void fill_arrays();
     void fill_attacks_piece_type(bool color, u8 piece_ix);
     int king_attacks(bool color, u64 king_zone);
+    vec2<eval_t> eval_imbalances(bool color, vec2<eval_t> val);
 
 static u64 nearest_squares(u64 bitboard) {
     bitboard = roll_left(bitboard) | roll_right(bitboard);
@@ -142,7 +144,8 @@ static int shifts(bool color) {
         {1170, 1290}}}),
     #include "pst.h"
     #include "eval_features.h"
-    material_sum(), num_pieces(), attack_arr(), attack_arr_ix()
+    material_sum(), num_pieces(), material_eval(), attack_arr(),
+    attack_arr_ix()
     {
     }
 };

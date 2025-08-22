@@ -54,6 +54,9 @@ class bitboards {
     std::array<i8, 2> pawn_attacks_kingside_shifts = {7, -9},
         pawn_attacks_queenside_shifts = {9, -7}, pawn_push_shifts = {8, -8};
 
+    const u64 dark_squares = 0x5555555555555555,
+        light_squares = 0xaaaaaaaaaaaaaaaa;
+
     protected:
 
     u8 get_one_rank_attack(const u8 col, const u8 occupancy) const {

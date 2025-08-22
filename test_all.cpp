@@ -105,9 +105,11 @@ void test_all::test_k2() {
 void test_all::test_eval_material() {
     auto E = eval_tst();
     E.setup_position("rn2kbnr/pppppppp/8/8/8/8/PPPPPPPP/1NBQKB2 w kq -");
-    assert(E.eval_material(white) == vec2<eval_t>(8, 8) * E.piece_values[pawn_ix] +
-        E.piece_values[knight_ix] + vec2<eval_t>(2, 2) * E.piece_values[bishop_ix] +
-        E.piece_values[queen_ix]);
+    E.fill_arrays();
+    assert(E.eval_material(white) ==
+        vec2<eval_t>(8, 8)*E.piece_values[pawn_ix] + E.piece_values[knight_ix]+
+        vec2<eval_t>(2, 2)*E.piece_values[bishop_ix] +
+        E.piece_values[queen_ix] + bishop_pair);
 }
 
 
@@ -119,7 +121,8 @@ void test_all::test_eval_pst() {
         E.pst[bishop_ix][str_to_coord("h6") ^ 56] +
         E.pst[king_ix][str_to_coord("f1") ^ 56]);
     assert(E.eval_pst(black) == E.pst[pawn_ix][str_to_coord("e6") ^ 56] +
-        E.pst[pawn_ix][str_to_coord("g6") ^ 56] + E.pst[rook_ix][str_to_coord("f5") ^ 56] +
+        E.pst[pawn_ix][str_to_coord("g6") ^ 56] +
+        E.pst[rook_ix][str_to_coord("f5") ^ 56] +
         E.pst[king_ix][str_to_coord("g1") ^ 56]);
 }
 
@@ -142,10 +145,10 @@ void test_all::test_isolated_pawns() {
 void test_all::test_double_and_isolated() {
     auto E = eval_tst();
     E.setup_position("4k3/p2p1pp1/3p1pp1/3p4/1P6/1P2P3/1P1PP2P/4K3 w - -");
-    assert(E.eval_double_and_isolated(white) == 2 * pawn_dbl_iso + pawn_doubled +
-        pawn_isolated);
-    assert(E.eval_double_and_isolated(black) == 2 * pawn_dbl_iso + pawn_isolated +
-        2 * pawn_doubled);
+    assert(E.eval_double_and_isolated(white) == 2*pawn_dbl_iso +
+        pawn_doubled + pawn_isolated);
+    assert(E.eval_double_and_isolated(black) == 2*pawn_dbl_iso +
+        pawn_isolated + 2*pawn_doubled);
 }
 
 
@@ -215,7 +218,8 @@ void test_all::test_king_pawn_tropism() {
     u64 pass_b = E.passed_pawns(black);
     u64 king_w = E.bb[white][king_ix];
     u64 king_b = E.bb[black][king_ix];
-    assert(E.king_pawn_tropism(pass_w, white, king_w, 1) == (bit("c4") | bit("d4")));
+    assert(E.king_pawn_tropism(pass_w, white, king_w, 1) == (bit("c4") |
+                                                             bit("d4")));
     assert(E.king_pawn_tropism(pass_w, white, king_w, 2) == bit("b4"));
     assert(E.king_pawn_tropism(pass_b, black, king_b, 1) == bit("g7"));
     assert(E.king_pawn_tropism(pass_b, black, king_b, 2) == bit("h7"));
@@ -228,7 +232,7 @@ void test_all::test_king_pawn_tropism() {
 
 void test_all::test_pawn_holes() {
     auto E = eval_tst();
-    E.setup_position("r3kbnr/ppp3p1/4p1Np/bPPnP3/P2P1B2/8/7P/RNB1K2R w KQkq -");
+    E.setup_position("r3kbnr/ppp3p1/4p1Np/bPPnP3/P2P1B2/8/7P/RNB1K2R w KQkq");
     assert(E.pawn_holes(bb[white][pawn_ix], white) == (bit("a4") | bit("d4")));
     assert(E.pawn_holes(bb[black][pawn_ix], black) == bit("g7"));
 }
@@ -275,7 +279,7 @@ void test_all::test_king_quaterboard() {
 void test_all::test_eval_mobility() {
     auto E = eval_tst();
     E.setup_position("5rk1/pq2nbp1/1p5p/2n2P2/4P1Q1/1PN4N/PB6/5K1R w - -");
-    E.fill_attack_array();
+    E.fill_arrays();
     eval_t mob_w = mobility_curve[2];  // white rook
     mob_w += mobility_curve[3];  // white bishop
     mob_w += mobility_curve[11/2];  // white queen

@@ -62,7 +62,8 @@ class eval_tst: public eval {
     using eval::king_quaterboard;
     using eval::eval_mobility;
     using eval::mobility_factor;
-    using eval::fill_attack_array;
+    using eval::fill_arrays;
+    using eval::bishop_pair;
 };
 
 

@@ -10,7 +10,7 @@ endif
 
 CC=g++
 
-CFLAGS=-std=c++0x -Werror -Wall -Wextra -Wpedantic -Wcast-align -Wcast-qual -Wconversion -Wsign-conversion -Wctor-dtor-privacy -Wfloat-equal -Wnon-virtual-dtor -Wold-style-cast -Woverloaded-virtual -Wredundant-decls -Wsign-promo -Wshadow -Weffc++ -Wmaybe-uninitialized
+CFLAGS=-std=c++0x -Werror -Wall -Wextra -Wpedantic -Wcast-align -Wcast-qual -Wconversion -Wsign-conversion -Wctor-dtor-privacy -Wfloat-equal -Wnon-virtual-dtor -Wold-style-cast -Woverloaded-virtual -Wredundant-decls -Wsign-promo -Wshadow -Weffc++ -Wuninitialized
 
 COPT=-O3 -DNDEBUG -DUSE_THREAD=true -flto
 
