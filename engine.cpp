@@ -5,12 +5,11 @@ using move_s = chess::move_s;
 
 
 int engine::search(const int depth_orig, const int alpha_orig, const int beta,
-                   const int node_type) {
+                   const int node_type, const bool in_check) {
     move_s cur_move, tt_move = not_a_move;
     int val = 0, alpha = alpha_orig;
     if (tt_probe(depth_orig, alpha, beta, tt_move, node_type))
         return alpha;
-    const bool in_check = is_in_check(side);
     int depth = update_depth(depth_orig, in_check);
     if (null_move_pruning(depth, beta, in_check))
         return beta;
@@ -19,8 +18,8 @@ int engine::search(const int depth_orig, const int alpha_orig, const int beta,
         stage = 0;
     if (depth <= 3)
         val = Eval();
-    if (razoring(val, depth, beta, node_type))
-        return val;
+    if (razoring(val, depth, beta, node_type, in_check))
+            return val;
     if(depth <= 0 && val >= beta)
         return beta;
     else if(depth <= 0 && val > alpha)
@@ -54,7 +53,7 @@ int engine::search(const int depth_orig, const int alpha_orig, const int beta,
 
 int engine::search_cur_pos(const int depth, const int alpha, const int beta,
                            const move_s cur_move, const unsigned move_num,
-                           const int node_type, const bool in_check) {
+                           const int node_type, const bool was_check) {
     if ((max_nodes != 0 && nodes >= max_nodes) ||
             (max_nodes == 0 && time_elapsed() > max_time_for_move)) {
         stop = true;
@@ -62,26 +61,27 @@ int engine::search_cur_pos(const int depth, const int alpha, const int beta,
     }
     if (ply >= max_ply)
         return 0;
+    const bool in_check = is_in_check(side);
     if (depth <= 0)
-        return -search(depth - 1, -beta, -alpha, -node_type);
+        return -search(depth - 1, -beta, -alpha, -node_type, in_check);
     if (search_draw() || hash_keys.find(hash_key) != hash_keys.end())
         return search_result(0, 0, 0, 0, depth, depth, not_a_move, 0, false);
-    int val;
-    const int lmr = late_move_reduction(depth, cur_move, in_check,
+    const int lmr = late_move_reduction(depth, cur_move, was_check, in_check,
                                         move_num, node_type);
+    int val;
     if(move_num == 0)
-        val = -search(depth - 1, -beta, -alpha, -node_type);
+        val = -search(depth - 1, -beta, -alpha, -node_type, in_check);
     else if(beta > alpha + 1)
     {
-        val = -search(depth - 1 - lmr, -alpha - 1, -alpha, cut_node);
+        val = -search(depth - 1 - lmr, -alpha - 1, -alpha, cut_node, in_check);
         if(val > alpha)
-            val = -search(depth - 1, -beta, -alpha, pv_node);
+            val = -search(depth - 1, -beta, -alpha, pv_node, in_check);
     }
     else
     {
-        val = -search(depth - 1 - lmr, -alpha - 1, -alpha, -node_type);
+        val = -search(depth-1 - lmr, -alpha - 1, -alpha, -node_type, in_check);
         if(lmr && val > alpha)
-            val = -search(depth - 1, -alpha - 1, -alpha, cut_node);
+            val = -search(depth - 1, -alpha - 1, -alpha, cut_node, in_check);
     }
     return val;
 }
@@ -421,10 +421,12 @@ bool engine::null_move_pruning(const int depth, const int beta,
     const u8 king_coord = trail_zeros(bb[side][king_ix]);
     make_move({king_ix, king_coord, king_coord, 0});
     const int R = depth > 6 ? 4 : 3;
-    const int x = -search(depth - R - 1, -beta, -beta + 1, all_node);
+    const int x = -search(depth - R - 1, -beta, -beta + 1, all_node,
+                          is_in_check(side));
     unmake_move();
     return x >= beta;
 }
+
 
 void engine::reduce_history() {
     for (auto clr: {black, white})

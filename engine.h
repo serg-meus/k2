@@ -114,7 +114,7 @@ class engine : public eval {
     static const unsigned megabyte = 1000000/sizeof(tt_entry_c);
 
     int search(int depth, const int alpha, const int beta,
-               const int node_typ);
+               const int node_typ, const bool in_check);
     u64 tt_probe_perft(const int depth);
     eval_t static_exchange_eval(const move_s move) const;
     move_s next_move(std::vector<move_s> &moves, move_s &tt_move,
@@ -224,17 +224,17 @@ protected:
             is_draw_by_material();
     }
 
-    int late_move_reduction(const int depth, const move_s cur_move,
-                            const bool in_check, unsigned int move_num,
-                            const int node_type) const {
-        if(depth < 3 || cur_move.is_capture || cur_move.promo ||
-                in_check || move_num < 3)
+    int late_move_reduction(int depth, const move_s cur_move, bool was_check,
+                            bool in_check, unsigned move_num,
+                            int node_type) const {
+        if(depth < 3 || cur_move.is_capture || cur_move.promo || move_num < 3)
             return 0;
         if(cur_move.index == pawn_ix &&
                 (is_passer(!side, cur_move.to_coord, bb[side][pawn_ix]) ||
                  is_pawn_attack(cur_move.to_coord)))
             return 0;
-        return 1 + int(node_type != pv_node && move_num > 6);
+        return 1 + int(!in_check && !was_check && node_type != pv_node &&
+                       move_num > 6);
     }
 
     bool is_pawn_attack(const u8 coord) const {
@@ -264,13 +264,14 @@ protected:
                 prev_move.priority > 64 && prev_prev.priority > 64);
     }
 
-    bool razoring(int &val, int depth, int beta, int node_type) {
+    bool razoring(int &val, int depth, int beta, int node_type, bool in_check) {
         if (node_type == pv_node || depth < 1 || depth > 4)
             return false;
         int margins[] = {0, 60, 220, 250, 450};
         int depths[]  = {0, -2,  -2,  -2,  -1};
-        if (val < beta - margins[unsigned(depth)]) {
-            auto x = search(depths[unsigned(depth)], beta - 1, beta, cut_node);
+        auto dpt = unsigned(depth);
+        if (val < beta - margins[dpt]) {
+            auto x = search(depths[dpt], beta - 1, beta, cut_node, in_check);
             if (x < beta) {
                 val = x;
                 return true;
