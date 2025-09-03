@@ -17,9 +17,9 @@ int engine::search(const int depth_orig, const int alpha_orig, const int beta,
     unsigned best_move_num = 0, move_num = unsigned(-1), legal_moves = 0,
         stage = 0;
     if (depth <= 3)
-        val = Eval();
+        val = int(Eval());
     if (razoring(val, depth, beta, node_type, in_check))
-            return val;
+        return val;
     if(depth <= 0 && val >= beta)
         return beta;
     else if(depth <= 0 && val > alpha)
@@ -344,21 +344,21 @@ u64 engine::tt_probe_perft(const int depth) {
 }
 
 
-eval_t engine::static_exchange_eval(const move_s move) const {
+int engine::static_exchange_eval(const move_s move) const {
     std::array<int, 30> see_vals;
     const auto to_bb = one_nth_bit(move.to_coord);
     u8 ix = find_index(!side, to_bb);
     if (ix == u8(-1) && move.index == pawn_ix &&
             get_col(move.from_coord) != get_col(move.to_coord))
         ix = pawn_ix;
-    auto val = ix != u8(-1) ? material_values.at(ix) : 0;
+    int val = ix != u8(-1) ? material_values.at(ix) : 0;
     see_vals[0] = val;
     auto occ = (bb[0][occupancy_ix] | bb[1][occupancy_ix] | to_bb) &
         ~one_nth_bit(move.from_coord);
     bool color = side;
     unsigned depth = 1;
     u64 attacker_bb;
-    eval_t mat = 0, new_mat = material_values.at(move.index);
+    int mat = 0, new_mat = material_values.at(move.index);
     for (; depth < 30; ++depth) {
         color = !color;
         const u8 attacker_ix = min_attacker(move.to_coord, occ, color,
@@ -367,7 +367,7 @@ eval_t engine::static_exchange_eval(const move_s move) const {
             break;
         mat = new_mat;
         new_mat = material_values.at(attacker_ix);
-        val = eval_t(depth % 2 ? val - mat : val + mat);
+        val = int(depth % 2 ? val - mat : val + mat);
         see_vals.at(depth) = depth % 2 ? -val : val;
         occ ^= lower_bit(attacker_bb);
     }
@@ -375,7 +375,7 @@ eval_t engine::static_exchange_eval(const move_s move) const {
         auto new_val = std::max(-see_vals.at(depth - 1), see_vals.at(depth));
         see_vals[depth - 1] = -new_val;
     }
-    return eval_t(see_vals[0]);
+    return see_vals[0];
 }
 
 

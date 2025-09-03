@@ -8,7 +8,7 @@ class eval : public chess {
     public:
 
     typedef double nn_t;
-    typedef i16 eval_t;
+    typedef int eval_t;
 
     template <class T>
     class vec2
@@ -56,7 +56,7 @@ class eval : public chess {
     matrix<nn_t, 1, 1> B3;
     matrix<nn_t, first_layer_size, 1> in2;
 
-    std::array<eval_t, king_ix + 1> material_values;
+    std::array<int, king_ix + 1> material_values;
     std::array<vec2<eval_t>, king_ix + 1> piece_values;
     vec2<eval_t> pst[king_ix + 1][64];
     vec2<eval_t> pawn_doubled, pawn_isolated, pawn_dbl_iso, pawn_hole,
@@ -105,7 +105,7 @@ class eval : public chess {
     static u64 king_neighborhood(u64 k_bb);
     void fill_arrays();
     void fill_attacks_piece_type(bool color, u8 piece_ix);
-    int king_attacks(bool color, u64 king_zone);
+    eval_t king_attacks(bool color, u64 king_zone);
     vec2<eval_t> eval_imbalances(bool color, vec2<eval_t> val);
 
 static u64 nearest_squares(u64 bitboard) {

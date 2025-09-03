@@ -112,12 +112,12 @@ protected:
             max_time_for_move = current_clock - time_margin;
     }
 
-    eval_t sum_eval(int x1, int x2) const
+    int sum_eval(int x1, int x2) const
     {
         if(x1 + x2 >= material_values[king_ix])
             return material_values[king_ix];
         else if(x1 + x2 <= -material_values[king_ix])
             return -material_values[king_ix];
-        return eval_t(x1 + x2);
+        return x1 + x2;
     }
 };

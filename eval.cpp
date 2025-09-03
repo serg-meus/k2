@@ -131,17 +131,17 @@ vec2 eval::eval_king_safety(bool color) {
     u64 king_nearest = k_bb | nearest_squares(k_bb);
     u64 king_zone = (king_quaterboard(k_bb) | king_neighborhood(k_bb)) &
         ~king_nearest;
-    int attacks = king_attacks(color, king_nearest) +
-	    king_attacks(color, king_zone)*king_saf_attacks2.mid/32;
+    eval_t attacks = king_attacks(color, king_nearest) +
+	    eval_t(king_attacks(color, king_zone)*king_saf_attacks2.mid/32);
     auto att_val = eval_t(attacks*attacks)*king_saf_attacks1/32;
     return ans + att_val;
 }
 
 
-int eval::king_attacks(bool color, u64 k_zone) {
-    int attacks = 0;
+eval_t eval::king_attacks(bool color, u64 k_zone) {
+    eval_t attacks = 0;
     for (unsigned i = 0; i < attack_arr_ix[!color]; ++i)
-        attacks += popcount(attack_arr[!color][i].first & k_zone);
+        attacks += eval_t(popcount(attack_arr[!color][i].first & k_zone));
     return attacks;
 }
 
@@ -177,10 +177,11 @@ void eval::fill_arrays() {
         int mat_cr = 0;
         int piece_cr = 0;
         for (unsigned ix = pawn_ix; ix < king_ix; ++ix) {
-            eval_t n_pcs = eval_t(popcount(bb[color][ix]));
+            int n_pcs = popcount(bb[color][ix]);
             mat_cr += n_pcs*material_values[ix];
             piece_cr += n_pcs;
-            material_eval[color] += vec2<eval_t>(n_pcs,n_pcs)*piece_values[ix];
+            auto tmp = vec2<eval_t>(eval_t(n_pcs), eval_t(n_pcs));
+            material_eval[color] += tmp*piece_values[ix];
         }
         material_sum[color] = mat_cr;
         num_pieces[color] = piece_cr;
@@ -452,9 +453,9 @@ u64 eval::sum_for_each_set_bit(u64 bitboard, const eval_fptr &foo, u64 *args) {
 
 
 eval_t eval::interpolate_eval(vec2<eval_t> val) {
-        int X, Y;
-        X = material_sum[0]/100 + 1 + material_sum[1]/100 + 1 -
-            num_pieces[0] - num_pieces[1];
-        Y = ((val.mid - val.end)*X + 80*val.end)/80;
-        return side ? eval_t(-Y) : eval_t(Y);
+        eval_t X, Y;
+        X = eval_t(material_sum[0]/100 + 1 + material_sum[1]/100 + 1 -
+            num_pieces[0] - num_pieces[1]);
+        Y = eval_t((val.mid - val.end)*X + 80*val.end)/80;
+        return side ? eval_t(-Y) : Y;
 }

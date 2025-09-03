@@ -116,7 +116,7 @@ class engine : public eval {
     int search(int depth, const int alpha, const int beta,
                const int node_typ, const bool in_check);
     u64 tt_probe_perft(const int depth);
-    eval_t static_exchange_eval(const move_s move) const;
+    int static_exchange_eval(const move_s move) const;
     move_s next_move(std::vector<move_s> &moves, move_s &tt_move,
                      unsigned &move_num, unsigned &stage,
                      const int depth);
