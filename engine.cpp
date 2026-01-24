@@ -18,15 +18,18 @@ int engine::search(const int depth_orig, const int alpha_orig, const int beta,
         stage = 0;
     if (depth <= 3)
         val = int(Eval());
-    if (razoring(val, depth, beta, node_type, in_check))
-        return val;
-    if(depth <= 0 && val >= beta)
+    if (depth <= 0 && val >= beta)
         return beta;
     else if(depth <= 0 && val > alpha)
         alpha = val;
+    if (razoring(val, depth, beta, node_type, in_check) ||
+            futility(val, depth, beta, node_type, in_check))
+        return val;
     pv.at(ply).clear();
     while (!stop && (cur_move = next_move(moves, tt_move, move_num,
                                           stage, depth)) != not_a_move) {
+        if (depth <= 0 && delta_pruning(cur_move, val, alpha))
+            continue;
         make_move(cur_move);
         if (!was_legal(cur_move)) {
             unmake_move();

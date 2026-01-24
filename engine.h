@@ -251,7 +251,8 @@ protected:
     }
 
     int update_depth(const int depth, const bool in_check) const {
-        return depth + int((depth >= 0 && in_check) || (depth > 0 && is_recapture()));
+        return depth + int((depth >= 0 && in_check) ||
+			(depth > 0 && is_recapture()));
     }
 
     bool is_recapture() const {
@@ -279,6 +280,35 @@ protected:
         }
         return false;
     }
+
+    bool futility(eval_t &val, int depth, eval_t beta, int node_type,
+                  bool in_check) {
+        eval_t margin[] = {185, 220, 255, 255};
+        if (node_type == pv_node || depth > 3 || in_check ||
+                beta >= material_values[king_ix] - max_ply)
+            return false;
+        if (done_moves.back().is_capture ||
+                done_moves.back().from_coord == done_moves.back().to_coord)
+            return false;
+        if (popcount(bb[0][occupancy_ix]) == popcount(bb[0][pawn_ix]) + 1 ||
+                popcount(bb[1][occupancy_ix]) == popcount(bb[1][pawn_ix]) + 1)
+            return false;
+        if (val <= margin[depth] + beta)
+            return false;
+		val = beta;
+        return true;
+    }
+
+	bool delta_pruning(move_s m, eval_t val, eval_t alpha) {
+		if (m.promo || m.index == king_ix)
+			return false;
+		if (bb[0][rook_ix] + bb[1][rook_ix] + bb[0][queen_ix] +
+				bb[1][queen_ix] == 0)
+			return false;
+		if (val + 40*(m.priority - 200) < alpha - 200)
+			return true;
+		return false;
+	}
 
     void store_pv(const move_s &cur_move) {
         std::swap(pv.at(ply), pv.at(ply + 1));
