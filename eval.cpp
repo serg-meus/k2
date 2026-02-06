@@ -18,6 +18,7 @@ eval_t eval::Eval() {
         // ans += eval_bishops(color);
         // ans += eval_knights(color);
         // ans = eval_imbalances(color, ans);
+        ans += eval_hanging_pieces(color);
         ans = -ans;
     }
 
@@ -171,6 +172,7 @@ void eval::fill_arrays() {
         attack_arr[color][0] =
             {all_pawn_attacks(bb[color][pawn_ix], color, u64(-1)), pawn_ix};
         attack_arr_ix[color] = 1;
+        attack_bb[color] = attack_arr[color][0].first;
         for (auto ix : {knight_ix, bishop_ix, rook_ix, queen_ix, king_ix}) {
             fill_attacks_piece_type(color, ix);
         }
@@ -197,6 +199,7 @@ void eval::fill_attacks_piece_type(bool color, u8 piece_ix) {
         u8 from_coord = u8(trail_zeros(lowbit));
         u64 att = all_non_pawn_attacks(piece_ix, from_coord, occupancy);
         attack_arr[color][attack_arr_ix[color]++] = {att, piece_ix};
+        attack_bb[color] |= att;
         piece_occ ^= lowbit;
     }
 }
@@ -216,6 +219,15 @@ vec2 eval::eval_mobility(bool color) {
         eval_t mob_value = mobility_curve[n_attacks];
         ans += mob_value*mobility_factor/10;
     }
+    return ans;
+}
+
+
+vec2 eval::eval_hanging_pieces(bool color) {
+    u64 hp = bb[color][occupancy_ix]^(bb[color][pawn_ix] | bb[color][king_ix]);
+    hp &= ~attack_bb[color];
+    int N = popcount(hp);
+    vec2<eval_t> ans = (hang_pieces1*N + hang_pieces2*N*N)/8;
     return ans;
 }
 
