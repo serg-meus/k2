@@ -86,6 +86,7 @@ void test_all::test_eval() {
     test_eval_pawns();
     test_eval_mobility();
     test_king_quaterboard();
+    test_mate_at_glance();
 }
 
 
@@ -273,6 +274,89 @@ void test_all::test_king_quaterboard() {
     assert(king_quaterboard(bit("f4")) == 0xf0f0f0f0);
     assert(king_quaterboard(bit("c5")) == u64(0x0f0f0f0f) << 32);
     assert(king_quaterboard(bit("g8")) == u64(0xf0f0f0f0) << 32);
+}
+
+
+void test_all::test_mate_at_glance() {
+    u64 k_bb, near_k;
+    auto E = eval_tst();
+    E.setup_position("r5k1/pppqn1Qp/2n1Nr2/2b5/3pP3/8/PPP2PPP/RNB2RK1 b - -");
+    E.fill_arrays();
+    k_bb = E.bb[E.side][king_ix];
+    near_k = nearest_squares(k_bb);
+    assert(E.mate_at_glance(E.side, k_bb, near_k));
+
+    E.setup_position("r3r1k1/pppqnQ2/2n5/2b3N1/3pP3/8/PPP2PPP/RNB2RK1 b - -");
+    E.fill_arrays();
+    k_bb = E.bb[E.side][king_ix];
+    near_k = nearest_squares(k_bb);
+    assert(!E.mate_at_glance(E.side, k_bb, near_k));
+
+    E.setup_position("r3r1k1/pppqnQ2/2n5/2b3N1/3BP3/8/PPP2PPP/RN3RK1 b - -");
+    E.fill_arrays();
+    k_bb = E.bb[E.side][king_ix];
+    near_k = nearest_squares(k_bb);
+    assert(E.mate_at_glance(E.side, k_bb, near_k));
+
+    E.setup_position("2k5/8/8/8/8/8/5nPP/6RK w - -");
+    E.fill_arrays();
+    k_bb = E.bb[E.side][king_ix];
+    near_k = nearest_squares(k_bb);
+    assert(E.mate_at_glance(E.side, k_bb, near_k));
+
+    E.setup_position("2k5/B7/8/8/8/8/5nPP/6RK w - -");
+    E.fill_arrays();
+    k_bb = E.bb[E.side][king_ix];
+    near_k = nearest_squares(k_bb);
+    assert(!E.mate_at_glance(E.side, k_bb, near_k));
+
+    E.setup_position("6nk/5KPn/8/8/8/8/8/8 b - -");
+    E.fill_arrays();
+    k_bb = E.bb[E.side][king_ix];
+    near_k = nearest_squares(k_bb);
+    assert(E.mate_at_glance(E.side, k_bb, near_k));
+
+    E.setup_position("6nk/5KPn/8/8/8/8/8/6r1 b - -");
+    E.fill_arrays();
+    k_bb = E.bb[E.side][king_ix];
+    near_k = nearest_squares(k_bb);
+    assert(!E.mate_at_glance(E.side, k_bb, near_k));
+
+    E.setup_position("6nk/3K2Pn/8/8/8/8/8/8 b - -");
+    E.fill_arrays();
+    k_bb = E.bb[E.side][king_ix];
+    near_k = nearest_squares(k_bb);
+    assert(!E.mate_at_glance(E.side, k_bb, near_k));
+
+    E.setup_position("6BK/3k3B/8/8/8/8/1b2N3/8 w - -");
+    E.fill_arrays();
+    k_bb = E.bb[white][king_ix];
+    near_k = nearest_squares(k_bb);
+    assert(!E.mate_at_glance(white, k_bb, near_k));
+
+    E.setup_position("6BK/3k3B/7B/8/8/8/1b6/8 w - -");
+    E.fill_arrays();
+    k_bb = E.bb[E.side][king_ix];
+    near_k = nearest_squares(k_bb);
+    assert(!E.mate_at_glance(E.side, k_bb, near_k));
+
+    E.setup_position("2b1k3/8/3p3p/4p3/4PK2/r7/8/8 w - e6");
+    E.fill_arrays();
+    k_bb = E.bb[E.side][king_ix];
+    near_k = nearest_squares(k_bb);
+    assert(E.mate_at_glance(E.side, k_bb, near_k));
+
+    E.setup_position("2b1k3/8/3p3p/3Pp3/4PK2/r7/8/8 w - e6");
+    E.fill_arrays();
+    k_bb = E.bb[E.side][king_ix];
+    near_k = nearest_squares(k_bb);
+    assert(!E.mate_at_glance(E.side, k_bb, near_k));
+
+    E.setup_position("8/8/8/8/8/5nnk/8/7K w - -");
+    E.fill_arrays();
+    k_bb = E.bb[E.side][king_ix];
+    near_k = nearest_squares(k_bb);
+    assert(E.mate_at_glance(E.side, k_bb, near_k));
 }
 
 

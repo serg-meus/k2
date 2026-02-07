@@ -16,8 +16,11 @@ int engine::search(const int depth_orig, const int alpha_orig, const int beta,
     std::vector<move_s> moves;
     unsigned best_move_num = 0, move_num = unsigned(-1), legal_moves = 0,
         stage = 0;
+    pv.at(ply).clear();
     if (depth <= 3)
         val = int(Eval());
+    if (val <= -material_values[king_ix])
+        return val + int(ply);
     if (depth <= 0 && val >= beta)
         return beta;
     else if(depth <= 0 && val > alpha)
@@ -25,7 +28,6 @@ int engine::search(const int depth_orig, const int alpha_orig, const int beta,
     if (razoring(val, depth, beta, node_type, in_check) ||
             futility(val, depth, beta, node_type, in_check))
         return val;
-    pv.at(ply).clear();
     while (!stop && (cur_move = next_move(moves, tt_move, move_num,
                                           stage, depth)) != not_a_move) {
         if (depth <= 0 && delta_pruning(cur_move, val, alpha))

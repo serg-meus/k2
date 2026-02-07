@@ -6,13 +6,16 @@ using vec2 = eval::vec2<eval::eval_t>;
 
 
 eval_t eval::Eval() {
-    vec2<eval_t> ans = {0, 0};
+    vec2<eval_t> ans = {0, 0}, ksaf;
     fill_arrays();
     for (auto color : {black, white}) {
         ans += eval_material(color);
         ans += eval_pst(color);
         ans += eval_pawns(color);
-        ans += eval_king_safety(color);
+        ksaf = eval_king_safety(color);
+        if (ksaf.mid == material_values[king_ix])
+            return -material_values[king_ix];
+        ans += ksaf;
         ans += eval_mobility(color);
         // ans += eval_rooks(color);
         // ans += eval_bishops(color);
@@ -21,7 +24,6 @@ eval_t eval::Eval() {
         ans += eval_hanging_pieces(color);
         ans = -ans;
     }
-
     // ans += e.eval_side_to_move(color);
     return interpolate_eval(ans);
 }
@@ -112,13 +114,16 @@ vec2 eval::eval_pawns(bool color) {
 
 
 vec2 eval::eval_king_safety(bool color) {
+    u64 k_bb = bb[color][king_ix];
+    u64 near_k = nearest_squares(k_bb);
+    if (mate_at_glance(color, k_bb, near_k))
+        return {material_values[king_ix], 0};
     if (popcount(bb[!color][queen_ix]) == 0)
         return {0, 0};
     if (!bb[!color][knight_ix] && !bb[!color][bishop_ix] &&
             !bb[!color][rook_ix])
         return {0, 0};
     vec2<eval_t> ans = {0, 0};
-    u64 k_bb = bb[color][king_ix];
     if (k_bb & (file_mask('d') | file_mask('e')))
         ans += king_saf_no_shelter;
     else {
@@ -129,11 +134,10 @@ vec2 eval::eval_king_safety(bool color) {
         if (!shlt1 || !shlt2)  // at least two pawns
             ans += king_saf_no_shelter;
     }
-    u64 king_nearest = k_bb | nearest_squares(k_bb);
     u64 king_zone = (king_quaterboard(k_bb) | king_neighborhood(k_bb)) &
-        ~king_nearest;
-    eval_t attacks = king_attacks(color, king_nearest) +
-	    eval_t(king_attacks(color, king_zone)*king_saf_attacks2.mid/32);
+        ~near_k;
+    eval_t attacks = king_attacks(color, near_k) +
+        eval_t(king_attacks(color, king_zone)*king_saf_attacks2.mid/32);
     auto att_val = eval_t(attacks*attacks)*king_saf_attacks1/32;
     return ans + att_val;
 }
@@ -166,27 +170,76 @@ u64 eval::king_neighborhood(u64 k_bb) {
 }
 
 
+bool eval::mate_at_glance(bool color, u64 k_bb, u64 near_k) {
+    if (!(k_bb & attack_bb[!color]))
+        return false;
+    u64 occ = bb[0][occupancy_ix] | bb[1][occupancy_ix];
+    if (are_free_king_squares(color, near_k))
+        return false;
+    u64 attackers = get_all_attackers(color, k_bb, occ);
+    int n_att = popcount(attackers);
+    if (n_att >= 2)
+        return false;
+    if (can_capture_attacker(color, attackers, near_k))
+        return false;
+    return true;
+}
+
+
+bool eval::are_free_king_squares(bool color, u64 near_k) {
+    u64 own_occ = bb[color][occupancy_ix];
+    u64 ans = (near_k & (own_occ | attack_bb[!color])) ^ near_k;
+    return ans;
+}
+
+
+bool eval::can_capture_attacker(bool color, u64 attacker, u64 near_k){
+    if ((attacker & bb[!color][pawn_ix]) &&
+            ((attacker | attacker << 8 | attacker >> 8) & en_passant_bitboard))
+        return true;
+    if (attacker & near_k)
+        return (attacker & (defend_bb[color] | attack_arr[color][0].first)) ||
+            !(attacker & attack_bb[!color]);
+    if ((attacker & (bb[!color][pawn_ix] | bb[!color][knight_ix])) && !(attacker & attack_bb[color]))
+        return false;
+    return true;  // all remains shall be detected by search
+}
+
+
+u64 eval::get_all_attackers(bool color, u64 targ, u64 occupancy) {
+    u8 k_coord = trail_zeros(targ);
+    u64 ans = knight_attacks(k_coord) & bb[!color][knight_ix];
+    ans |= all_pawn_attacks(targ, color, bb[!color][pawn_ix]);
+    ans |= bishop_attacks(k_coord, occupancy) &
+        (bb[!color][bishop_ix] | bb[!color][queen_ix]);
+    ans |= rook_attacks(k_coord, occupancy) &
+        (bb[!color][rook_ix] | bb[!color][queen_ix]);
+    return ans;
+}
+
+
+
 void eval::fill_arrays() {
-    for (auto color : {black, white}) {
-        material_eval[color] = vec2<eval_t>(0, 0);
-        attack_arr[color][0] =
-            {all_pawn_attacks(bb[color][pawn_ix], color, u64(-1)), pawn_ix};
-        attack_arr_ix[color] = 1;
-        attack_bb[color] = attack_arr[color][0].first;
-        for (auto ix : {knight_ix, bishop_ix, rook_ix, queen_ix, king_ix}) {
-            fill_attacks_piece_type(color, ix);
-        }
+    for (auto clr : {black, white}) {
+        material_eval[clr] = vec2<eval_t>(0, 0);
+        attack_arr[clr][0] =
+            {all_pawn_attacks(bb[clr][pawn_ix], clr, u64(-1)), pawn_ix};
+        attack_bb[clr] = attack_arr[clr][0].first;
+        defend_bb[clr] = 0;
+        attack_arr_ix[clr] = 1;
+        for (auto ix : {knight_ix, bishop_ix, rook_ix, queen_ix, king_ix})
+            fill_attacks_piece_type(clr, ix);
         int mat_cr = 0;
         int piece_cr = 0;
         for (unsigned ix = pawn_ix; ix < king_ix; ++ix) {
-            int n_pcs = popcount(bb[color][ix]);
+            int n_pcs = popcount(bb[clr][ix]);
             mat_cr += n_pcs*material_values[ix];
             piece_cr += n_pcs;
             auto tmp = vec2<eval_t>(eval_t(n_pcs), eval_t(n_pcs));
-            material_eval[color] += tmp*piece_values[ix];
+            material_eval[clr] += tmp*piece_values[ix];
         }
-        material_sum[color] = mat_cr;
-        num_pieces[color] = piece_cr;
+        material_sum[clr] = mat_cr;
+        num_pieces[clr] = piece_cr;
     }
 }
 
@@ -200,6 +253,8 @@ void eval::fill_attacks_piece_type(bool color, u8 piece_ix) {
         u64 att = all_non_pawn_attacks(piece_ix, from_coord, occupancy);
         attack_arr[color][attack_arr_ix[color]++] = {att, piece_ix};
         attack_bb[color] |= att;
+        if (piece_ix != king_ix)
+            defend_bb[color] |= att;
         piece_occ ^= lowbit;
     }
 }

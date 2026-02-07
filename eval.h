@@ -70,7 +70,7 @@ class eval : public chess {
     std::array<vec2<eval_t>, 2> material_eval;
     std::array<std::array<std::pair<u64, u8>, 64>, 2> attack_arr;
     std::array<unsigned, 2> attack_arr_ix;
-    std::array<u64, 2> attack_bb;
+    std::array<u64, 2> attack_bb, defend_bb;
 
     nn_t calc_nn_out(const bool color);
     void sparce_multiply(const bool color);
@@ -109,11 +109,15 @@ class eval : public chess {
     eval_t king_attacks(bool color, u64 king_zone);
     vec2<eval_t> eval_imbalances(bool color, vec2<eval_t> val);
     vec2<eval_t> eval_hanging_pieces(bool color);
+    bool mate_at_glance(bool color, u64 k_bb, u64 near_k);
+    u64 get_all_attackers(bool color, u64 target, u64 occupancy);
+    bool can_capture_attacker(bool color, u64 attacker, u64 near_k);
+    bool are_free_king_squares(bool color, u64 near_k);
 
-static u64 nearest_squares(u64 bitboard) {
-    bitboard = roll_left(bitboard) | roll_right(bitboard);
-    bitboard |= (bitboard << 8) | (bitboard >> 8);
-    return bitboard;
+static u64 nearest_squares(u64 k_bb) {
+    u64 ans = k_bb | roll_left(k_bb) | roll_right(k_bb);
+    ans |= (ans << 8) | (ans >> 8);
+    return ans ^ k_bb;
 }
 
 static eval_t row_from_bb(u64 lowbit, bool color) {
@@ -147,7 +151,7 @@ static int shifts(bool color) {
     #include "pst.h"
     #include "eval_features.h"
     material_sum(), num_pieces(), material_eval(), attack_arr(),
-    attack_arr_ix(), attack_bb()
+    attack_arr_ix(), attack_bb(), defend_bb()
     {
     }
 };

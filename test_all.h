@@ -64,6 +64,7 @@ class eval_tst: public eval {
     using eval::mobility_factor;
     using eval::fill_arrays;
     using eval::bishop_pair;
+    using eval::mate_at_glance;
 };
 
 
@@ -151,4 +152,5 @@ public :
     void test_is_passer();
     void test_king_quaterboard();
     void test_eval_mobility();
+    void test_mate_at_glance();
 };
