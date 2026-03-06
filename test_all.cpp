@@ -85,7 +85,6 @@ void test_all::test_eval() {
     test_king_pawn_tropism();
     test_eval_pawns();
     test_eval_mobility();
-    test_king_quaterboard();
     test_mate_at_glance();
 }
 
@@ -266,14 +265,6 @@ void test_all::test_eval_pawns() {
     assert(val == eval_t(4*4)*(pawn_pass2 + pawn_blk_pass2) +
            eval_t(4)*(pawn_pass1 + pawn_blk_pass1) +
            pawn_pass0 + pawn_blk_pass0 - eval_t(2)*pawn_isolated);
-}
-
-
-void test_all::test_king_quaterboard() {
-    assert(king_quaterboard(bit("a2")) == 0x0f0f0f0f);
-    assert(king_quaterboard(bit("f4")) == 0xf0f0f0f0);
-    assert(king_quaterboard(bit("c5")) == u64(0x0f0f0f0f) << 32);
-    assert(king_quaterboard(bit("g8")) == u64(0xf0f0f0f0) << 32);
 }
 
 

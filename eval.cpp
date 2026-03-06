@@ -134,36 +134,28 @@ vec2 eval::eval_king_safety(bool color) {
         if (!shlt1 || !shlt2)  // at least two pawns
             ans += king_saf_no_shelter;
     }
-    u64 king_zone = (king_quaterboard(k_bb) | king_neighborhood(k_bb)) &
-        ~near_k;
-    eval_t attacks = king_attacks(color, near_k) +
-        eval_t(king_attacks(color, king_zone)*king_saf_attacks2.mid/32);
-    auto att_val = eval_t(attacks*attacks)*king_saf_attacks1/32;
+    eval_t attackers = 0;
+    u64 king_zone = (king_neighborhood(k_bb));
+    eval_t attacks = king_attacks(color, king_zone, attackers);
+    auto att_val = eval_t((3 + attackers)*attacks*attacks)*king_saf_attacks1/256;
     return ans + att_val;
 }
 
 
-eval_t eval::king_attacks(bool color, u64 k_zone) {
+eval_t eval::king_attacks(bool color, u64 k_zone, eval_t &attackers) {
     eval_t attacks = 0;
-    for (unsigned i = 0; i < attack_arr_ix[!color]; ++i)
-        attacks += eval_t(popcount(attack_arr[!color][i].first & k_zone));
+    for (unsigned i = 0; i < attack_arr_ix[!color]; ++i) {
+        u64 att = attack_arr[!color][i].first;
+        attacks += eval_t(popcount(att & k_zone));
+        attackers += attacks > 0;
+    }
     return attacks;
-}
-
-
-u64 eval::king_quaterboard(u64 k_bb) {
-    std::array<u64, 4> quaterboards =
-        {0x0f0f0f0f, 0xf0f0f0f0, u64(0x0f0f0f0f) << 32, u64(0xf0f0f0f0) << 32};
-    u8 k_coord = trail_zeros(k_bb);
-    unsigned col = get_col(k_coord)/4;
-    unsigned row = get_row(k_coord)/4;
-    return quaterboards.at(col + 2*row);
 }
 
 
 u64 eval::king_neighborhood(u64 k_bb) {
     k_bb |= roll_left(k_bb) | roll_right(k_bb);
-    k_bb |= roll_left(k_bb) | roll_right(k_bb);
+    k_bb |= k_bb | roll_left(k_bb) | roll_right(k_bb);
     k_bb |= (k_bb << 8) | (k_bb >> 8);
     k_bb |= (k_bb << 8) | (k_bb >> 8);
     return k_bb;

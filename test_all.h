@@ -59,7 +59,6 @@ class eval_tst: public eval {
     using eval::king_pawn_tropism;
     using eval::eval_pawns;
     using eval::mobility_curve;
-    using eval::king_quaterboard;
     using eval::eval_mobility;
     using eval::mobility_factor;
     using eval::fill_arrays;

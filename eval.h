@@ -106,7 +106,7 @@ class eval : public chess {
     static u64 king_neighborhood(u64 k_bb);
     void fill_arrays();
     void fill_attacks_piece_type(bool color, u8 piece_ix);
-    eval_t king_attacks(bool color, u64 king_zone);
+    eval_t king_attacks(bool color, u64 king_zone, eval_t &attackers);
     vec2<eval_t> eval_imbalances(bool color, vec2<eval_t> val);
     vec2<eval_t> eval_hanging_pieces(bool color);
     bool mate_at_glance(bool color, u64 k_bb, u64 near_k);
