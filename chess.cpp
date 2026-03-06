@@ -54,7 +54,7 @@ void chess::gen_pseudo_legal_moves(std::vector<move_s> &moves,
     gen_non_pawns(moves, rook_ix, occupancy, opp_occupancy, mode);
     gen_non_pawns(moves, queen_ix, occupancy, opp_occupancy, mode);
     gen_non_pawns(moves, king_ix, occupancy, opp_occupancy, mode);
-    if (mode != gen_mode::only_captures)
+    if (mode == gen_mode::all_moves || mode == gen_mode::only_silent)
         gen_castles(moves, occupancy);
 }
 
@@ -203,17 +203,13 @@ void chess::gen_non_pawns(std::vector<move_s> &moves, const u8 piece_index,
 }
 
 
-void chess::gen_castles(std::vector<move_s> &moves, const u64 occupancy) const{
+void chess::gen_castles(std::vector<move_s> &moves, const u64 occupancy) const {
     const u8 fr_coord[] = {str_to_coord("e8"), str_to_coord("e1")};
     const auto &cstl = castling_rights[side];
-    if (cstl & castle_kingside &&
-            !(occupancy & castle_masks[side][0]))
-        moves.push_back({king_ix, fr_coord[side],
-                           u8(fr_coord[side] + 2), 0});
-    if (cstl & castle_queenside &&
-            !(occupancy & castle_masks[side][1]))
-        moves.push_back({king_ix, fr_coord[side],
-                           u8(fr_coord[side] - 2), 0});
+    if (cstl & castle_kingside && !(occupancy & castle_masks[side][0]))
+        moves.push_back({king_ix, fr_coord[side], u8(fr_coord[side] + 2), 0});
+    if (cstl & castle_queenside && !(occupancy & castle_masks[side][1]))
+        moves.push_back({king_ix, fr_coord[side], u8(fr_coord[side] - 2), 0});
 }
 
 

@@ -42,6 +42,9 @@ class engine : public eval {
 
     std::vector<move_s> done_moves;
     const move_s not_a_move = {0, 0, 0, 0};
+    const unsigned pv_stage = 0, tt_stage = 1, gen_cap_stage = 2,
+        probe_cap_stage = 3, killer1_stage = 4, killer2_stage = 5,
+        gen_silent_stage = 6, probe_rest_stage = 7, end_stage = 8;
 
     enum class tt_bound {exact = 0, lower = 1, upper = 2};
 
