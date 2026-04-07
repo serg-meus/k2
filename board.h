@@ -17,12 +17,13 @@ struct board_state {
         u8 index : 3;
         u8 promo : 3;
         u8 is_capture : 1;
+        u8 one_rep : 1;
 
-        move_s() : priority(0), from_coord(0),
-            to_coord(0), index(0), promo(0), is_capture(0) {}
+        move_s() : priority(0), from_coord(0), to_coord(0), index(0), promo(0),
+            is_capture(0), one_rep(0) {}
 
         move_s(u8 ix, u8 fr, u8 to, u8 pr) : priority(0), from_coord(0),
-            to_coord(0), index(0), promo(0), is_capture(0) {
+                to_coord(0), index(0), promo(0), is_capture(0), one_rep(0) {
             index = ix & 7;
             from_coord = fr & 63;
             to_coord = to & 63;
@@ -30,7 +31,8 @@ struct board_state {
         }
 
         move_s(u8 ix, u8 fr, u8 to, u8 pr, bool ic) : priority(0),
-            from_coord(0), to_coord(0), index(0), promo(0), is_capture(0) {
+                from_coord(0), to_coord(0), index(0), promo(0), is_capture(0),
+                one_rep(0) {
             index = ix & 7;
             from_coord = fr & 63;
             to_coord = to & 63;

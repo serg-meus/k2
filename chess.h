@@ -56,20 +56,18 @@ class chess : public board {
 
     std::array<std::array<u64, 2>, 2> castle_masks;
 
-    std::vector<move_s> gen_moves(size_t max_moves);
-    void gen_pawns(std::vector<move_s> &moves, const u64 occupancy,
-                   const u64 opp_occupancy, const gen_mode mode) const;
-    void gen_pawns_silent(std::vector<move_s> &moves, const u64 pawn_bb,
-                          const u64 occupancy) const;
+    void gen_pawns(std::vector<move_s> &moves, u64 occupancy, u64 opp_occupancy,
+                   gen_mode mode, u64 to_mask) const;
+    void gen_pawns_silent(std::vector<move_s> &moves, u64 pawn_bb,
+                          u64 occupancy, u64 to_mask) const;
     void gen_pawns_captures_and_promotions(std::vector<move_s> &moves,
-                                           const u64 pawn_bb,
-                                           const u64 occupancy,
-                                           u64 opp_occupancy) const;
+                                           u64 pawn_bb, u64 occupancy,
+                                           u64 opp_occ, u64 to_mask) const;
     void push_pawn_moves(std::vector<move_s> &moves, u64 bitboard,
-                         const int shift, const bool is_capt) const;
+                         int shift, bool is_capt) const;
     void gen_non_pawns(std::vector<move_s> &moves, const u8 piece_index,
                        const u64 occupancy, const u64 opp_occupancy,
-                       const gen_mode mode) const;
+                       const gen_mode mode, u64 to_mask) const;
     void gen_castles(std::vector<move_s> &moves, const u64 occupancy) const;
     bool is_attacked_by_slider(const u8 coord, const bool att_side) const;
     bool is_attacked_by_non_slider(const u8 coord, const bool att_side) const;
@@ -80,6 +78,13 @@ class chess : public board {
     bool is_pseudo_legal_king(const u8 from_coord, const u8 to_coord) const;
     bool slider_maybe_attacks(const u8 coord, const bool att_side) const;
     std::string game_text_result();
+    void gen_pseudo_legal_check_evasions(std::vector<move_s> &moves,
+                                         gen_mode mode) const;
+    u64 check_evasion_mask() const;
+    void gen_pawns(std::vector<move_s> &moves, u64 occupancy,
+                   u64 opp_occupancy, gen_mode mode) const;
+    std::vector<board::move_s> gen_check_evasions();
+    u64 knight_or_pawn_attacker(u8 coord, bool attacker_side) const;
 
     u64 all_non_pawn_attacks(const u8 index, const u8 from_coord,
                              const u64 occupancy) const {
@@ -97,8 +102,7 @@ class chess : public board {
     return(false);
     }
 
-    void gen_pawns(std::vector<move_s> &moves, const u64 occupancy,
-                   const u64 opp_occupancy) {
-        gen_pawns(moves, occupancy, opp_occupancy, gen_mode::all_moves);
+    void gen_pawns(std::vector<move_s> &mvs, const u64 occ, const u64 opp_occ) {
+        gen_pawns(mvs, occ, opp_occ, gen_mode::all_moves, u64(-1));
     }
 };

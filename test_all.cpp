@@ -64,6 +64,7 @@ void test_all::test_board() {
 
 
 void test_all::test_chess() {
+    test_check_evasion_mask();
     test_gen_pseudo_legal_moves();
     test_is_attacked_by();
     test_legality();
@@ -766,6 +767,39 @@ void test_all::test_bitboards_integrity(const board_tst &B) {
 }
 
 
+void test_all::test_check_evasion_mask() {
+    auto C = chess_tst("3k4/8/5b2/8/8/8/8/K7 w - -");
+    assert(C.is_in_check(white));
+    u64 ans = C.check_evasion_mask();
+    assert(ans == (bit("b2") | bit("c3") | bit("d4") | bit("e5") | bit("f6")));
+
+    C.setup_position("3k4/8/8/8/8/1n6/8/K7 w - -");
+    assert(C.is_in_check(white));
+    ans = C.check_evasion_mask();
+    assert(ans == bit("b3"));
+
+    C.setup_position("3k4/8/8/8/8/8/1p6/K7 w - -");
+    assert(C.is_in_check(white));
+    ans = C.check_evasion_mask();
+    assert(ans == bit("b2"));
+
+    C.setup_position("3k4/8/8/8/8/2b5/8/K6q w - -");
+    assert(C.is_in_check(white));
+    ans = C.check_evasion_mask();
+    assert(ans == 0);
+
+    C.setup_position("3k4/8/8/8/8/8/2n5/K6r w - -");
+    assert(C.is_in_check(white));
+    ans = C.check_evasion_mask();
+    assert(ans == 0);
+
+    C.setup_position("3k4/8/8/1pP5/K7/8/8/8 w - b6");
+    assert(C.is_in_check(white));
+    ans = C.check_evasion_mask();
+    assert(ans == bit("b5") | bit("b6"));
+}
+
+
 void test_all::test_gen_pseudo_legal_moves() {
     auto C = chess_tst("8/3pp1p1/6p1/1p2P3/1kP2p1p/p3P2K/PP1P2PP/8 w - -");
     u64 occupancy = C.bb[0][occupancy_ix] | C.bb[1][occupancy_ix];
@@ -852,6 +886,13 @@ void test_all::test_gen_pseudo_legal_moves() {
     moves.clear();
     C.gen_pseudo_legal_moves(moves, gen_mode::only_silent);
     assert(moves.size() == 9);
+    moves.clear();
+    C.setup_position("3kb3/8/8/P6B/KP6/PPN5/8/8 w - -");
+    C.gen_pseudo_legal_check_evasions(moves, gen_mode::all_moves);
+    assert(moves.size() == 4);
+    moves.clear();
+    C.gen_pseudo_legal_check_evasions(moves, gen_mode::only_captures);
+    assert(moves.size() == 1);
 }
 
 
@@ -1270,11 +1311,12 @@ void test_all::test_next_move() {
     std::vector<move_s> moves;
     move_s tt_move = E.not_a_move;
     unsigned stage = 0, move_num = unsigned(-1);
-    ans = E.next_move(moves, tt_move, move_num, stage, 1);
+    int depth = 1;
+    ans = E.next_move(moves, tt_move, move_num, stage, depth, false);
     assert(ans == E.move_from_str("d2a2"));
-    ans = E.next_move(moves, tt_move, move_num, stage, 1);
+    ans = E.next_move(moves, tt_move, move_num, stage, depth, false);
     assert(!ans.is_capture);
-    while((ans = E.next_move(moves, tt_move, move_num, stage, 1)) !=
+    while((ans = E.next_move(moves, tt_move, move_num, stage, depth, false)) !=
             E.not_a_move)
         prev_ans = ans;
     assert(prev_ans == E.move_from_str("d2d7"));
@@ -1284,54 +1326,55 @@ void test_all::test_next_move() {
     moves.clear();
     stage = 0;
     move_num = unsigned(-1);
-    ans = E.next_move(moves, tt_move, move_num, stage, 1);
+    ans = E.next_move(moves, tt_move, move_num, stage, depth, false);
     assert(ans == E.move_from_str("d7e8q"));
-    ans = E.next_move(moves, tt_move, move_num, stage, 1);
+    ans = E.next_move(moves, tt_move, move_num, stage, depth, false);
     assert(ans == E.move_from_str("d7d8q"));
-    ans = E.next_move(moves, tt_move, move_num, stage, 1);
+    ans = E.next_move(moves, tt_move, move_num, stage, depth, false);
     assert(ans == E.move_from_str("d7e8r"));
-    ans = E.next_move(moves, tt_move, move_num, stage, 1);
+    ans = E.next_move(moves, tt_move, move_num, stage, depth, false);
     assert(ans == E.move_from_str("d7e8b"));
 
     E.setup_position("3rrqk1/1P3pp1/7p/6P1/8/PR6/1Q3P1P/1R4K1 w - -");
     moves.clear();
     stage = 0;
     move_num = unsigned(-1);
-    ans = E.next_move(moves, tt_move, move_num, stage, 0);
+    depth = 0;
+    ans = E.next_move(moves, tt_move, move_num, stage, depth, false);
     assert(ans == E.move_from_str("b7b8q"));
-    ans = E.next_move(moves, tt_move, move_num, stage, 0);
+    ans = E.next_move(moves, tt_move, move_num, stage, depth, false);
     assert(ans == E.move_from_str("b7b8r"));
-    ans = E.next_move(moves, tt_move, move_num, stage, 0);
+    ans = E.next_move(moves, tt_move, move_num, stage, depth, false);
     assert(ans == E.move_from_str("b7b8b"));
-    ans = E.next_move(moves, tt_move, move_num, stage, 0);
+    ans = E.next_move(moves, tt_move, move_num, stage, depth, false);
     assert(ans == E.move_from_str("b7b8n"));
-    ans = E.next_move(moves, tt_move, move_num, stage, 0);
+    ans = E.next_move(moves, tt_move, move_num, stage, depth, false);
     assert(ans == E.move_from_str("g5h6"));
-    ans = E.next_move(moves, tt_move, move_num, stage, 0);
+    ans = E.next_move(moves, tt_move, move_num, stage, depth, false);
     assert(ans == E.not_a_move);
 
     E.setup_position("k7/pp2q1p1/7p/8/1b5R/N1P5/1P3PP1/K3Q2R w - -");
     moves.clear();
     stage = 0;
     move_num = unsigned(-1);
-    ans = E.next_move(moves, tt_move, move_num, stage, 0);
+    ans = E.next_move(moves, tt_move, move_num, stage, depth, false);
     assert(ans == E.move_from_str("c3b4"));
-    ans = E.next_move(moves, tt_move, move_num, stage, 0);
+    ans = E.next_move(moves, tt_move, move_num, stage, depth, false);
     assert(ans == E.move_from_str("h4b4"));
-    ans = E.next_move(moves, tt_move, move_num, stage, 0);
+    ans = E.next_move(moves, tt_move, move_num, stage, depth, false);
     assert(ans == E.move_from_str("e1e7"));
-    ans = E.next_move(moves, tt_move, move_num, stage, 0);
+    ans = E.next_move(moves, tt_move, move_num, stage, depth, false);
     assert(ans == E.not_a_move);
 
     E.setup_position("k7/pp2q1p1/7p/8/1b5R/N1P5/1P3PP1/K3Q2R b - -");
     moves.clear();
     stage = 0;
     move_num = unsigned(-1);
-    ans = E.next_move(moves, tt_move, move_num, stage, 0);
+    ans = E.next_move(moves, tt_move, move_num, stage, depth, false);
     assert(ans == E.move_from_str("b4a3"));
-    ans = E.next_move(moves, tt_move, move_num, stage, 0);
+    ans = E.next_move(moves, tt_move, move_num, stage, depth, false);
     assert(ans == E.move_from_str("e7e1"));
-    ans = E.next_move(moves, tt_move, move_num, stage, 0);
+    ans = E.next_move(moves, tt_move, move_num, stage, depth, false);
     assert(ans == E.not_a_move);
 }
 

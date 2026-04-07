@@ -15,7 +15,7 @@ int engine::search(const int depth_orig, const int alpha_orig, const int beta,
         return beta;
     std::vector<move_s> moves;
     unsigned best_move_num = 0, move_num = unsigned(-1), legal_moves = 0,
-        stage = 0;
+        stage = pv_stage;
     pv.at(ply).clear();
     if (depth <= 3)
         val = int(Eval());
@@ -23,13 +23,13 @@ int engine::search(const int depth_orig, const int alpha_orig, const int beta,
         return val + int(ply);
     if (depth <= 0 && val >= beta)
         return beta;
-    else if(depth <= 0 && val > alpha)
+    else if (depth <= 0 && val > alpha)
         alpha = val;
     if (razoring(val, depth, beta, node_type, in_check) ||
             futility(val, depth, beta, node_type, in_check))
         return val;
-    while (!stop && (cur_move = next_move(moves, tt_move, move_num,
-                                          stage, depth)) != not_a_move) {
+    while (!stop && (cur_move = next_move(moves, tt_move, move_num, stage,
+                                          depth, in_check)) != not_a_move) {
         if (depth <= 0 && delta_pruning(cur_move, val, alpha))
             continue;
         make_move(cur_move);
@@ -56,7 +56,7 @@ int engine::search(const int depth_orig, const int alpha_orig, const int beta,
 }
 
 
-int engine::search_cur_pos(const int depth, const int alpha, const int beta,
+int engine::search_cur_pos(int depth, const int alpha, const int beta,
                            const move_s cur_move, const unsigned move_num,
                            const int node_type, const bool was_check) {
     if ((max_nodes != 0 && nodes >= max_nodes) ||
@@ -66,6 +66,8 @@ int engine::search_cur_pos(const int depth, const int alpha, const int beta,
     }
     if (ply >= max_ply)
         return 0;
+    if (cur_move.one_rep)
+        depth++;
     const bool in_check = is_in_check(side);
     if (depth <= 0)
         return -search(depth - 1, -beta, -alpha, -node_type, in_check);
@@ -132,7 +134,7 @@ int engine::search_result(const int val, const int alpha_orig,
             (alpha > alpha_orig ? tt_bound::exact : tt_bound::lower);
     }
     tt_entry_c entry(u32(hash_key), best_move, i16(x),
-                     u8(bound_type), false, i8(depth_orig));
+                     u8(bound_type), best_move.one_rep, i8(depth_orig));
     tt.add(entry, u32(hash_key >> 32));
     return x;
 }
@@ -140,19 +142,20 @@ int engine::search_result(const int val, const int alpha_orig,
 
 move_s engine::next_move(std::vector<move_s> &moves, move_s &tt_move,
                          unsigned &move_num, unsigned &stage,
-                         const int depth) {
+                         int depth, bool in_check) {
     ++move_num;
     move_s ans = not_a_move;
     while (stage < end_stage && ans == not_a_move)
-        ans = ((*this).*(stages.at(stage)))(moves, tt_move, move_num,
-                                          stage, depth);
+        ans = ((*this).*(stages[stage]))(moves, tt_move, move_num,
+                                            stage, depth, in_check);
     return stage >= end_stage ? not_a_move : ans;
 }
 
 
 move_s engine::gen_pv(std::vector<move_s> &moves, move_s &tt_move,
-                      unsigned &move_num, unsigned &stage, const int depth) {
-    (void) (moves); (void) (move_num); (void) (depth);
+                      unsigned &move_num, unsigned &stage, int depth,
+                      bool in_check) {
+    (void) (moves); (void) (move_num); (void) (depth); (void) (in_check);
     if (!follow_pv || ply >= pv.at(0).size())
         follow_pv = false;
     else {
@@ -165,9 +168,10 @@ move_s engine::gen_pv(std::vector<move_s> &moves, move_s &tt_move,
 
 
 move_s engine::gen_tt(std::vector<move_s> &moves, move_s &tt_move,
-                      unsigned &move_num, unsigned &stage, const int depth) {
+                      unsigned &move_num, unsigned &stage, int depth,
+                      bool in_check) {
     (void) (move_num);
-    stage = gen_cap_stage;
+    stage = (depth > 0 && in_check) ? gen_after_check_stage : gen_cap_stage;
     if (tt_move != not_a_move && is_pseudo_legal(tt_move) &&
             (depth > 0 || tt_move.is_capture)) {
         tt_move.priority = 254;
@@ -178,9 +182,25 @@ move_s engine::gen_tt(std::vector<move_s> &moves, move_s &tt_move,
 }
 
 
+move_s engine::gen_after_check(std::vector<move_s> &moves, move_s &tt_move,
+                      unsigned &move_num, unsigned &stage, int depth,
+                      bool in_check) {
+    (void) (move_num); (void) (in_check); (void) (tt_move); (void) (depth);
+    if (tt_move.one_rep) {
+        stage = probe_rest_stage;
+        return tt_move;
+    }
+    gen_pseudo_legal_check_evasions(moves, gen_mode::all_moves);
+    apprice_and_sort_moves(moves, 0, gen_mode::all_moves);
+    stage = probe_rest_stage;
+    return not_a_move;
+}
+
+
 move_s engine::gen_cap(std::vector<move_s> &moves, move_s &tt_move,
-                       unsigned &move_num, unsigned &stage, const int depth) {
-    (void) (depth);
+                       unsigned &move_num, unsigned &stage, int depth,
+                       bool in_check) {
+    (void) (depth); (void) (in_check);
     gen_pseudo_legal_moves(moves, gen_mode::only_captures);
     if (move_num == 1 && tt_move != not_a_move &&
             (tt_move.is_capture || tt_move.promo))
@@ -193,8 +213,8 @@ move_s engine::gen_cap(std::vector<move_s> &moves, move_s &tt_move,
 
 move_s engine::probe_cap(std::vector<move_s> &moves, move_s &tt_move,
                          unsigned &move_num, unsigned &stage,
-                         const int depth) {
-    (void) (tt_move);
+                         int depth, bool in_check) {
+    (void) (tt_move); (void) (in_check);
     if (move_num < moves.size()) {
         if (moves.at(move_num).priority >= 200)
             return moves.at(move_num);
@@ -208,8 +228,8 @@ move_s engine::probe_cap(std::vector<move_s> &moves, move_s &tt_move,
 
 move_s engine::gen_killer1(std::vector<move_s> &moves, move_s &tt_move,
                            unsigned &move_num, unsigned &stage,
-                           const int depth) {
-    (void) (move_num); (void) (depth);
+                           int depth, bool in_check) {
+    (void) (move_num); (void) (depth); (void) (in_check);
     stage = killer2_stage;
     move_s k1 = killers.at(ply).at(0);
     if (k1 == tt_move || !is_pseudo_legal(k1))
@@ -222,8 +242,8 @@ move_s engine::gen_killer1(std::vector<move_s> &moves, move_s &tt_move,
 
 move_s engine::gen_killer2(std::vector<move_s> &moves, move_s &tt_move,
                            unsigned &move_num, unsigned &stage,
-                           const int depth) {
-    (void) (move_num); (void) (depth);
+                           int depth, bool in_check) {
+    (void) (move_num); (void) (depth); (void) (in_check);
     stage = gen_silent_stage;
     move_s k2 = killers.at(ply).at(1);
     if (k2 == tt_move || !is_pseudo_legal(k2))
@@ -236,8 +256,8 @@ move_s engine::gen_killer2(std::vector<move_s> &moves, move_s &tt_move,
 
 move_s engine::gen_silent(std::vector<move_s> &moves, move_s &tt_move,
                           unsigned &move_num, unsigned &stage,
-                          const int depth) {
-    (void) (depth);
+                          int depth, bool in_check) {
+    (void) (depth); (void) (in_check);
     gen_pseudo_legal_moves(moves, gen_mode::only_silent);
     if (tt_move != not_a_move && !tt_move.is_capture && !tt_move.promo)
         erase_move(moves, tt_move, move_num);
@@ -251,8 +271,8 @@ move_s engine::gen_silent(std::vector<move_s> &moves, move_s &tt_move,
 
 move_s engine::probe_rest(std::vector<move_s> &moves, move_s &tt_move,
                             unsigned &move_num, unsigned &stage,
-                            const int depth) {
-    (void) (tt_move); (void) (depth);
+                            int depth, bool in_check) {
+    (void) (tt_move); (void) (depth); (void) (in_check);
     if (move_num < moves.size())
         return moves.at(move_num);
     stage = end_stage;

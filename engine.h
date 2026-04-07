@@ -28,7 +28,8 @@ class engine : public eval {
             tmp.reserve(max_ply);
             pv.push_back(tmp);
         }
-        stages = {&engine::gen_pv, &engine::gen_tt, &engine::gen_cap,
+        stages = {&engine::gen_pv, &engine::gen_tt,
+                  &engine::gen_after_check, &engine::gen_cap,
                   &engine::probe_cap, &engine::gen_killer1,
                   &engine::gen_killer2, &engine::gen_silent,
                   &engine::probe_rest};
@@ -42,9 +43,10 @@ class engine : public eval {
 
     std::vector<move_s> done_moves;
     const move_s not_a_move = {0, 0, 0, 0};
-    const unsigned pv_stage = 0, tt_stage = 1, gen_cap_stage = 2,
-        probe_cap_stage = 3, killer1_stage = 4, killer2_stage = 5,
-        gen_silent_stage = 6, probe_rest_stage = 7, end_stage = 8;
+    const unsigned pv_stage = 0, tt_stage = 1, gen_after_check_stage = 2,
+        gen_cap_stage = 3, probe_cap_stage = 4, killer1_stage = 5,
+        killer2_stage = 6, gen_silent_stage = 7, probe_rest_stage = 8,
+        end_stage = 9;
 
     enum class tt_bound {exact = 0, lower = 1, upper = 2};
 
@@ -102,7 +104,7 @@ class engine : public eval {
     };
 
     typedef move_s(engine::*stage_func_ptr)(std::vector<move_s> &, move_s &,
-                                            unsigned &, unsigned &, const int);
+                                            unsigned &, unsigned &, int, bool);
 
     time_point_t t_beg;
     transposition_table_c<tt_entry_c, u32, 8> tt;
@@ -122,10 +124,10 @@ class engine : public eval {
     int static_exchange_eval(const move_s move) const;
     move_s next_move(std::vector<move_s> &moves, move_s &tt_move,
                      unsigned &move_num, unsigned &stage,
-                     const int depth);
+                     int depth, bool in_check);
     bool tt_probe(const int depth, int &alpha, const int beta,
                   move_s &tt_move, const int node_type);
-    int search_cur_pos(const int depth, const int alpha, const int beta,
+    int search_cur_pos(int depth, const int alpha, const int beta,
                        const move_s cur_move, unsigned int move_num,
                        const int node_type, const bool in_check);
     int search_result(const int val, const int alpha_orig,
@@ -142,21 +144,23 @@ class engine : public eval {
                         const unsigned first_ix) const;
     bool null_move_pruning(const int dpt, const int beta,const bool in_check);
     move_s gen_pv(std::vector<move_s> &moves, move_s &tt_move,
-                  unsigned &move_num, unsigned &stage, const int depth);
+                  unsigned &move_num, unsigned &stage, int depth, bool in_chk);
     move_s gen_tt(std::vector<move_s> &moves, move_s &tt_move,
-                  unsigned &move_num, unsigned &stage, const int depth);
+                  unsigned &move_num, unsigned &stage, int depth, bool in_chk);
     move_s gen_cap(std::vector<move_s> &moves, move_s &tt_move,
-                   unsigned &move_num, unsigned &stage, const int depth);
+                   unsigned &move_num, unsigned &stage, int depth, bool ic);
     move_s probe_cap(std::vector<move_s> &moves, move_s &tt_move,
-                     unsigned &move_num, unsigned &stage, const int depth);
+                     unsigned &move_num, unsigned &stage, int depth, bool ic);
     move_s gen_killer1(std::vector<move_s> &moves, move_s &tt_move,
-                       unsigned &move_num, unsigned &stage, const int depth);
+                       unsigned &move_num, unsigned &stage, int dpt, bool ic);
     move_s gen_killer2(std::vector<move_s> &moves, move_s &tt_move,
-                       unsigned &move_num, unsigned &stage, const int depth);
+                       unsigned &move_num, unsigned &stage, int dpt, bool ic);
     move_s gen_silent(std::vector<move_s> &moves, move_s &tt_move,
-                      unsigned &move_num, unsigned &stage, const int depth);
+                      unsigned &move_num, unsigned &stage, int dpt, bool ic);
     move_s probe_rest(std::vector<move_s> &moves, move_s &tt_move,
-                        unsigned &move_num, unsigned &stage, const int depth);
+                      unsigned &move_num, unsigned &stage, int depth, bool ic);
+    move_s gen_after_check(std::vector<move_s> &moves, move_s &tt_move,
+                           unsigned &move_num, unsigned &stage, int dpt, bool);
     void reduce_history();
 
     void make_move(const move_s &move) {

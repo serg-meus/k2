@@ -48,14 +48,71 @@ void chess::gen_pseudo_legal_moves(std::vector<move_s> &moves,
                                    const gen_mode mode) const {
     const u64 occupancy = bb[0][occupancy_ix] | bb[1][occupancy_ix];
     const u64 opp_occupancy = bb[!side][occupancy_ix];
-    gen_pawns(moves, occupancy, opp_occupancy, mode);
-    gen_non_pawns(moves, knight_ix, occupancy, opp_occupancy, mode);
-    gen_non_pawns(moves, bishop_ix, occupancy, opp_occupancy, mode);
-    gen_non_pawns(moves, rook_ix, occupancy, opp_occupancy, mode);
-    gen_non_pawns(moves, queen_ix, occupancy, opp_occupancy, mode);
-    gen_non_pawns(moves, king_ix, occupancy, opp_occupancy, mode);
+    gen_pawns(moves, occupancy, opp_occupancy, mode, u64(-1));
+    gen_non_pawns(moves, knight_ix, occupancy, opp_occupancy, mode, u64(-1));
+    gen_non_pawns(moves, bishop_ix, occupancy, opp_occupancy, mode, u64(-1));
+    gen_non_pawns(moves, rook_ix, occupancy, opp_occupancy, mode, u64(-1));
+    gen_non_pawns(moves, queen_ix, occupancy, opp_occupancy, mode, u64(-1));
+    gen_non_pawns(moves, king_ix, occupancy, opp_occupancy, mode, u64(-1));
     if (mode == gen_mode::all_moves || mode == gen_mode::only_silent)
         gen_castles(moves, occupancy);
+}
+
+
+std::vector<board::move_s> chess::gen_check_evasions() {
+    std::vector<move_s> moves, tmp_moves;
+    tmp_moves.reserve(64);
+    gen_pseudo_legal_check_evasions(tmp_moves, gen_mode::all_moves);
+    for (auto m : tmp_moves) {
+        make_move(m);
+        if (was_legal(m))
+            moves.push_back(m);
+        unmake_move();
+    }
+    return moves;
+}
+
+
+void chess::gen_pseudo_legal_check_evasions(std::vector<move_s> &moves,
+                                            gen_mode mode) const {
+    u64 to_mask = check_evasion_mask();
+    const u64 occupancy = bb[0][occupancy_ix] | bb[1][occupancy_ix];
+    const u64 opp_occupancy = bb[!side][occupancy_ix];
+    gen_non_pawns(moves, king_ix, occupancy, opp_occupancy, mode, u64(-1));
+    if (mode == gen_mode::all_moves || mode == gen_mode::only_silent)
+        gen_castles(moves, occupancy);
+    if (to_mask == 0)
+        return;
+    gen_pawns(moves, occupancy, opp_occupancy, mode, to_mask);
+    gen_non_pawns(moves, knight_ix, occupancy, opp_occupancy, mode, to_mask);
+    gen_non_pawns(moves, bishop_ix, occupancy, opp_occupancy, mode, to_mask);
+    gen_non_pawns(moves, rook_ix, occupancy, opp_occupancy, mode, to_mask);
+    gen_non_pawns(moves, queen_ix, occupancy, opp_occupancy, mode, to_mask);
+}
+
+
+u64 chess::check_evasion_mask() const {
+    int n_att = 0;
+    u8 k_coord = trail_zeros(bb[side][king_ix]);
+    if (is_attacked_by_non_slider(k_coord, !side))
+        ++n_att;
+    u64 occupancy = bb[0][occupancy_ix] | bb[1][occupancy_ix];
+    u64 k_like_b = bishop_attacks(k_coord, occupancy);
+    u64 attackers_b = k_like_b & (bb[!side][bishop_ix] | bb[!side][queen_ix]);
+    u64 k_like_r = rook_attacks(k_coord, occupancy);
+    u64 attackers_r = k_like_r & (bb[!side][rook_ix] | bb[!side][queen_ix]);
+    u64 sl_att = attackers_b | attackers_r;
+    if (n_att + popcount(sl_att) > 1)
+        return 0;
+    if (n_att) {
+        u64 kp_att = knight_or_pawn_attacker(k_coord, !side);
+        if (kp_att)
+            return kp_att | en_passant_bitboard;
+    }
+    u8 crd = trail_zeros(sl_att);
+    if (attackers_b)
+        return sl_att | (k_like_b & (diag_mask[crd] | antidiag_mask[crd]));
+    return sl_att | (k_like_r & (file_mask(crd) | rank_mask(crd)));
 }
 
 
@@ -118,51 +175,58 @@ bool chess::slider_maybe_attacks(const u8 coord,
 }
 
 
-void chess::gen_pawns(std::vector<move_s> &moves, const u64 occupancy,
-                      const u64 opp_occupancy, const gen_mode mode) const {
+void chess::gen_pawns(std::vector<move_s> &moves, u64 occupancy,
+                      u64 opp_occupancy, gen_mode mode, u64 to_mask) const {
     const u64 pawn_bb = bb[side][pawn_ix];
     if (mode != gen_mode::only_captures)
-        gen_pawns_silent(moves, pawn_bb, occupancy);
+        gen_pawns_silent(moves, pawn_bb, occupancy, to_mask);
     if (mode != gen_mode::only_silent)
         gen_pawns_captures_and_promotions(moves, pawn_bb, occupancy,
-                                          opp_occupancy);
+                                          opp_occupancy, to_mask);
 }
 
 
-void chess::gen_pawns_silent(std::vector<move_s> &moves, const u64 pawn_bb,
-                             const u64 occupancy) const {
+void chess::gen_pawns(std::vector<move_s> &moves, u64 occupancy,
+                      u64 opp_occupancy, gen_mode mode) const {
+    gen_pawns(moves, occupancy, opp_occupancy, mode, u64(-1));
+}
+
+
+void chess::gen_pawns_silent(std::vector<move_s> &moves, u64 pawn_bb,
+                             u64 occupancy, u64 to_mask) const {
     const int shift = side == white ? 8 : -8;
     const u64 mask = rank_mask(side == white ? '7' : '2');
     const u64 pawn_pushes = all_pawn_pushes(pawn_bb & ~mask, side, occupancy);
-    push_pawn_moves(moves, pawn_pushes, shift, false);
-    const u64 dbl_pushes = all_pawn_double_pushes(pawn_pushes, side,
+    push_pawn_moves(moves, pawn_pushes & to_mask, shift, false);
+    const u64 dbl_pushes = all_pawn_double_pushes(pawn_pushes & to_mask, side,
                                                   occupancy);
-    push_pawn_moves(moves, dbl_pushes, 2*shift, false);
+    push_pawn_moves(moves, dbl_pushes & to_mask, 2*shift, false);
 }
 
 
 void chess::gen_pawns_captures_and_promotions(std::vector<move_s> &moves,
                                               const u64 pawn_bb,
                                               const u64 occupancy,
-                                              u64 opp_occupancy) const {
+                                              u64 opp_occupancy,
+                                              u64 to_mask) const {
     const int shift = side == white ? 8 : -8;
     const u64 mask = rank_mask(side == white ? '7' : '2');
     const u64 pawn_pushes = all_pawn_pushes(pawn_bb & mask, side, occupancy);
-    push_pawn_moves(moves, pawn_pushes, shift, false);
+    push_pawn_moves(moves, pawn_pushes & to_mask, shift, false);
     opp_occupancy |= en_passant_bitboard;
     const u64 capt_queenside =
         all_pawn_attacks_queenside(pawn_bb, side, opp_occupancy);
     const auto &shifts_q = pawn_attacks_queenside_shifts;
-    push_pawn_moves(moves, capt_queenside, -shifts_q[side], true);
+    push_pawn_moves(moves, capt_queenside & to_mask, -shifts_q[side], true);
     const u64 capt_kingside =
         all_pawn_attacks_kingside(pawn_bb, side, opp_occupancy);
     const auto &shifts_k = pawn_attacks_kingside_shifts;
-    push_pawn_moves(moves, capt_kingside, -shifts_k[side], true);
+    push_pawn_moves(moves, capt_kingside & to_mask, -shifts_k[side], true);
 }
 
 
 void chess::push_pawn_moves(std::vector<move_s> &moves, u64 bitboard,
-                            const int shift, const bool is_capt) const {
+                            int shift, bool is_capt) const {
     while (bitboard) {
         const u64 lowbit = lower_bit(bitboard);
         const u8 to_coord = trail_zeros(lowbit);
@@ -178,24 +242,25 @@ void chess::push_pawn_moves(std::vector<move_s> &moves, u64 bitboard,
 }
 
 
-void chess::gen_non_pawns(std::vector<move_s> &moves, const u8 piece_index,
+void chess::gen_non_pawns(std::vector<move_s> &moves, const u8 piece_ix,
                           const u64 occupancy, const u64 opp_occupancy,
-                          const gen_mode mode) const {
+                          const gen_mode mode, u64 to_mask) const {
     const u64 own_occupancy = occupancy ^ opp_occupancy;
-    u64 from_bitboard = bb[side][piece_index];
+    u64 from_bitboard = bb[side][piece_ix];
     while (from_bitboard) {
         const u64 from_lowbit = lower_bit(from_bitboard);
         const u8 from_coord = trail_zeros(from_lowbit);
         u64 to_bitboard = ~own_occupancy &
-            all_non_pawn_attacks(piece_index, from_coord, occupancy);
+            all_non_pawn_attacks(piece_ix, from_coord, occupancy);
         if (mode == gen_mode::only_captures)
             to_bitboard &= opp_occupancy;
         else if (mode == gen_mode::only_silent)
             to_bitboard &= ~opp_occupancy;
         while (to_bitboard) {
             const u64 to_lowbit = lower_bit(to_bitboard);
-            moves.push_back({piece_index, from_coord, trail_zeros(to_lowbit),
-                            0, bool(to_lowbit & opp_occupancy)});
+            if (to_lowbit & to_mask)
+                moves.push_back({piece_ix, from_coord, trail_zeros(to_lowbit),
+                                0, bool(to_lowbit & opp_occupancy)});
             to_bitboard ^= to_lowbit;
         }
         from_bitboard ^= from_lowbit;
@@ -236,6 +301,18 @@ bool chess::is_attacked_by_non_slider(const u8 coord,
     if (king_attacks(coord) & bb[attacker_side][king_ix])
         return true;
     return false;
+}
+
+
+u64 chess::knight_or_pawn_attacker(u8 coord, bool attacker_side) const {
+    u64 pawn_bb = bb[attacker_side][pawn_ix];
+    u64 ans = all_pawn_attacks(one_nth_bit(coord), !attacker_side, pawn_bb);
+    if (ans)
+        return ans;
+    ans = knight_attacks(coord) & bb[attacker_side][knight_ix];
+    if (ans)
+        return ans;
+    return 0;
 }
 
 
@@ -286,7 +363,7 @@ bool chess::is_pseudo_legal_pawn(const u8 from_coord, const u64 to_bb) const {
 }
 
 
-bool chess::is_pseudo_legal_king(const u8 from_coord, const u8 to_coord) const{
+bool chess::is_pseudo_legal_king(const u8 from_coord, const u8 to_coord) const {
     const u64 to_bb = one_nth_bit(to_coord);
     if (abs(i8(from_coord) - i8(to_coord)) != 2)
         return bool(to_bb & king_attacks(from_coord));
@@ -322,7 +399,7 @@ std::string chess::game_text_result() {
     else {
         ans = "1/2 - 1/2 {Draw by ";
         if (is_draw_by_material())
-        ans += "insufficient mating material}";
+            ans += "insufficient mating material}";
         else if (is_N_fold_repetition(3 - 1))
             ans += "3-fold repetition}";
         else

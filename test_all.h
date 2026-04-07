@@ -35,6 +35,8 @@ class chess_tst: public chess {
     using board_state::hash_key;
     using chess::state_storage;
     using board_state::reversible_halfmoves;
+    using chess::check_evasion_mask;
+    using chess::gen_pseudo_legal_check_evasions;
 };
 
 
@@ -121,6 +123,7 @@ public :
     void test_bitboards_integrity(const board_tst& B);
     void test_unmake_move();
     void test_chess();
+    void test_check_evasion_mask();
     void test_gen_pseudo_legal_moves();
     void test_is_attacked_by();
     bool test_sequence_of_moves(const std::string &moves, chess_tst &C);

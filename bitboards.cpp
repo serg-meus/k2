@@ -156,7 +156,7 @@ u64 bitboards::all_pawn_attacks_kingside(const u64 pawns_bitboard,
                                          const u64 opp_occupancy) const {
     return opp_occupancy & \
         signed_shift(pawns_bitboard & ~file_mask('h'),
-                      pawn_attacks_kingside_shifts[is_white]);
+                     pawn_attacks_kingside_shifts[is_white]);
 }
 
 
@@ -165,7 +165,7 @@ u64 bitboards::all_pawn_attacks_queenside(const u64 pawns_bitboard,
                                           const u64 opp_occupancy) const {
     return opp_occupancy & \
         signed_shift(pawns_bitboard & ~file_mask('a'),
-                      pawn_attacks_queenside_shifts[is_white]);
+                     pawn_attacks_queenside_shifts[is_white]);
 }
 
 
