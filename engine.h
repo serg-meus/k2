@@ -228,16 +228,14 @@ protected:
     }
 
     int late_move_reduction(int depth, const move_s cur_move, bool was_check,
-                            bool in_check, unsigned move_num,
-                            int node_type) const {
+                            bool in_check, unsigned move_num) const {
         if(depth < 3 || cur_move.is_capture || cur_move.promo || move_num < 3)
             return 0;
         if(cur_move.index == pawn_ix &&
                 (is_passer(!side, cur_move.to_coord, bb[side][pawn_ix]) ||
                  is_pawn_attack(cur_move.to_coord)))
             return 0;
-        return 1 + int(!in_check && !was_check && node_type != pv_node &&
-                       move_num > 6);
+        return 1 + int(!in_check && !was_check && move_num > 4);
     }
 
     bool is_pawn_attack(const u8 coord) const {
@@ -255,7 +253,7 @@ protected:
 
     int update_depth(const int depth, const bool in_check) const {
         return depth + int((depth >= 0 && in_check) ||
-			(depth > 0 && is_recapture()));
+            (depth > 0 && is_recapture()));
     }
 
     bool is_recapture() const {
@@ -298,20 +296,20 @@ protected:
             return false;
         if (val <= margin[depth] + beta)
             return false;
-		val = beta;
+        val = beta;
         return true;
     }
 
-	bool delta_pruning(move_s m, eval_t val, eval_t alpha) {
-		if (m.promo || m.index == king_ix)
-			return false;
-		if (bb[0][rook_ix] + bb[1][rook_ix] + bb[0][queen_ix] +
-				bb[1][queen_ix] == 0)
-			return false;
-		if (val + 40*(m.priority - 200) < alpha - 200)
-			return true;
-		return false;
-	}
+    bool delta_pruning(move_s m, eval_t val, eval_t alpha) {
+        if (m.promo || m.index == king_ix)
+            return false;
+        if (bb[0][rook_ix] + bb[1][rook_ix] + bb[0][queen_ix] +
+                bb[1][queen_ix] == 0)
+            return false;
+        if (val + 40*(m.priority - 200) < alpha - 200)
+            return true;
+        return false;
+    }
 
     void store_pv(const move_s &cur_move) {
         std::swap(pv.at(ply), pv.at(ply + 1));

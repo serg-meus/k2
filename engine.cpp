@@ -72,7 +72,7 @@ int engine::search_cur_pos(const int depth, const int alpha, const int beta,
     if (search_draw() || hash_keys.find(hash_key) != hash_keys.end())
         return search_result(0, 0, 0, 0, depth, depth, not_a_move, 0, false);
     const int lmr = late_move_reduction(depth, cur_move, was_check, in_check,
-                                        move_num, node_type);
+                                        move_num);
     int val;
     if (move_num == 0)
         val = -search(depth - 1, -beta, -alpha, -node_type, in_check);
