@@ -3,7 +3,7 @@
 /*
 K2, the chess engine
 Author: Sergey Meus (serg_meus@mail.ru), Krasnoyarsk Krai, Russia
-2012-2025
+2012-2026
 */
 
 using std::cout;
@@ -84,7 +84,7 @@ void k2::main_search() {
     ply = 0;
     stop = false;
     auto moves = gen_moves();
-    std::random_shuffle(moves.begin(), moves.end());
+    std::shuffle(moves.begin(), moves.end(), rnd_gen);
     move_s best_move = moves.at(0);
     i8 depth = 1;
     int val = 0, alpha , beta, margin = aspiration_margin, mate_cr = 0;
@@ -100,8 +100,6 @@ void k2::main_search() {
         if (time_elapsed() >= time_for_move)
             stop = true;
     }
-    if (!stop)
-        print_search_iteration_result(i8(depth - 1), val, "");
     pv.at(0).push_back(best_move);
 }
 
@@ -124,8 +122,10 @@ k2::move_s k2::root_search(const i8 depth, int alpha,
         val = search_cur_pos(depth, alpha, beta, moves.at(move_num), move_num,
                              move_num ? cut_node : pv_node, in_check);
         unmake_move();
-        if (stop)
+        if (stop) {
+            print_search_iteration_result(i8(depth-(move_num == 1)), alpha, "");
             break;
+        }
         else if (val >= beta) {
             pv.at(0).clear();
             pv.at(0).push_back(moves.at(move_num));
@@ -144,9 +144,7 @@ k2::move_s k2::root_search(const i8 depth, int alpha,
             print_search_iteration_result(depth, alpha, "");
         }
     }
-    if (stop)
-        print_search_iteration_result(i8(depth - (move_num == 1)), alpha, "");
-    else if (val < beta && alpha_orig == alpha) {
+    if (val < beta && alpha_orig == alpha) {
         pv.at(0).clear();
         pv.at(0).push_back(moves.at(0));
         print_search_iteration_result(depth, alpha, "\b?");
@@ -239,7 +237,7 @@ bool k2::execute_command(const std::string &in) {
 void k2::new_command(const std::string &in) {
     auto seed = unsigned(in == "" ? time(nullptr) & 0x0f :
                          std::atoi(in.c_str()));
-    std::srand(seed);
+    rnd_gen = std::mt19937(seed);
     if (!silent_mode)
         cout << "( seed set to " << seed << " )" << endl;
     tt.clear();

@@ -12,8 +12,9 @@ public:
            xboard(false), uci(false), max_depth(max_ply), search_moves(),
            not_search_moves(), time_for_move(0), time_per_time_control(60),
            time_inc(0), current_clock(60), moves_per_time_control(0),
-           moves_to_go(0), move_cr(0), use_thread(USE_THREAD), thr() {
-        std::srand(unsigned(time(nullptr)));
+           moves_to_go(0), move_cr(0), use_thread(USE_THREAD), thr(),
+           rnd_gen(0) {
+        rnd_gen = std::mt19937(unsigned(time(nullptr)));
     }
 
     void start();
@@ -55,6 +56,7 @@ protected:
     int moves_per_time_control, moves_to_go, move_cr;
     bool use_thread;
     std::thread thr;
+    std::mt19937 rnd_gen;
 
     const double time_margin = 0.02;
     const int aspiration_margin = 43;
