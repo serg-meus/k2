@@ -196,10 +196,9 @@ void chess::gen_pawns_silent(std::vector<move_s> &moves, u64 pawn_bb,
                              u64 occupancy, u64 to_mask) const {
     const int shift = side == white ? 8 : -8;
     const u64 mask = rank_mask(side == white ? '7' : '2');
-    const u64 pawn_pushes = all_pawn_pushes(pawn_bb & ~mask, side, occupancy);
-    push_pawn_moves(moves, pawn_pushes & to_mask, shift, false);
-    const u64 dbl_pushes = all_pawn_double_pushes(pawn_pushes & to_mask, side,
-                                                  occupancy);
+    const u64 pushes = all_pawn_pushes(pawn_bb & ~mask, side, occupancy);
+    push_pawn_moves(moves, pushes & to_mask, shift, false);
+    const u64 dbl_pushes = all_pawn_double_pushes(pushes, side, occupancy);
     push_pawn_moves(moves, dbl_pushes & to_mask, 2*shift, false);
 }
 

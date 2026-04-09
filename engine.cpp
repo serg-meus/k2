@@ -332,7 +332,10 @@ u64 engine::perft(const int depth, const bool verbose) {
     u64 perft_nodes = 0;
     std::vector<move_s> moves;
     moves.reserve(48);
-    gen_pseudo_legal_moves(moves);
+    if (!is_in_check(side))
+        gen_pseudo_legal_moves(moves);
+    else
+        gen_pseudo_legal_check_evasions(moves, gen_mode::all_moves);
     for(auto move : moves) {
         make_move(move);
         if(!was_legal(move)) {

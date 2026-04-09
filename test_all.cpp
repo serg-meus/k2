@@ -796,7 +796,7 @@ void test_all::test_check_evasion_mask() {
     C.setup_position("3k4/8/8/1pP5/K7/8/8/8 w - b6");
     assert(C.is_in_check(white));
     ans = C.check_evasion_mask();
-    assert(ans == bit("b5") | bit("b6"));
+    assert(ans == (bit("b5") | bit("b6")));
 }
 
 
@@ -893,6 +893,10 @@ void test_all::test_gen_pseudo_legal_moves() {
     moves.clear();
     C.gen_pseudo_legal_check_evasions(moves, gen_mode::only_captures);
     assert(moves.size() == 1);
+    moves.clear();
+    C.setup_position("5bkr/3p2pp/8/8/8/8/B7/K7 b - -");
+    C.gen_pseudo_legal_check_evasions(moves, gen_mode::all_moves);
+    assert(moves.size() == 2);
 }
 
 
