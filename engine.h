@@ -289,7 +289,7 @@ protected:
     bool futility(eval_t &val, int depth, eval_t beta, int node_type,
                   bool in_check) {
         eval_t margin[] = {185, 220, 255, 255};
-        if (node_type == pv_node || depth > 3 || in_check ||
+        if (node_type == pv_node || depth <= 0 || depth > 3 || in_check ||
                 beta >= material_values[king_ix] - max_ply)
             return false;
         if (done_moves.back().is_capture ||
