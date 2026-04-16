@@ -25,7 +25,8 @@ eval_t eval::Eval() {
         ans = -ans;
     }
     // ans += e.eval_side_to_move(color);
-    return interpolate_eval(ans);
+    eval_t val = interpolate_eval(ans);
+    return side ? eval_t(-val) : val;
 }
 
 
@@ -252,19 +253,27 @@ void eval::fill_attacks_piece_type(bool color, u8 piece_ix) {
 }
 
 
+void eval::fill_mobility_curve() {
+    const eval_t curve_sz = sizeof(mobility_curve)/sizeof(vec2<eval_t>);
+    for(eval_t n_att = 0; n_att < curve_sz; ++n_att) {
+        vec2<eval_t> step = {32, 32};
+        auto I = n_att*mob_Kx/step + mob_Bx;
+        auto S = sigmoid2(I);
+        mobility_curve.at(unsigned(n_att)) = (mob_Ky*S/step) + mob_By;
+    }
+}
+
+
 vec2 eval::eval_mobility(bool color) {
     vec2<eval_t> ans = {0, 0};
     u64 occupancy = bb[0][occupancy_ix] | bb[1][occupancy_ix];
     for (unsigned i = 0; i < attack_arr_ix[color]; ++i) {
         u8 ix = attack_arr[color][i].second;
-        if (ix == pawn_ix || ix == knight_ix || ix == king_ix)
+        if (mob_weights[ix] == 0)
             continue;
         u64 attacks = attack_arr[color][i].first;
-        u8 n_attacks = u8(popcount(attacks & ~occupancy));
-        if (ix == queen_ix)
-            n_attacks /= 2;
-        eval_t mob_value = mobility_curve[n_attacks];
-        ans += mob_value*mobility_factor/10;
+        u8 n_att = u8(popcount(attacks & ~occupancy)*mob_weights[ix]/32);
+        ans += mobility_curve[n_att];
     }
     return ans;
 }
@@ -512,9 +521,74 @@ u64 eval::sum_for_each_set_bit(u64 bitboard, const eval_fptr &foo, u64 *args) {
 
 
 eval_t eval::interpolate_eval(vec2<eval_t> val) {
-        eval_t X, Y;
-        X = eval_t(material_sum[0]/100 + 1 + material_sum[1]/100 + 1 -
+        eval_t X = eval_t(material_sum[0]/100 + 1 + material_sum[1]/100 + 1 -
             num_pieces[0] - num_pieces[1]);
-        Y = eval_t((val.mid - val.end)*X + 80*val.end)/80;
-        return side ? eval_t(-Y) : Y;
+        return eval_t((val.mid - val.end)*X + 80*val.end)/80;
+}
+
+
+void eval::eval_debug() {
+    std::cout << "Eval from white's perspective:";
+    std::cout << "\tMidgame\tEndgame\tTotal\n\n";
+    vec2<eval_t> ans, delta;
+    fill_arrays();
+
+    ans = eval_material(white);
+    ans -= eval_material(black);
+    delta = ans;
+    std::cout << "Material both sides\t\t" << ans.mid << "\t" << ans.end <<
+        "\t" << interpolate_eval(ans) << "\n";
+
+    ans = eval_pst(white);
+    ans -= eval_pst(black);
+    delta += ans;
+    std::cout << "PST both sides\t\t\t" << ans.mid << "\t" << ans.end <<
+        "\t" << interpolate_eval(ans) << "\n";
+
+    ans = eval_pawns(white);
+    delta += ans;
+    std::cout << "White pawns\t\t\t" << ans.mid << "\t" << ans.end <<
+        "\t" << interpolate_eval(ans) << "\n";
+
+    ans = -eval_pawns(black);
+    delta += ans;
+    std::cout << "Black pawns\t\t\t" << ans.mid << "\t" << ans.end <<
+        "\t" << interpolate_eval(ans) << "\n";
+
+    ans = eval_king_safety(white);
+    delta += ans;
+    std::cout << "King safety white\t\t" << ans.mid << "\t" << ans.end <<
+        "\t" << interpolate_eval(ans) << "\n";
+    if (ans.mid == material_values[king_ix])
+        return;
+
+    ans = -eval_king_safety(black);
+    delta += ans;
+    std::cout << "King safety black\t\t" << ans.mid << "\t" << ans.end <<
+        "\t" << interpolate_eval(ans) << "\n";
+    if (ans.mid == material_values[king_ix])
+        return;
+
+    ans = eval_mobility(white);
+    delta += ans;
+    std::cout << "Mobility white\t\t\t" << ans.mid << "\t" << ans.end <<
+        "\t" << interpolate_eval(ans) << "\n";
+
+    ans = -eval_mobility(black);
+    delta += ans;
+    std::cout << "Mobility black\t\t\t" << ans.mid << "\t" << ans.end <<
+        "\t" << interpolate_eval(ans) << "\n";
+
+    ans = eval_hanging_pieces(white);
+    delta += ans;
+    std::cout << "Hanging pieces white\t\t" << ans.mid << "\t" << ans.end <<
+        "\t" << interpolate_eval(ans) << "\n";
+
+    ans = -eval_hanging_pieces(black);
+    delta += ans;
+    std::cout << "Hanging pieces black\t\t" << ans.mid << "\t" << ans.end <<
+        "\t" << interpolate_eval(ans) << "\n";
+    std::cout << "\nGrand total:\t\t\t" << delta.mid << "\t" << delta.end <<
+        "\t" << interpolate_eval(delta) << "\n";
+    assert (interpolate_eval(delta) == (side ? Eval() : -Eval()));
 }

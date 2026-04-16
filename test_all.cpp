@@ -352,19 +352,28 @@ void test_all::test_mate_at_glance() {
 }
 
 
+eval::vec2<eval::eval_t> test_all::calc_mobility(int n_attacks, int piece_ix) {
+        auto N = vec2<eval_t>(n_attacks, n_attacks);
+        N = N*mob_weights.at(unsigned(piece_ix))/32;
+        vec2<eval_t> step = {32, 32};
+        auto X = mob_Kx*N/step + mob_Bx;
+        auto S = sigmoid2(X);
+        auto ans = mob_Ky*S/step + mob_By;
+        return ans;
+}
+
+
 void test_all::test_eval_mobility() {
     auto E = eval_tst();
     E.setup_position("5rk1/pq2nbp1/1p5p/2n2P2/4P1Q1/1PN4N/PB6/5K1R w - -");
     E.fill_arrays();
-    eval_t mob_w = mobility_curve[2];  // white rook
-    mob_w += mobility_curve[3];  // white bishop
-    mob_w += mobility_curve[11/2];  // white queen
-    vec2<eval_t> ans = mob_w*mobility_factor/10;
+    vec2<eval_t> ans = calc_mobility(3, bishop_ix);
+    ans += calc_mobility(2, rook_ix);
+    ans += calc_mobility(11, queen_ix);
     assert(E.eval_mobility(white) == ans);
-    mob_w = mobility_curve[8/2];  // black queen
-    mob_w += mobility_curve[6];  // black bishop
-    mob_w += mobility_curve[5];  // black rook
-    ans = mob_w*mobility_factor/10;
+    ans = calc_mobility(6, bishop_ix);
+    ans += calc_mobility(8, queen_ix);
+    ans += calc_mobility(5, rook_ix);
     assert(E.eval_mobility(black) == ans);
 }
 

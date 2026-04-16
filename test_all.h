@@ -42,6 +42,7 @@ class chess_tst: public chess {
 
 class eval_tst: public eval {
     public:
+    using eval::vec2;
     using eval::material_values;
     using eval::piece_values;
     using eval::eval_material;
@@ -59,10 +60,12 @@ class eval_tst: public eval {
     using eval::pawn_gaps;
     using eval::pawn_holes;
     using eval::king_pawn_tropism;
+    using eval::mob_Kx;
+    using eval::mob_Bx;
+    using eval::mob_Ky;
+    using eval::mob_By;
     using eval::eval_pawns;
-    using eval::mobility_curve;
     using eval::eval_mobility;
-    using eval::mobility_factor;
     using eval::fill_arrays;
     using eval::bishop_pair;
     using eval::mate_at_glance;
@@ -152,7 +155,7 @@ public :
     void test_update_clock();
     void test_k2();
     void test_is_passer();
-    void test_king_quaterboard();
+    vec2<eval_t> calc_mobility(int n_attacks, int pc_ix);
     void test_eval_mobility();
     void test_mate_at_glance();
 };

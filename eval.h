@@ -20,26 +20,63 @@ class eval : public chess {
         vec2() : mid(0), end(0) {}
         vec2(const T m, const T e) : mid(m), end(e) {}
         vec2(const vec2& v) : mid(v.mid), end(v.end) {}
-        vec2& operator =(const vec2& v) {mid=v.mid; end=v.end; return *this;}
-        bool operator ==(const vec2& v) const {return mid==v.mid && end==v.end;}
-        bool operator !=(const vec2& v) const {return mid!=v.mid || end!=v.end;}
-        vec2 operator +(const vec2& v) const {return vec2(T(mid+v.mid),T(end+v.end));}
-        vec2 operator -(const vec2& v) const {return vec2(T(mid-v.mid),T(end-v.end));}
-        vec2 operator -() const {return vec2(T(-mid), T(-end));}
-        vec2 operator *(const vec2& v) const {return vec2(T(mid*v.mid),T(end*v.end));}
-        vec2 operator /(const vec2& v) const {return vec2(T(mid/v.mid),T(end/v.end));}
-        vec2 operator *(const T x) const {return vec2(T(mid*x), T(end*x));}
-        vec2 operator /(const T x) const {return vec2(T(mid / x), T(end / x));}
+        vec2& operator =(const vec2& v) {
+            mid=v.mid;
+            end=v.end;
+            return *this;
+        }
+        bool operator ==(const vec2& v) const {
+            return mid==v.mid && end==v.end;
+        }
+        bool operator !=(const vec2& v) const {
+            return mid!=v.mid || end!=v.end;
+        }
+        vec2 operator +(const vec2& v) const {
+            return vec2(T(mid+v.mid),T(end+v.end));
+        }
+        vec2 operator -(const vec2& v) const {
+            return vec2(T(mid-v.mid),T(end-v.end));
+        }
+        vec2 operator -() const {
+            return vec2(T(-mid), T(-end));
+        }
+        vec2 operator *(const vec2& v) const {
+            return vec2(T(mid*v.mid),T(end*v.end));
+        }
+        vec2 operator /(const vec2& v) const {
+            return vec2(T(mid/v.mid),T(end/v.end));
+        }
+        vec2 operator *(const T x) const {
+            return vec2(T(mid*x), T(end*x));
+        }
+        vec2 operator /(const T x) const {
+            return vec2(T(mid / x), T(end / x));
+        }
         friend vec2 operator *(const T x, const vec2& v)
         {
             return vec2(T(v.mid*x), T(v.end*x));
         }
-        void operator +=(const vec2 v) {mid = T(mid + v.mid); end = T(end + v.end);}
-        void operator -=(const vec2 v) {mid = T(mid - v.mid); end = T(end - v.end);}
+        void operator +=(const vec2 v) {
+            mid = T(mid + v.mid); end = T(end + v.end);
+        }
+        void operator -=(const vec2 v) {
+            mid = T(mid - v.mid); end = T(end - v.end);
+        }
+        void saturate(const T minimum, const T maximum) {
+            if (mid < minimum)
+                mid = minimum;
+            else if (mid > maximum)
+                mid = maximum;
+            if (end < minimum)
+                end = minimum;
+            else if (end > maximum)
+                end = maximum;
+        }
     };
 
     eval_t Eval_NN();
     eval_t Eval();
+    void eval_debug();
 
     protected:
 
@@ -58,19 +95,22 @@ class eval : public chess {
 
     std::array<int, king_ix + 1> material_values;
     std::array<vec2<eval_t>, king_ix + 1> piece_values;
+    std::array<eval_t, 64> sigmoid_data;
     vec2<eval_t> pst[king_ix + 1][64];
     vec2<eval_t> pawn_doubled, pawn_isolated, pawn_dbl_iso, pawn_hole,
         pawn_gap, pawn_king_tropism1, pawn_king_tropism2,
         pawn_king_tropism3, pawn_pass0, pawn_pass1, pawn_pass2, pawn_blk_pass0,
         pawn_blk_pass1, pawn_blk_pass2, pawn_unstoppable,
         king_saf_no_shelter, king_saf_attacks1, king_saf_attacks2,
-        mobility_factor, bishop_pair, hang_pieces1, hang_pieces2;
-    std::array<eval_t, 16> mobility_curve;
+        bishop_pair, hang_pieces1, hang_pieces2, mob_Kx, mob_Bx,
+        mob_Ky, mob_By;
+    std::array<eval_t, 6> mob_weights;
     std::array<int, 2> material_sum, num_pieces;
     std::array<vec2<eval_t>, 2> material_eval;
     std::array<std::array<std::pair<u64, u8>, 64>, 2> attack_arr;
     std::array<unsigned, 2> attack_arr_ix;
     std::array<u64, 2> attack_bb, defend_bb;
+    std::array<vec2<eval_t>, 32> mobility_curve;
 
     nn_t calc_nn_out(const bool color);
     void sparce_multiply(const bool color);
@@ -113,6 +153,7 @@ class eval : public chess {
     u64 get_all_attackers(bool color, u64 target, u64 occupancy);
     bool can_capture_attacker(bool color, u64 attacker, u64 near_k);
     bool are_free_king_squares(bool color, u64 near_k);
+    void fill_mobility_curve();
 
 static u64 nearest_squares(u64 k_bb) {
     u64 ans = k_bb | roll_left(k_bb) | roll_right(k_bb);
@@ -140,6 +181,12 @@ static int shifts(bool color) {
     return color ? -8 : 8;
 }
 
+vec2<eval_t> sigmoid2(vec2<eval_t> x) const {
+    x.saturate(0, 63);
+    return vec2<eval_t>(sigmoid_data[unsigned(x.mid)],
+                        sigmoid_data[unsigned(x.end)]);
+}
+
     public:
 
     eval() :
@@ -148,10 +195,16 @@ static int shifts(bool color) {
     material_values({{100, 390, 410, 600, 1000, 32000}}),
     piece_values({{{100, 128}, {450, 370}, {470, 390}, {560, 680},
         {1170, 1290}}}),
+    sigmoid_data({-100, -100, -99, -99, -98, -97, -96, -95, -94, -93, -92, -90,
+                  -88, -86, -84, -82, -79, -76, -73, -70, -66, -62, -58, -53,
+                  -48, -43, -37, -32, -26, -19, -13, -7, 0}),
     #include "pst.h"
     #include "eval_features.h"
     material_sum(), num_pieces(), material_eval(), attack_arr(),
-    attack_arr_ix(), attack_bb(), defend_bb()
+    attack_arr_ix(), attack_bb(), defend_bb(), mobility_curve()
     {
+        for (unsigned i = 0; i < 31; ++i)
+            sigmoid_data.at(33 + i) = -sigmoid_data.at(31 - i);
+        fill_mobility_curve();
     }
 };

@@ -321,9 +321,7 @@ void k2::nopost_command(const std::string &in) {
 
 void k2::eval_command(const std::string &in) {
     (void)(in);
-    cout << "Eval from white's perspective: ";
-    auto E = Eval();
-    cout << (side ? E : -E) << endl;
+    eval_debug();
 }
 
 
