@@ -1,11 +1,11 @@
 ifeq ($(OS),Windows_NT)
 EXEC = k2.exe
 RM = del /q
-RM_DIR = rmdir
+RM_DIR = rmdir /S /Q bin obj
 else
 EXEC = ./k2
 RM = rm -f
-RM_DIR = rm -rf
+RM_DIRS = rm -rf bin/ obj/
 endif
 
 CC=g++
@@ -62,5 +62,5 @@ prof:
 	gprof $(EXEC) gmon.out > gmon.txt
 
 clean:
-	$(RM) -f *.o test_all k2 gmon.* *.depend *.layout
-	$(RM_DIR) bin/ obj/
+	$(RM) *.o test_all k2 gmon.* *.depend *.layout
+	$(RM_DIRS)
