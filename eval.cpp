@@ -20,7 +20,7 @@ eval_t eval::Eval() {
         // ans += eval_rooks(color);
         // ans += eval_bishops(color);
         // ans += eval_knights(color);
-        // ans = eval_imbalances(color, ans);
+        ans += eval_imbalances(color);
         ans += eval_hanging_pieces(color);
         ans = -ans;
     }
@@ -78,6 +78,8 @@ vec2 eval::eval_material(bool color) {
     if (popcount(bb[color][bishop_ix] & dark_squares) >= 1 &&
             popcount(bb[color][bishop_ix] & light_squares) >= 1)
         ans += bishop_pair;
+    if (!(bb[0][pawn_ix] | bb[1][pawn_ix]))
+        ans = ans*imb_no_pawns/32;
     return ans;
 }
 
@@ -119,7 +121,7 @@ vec2 eval::eval_king_safety(bool color) {
     u64 near_k = nearest_squares(k_bb);
     if (mate_at_glance(color, k_bb, near_k))
         return {material_values[king_ix], 0};
-    if (popcount(bb[!color][queen_ix]) == 0)
+    if (!bb[!color][queen_ix])
         return {0, 0};
     if (!bb[!color][knight_ix] && !bb[!color][bishop_ix] &&
             !bb[!color][rook_ix])
@@ -193,7 +195,8 @@ bool eval::can_capture_attacker(bool color, u64 attacker, u64 near_k){
     if (attacker & near_k)
         return (attacker & (defend_bb[color] | attack_arr[color][0].first)) ||
             !(attacker & attack_bb[!color]);
-    if ((attacker & (bb[!color][pawn_ix] | bb[!color][knight_ix])) && !(attacker & attack_bb[color]))
+    if ((attacker & (bb[!color][pawn_ix] | bb[!color][knight_ix])) &&
+            !(attacker & attack_bb[color]))
         return false;
     return true;  // all remains shall be detected by search
 }
@@ -209,7 +212,6 @@ u64 eval::get_all_attackers(bool color, u64 targ, u64 occupancy) {
         (bb[!color][rook_ix] | bb[!color][queen_ix]);
     return ans;
 }
-
 
 
 void eval::fill_arrays() {
@@ -228,11 +230,12 @@ void eval::fill_arrays() {
             int n_pcs = popcount(bb[clr][ix]);
             mat_cr += n_pcs*material_values[ix];
             piece_cr += n_pcs;
+            num_pieces.at(clr).at(ix) = u8(n_pcs);
             auto tmp = vec2<eval_t>(eval_t(n_pcs), eval_t(n_pcs));
             material_eval[clr] += tmp*piece_values[ix];
         }
         material_sum[clr] = mat_cr;
-        num_pieces[clr] = piece_cr;
+        sum_pieces[clr] = piece_cr;
     }
 }
 
@@ -261,6 +264,15 @@ void eval::fill_mobility_curve() {
         auto S = sigmoid2(I);
         mobility_curve.at(unsigned(n_att)) = (mob_Ky*S/step) + mob_By;
     }
+}
+
+
+void eval::fill_imbalances_map() {
+    imbalances.insert(Imb_pair(1, imb_PPp));
+    imbalances.insert(Imb_pair(0x71, imb_Pn));
+    imbalances.insert(Imb_pair(0x381, imb_Pb));
+    imbalances.insert(Imb_pair(0x1c10, imb_Nr));
+    imbalances.insert(Imb_pair(0x1c80, imb_Br));
 }
 
 
@@ -495,8 +507,19 @@ u64 eval::tropism(u64 pawn_bb, u64 *args) {
 }
 
 
-//vec2 eval::eval_imbalances(bool color, vec2<eval_t> val) {
-//}
+vec2 eval::eval_imbalances(bool color) {
+    std::array<int, king_ix> D;
+    for (unsigned ix = 0; ix < king_ix; ++ix)
+        D.at(ix) = num_pieces.at(color).at(ix) - num_pieces.at(!color).at(ix);
+    u16 key = u16((D[pawn_ix] & 15) | ((D[knight_ix] & 7) << 4) |
+        ((D[bishop_ix] & 7) << 7) | ((D[rook_ix] & 7) << 10) |
+        ((D[queen_ix] & 7) << 13));
+    auto ans = imbalances.find(key);
+    if (ans == imbalances.end())
+        return {0, 0};
+    return (*ans).second;
+}
+
 
 u64 eval::for_each_set_bit(u64 bitboard, const eval_fptr &foo, u64 *args) {
     u64 ans = 0;
@@ -522,7 +545,7 @@ u64 eval::sum_for_each_set_bit(u64 bitboard, const eval_fptr &foo, u64 *args) {
 
 eval_t eval::interpolate_eval(vec2<eval_t> val) {
         eval_t X = eval_t(material_sum[0]/100 + 1 + material_sum[1]/100 + 1 -
-            num_pieces[0] - num_pieces[1]);
+            sum_pieces[0] - sum_pieces[1]);
         return eval_t((val.mid - val.end)*X + 80*val.end)/80;
 }
 
@@ -577,6 +600,16 @@ void eval::eval_debug() {
     ans = -eval_mobility(black);
     delta += ans;
     std::cout << "Mobility black\t\t\t" << ans.mid << "\t" << ans.end <<
+        "\t" << interpolate_eval(ans) << "\n";
+
+    ans = eval_imbalances(white);
+    delta += ans;
+    std::cout << "Imbalances white\t\t" << ans.mid << "\t" << ans.end <<
+        "\t" << interpolate_eval(ans) << "\n";
+
+    ans = -eval_imbalances(black);
+    delta += ans;
+    std::cout << "Imbalances black\t\t" << ans.mid << "\t" << ans.end <<
         "\t" << interpolate_eval(ans) << "\n";
 
     ans = eval_hanging_pieces(white);

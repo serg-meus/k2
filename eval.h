@@ -1,5 +1,6 @@
 #include "chess.h"
 #include "matrix.h"
+#include <map>
 
 class eval : public chess {
 
@@ -80,6 +81,7 @@ class eval : public chess {
 
     protected:
 
+    typedef std::pair<const u16, vec2<eval_t>> Imb_pair;
     using fptr = nn_t(*)(nn_t);
     static const unsigned
     input_vector_size = 384,
@@ -103,14 +105,17 @@ class eval : public chess {
         pawn_blk_pass1, pawn_blk_pass2, pawn_unstoppable,
         king_saf_no_shelter, king_saf_attacks1, king_saf_attacks2,
         bishop_pair, hang_pieces1, hang_pieces2, mob_Kx, mob_Bx,
-        mob_Ky, mob_By;
+        mob_Ky, mob_By, imb_PPp, imb_Pn, imb_Pb, imb_Nr, imb_Br,
+        imb_no_pawns;
     std::array<eval_t, 6> mob_weights;
-    std::array<int, 2> material_sum, num_pieces;
+    std::array<int, 2> material_sum, sum_pieces;
+    std::array<std::array<u8, occupancy_ix>, 2> num_pieces;
     std::array<vec2<eval_t>, 2> material_eval;
     std::array<std::array<std::pair<u64, u8>, 64>, 2> attack_arr;
     std::array<unsigned, 2> attack_arr_ix;
     std::array<u64, 2> attack_bb, defend_bb;
     std::array<vec2<eval_t>, 32> mobility_curve;
+    std::map<u16, vec2<eval_t>> imbalances;
 
     nn_t calc_nn_out(const bool color);
     void sparce_multiply(const bool color);
@@ -147,13 +152,14 @@ class eval : public chess {
     void fill_arrays();
     void fill_attacks_piece_type(bool color, u8 piece_ix);
     eval_t king_attacks(bool color, u64 king_zone, eval_t &attackers);
-    vec2<eval_t> eval_imbalances(bool color, vec2<eval_t> val);
+    vec2<eval_t> eval_imbalances(bool color);
     vec2<eval_t> eval_hanging_pieces(bool color);
     bool mate_at_glance(bool color, u64 k_bb, u64 near_k);
     u64 get_all_attackers(bool color, u64 target, u64 occupancy);
     bool can_capture_attacker(bool color, u64 attacker, u64 near_k);
     bool are_free_king_squares(bool color, u64 near_k);
     void fill_mobility_curve();
+    void fill_imbalances_map();
 
 static u64 nearest_squares(u64 k_bb) {
     u64 ans = k_bb | roll_left(k_bb) | roll_right(k_bb);
@@ -200,11 +206,13 @@ vec2<eval_t> sigmoid2(vec2<eval_t> x) const {
                   -48, -43, -37, -32, -26, -19, -13, -7, 0}),
     #include "pst.h"
     #include "eval_features.h"
-    material_sum(), num_pieces(), material_eval(), attack_arr(),
-    attack_arr_ix(), attack_bb(), defend_bb(), mobility_curve()
+    material_sum(), sum_pieces(), num_pieces(), material_eval(),
+    attack_arr(), attack_arr_ix(), attack_bb(), defend_bb(),
+    mobility_curve(), imbalances()
     {
         for (unsigned i = 0; i < 31; ++i)
             sigmoid_data.at(33 + i) = -sigmoid_data.at(31 - i);
         fill_mobility_curve();
+        fill_imbalances_map();
     }
 };
