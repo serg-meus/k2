@@ -264,6 +264,12 @@ void eval::fill_mobility_curve() {
         auto S = sigmoid2(I);
         mobility_curve.at(unsigned(n_att)) = (mob_Ky*S/step) + mob_By;
     }
+    mob_weights[0] = mob_PN.mid;
+    mob_weights[1] = mob_PN.end;
+    mob_weights[2] = mob_BR.mid;
+    mob_weights[3] = mob_BR.end;
+    mob_weights[4] = mob_QK.mid;
+    mob_weights[5] = mob_QK.end;
 }
 
 

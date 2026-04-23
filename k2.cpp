@@ -10,8 +10,7 @@ using std::cout;
 using std::endl;
 
 
-int main(int argc, char* argv[])
-{
+int main(int argc, char* argv[]) {
     (void)(argc);
     (void)(argv);
 
@@ -43,14 +42,16 @@ int main(int argc, char* argv[])
         {"setoption",   {&k2::setoption_command,false}},
         {"stop",        {&k2::void_command,     true}},
         {"?",           {&k2::void_command,     true}},
+        {"train_data",  {&k2::traindata_command,true}},
+        {"train_result",{&k2::trainresult_cmd,  true}},
+        {"train_vec",   {&k2::trainvec_command, true}},
     };
     cout << "K2, the chess engine by Sergey Meus" << endl;
     eng->start();
 }
 
 
-void k2::start()
-{
+void k2::start() {
     std::string in_str;
     while (!quit) {
         if (!std::getline(std::cin, in_str)) {
@@ -156,9 +157,7 @@ k2::move_s k2::root_search(const i8 depth, int alpha,
 }
 
 
-bool k2::root_bounds(int val, int &alpha, int &beta, int &margin) const
-
-{
+bool k2::root_bounds(int val, int &alpha, int &beta, int &margin) const {
     static int prev_val;
     if(stop)
         return false;
@@ -602,4 +601,123 @@ std::string k2::uci_score(int val) const {
         ans += "-";
     ans += std::to_string(mate_depth);
     return ans;
+}
+
+
+void k2::traindata_command(const std::string &in) {
+    using namespace std;
+    timer_start();
+
+    training_positions.clear();
+    ifstream myfile(in);
+    if(!myfile)
+    {
+        cout << "Error: file " << in << " not found" << endl;
+        return;
+    }
+    cout << "Allocating memory..." << endl;
+    string line;
+    size_t lines = 0;
+    while(getline(myfile, line))
+        lines++;
+    training_positions.reserve(lines);
+
+    cout << "Loading..." << endl;
+    myfile.clear();
+    myfile.seekg(0);
+    while(getline(myfile, line)) {
+        const auto pos2 = line.rfind("\"");
+        const auto pos1 = line.rfind("\"", pos2 - 1);
+        const auto res_str = line.substr(pos1 + 1, pos2 - pos1 - 1);
+        float result;
+        if(res_str == "1-0")
+            result = 1;
+        else if(res_str == "0-1")
+            result = 0;
+        else if(res_str == "1/2-1/2")
+            result = 0.5;
+        else {
+            cout << "Error: file label error: " << line << endl;
+            return;
+        }
+        training_positions.emplace_back(parse_position(line, result));
+    }
+    cout << training_positions.size() << " positions loaded successfully, "
+         << "elapsed time is " << time_elapsed() << " s." << endl;
+}
+
+
+double k2::eval_error()
+{
+    double sum = 0;
+    for(auto pos : training_positions) {
+        apply_training_position(pos);
+        double x = Eval();
+        if(!pos.side)
+            x = -x;
+        double sigm = sigmoid(x);
+        double dif = (pos.result - sigm);
+        double sq_dif = dif*dif;
+        sum += sq_dif;
+    }
+    return sum / double(training_positions.size());
+}
+
+
+void k2::trainresult_cmd(const std::string &in)
+{
+    (void)(in);
+    timer_start();
+    double ans = eval_error();
+    std::cout << "Eval error: " << std::scientific << ans << std::fixed <<
+        ", elapsed time: " << time_elapsed() << " s." << std::endl;
+}
+
+
+k2::train_pos_s k2::parse_position(const std::string &in, float result) {
+    setup_position(in);
+    train_pos_s ans;
+    ans.bb = std::move(bb);
+    ans.side = side;
+    ans.result = result;
+    return ans;
+}
+
+
+void k2::apply_training_position(const train_pos_s &pos) {
+    bb = pos.bb;
+    side = pos.side;
+}
+
+
+void k2::trainvec_command(const std::string &in) {
+    if (!in.size()) {
+        for (auto f : train_features)
+            std::cout << f->mid << " " << f->end << " ";
+        for (unsigned crd = 8; crd < 56; ++crd)
+            std::cout << pst[pawn_ix][crd].mid << " " << pst[pawn_ix][crd].end
+                << " ";
+        for (unsigned pc = knight_ix; pc <= king_ix; ++pc)
+            for (unsigned crd = 0; crd < 64; ++crd)
+                std::cout << pst[pc][crd].mid << " " << pst[pc][crd].end << " ";
+        std::cout << std::endl;
+        return;
+    }
+    std::vector<std::string> strings = split(in);
+    unsigned i = 0;
+    for (auto f : train_features) {
+        f->mid = eval_t(std::stod(strings[i++]));
+        f->end = eval_t(std::stod(strings[i++]));
+    }
+    for (unsigned crd = 8; crd < 56; ++crd) {
+        pst[pawn_ix][crd].mid = eval_t(std::stod(strings[i++]));
+        pst[pawn_ix][crd].end = eval_t(std::stod(strings[i++]));
+    }
+    for (unsigned pc = knight_ix; pc <= king_ix; ++pc)
+        for (unsigned crd = 0; crd < 64; ++crd) {
+            pst[pc][crd].mid = eval_t(std::stod(strings[i++]));
+            pst[pc][crd].end = eval_t(std::stod(strings[i++]));
+        }
+    fill_mobility_curve();
+    fill_imbalances_map();
 }

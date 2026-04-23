@@ -104,8 +104,8 @@ class eval : public chess {
         pawn_king_tropism3, pawn_pass0, pawn_pass1, pawn_pass2, pawn_blk_pass0,
         pawn_blk_pass1, pawn_blk_pass2, pawn_unstoppable,
         king_saf_no_shelter, king_saf_attacks1, king_saf_attacks2,
-        bishop_pair, hang_pieces1, hang_pieces2, mob_Kx, mob_Bx,
-        mob_Ky, mob_By, imb_PPp, imb_Pn, imb_Pb, imb_Nr, imb_Br,
+        bishop_pair, hang_pieces1, hang_pieces2, mob_Kx, mob_Bx, mob_Ky, mob_By,
+        mob_PN, mob_BR, mob_QK, imb_PPp, imb_Pn, imb_Pb, imb_Nr, imb_Br,
         imb_no_pawns;
     std::array<eval_t, 6> mob_weights;
     std::array<int, 2> material_sum, sum_pieces;
@@ -206,7 +206,7 @@ vec2<eval_t> sigmoid2(vec2<eval_t> x) const {
                   -48, -43, -37, -32, -26, -19, -13, -7, 0}),
     #include "pst.h"
     #include "eval_features.h"
-    material_sum(), sum_pieces(), num_pieces(), material_eval(),
+    mob_weights(), material_sum(), sum_pieces(), num_pieces(), material_eval(),
     attack_arr(), attack_arr_ix(), attack_bb(), defend_bb(),
     mobility_curve(), imbalances()
     {

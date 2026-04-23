@@ -2,19 +2,33 @@
 #include <memory>
 #include <map>
 #include <thread>
+#include <fstream>
 
 class k2 : public engine
 {
 
 public:
 
-    k2() : commands(), force(false), quit(false), silent_mode(false),
-           xboard(false), uci(false), max_depth(max_ply), search_moves(),
-           not_search_moves(), time_for_move(0), time_per_time_control(60),
-           time_inc(0), current_clock(60), moves_per_time_control(0),
-           moves_to_go(0), move_cr(0), use_thread(USE_THREAD), thr(),
-           rnd_gen(0) {
+    k2() : commands(), train_features(), force(false), quit(false),
+            silent_mode(false), xboard(false), uci(false), max_depth(max_ply),
+            search_moves(), not_search_moves(), time_for_move(0),
+            time_per_time_control(60), time_inc(0), current_clock(60),
+            moves_per_time_control(0), moves_to_go(0), move_cr(0),
+            use_thread(USE_THREAD), thr(), rnd_gen(0), training_positions() {
         rnd_gen = std::mt19937(unsigned(time(nullptr)));
+        train_features = {
+            &piece_values[pawn_ix], &piece_values[knight_ix],
+            &piece_values[bishop_ix], &piece_values[rook_ix],
+            &piece_values[queen_ix],
+            &king_saf_no_shelter, &king_saf_attacks1, &king_saf_attacks2,
+            &mob_Kx, &mob_Bx, &mob_Ky, &mob_By, &mob_PN, &mob_BR, &mob_QK,
+            &pawn_doubled, &pawn_isolated, &pawn_dbl_iso, &pawn_hole, &pawn_gap,
+            &pawn_king_tropism1, &pawn_king_tropism2, &pawn_king_tropism3,
+            &pawn_pass0, &pawn_pass1, &pawn_pass2, &pawn_blk_pass0,
+            &pawn_blk_pass1, &pawn_blk_pass2, &pawn_unstoppable,
+            &hang_pieces1, &hang_pieces2,&bishop_pair,
+            &imb_PPp, &imb_Pn, &imb_Pb, &imb_Nr, &imb_Br, &imb_no_pawns
+        };
     }
 
     void start();
@@ -22,6 +36,7 @@ public:
 
     typedef void(k2::*method_ptr)(const std::string &);
     std::map<std::string, std::pair<method_ptr, bool>> commands;
+    std::vector<vec2<eval_t> *> train_features;
 
     void new_command(const std::string &in);
     void force_command(const std::string &in);
@@ -45,8 +60,17 @@ public:
     void setoption_command(const std::string &in);
     void void_command(const std::string &in);
     void execute_search();
+    void traindata_command(const std::string &in);
+    void trainresult_cmd(const std::string &in);
+    void trainvec_command(const std::string &in);
 
 protected:
+
+    struct train_pos_s {
+        std::array<std::array<u64, occupancy_ix + 1>, 2> bb;
+        bool side;
+        float result;
+    };
 
     bool force, quit, silent_mode, xboard, uci;
     i8 max_depth;
@@ -57,6 +81,7 @@ protected:
     bool use_thread;
     std::thread thr;
     std::mt19937 rnd_gen;
+    std::vector<train_pos_s> training_positions;
 
     const double time_margin = 0.02;
     const int aspiration_margin = 43;
@@ -78,12 +103,14 @@ protected:
     void uci_go_movetime(const std::string &in);
     void uci_go_searchmoves(const std::string &in);
     bool root_bounds(int x, int &alpha, int &beta, int &margin) const;
-
     bool looks_like_move(const std::string &in) const;
     move_s root_search(const i8 depth, int alpha_orig, const int beta,
                        std::vector<move_s> &moves, int &val);
     void print_search_iteration_result(i8 dpt, int val, std::string ending);
     std::string uci_score(int val) const;
+    double eval_error();
+    train_pos_s parse_position(const std::string &in, float result);
+    void apply_training_position(const train_pos_s &pos);
 
 
     void timer_start() {
@@ -121,5 +148,11 @@ protected:
         else if(x1 + x2 <= -material_values[king_ix])
             return -material_values[king_ix];
         return x1 + x2;
+    }
+
+    double sigmoid(double x) const
+    {
+        double K = 1.3;
+        return 1/(1 + pow(10, -K*x/400));
     }
 };
