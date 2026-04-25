@@ -87,8 +87,9 @@ void k2::main_search() {
     auto moves = gen_moves();
     std::shuffle(moves.begin(), moves.end(), rnd_gen);
     move_s best_move = moves.at(0);
-    i8 depth = 1;
-    int val = 0, alpha , beta, margin = aspiration_margin, mate_cr = 0;
+    int depth = 1;
+    eval_t val = 0, alpha, beta, margin = aspiration_margin;
+    int mate_cr = 0;
     for (; !stop && depth <= max_depth && mate_cr < max_mate_cr; ++depth) {
         for (unsigned i = 1; i < pv.size(); ++i)
             pv.at(i).clear();
@@ -105,12 +106,11 @@ void k2::main_search() {
 }
 
 
-k2::move_s k2::root_search(const i8 depth, int alpha,
-                           const int beta, std::vector<move_s> &moves,
-                           int &val) {
-    const bool in_check = is_in_check(side);
+k2::move_s k2::root_search(int depth, eval_t alpha, eval_t beta,
+                           std::vector<move_s> &moves, eval_t &val) {
+    bool in_check = is_in_check(side);
     move_s best_move = moves.at(0);
-    int alpha_orig = alpha;
+    eval_t alpha_orig = alpha;
     pv.at(0).clear();
     unsigned move_num = 0;
     for (; move_num < moves.size(); ++move_num) {
@@ -120,11 +120,12 @@ k2::move_s k2::root_search(const i8 depth, int alpha,
         if (search_moves.size() && !search_moves.count(s))
             continue;
         make_move(moves.at(move_num));
-        val = search_cur_pos(depth, alpha, beta, moves.at(move_num), move_num,
-                             move_num ? cut_node : pv_node, in_check);
+        val = search_deeper(depth, alpha, beta, moves.at(move_num), move_num,
+                            move_num ? cut_node : pv_node, in_check);
         unmake_move();
         if (stop) {
-            print_search_iteration_result(i8(depth-(move_num == 1)), alpha, "");
+            print_search_iteration_result(int(depth - (move_num == 1)),
+                                          alpha, "");
             break;
         }
         else if (val >= beta) {
@@ -150,15 +151,15 @@ k2::move_s k2::root_search(const i8 depth, int alpha,
         pv.at(0).push_back(moves.at(0));
         print_search_iteration_result(depth, alpha, "\b?");
     }
-    search_result(val, alpha_orig, alpha, beta, depth, depth,
-                  best_move, unsigned(moves.size()), in_check);
+    result_value(val, alpha_orig, alpha, beta, depth, depth,
+                best_move, unsigned(moves.size()), in_check);
     reduce_history();
     return best_move;
 }
 
 
-bool k2::root_bounds(int val, int &alpha, int &beta, int &margin) const {
-    static int prev_val;
+bool k2::root_bounds(eval_t val, eval_t &alpha, eval_t &beta, eval_t &margin) const {
+    static eval_t prev_val;
     if(stop)
         return false;
 
@@ -180,11 +181,10 @@ bool k2::root_bounds(int val, int &alpha, int &beta, int &margin) const {
         beta = sum_eval(beta, aspiration_factor*(beta - alpha));
     }
     else {
-        int goal = 32*std::abs(val - prev_val)/aspiration_goal;
+        eval_t goal = 32*std::abs(val - prev_val)/aspiration_goal;
         margin += 8*(goal - margin)/aspiration_k_flt;
         alpha = sum_eval(val, -margin);
         beta = sum_eval(val, margin);
-//        std::cout << alpha << ", " << beta << ", " << margin << std::endl;
         prev_val = val;
         return false;
     }
@@ -358,7 +358,7 @@ void k2::execute_search() {
 
 
 void k2::sd_command(const std::string &in) {
-    auto depth = i8(std::atoi(in.c_str()));
+    int depth = std::atoi(in.c_str());
     if (depth < 0 || (depth == 0 && in != "0"))
         cout << "Wrong depth" << endl;
     max_depth = depth;
@@ -560,9 +560,9 @@ void k2::void_command(const std::string &in) {
 }
 
 
-void k2::print_search_iteration_result(i8 depth, int val, std::string ending) {
+void k2::print_search_iteration_result(int depth, eval_t val, std::string ending) {
     std::string pv_str;
-    static int prev_val;
+    static eval_t prev_val;
     static std::string prev_pv;
     if (silent_mode)
         return;
@@ -583,7 +583,7 @@ void k2::print_search_iteration_result(i8 depth, int val, std::string ending) {
         ending = " upperbound";
     else if (ending.back() == '?')
         ending = " lowerbound";
-    cout << "info depth " << int(depth) << uci_score(val)
+    cout << "info depth " << int(depth) << uci_score(int(val))
         << ending << " time " << int(1000*time_elapsed())
         << " nodes " << nodes << " pv " << pv_str << endl;
 }
@@ -591,12 +591,12 @@ void k2::print_search_iteration_result(i8 depth, int val, std::string ending) {
 
 std::string k2::uci_score(int val) const {
     std::string ans = " score ";
-    if (std::abs(val) < material_values[king_ix] - max_ply) {
+    if (std::abs(val) < int(material_values[king_ix]) - max_ply) {
         ans += "cp " + std::to_string(val);
         return ans;
     }
     ans += "mate ";
-    int mate_depth = (material_values[king_ix] - std::abs(val) + 1)/2;
+    int mate_depth = (int(material_values[king_ix]) - std::abs(val) + 1)/2;
     if (val < 0)
         ans += "-";
     ans += std::to_string(mate_depth);

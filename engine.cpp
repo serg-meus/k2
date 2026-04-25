@@ -4,10 +4,11 @@ using eval_t = eval::eval_t;
 using move_s = chess::move_s;
 
 
-int engine::search(const int depth_orig, const int alpha_orig, const int beta,
-                   const int node_type, const bool in_check) {
+eval_t engine::search(const int depth_orig, const eval_t alpha_orig,
+                      const eval_t beta, const int node_type,
+                      const bool in_check) {
     move_s cur_move, tt_move = not_a_move;
-    int val = 0, alpha = alpha_orig;
+    eval_t val = 0, alpha = alpha_orig;
     if (tt_probe(depth_orig, alpha, beta, tt_move, node_type))
         return alpha;
     int depth = update_depth(depth_orig, in_check);
@@ -18,9 +19,9 @@ int engine::search(const int depth_orig, const int alpha_orig, const int beta,
         stage = pv_stage;
     pv.at(ply).clear();
     if (depth <= 3)
-        val = int(Eval());
+        val = Eval();
     if (val <= -material_values[king_ix])
-        return val + int(ply);
+        return val + eval_t(ply);
     if (depth <= 0 && val >= beta)
         return beta;
     else if (depth <= 0 && val > alpha)
@@ -38,8 +39,8 @@ int engine::search(const int depth_orig, const int alpha_orig, const int beta,
             continue;
         }
         legal_moves++;
-        val = search_cur_pos(depth, alpha, beta, cur_move,
-                             move_num, node_type, in_check);
+        val = search_deeper(depth, alpha, beta, cur_move,
+                            move_num, node_type, in_check);
         unmake_move();
         if (!stop && (val >= beta || val > alpha)) {
             best_move_num = move_num;
@@ -51,14 +52,14 @@ int engine::search(const int depth_orig, const int alpha_orig, const int beta,
         }
     }
     move_s best_move = legal_moves ? moves.at(best_move_num) : not_a_move;
-    return search_result(val, alpha_orig, alpha, beta, depth, depth_orig,
+    return result_value(val, alpha_orig, alpha, beta, depth, depth_orig,
         best_move, legal_moves, in_check);
 }
 
 
-int engine::search_cur_pos(int depth, const int alpha, const int beta,
-                           const move_s cur_move, const unsigned move_num,
-                           const int node_type, const bool was_check) {
+eval_t engine::search_deeper(int depth, const eval_t alpha, const eval_t beta,
+                             const move_s cur_move, const unsigned move_num,
+                             const int node_type, const bool was_check) {
     if ((max_nodes != 0 && nodes >= max_nodes) ||
             (max_nodes == 0 && time_elapsed() > max_time_for_move)) {
         stop = true;
@@ -72,20 +73,18 @@ int engine::search_cur_pos(int depth, const int alpha, const int beta,
     if (depth <= 0)
         return -search(depth - 1, -beta, -alpha, -node_type, in_check);
     if (search_draw() || hash_keys.find(hash_key) != hash_keys.end())
-        return search_result(0, 0, 0, 0, depth, depth, not_a_move, 0, false);
+        return result_value(0, 0, 0, 0, depth, depth, not_a_move, 0, false);
     const int lmr = late_move_reduction(depth, cur_move, was_check, in_check,
                                         move_num);
-    int val;
+    eval_t val;
     if (move_num == 0)
         val = -search(depth - 1, -beta, -alpha, -node_type, in_check);
-    else if(beta > alpha + 1)
-    {
+    else if(beta > alpha + 1) {
         val = -search(depth - 1 - lmr, -alpha - 1, -alpha, cut_node, in_check);
         if(val > alpha)
             val = -search(depth - 1, -beta, -alpha, pv_node, in_check);
     }
-    else
-    {
+    else {
         val = -search(depth-1 - lmr, -alpha - 1, -alpha, -node_type, in_check);
         if(lmr && val > alpha)
             val = -search(depth - 1, -alpha - 1, -alpha, cut_node, in_check);
@@ -94,7 +93,7 @@ int engine::search_cur_pos(int depth, const int alpha, const int beta,
 }
 
 
-bool engine::tt_probe(const int depth, int &alpha, const int beta,
+bool engine::tt_probe(const int depth, eval_t &alpha, const eval_t beta,
                       move_s &tt_move, const int node_type) {
     const tt_entry_c *entry = tt.find(hash_key, u32(hash_key >> 32));
     if (entry == nullptr)
@@ -114,29 +113,29 @@ bool engine::tt_probe(const int depth, int &alpha, const int beta,
 }
 
 
-int engine::search_result(const int val, const int alpha_orig,
-                          const int alpha, const int beta, const int depth,
-                          const int depth_orig, move_s best_move,
-                          const unsigned legal_moves, const bool in_check) {
+eval_t engine::result_value(eval_t val, eval_t alpha_orig, eval_t alpha,
+                            eval_t beta, int depth, int depth_orig,
+                            move_s best_move, unsigned legal_moves,
+                            bool in_check) {
     if (stop)
         return 0;
-    int x;
+    eval_t ans;
     tt_bound bound_type;
     if (!legal_moves && depth > 0) {
-        x = in_check ? -material_values[king_ix] + int(ply) : 0;
+        ans = in_check ? -material_values[king_ix] + eval_t(ply) : 0;
         bound_type = tt_bound::exact;
         best_move = not_a_move;
         pv.at(ply).clear();
     }
     else {
-        x = val >= beta ? beta : (alpha > alpha_orig ? alpha : alpha_orig);
+        ans = val >= beta ? beta : (alpha > alpha_orig ? alpha : alpha_orig);
         bound_type = val >= beta ? tt_bound::upper :
             (alpha > alpha_orig ? tt_bound::exact : tt_bound::lower);
     }
-    tt_entry_c entry(u32(hash_key), best_move, i16(x),
+    tt_entry_c entry(u32(hash_key), best_move, i16(ans),
                      u8(bound_type), best_move.one_rep, i8(depth_orig));
     tt.add(entry, u32(hash_key >> 32));
-    return x;
+    return ans;
 }
 
 
@@ -315,10 +314,10 @@ void engine::apprice_move(move_s &move, const u64 max_hist) const {
         return;
     }
     int see = static_exchange_eval(move);
-    if (see < -material_values[king_ix]/2)
+    if (see < int(-material_values[king_ix]/2))
         see = 0;
     if (move.promo)
-        see += material_values.at(move.promo);
+        see += int(material_values.at(move.promo));
     int ans = see/40 + (see >= 0 ? 200 : 64);
     assert(u8(ans) >= 200 || u8(ans) <= 64);
     move.priority = u8(ans);
@@ -377,14 +376,14 @@ int engine::static_exchange_eval(const move_s move) const {
     if (ix == u8(-1) && move.index == pawn_ix &&
             get_col(move.from_coord) != get_col(move.to_coord))
         ix = pawn_ix;
-    int val = ix != u8(-1) ? material_values.at(ix) : 0;
+    int val = ix != u8(-1) ? int(material_values.at(ix)) : 0;
     see_vals[0] = val;
     auto occ = (bb[0][occupancy_ix] | bb[1][occupancy_ix] | to_bb) &
         ~one_nth_bit(move.from_coord);
     bool color = side;
     unsigned depth = 1;
     u64 attacker_bb;
-    int mat = 0, new_mat = material_values.at(move.index);
+    int mat = 0, new_mat = int(material_values.at(move.index));
     for (; depth < 30; ++depth) {
         color = !color;
         const u8 attacker_ix = min_attacker(move.to_coord, occ, color,
@@ -392,7 +391,7 @@ int engine::static_exchange_eval(const move_s move) const {
         if (attacker_ix == u8(-1))
             break;
         mat = new_mat;
-        new_mat = material_values.at(attacker_ix);
+        new_mat = int(material_values.at(attacker_ix));
         val = int(depth % 2 ? val - mat : val + mat);
         see_vals.at(depth) = depth % 2 ? -val : val;
         occ ^= lower_bit(attacker_bb);
@@ -434,8 +433,7 @@ void engine::update_cutoff_stats(const int depth, const move_s move) {
 }
 
 
-bool engine::null_move_pruning(const int depth, const int beta,
-                               const bool in_check) {
+bool engine::null_move_pruning(int depth, eval_t beta, bool in_check) {
     if (in_check || depth < 2 || ply < 2 || follow_pv)
         return false;
     if (done_moves.at(ply - 1).from_coord == done_moves.at(ply - 1).to_coord &&
@@ -447,7 +445,7 @@ bool engine::null_move_pruning(const int depth, const int beta,
     const u8 king_coord = trail_zeros(bb[side][king_ix]);
     make_move({king_ix, king_coord, king_coord, 0});
     const int R = depth > 6 ? 4 : 3;
-    const int x = -search(depth - R - 1, -beta, -beta + 1, all_node,
+    const eval_t x = -search(depth - R - 1, -beta, -beta + 1, all_node,
                           is_in_check(side));
     unmake_move();
     return x >= beta;

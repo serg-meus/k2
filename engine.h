@@ -9,7 +9,7 @@ class engine : public eval {
     public:
 
     const int all_node = -1, pv_node = 0, cut_node = 1;
-    static const i8 max_ply = 126;
+    static const int max_ply = 126;
 
     const double infinity = std::numeric_limits<double>::infinity();
 
@@ -118,22 +118,22 @@ class engine : public eval {
 
     static const unsigned megabyte = 1000000/sizeof(tt_entry_c);
 
-    int search(int depth, const int alpha, const int beta,
-               const int node_typ, const bool in_check);
+    eval_t search(int depth, const eval_t alpha, const eval_t beta,
+                  const int node_typ, const bool in_check);
     u64 tt_probe_perft(const int depth);
     int static_exchange_eval(const move_s move) const;
     move_s next_move(std::vector<move_s> &moves, move_s &tt_move,
                      unsigned &move_num, unsigned &stage,
                      int depth, bool in_check);
-    bool tt_probe(const int depth, int &alpha, const int beta,
+    bool tt_probe(const int depth, eval_t &alpha, const eval_t beta,
                   move_s &tt_move, const int node_type);
-    int search_cur_pos(int depth, const int alpha, const int beta,
-                       const move_s cur_move, unsigned int move_num,
-                       const int node_type, const bool in_check);
-    int search_result(const int val, const int alpha_orig,
-                      const int alpha, const int beta, const int depth,
-                      const int depth_orig, move_s best_move,
-                      const unsigned legal_moves, const bool in_check);
+    eval_t search_deeper(int depth, const eval_t alpha, const eval_t beta,
+                         const move_s cur_move, unsigned int move_num,
+                         const int node_type, const bool in_check);
+    eval_t result_value(eval_t val, eval_t alpha_orig,
+                        eval_t alpha, eval_t beta, int depth,
+                        int depth_orig, move_s best_move,
+                        unsigned legal_moves, bool in_check);
     void apprice_and_sort_moves(std::vector<move_s> &moves,
                                 const unsigned first_move_num,
                                 const gen_mode mode) const;
@@ -142,7 +142,7 @@ class engine : public eval {
     void update_cutoff_stats(const int depth, const move_s move);
     void erase_move(std::vector<move_s> &moves, const move_s move,
                         const unsigned first_ix) const;
-    bool null_move_pruning(const int dpt, const int beta,const bool in_check);
+    bool null_move_pruning(int dpt, eval_t beta, bool in_check);
     move_s gen_pv(std::vector<move_s> &moves, move_s &tt_move,
                   unsigned &move_num, unsigned &stage, int depth, bool in_chk);
     move_s gen_tt(std::vector<move_s> &moves, move_s &tt_move,
@@ -270,10 +270,11 @@ protected:
                 prev_move.priority > 64 && prev_prev.priority > 64);
     }
 
-    bool razoring(int &val, int depth, int beta, int node_type, bool in_check) {
+    bool razoring(eval_t &val, int depth, eval_t beta, int node_type,
+                  bool in_check) {
         if (node_type == pv_node || depth < 1 || depth > 4)
             return false;
-        int margins[] = {0, 60, 220, 250, 450};
+        eval_t margins[] = {0, 60, 220, 250, 450};
         int depths[]  = {0, -2,  -2,  -2,  -1};
         auto dpt = unsigned(depth);
         if (val < beta - margins[dpt]) {
@@ -310,7 +311,7 @@ protected:
         if (bb[0][rook_ix] + bb[1][rook_ix] + bb[0][queen_ix] +
                 bb[1][queen_ix] == 0)
             return false;
-        if (val + 40*(m.priority - 200) < alpha - 200)
+        if (val + 40*(eval_t(m.priority) - 200) < alpha - 200)
             return true;
         return false;
     }

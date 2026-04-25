@@ -95,7 +95,7 @@ class eval : public chess {
     matrix<nn_t, 1, 1> B3;
     matrix<nn_t, first_layer_size, 1> in2;
 
-    std::array<int, king_ix + 1> material_values;
+    std::array<eval_t, king_ix + 1> material_values;
     std::array<vec2<eval_t>, king_ix + 1> piece_values;
     std::array<eval_t, 64> sigmoid_data;
     vec2<eval_t> pst[king_ix + 1][64];

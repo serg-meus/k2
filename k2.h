@@ -73,7 +73,7 @@ protected:
     };
 
     bool force, quit, silent_mode, xboard, uci;
-    i8 max_depth;
+    int max_depth;
     std::set<std::string> search_moves, not_search_moves;
     double time_for_move, time_per_time_control,
         time_inc, current_clock;
@@ -84,11 +84,11 @@ protected:
     std::vector<train_pos_s> training_positions;
 
     const double time_margin = 0.02;
-    const int aspiration_margin = 43;
-    const int aspiration_factor = 3;
+    const eval_t aspiration_margin = 43;
+    const eval_t aspiration_factor = 3;
     const int max_mate_cr = 2;
-    const int aspiration_k_flt = 40;
-    const int aspiration_goal = 16;
+    const eval_t aspiration_k_flt = 40;
+    const eval_t aspiration_goal = 16;
 
     bool execute_command(const std::string &in);
     void uci_go_command(const std::string &in);
@@ -102,11 +102,12 @@ protected:
     void uci_go_movestogo(const std::string &in);
     void uci_go_movetime(const std::string &in);
     void uci_go_searchmoves(const std::string &in);
-    bool root_bounds(int x, int &alpha, int &beta, int &margin) const;
+    bool root_bounds(eval_t x, eval_t &alpha, eval_t &beta,
+                     eval_t &margin) const;
     bool looks_like_move(const std::string &in) const;
-    move_s root_search(const i8 depth, int alpha_orig, const int beta,
-                       std::vector<move_s> &moves, int &val);
-    void print_search_iteration_result(i8 dpt, int val, std::string ending);
+    move_s root_search(int depth, eval_t alpha_orig, eval_t beta,
+                       std::vector<move_s> &moves, eval_t &val);
+    void print_search_iteration_result(int dpt, eval_t val, std::string ending);
     std::string uci_score(int val) const;
     double eval_error();
     train_pos_s parse_position(const std::string &in, float result);
@@ -141,7 +142,7 @@ protected:
             max_time_for_move = current_clock - time_margin;
     }
 
-    int sum_eval(int x1, int x2) const
+    eval_t sum_eval(eval_t x1, eval_t x2) const
     {
         if(x1 + x2 >= material_values[king_ix])
             return material_values[king_ix];
