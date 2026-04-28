@@ -67,7 +67,7 @@ class eval_tst: public eval {
     using eval::eval_pawns;
     using eval::eval_mobility;
     using eval::fill_arrays;
-    using eval::bishop_pair;
+    using eval::imb_bishop_pair;
     using eval::mate_at_glance;
 };
 

@@ -110,7 +110,7 @@ void test_all::test_eval_material() {
     assert(E.eval_material(white) ==
         vec2<eval_t>(8, 8)*E.piece_values[pawn_ix] + E.piece_values[knight_ix]+
         vec2<eval_t>(2, 2)*E.piece_values[bishop_ix] +
-        E.piece_values[queen_ix] + bishop_pair);
+        E.piece_values[queen_ix] + imb_bishop_pair);
 }
 
 

@@ -81,7 +81,6 @@ class eval : public chess {
 
     protected:
 
-    typedef std::pair<const u16, vec2<eval_t>> Imb_pair;
     using fptr = nn_t(*)(nn_t);
     static const unsigned
     input_vector_size = 384,
@@ -96,17 +95,18 @@ class eval : public chess {
     matrix<nn_t, first_layer_size, 1> in2;
 
     std::array<eval_t, king_ix + 1> material_values;
-    std::array<vec2<eval_t>, king_ix + 1> piece_values;
     std::array<eval_t, 64> sigmoid_data;
     vec2<eval_t> pst[king_ix + 1][64];
-    vec2<eval_t> pawn_doubled, pawn_isolated, pawn_dbl_iso, pawn_hole,
-        pawn_gap, pawn_king_tropism1, pawn_king_tropism2,
-        pawn_king_tropism3, pawn_pass0, pawn_pass1, pawn_pass2, pawn_blk_pass0,
-        pawn_blk_pass1, pawn_blk_pass2, pawn_unstoppable,
+    std::array<vec2<eval_t>, king_ix> piece_values;
+    vec2<eval_t>
+        imb_bishop_pair, imb_PPp, imb_Pn, imb_Pb, imb_Nr, imb_Br, imb_no_pawns,
         king_saf_no_shelter, king_saf_attacks1, king_saf_attacks2,
-        bishop_pair, hang_pieces1, hang_pieces2, mob_Kx, mob_Bx, mob_Ky, mob_By,
-        mob_PN, mob_BR, mob_QK, imb_PPp, imb_Pn, imb_Pb, imb_Nr, imb_Br,
-        imb_no_pawns;
+        mob_Kx, mob_Bx, mob_Ky, mob_By, mob_PN, mob_BR, mob_QK,
+        pawn_doubled, pawn_isolated, pawn_dbl_iso, pawn_hole, pawn_gap,
+        pawn_king_tropism1, pawn_king_tropism2, pawn_king_tropism3,
+        pawn_pass0, pawn_pass1, pawn_pass2, pawn_blk_pass0, pawn_blk_pass1,
+        pawn_blk_pass2, pawn_unstoppable,
+        hang_pieces1, hang_pieces2;
     std::array<eval_t, 6> mob_weights;
     std::array<int, 2> material_sum, sum_pieces;
     std::array<std::array<u8, occupancy_ix>, 2> num_pieces;
@@ -199,8 +199,6 @@ vec2<eval_t> sigmoid2(vec2<eval_t> x) const {
     #include "nn_data.h"
     in2({0}),
     material_values({{100, 390, 410, 600, 1000, 32000}}),
-    piece_values({{{100, 128}, {450, 370}, {470, 390}, {560, 680},
-        {1170, 1290}}}),
     sigmoid_data({-100, -100, -99, -99, -98, -97, -96, -95, -94, -93, -92, -90,
                   -88, -86, -84, -82, -79, -76, -73, -70, -66, -62, -58, -53,
                   -48, -43, -37, -32, -26, -19, -13, -7, 0}),

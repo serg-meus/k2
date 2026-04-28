@@ -20,14 +20,15 @@ public:
             &piece_values[pawn_ix], &piece_values[knight_ix],
             &piece_values[bishop_ix], &piece_values[rook_ix],
             &piece_values[queen_ix],
+            &imb_bishop_pair, &imb_PPp, &imb_Pn, &imb_Pb, &imb_Nr, &imb_Br,
+            &imb_no_pawns,
             &king_saf_no_shelter, &king_saf_attacks1, &king_saf_attacks2,
-            &mob_Kx, &mob_Bx, &mob_Ky, &mob_By, &mob_PN, &mob_BR, &mob_QK,
+            &mob_Kx, &mob_Bx, &mob_Ky, &mob_By, &mob_BR, &mob_QK,
             &pawn_doubled, &pawn_isolated, &pawn_dbl_iso, &pawn_hole, &pawn_gap,
             &pawn_king_tropism1, &pawn_king_tropism2, &pawn_king_tropism3,
             &pawn_pass0, &pawn_pass1, &pawn_pass2, &pawn_blk_pass0,
             &pawn_blk_pass1, &pawn_blk_pass2, &pawn_unstoppable,
-            &hang_pieces1, &hang_pieces2,&bishop_pair,
-            &imb_PPp, &imb_Pn, &imb_Pb, &imb_Nr, &imb_Br, &imb_no_pawns
+            &hang_pieces1, &hang_pieces2,
         };
     }
 
@@ -63,6 +64,7 @@ public:
     void traindata_command(const std::string &in);
     void trainresult_cmd(const std::string &in);
     void trainvec_command(const std::string &in);
+    void fen_command(const std::string &in);
 
 protected:
 

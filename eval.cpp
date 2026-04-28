@@ -77,7 +77,7 @@ vec2 eval::eval_material(bool color) {
 
     if (popcount(bb[color][bishop_ix] & dark_squares) >= 1 &&
             popcount(bb[color][bishop_ix] & light_squares) >= 1)
-        ans += bishop_pair;
+        ans += imb_bishop_pair;
     if (!(bb[0][pawn_ix] | bb[1][pawn_ix]))
         ans = ans*imb_no_pawns/32;
     return ans;
@@ -273,11 +273,11 @@ void eval::fill_mobility_curve() {
 
 
 void eval::fill_imbalances_map() {
-    imbalances.insert(Imb_pair(1, imb_PPp));
-    imbalances.insert(Imb_pair(0x71, imb_Pn));
-    imbalances.insert(Imb_pair(0x381, imb_Pb));
-    imbalances.insert(Imb_pair(0x1c10, imb_Nr));
-    imbalances.insert(Imb_pair(0x1c80, imb_Br));
+    imbalances[1] = imb_PPp;
+    imbalances[0x71] = imb_Pn;
+    imbalances[0x381] = imb_Pb;
+    imbalances[0x1c10] = imb_Nr;
+    imbalances[0x1c80] = imb_Br;
 }
 
 

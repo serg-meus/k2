@@ -42,6 +42,7 @@ int main(int argc, char* argv[]) {
         {"setoption",   {&k2::setoption_command,false}},
         {"stop",        {&k2::void_command,     true}},
         {"?",           {&k2::void_command,     true}},
+        {"fen",         {&k2::fen_command,      false}},
         {"train_data",  {&k2::traindata_command,true}},
         {"train_result",{&k2::trainresult_cmd,  true}},
         {"train_vec",   {&k2::trainvec_command, true}},
@@ -432,6 +433,12 @@ void k2::isready_command(const std::string &in) {
 }
 
 
+void k2::fen_command(const std::string &in) {
+    (void)(in);
+    cout << board_to_fen() << std::endl;
+}
+
+
 void k2::position_command(const std::string &in) {
     auto args = split(in, ' ', 1);
     if (args.at(0) == "fen")
@@ -660,6 +667,7 @@ double k2::eval_error()
         double sq_dif = dif*dif;
         sum += sq_dif;
     }
+    setup_position(start_pos);
     return sum / double(training_positions.size());
 }
 
